@@ -6,7 +6,7 @@ html,body{
     position: relative;
     width:100%;
     overflow: hidden;
-    height: 350px;
+    height: 420px;
     background:url(/src/img/header/header-title.png);
     background-repeat : no-repeat;
     background-size : cover;
