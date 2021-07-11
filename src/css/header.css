@@ -1,0 +1,20 @@
+html,body{
+    margin: 0px;
+    padding: 0px;
+}
+.header {
+    position: relative;
+    width:100%;
+    overflow: hidden;
+    height: 350px;
+    background:url(/src/img/test.png);
+    background-repeat : no-repeat;
+    background-size : cover;
+    z-index: 2000;
+}
+.header-title{
+    margin: 0px;
+    padding: 0px;
+    line-height: 350px;
+    text-align: center;
+}
