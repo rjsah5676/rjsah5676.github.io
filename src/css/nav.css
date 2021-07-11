@@ -9,14 +9,14 @@
 .nav-bar li {
     flex: 1;
     text-align: center;
-    background-color:dimgray;
-    font-size: 30px;
+    background-color:silver;
+    font-size: 25px;
     height: 45px;
     cursor: pointer;
     line-height: 45px;
 }
 .nav-bar li:hover {
-    background-color: black;
+    background-color: dimgray;
 }
 .nav-bar li:hover .nav-link {
     color: white;
@@ -27,7 +27,7 @@
     color: black;
 }
 
-@media screen and (max-width: 770px){
+@media screen and (max-width: 700px){
     .nav-bar li {
         font-size: 18px;
     }

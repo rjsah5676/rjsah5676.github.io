@@ -5,7 +5,7 @@ class Header extends Component {
     render() {
         return(
             <div class="header">
-                <a class="header-title" href="/">Gunmo Lee</a>
+                <b><a class="header-title" href="/">Gunmo Lee</a></b>
             </div>
         );
     };
