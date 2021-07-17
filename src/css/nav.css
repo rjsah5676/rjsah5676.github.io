@@ -19,13 +19,26 @@
 .nav-bar li:hover {
     background-color: dimgray;
 }
-.nav-bar li:hover .nav-link {
+.nav-bar li:hover a {
     color: white;
 }
-.nav-link {
+
+.nav-bar li:hover .active {
+    color: white;
+}
+.nav-bar li a{
     text-decoration: none;
     font-family: 'Jua', sans-serif;
     color: black;
+}
+
+.active {
+    text-decoration: none;
+    font-family: 'Jua', sans-serif;
+    color: black;
+    padding: 4px;
+    border-width: 0px 0px 3px 0px;
+    border-style: solid;
 }
 
 @media screen and (max-width: 700px){

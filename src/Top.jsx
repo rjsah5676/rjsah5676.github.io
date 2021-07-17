@@ -1,33 +1,15 @@
 import React, { Component } from 'react';
-import { Navbar } from "react-bootstrap";
-import { NavLink } from "react-router-dom";
-import './css/top.css';
+import { Route } from "react-router-dom";
+import TopHome from './Page/Top/TopHome';
+import TopNone from './Page/Top/TopNone'
 
 class Top extends Component {
-    render() {
-        const buttonStyle = {
-
-          };
+    render() {   
         return(
-            <div class="top">  
-            <a href="/">
-                <div class="top-left">
-                    <table>
-                        <tr>
-                            <td><div class="top-left-img"/></td>
-                            <td><div class="top-left-title"><b>Gunmo's Dev Life</b></div></td>
-                        </tr>
-                    </table>
-                </div>
-            </a>
-            <div class="top-right">
-                <table>
-                        <tr>
-                            <td><div class="top-right-home"><a href="/">Home</a></div></td>
-                            <td><div class="top-right-archives">Archives</div></td>
-                        </tr>
-                    </table>
-                </div>
+            <div>
+                <Route exact path="/" component={TopHome}></Route>
+                <Route exact path="/info" component={TopNone}></Route>
+                <Route exact path="/algorithm" component={TopNone}></Route>
             </div>
         );
     };
