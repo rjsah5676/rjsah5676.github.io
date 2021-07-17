@@ -1,0 +1,50 @@
+.top {
+    background-color: white;
+    z-index: 2000;
+    position: fixed;
+    width: 100%;
+    height: 55px;
+}
+
+.top-left{
+    float:left;
+    margin-left: 50px;
+}
+
+.top-left-img {
+    width:50px;
+    height:50px;
+    background:url(/src/img/top/logo.PNG);
+    background-position: center;
+    background-size: cover;
+}
+
+.top-left-title {
+    transition: all 0.5s;
+    text-decoration: none;
+    color:black;
+    margin-left:5px;
+    font-family: 'Roboto', sans-serif;
+}
+
+.top-left-title:hover {
+    color:grey;
+}
+
+.top-right{
+    float:right;
+    line-height: 55px;
+    margin-right: 50px;
+    font-family: 'Roboto', sans-serif;
+}
+
+.top-right-home{
+    margin-right: 10px;
+}
+.top-right-archives{
+    color:black;
+}
+.top-right-home a{
+    text-decoration: none;
+    color: black;
+}

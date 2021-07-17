@@ -5,10 +5,12 @@ import Header from './Header';
 import Nav from './Nav';
 import Body from './Body';
 import Footer from './Footer';
+import Top from './Top';
 
 ReactDOM.render(
   <div>
     <HashRouter>
+      <Top/>
       <Header/>
       <Nav/>
       <Body/>
