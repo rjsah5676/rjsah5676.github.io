@@ -27,6 +27,7 @@
     margin:auto;
 }
 .main_page-right {
+    margin-top: 15px;
     float:left;
 }
 .main_page-left-img {
@@ -40,4 +41,17 @@
 
 .main_page-right ul {
     list-style: none;
+    font-family: 'Roboto', sans-serif;
+}
+.main_page-right ul h2 {
+    margin: 10px 0px 10px 0px;
+    padding:0px;
+    border-left: black 5px solid;
+}
+
+.td_left {
+    font-weight:900;
+    border-right: black 2px solid;
+    border-bottom: black 2px solid;
+    width: 100px;
 }

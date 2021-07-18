@@ -4,8 +4,8 @@ import './css/header.css';
 class Header extends Component {
     render() { 
         return(
-            <div class="header">
-                <b><a class="header-title" href="/">Gunmo's Develop Life</a></b>
+            <div className="header">
+                <b className="header-title">Gunmo's Develop Life</b>
             </div>
         );
     };

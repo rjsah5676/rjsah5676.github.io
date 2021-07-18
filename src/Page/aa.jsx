@@ -1,16 +1,16 @@
 import React, { Component} from "react";
 import FadeIn from "../effect/FadeIn";
 
-class MyInfo extends Component {
+class aa extends Component {
   render (){
     return (
       <FadeIn>
         <div>
-          info페이지
+          aa
         </div>
       </FadeIn>
     );
   }
 }
 
-export default MyInfo;
+export default aa;

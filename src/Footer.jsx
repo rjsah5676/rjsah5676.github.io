@@ -8,7 +8,7 @@ class Footer extends Component {
             color: 'white'
         }
         return(
-            <div class="footer">
+            <div className="footer">
                 Copyright 2021. 이건모. All right Reserved<a style= {st} href="#/ewfwfeff">.</a>
             </div>
         );
