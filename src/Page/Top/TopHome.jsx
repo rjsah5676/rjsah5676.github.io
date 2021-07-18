@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import '../../css/top.css';
+import {NavLink} from 'react-router-dom';
 
 class TopHome extends Component {
     render() {
@@ -8,24 +9,27 @@ class TopHome extends Component {
             padding: '16px',
             borderWidth: '0px 0px 2px 0px',
             borderStyle: 'solid'
-        };        
+        };     
+        const topStyle2 = {
+            borderBottom: '0px'
+        };     
         return(
-            <div class="top">  
-            <a href="/">
-                <div class="top-left">
+            <div className="top">  
+            <NavLink to="/" style={topStyle2}>
+                <div className="top-left">
                     <table>
                         <tr>
-                            <td><div class="top-left-img"/></td>
-                            <td><div class="top-left-title"><b>Gunmo's Dev Life</b></div></td>
+                            <td><div className="top-left-img"/></td>
+                            <td><div className="top-left-title"><b>Gunmo's Dev Life</b></div></td>
                         </tr>
                     </table>
                 </div>
-            </a>
-            <div class="top-right">
+            </NavLink>
+            <div className="top-right">
                 <table>
                         <tr>
-                            <td><div class="top-right-home"><a href="/" style={topStyle}>Home</a></div></td>
-                            <td><div class="top-right-archives">Archives</div></td>
+                            <td><div className="top-right-home"> <NavLink className="activ" style={topStyle} to="/">Home</NavLink></div></td>
+                            <td><div className="top-right-archives">Archives</div></td>
                         </tr>
                     </table>
                 </div>

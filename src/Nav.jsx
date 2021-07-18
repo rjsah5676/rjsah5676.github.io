@@ -11,35 +11,44 @@ class Nav extends Component {
         function goToAlgo(){
             window.location.href='#/algorithm';
         }
+        function goToaa(){
+            window.location.href='#/aa';
+        }
+        function goTobb(){
+            window.location.href='#/bb';
+        }
+        function goTocc(){
+            window.location.href='#/cc';
+        }
         const buttonStyle = {
 
         };
         
         return(
-            <ul class="nav-bar">
+            <ul className="nav-bar">
                 <li onClick={goToInfo}>
                     <Navbar>
-                        <NavLink class="nav-link" to="/info">소개</NavLink>
+                        <NavLink className="nav-link" to="/info">소개</NavLink>
                     </Navbar>
                 </li>
                 <li onClick={goToAlgo}>
                     <Navbar style={buttonStyle}>
-                        <NavLink class="nav-link" to="/algorithm">알고리즘 공부</NavLink>
+                        <NavLink className="nav-link" to="/algorithm">알고리즘 공부</NavLink>
                     </Navbar>
                 </li>
-                <li>
+                <li onClick={goToaa}>
                     <Navbar style={buttonStyle}>
-                        <NavLink class="nav-link" to="/">생각중</NavLink>
+                        <NavLink className="nav-link" to="/aa">생각중</NavLink>
                     </Navbar>
                 </li>
-                <li>
+                <li onClick={goTobb}>
                     <Navbar style={buttonStyle}>
-                        <NavLink class="nav-link" to="/">생각중</NavLink>
+                        <NavLink className="nav-link" to="/bb">생각중</NavLink>
                     </Navbar>
                 </li>
-                <li>
+                <li onClick={goTocc}>
                     <Navbar style={buttonStyle}>
-                        <NavLink class="nav-link" to="/">사진</NavLink>
+                        <NavLink className="nav-link" to="/cc">사진</NavLink>
                     </Navbar>
                 </li>
             </ul>

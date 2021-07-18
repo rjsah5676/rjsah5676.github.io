@@ -13,7 +13,7 @@ ReactDOM.render(
       <Top/>
       <Header/>
       <Nav/>
-      <Body/>
+      <Body />
       <Footer/>
     </HashRouter>
   </div>,

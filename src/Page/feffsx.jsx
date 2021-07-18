@@ -4,7 +4,7 @@ import '../css/tatasf.css';
 class feffsx extends Component {
   render (){
     return (
-      <div class='axcca'>
+      <div className='axcca'>
         gg
       </div>
     );
