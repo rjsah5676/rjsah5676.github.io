@@ -1,0 +1,16 @@
+.info-img {
+    background:url(/src/img/Page/info/oks.jpg);
+    width:600px;
+    height:600px;
+    float:left;
+    background-position: center;
+    background-size: cover;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+.post-box pre{
+    font-family: 'Roboto', sans-serif;
+}
