@@ -12,7 +12,7 @@ class Nav extends Component {
             window.location.href='#/algorithm';
         }
         function goToaa(){
-            window.location.href='#/aa';
+            window.location.href='#/melongame';
         }
         function goTobb(){
             window.location.href='#/bb';
@@ -38,7 +38,7 @@ class Nav extends Component {
                 </li>
                 <li onClick={goToaa}>
                     <Navbar style={buttonStyle}>
-                        <NavLink className="nav-link" to="/aa">생각중</NavLink>
+                        <NavLink className="nav-link" to="/melongame">멜론 게임</NavLink>
                     </Navbar>
                 </li>
                 <li onClick={goTobb}>
