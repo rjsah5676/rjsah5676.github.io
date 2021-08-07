@@ -176,8 +176,8 @@ class melongame extends Component {
           var e_y=Math.max(up_mouse_y, down_mouse_y);
           var s_y=Math.min(up_mouse_y, down_mouse_y);
           var sum=0;
-          for(var i=parseInt(s_x/40);i<=parseInt(e_x/40);i++) {
-            for(var j=parseInt(s_y/40);j<=parseInt(e_y/40);j++) {
+          for(var i=parseInt((s_x+20)/40);i<=parseInt((e_x-20)/40);i++) {
+            for(var j=parseInt((s_y+20)/40);j<=parseInt((e_y-20)/40);j++) {
               sum+=melon_info[i][j];
             }
           }
