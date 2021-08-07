@@ -21,8 +21,6 @@ class melongame extends Component {
   }
   test() {
     var time=120;
-    var timet=0;
-    var startFlag=0;
     var cnt=0;
     var score=document.getElementById('score');
     var timer=document.getElementById('time');
@@ -85,20 +83,26 @@ class melongame extends Component {
         x();
       }
     };
-    startFlag=1;
     var down_mouse_x = 0;
     var down_mouse_y = 0;
     var up_mouse_x = 0;
     var up_mouse_y = 0;
     var drag = false;
-    function x()
+    function timeF()
     {
-      timet+=50;
-      if(timet==1000) {
         time-=1;
         timer.innerHTML="시간: "+time;
-        timet=0;
-      }
+        if(exiter.innerText==="stop") {
+          exiter.innerText="go";
+          time=0;
+          return;
+        }
+        if(time==0) return;
+      setTimeout(timeF,1000);
+    }
+    function x()
+    {
+      timeF();
       var stX,stY,startX,startY,endX,endY;
       context.lineWidth = 3; // 컨버스에 그리는 라인의 두께 설정
       context.strokeStyle = "#006cb7"
@@ -147,44 +151,50 @@ class melongame extends Component {
 
         function canvasDraw(currentX,currentY)
         {
-          context.clearRect(0,0,context.canvas.width,context.canvas.height) //설정된 영역만큼 캔버스에서 지움
-          context.drawImage(hiddenCanvas,0,0);
-          context.strokeRect(startX,startY,currentX-startX,currentY-startY) //시작점과 끝점의 좌표 정보로 사각형을 그려준다.
+          if(time!=0) {
+            context.clearRect(0,0,context.canvas.width,context.canvas.height) //설정된 영역만큼 캔버스에서 지움
+            context.drawImage(hiddenCanvas,0,0);
+            context.strokeRect(startX,startY,currentX-startX,currentY-startY) //시작점과 끝점의 좌표 정보로 사각형을 그려준다.
+          }
         }
       canvas.onmousedown = (e) => {
-        mDown(e);
-        const rect = canvas.getBoundingClientRect()
-        down_mouse_x=e.clientX-rect.left-100;
-        down_mouse_y=e.clientY-rect.top-100;
+        if(time!=0) {
+          mDown(e);
+          const rect = canvas.getBoundingClientRect()
+          down_mouse_x=e.clientX-rect.left-100;
+          down_mouse_y=e.clientY-rect.top-100;
+        }
       }
       canvas.onmouseup = (e) => {
-        mUp(e);
-        const rect = canvas.getBoundingClientRect()
-        up_mouse_x=e.clientX-rect.left-100;
-        up_mouse_y=e.clientY-rect.top-100;
-        var e_x=Math.max(up_mouse_x, down_mouse_x);
-        var s_x=Math.min(up_mouse_x, down_mouse_x);
-        var e_y=Math.max(up_mouse_y, down_mouse_y);
-        var s_y=Math.min(up_mouse_y, down_mouse_y);
-        var sum=0;
-        for(var i=parseInt(s_x/40);i<=parseInt(e_x/40);i++) {
-          for(var j=parseInt(s_y/40);j<=parseInt(e_y/40);j++) {
-            sum+=melon_info[i][j];
-          }
-        }
-        if(sum===10 || sum===20) {
-          var ss_x=parseInt(s_x/40),ss_y=parseInt(s_y/40);
-          var ee_x=parseInt(e_x/40),ee_y=parseInt(e_y/40);
-          for(var t=ss_x;t<=ee_x;t++) {
-            for(var s=ss_y;s<=ee_y;s++) {
-              cnt++;
-              melon_info[t][s]=0;
+        if(time!=0) {
+          mUp(e);
+          const rect = canvas.getBoundingClientRect()
+          up_mouse_x=e.clientX-rect.left-100;
+          up_mouse_y=e.clientY-rect.top-100;
+          var e_x=Math.max(up_mouse_x, down_mouse_x);
+          var s_x=Math.min(up_mouse_x, down_mouse_x);
+          var e_y=Math.max(up_mouse_y, down_mouse_y);
+          var s_y=Math.min(up_mouse_y, down_mouse_y);
+          var sum=0;
+          for(var i=parseInt(s_x/40);i<=parseInt(e_x/40);i++) {
+            for(var j=parseInt(s_y/40);j<=parseInt(e_y/40);j++) {
+              sum+=melon_info[i][j];
             }
           }
-          score.innerText="점수: " + cnt;
-          context.clearRect(140+(ss_x-1)*40,100+ss_y*40, (ee_x-ss_x+1)*40,(ee_y-ss_y+1)*40);
-          hiddenContext.clearRect(0,0,hiddenContext.canvas.width,hiddenContext.canvas.height);
-          hiddenContext.drawImage(canvas,0,0);
+          if(sum===10 || sum===20) {
+            var ss_x=parseInt(s_x/40),ss_y=parseInt(s_y/40);
+            var ee_x=parseInt(e_x/40),ee_y=parseInt(e_y/40);
+            for(var t=ss_x;t<=ee_x;t++) {
+              for(var s=ss_y;s<=ee_y;s++) {
+                cnt++;
+                melon_info[t][s]=0;
+              }
+            }
+            score.innerText="점수: " + cnt;
+            context.clearRect(140+(ss_x-1)*40,100+ss_y*40, (ee_x-ss_x+1)*40,(ee_y-ss_y+1)*40);
+            hiddenContext.clearRect(0,0,hiddenContext.canvas.width,hiddenContext.canvas.height);
+            hiddenContext.drawImage(canvas,0,0);
+          }
         }
       }/*
       if(time != 0 && exiter.innerText==="go")
