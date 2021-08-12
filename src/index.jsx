@@ -14,7 +14,7 @@ ReactDOM.render(
       <Header/>
       <Nav/>
       <Body />
-      <Footer/>
+    <Footer/>
     </HashRouter>
   </div>,
   document.querySelector('#container')
