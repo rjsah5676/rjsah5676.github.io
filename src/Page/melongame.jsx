@@ -14,6 +14,10 @@ import tmT from '../../src/img/melongame/tm_t.png';
 import bbyong_sound from '../../src/sounds/melongame/bbyong.mp3';
 import bsbgm from '../../src/sounds/melongame/bgm.mp3';
 import endbgm from '../../src/sounds/melongame/endbgm.mp3';
+import firebase from "../firebase";
+import { unstable_renderSubtreeIntoContainer } from "react-dom";
+
+var userName = "익명";
 
 var img_1 = new Image();
 var img_2 = new Image();
@@ -35,14 +39,44 @@ img_7.src=tmImg7;
 img_8.src=tmImg8;
 img_9.src=tmImg9;
 img_score.src=tmImg_score;
+var imgFlag = [false,false,false,false,false,false,false,false,false];
+img_1.onload = function(){
+  imgFlag[0]=true;
+}
+img_2.onload = function(){
+  imgFlag[1]=true;
+}
+img_3.onload = function(){
+  imgFlag[2]=true;
+}
+img_4.onload = function(){
+  imgFlag[3]=true;
+}
+img_5.onload = function(){
+  imgFlag[4]=true;
+}
+img_6.onload = function(){
+  imgFlag[5]=true;
+}
+img_7.onload = function(){
+  imgFlag[6]=true;
+}
+img_8.onload = function(){
+  imgFlag[7]=true;
+}
+img_9.onload = function(){
+  imgFlag[8]=true;
+}
 var bbyong = new Audio(bbyong_sound);
 var bgm = new Audio(bsbgm);
 var end_bgm = new Audio(endbgm);
+end_bgm.loop=false;
 bgm.loop=true;
 bgm.volume=0.7;
 bbyong.volume=0.5;
 var c_width = 1030;
 
+var time=130;
 var cnt=0;
 var canvas;
 var context;
@@ -50,8 +84,16 @@ var hiddenCanvas;
 var hiddenContext;
 var backCanvas;
 var backContext;
+
+
+var rankButton;
+var nameInput;
+const db = firebase.firestore();
+//db.collection("myName").add({name:"이석호"}); 
 class melongame extends Component {
   componentDidMount() {
+    rankButton = document.getElementById('rankButton');
+    nameInput = document.getElementById('userName');
     backCanvas = document.getElementById('backCanvas');
     backContext = backCanvas.getContext("2d");
     canvas = document.getElementById('melonCanvas');
@@ -67,14 +109,36 @@ class melongame extends Component {
     backContext.fillStyle="#E6FFFF";
     backContext.fillRect(60,60,910,580);
     backContext.fillRect(995,160,10,481);
+
+    var rankBox = document.getElementById('rankBox');
+    var userData = [];
+    var ct = 1;
+    db.collection("score").orderBy("score",'desc').limit(3).get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        rankBox.innerText += ct+"위: "+doc.data().name+" "+doc.data().score+"점\n";
+        ct+=1;
+      });                          // "testcol" 컬렉션내 도큐먼트 조회 후 출력
+    });
+  }
+  submitRank()
+  {
+    userName = nameInput.value;
+    db.collection("score").add({name:userName, score: cnt});
+    rankButton.style.display = "none";
+    nameInput.style.display = "none";
+    userName = "익명";
   }
   test2()
   {
-    var exiter=document.getElementById('exit');
-    exiter.innerText="stop";
+    time=-1;
   }
   test() {
+    rankButton.style.display = "none";
+    nameInput.style.display = "none";
+    for(var i=0; i<9;i++) if(!imgFlag[i]) return;
     cnt=0;
+    context.clearRect(0,0,context.canvas.width,context.canvas.height);
     backContext.clearRect(0,0,context.canvas.width,context.canvas.height);
     backContext.fillStyle="#E6FFFF";
     backContext.fillRect(60,60,910,580);
@@ -85,7 +149,7 @@ class melongame extends Component {
     backContext.fillStyle="#E6FFFF";
     backContext.fillRect(995,160,10,481);
     bgm.play();
-    var time=130;
+    time = 130;
     var exiter=document.getElementById('exit');
     exiter.innerText="go";
     var melon_info=new Array(40);
@@ -126,17 +190,12 @@ class melongame extends Component {
         time-=0.11;
         backContext.fillStyle="#00D8FF";
         backContext.fillRect(995,100,10,100+(120-time)*3.67);
-        if(exiter.innerText==="stop") {
-          backContext.fillStyle="#00D8FF";
-          backContext.fillRect(980,80,40,40);
-          exiter.innerText="go";
-          time=0;
-          bgm.pause();
-          return;
-        }
         if(time<0) {
+          rankButton.style.display = 'block';
+          nameInput.style.display = 'block';
           backContext.fillStyle="#00D8FF";
             backContext.fillRect(980,80,40,40);
+      bgm.currentTime = 0;
       bgm.pause();
       end_bgm.play();
 			context.fillStyle="white";
@@ -210,6 +269,7 @@ class melongame extends Component {
 
         function mDown(me)
         {
+          if(time<0) return;
             startX = me.offsetX;
             startY = me.offsetY;
             stX = me. offsetX ; //눌렀을 때 현재 마우스 X좌표를 stX에 담음
@@ -219,6 +279,7 @@ class melongame extends Component {
 
         function mUp(me)
         {
+          if(time<0) return;
             endX = me.offsetX
             endY = me.offsetY
             drag=false;
@@ -227,12 +288,14 @@ class melongame extends Component {
         }
         function mOut(me)
         {
+          if(time<0) return;
             drag = false ; //마우스가 캔버스 밖으로 벗어났을 때 그리기 중지
         }
 
         function canvasDraw(currentX,currentY)
         {
-          if(time!=0) {
+          if(time<0) return;
+          else {
             context.clearRect(0,0,context.canvas.width,context.canvas.height) //설정된 영역만큼 캔버스에서 지움
             context.drawImage(hiddenCanvas,0,0);
 			for(var t=t_sx;t<=t_ex;t++) {
@@ -250,7 +313,8 @@ class melongame extends Component {
           }
         }
       canvas.onmousedown = (e) => {
-        if(time!=0) {
+        if(time<0) return;
+        else {
           mDown(e);
           const rect = canvas.getBoundingClientRect()
           down_mouse_x=e.clientX-rect.left-100;
@@ -258,7 +322,8 @@ class melongame extends Component {
         }
       }
       canvas.onmouseup = (e) => {
-        if(time!=0) {
+        if(time<0) return;
+        else {
           mUp(e);
           /*const rect = canvas.getBoundingClientRect()
           up_mouse_x=e.clientX-rect.left-100;
@@ -279,19 +344,19 @@ class melongame extends Component {
             var ee_x=parseInt(e_x/40),ee_y=parseInt(e_y/40);
             for(var t=ss_x;t<=ee_x;t++) {
               for(var s=ss_y;s<=ee_y;s++) {
-                if(t>=0 && s>=0 && t<=20 && s<=11) {
+                if(t>=0 && s>=0 && t<=20 && s<=11 && melon_info[t][s] != 0) {
                         cnt++;
                         melon_info[t][s]=0;
                 }
                 if(t==ss_x && s==ss_y) bbyong.play();
               }
             }
-            context.fillStyle="#00D8FF";
-            context.fillRect(980,80,40,40);
-            context.fillStyle="white";
-            context.font="bold 20px Arial, sans-serif";
-            context.textAlign="center";
-            context.fillText(cnt, 999, 100, 30); 
+            backContext.fillStyle="#00D8FF";
+            backContext.fillRect(980,80,40,40);
+            backContext.fillStyle="white";
+            backContext.font="bold 20px Arial, sans-serif";
+            backContext.textAlign="center";
+            backContext.fillText(cnt, 999, 100, 30); 
             context.clearRect(140+(ss_x-1)*40,100+ss_y*40, (ee_x-ss_x+1)*40,(ee_y-ss_y+1)*40);
             hiddenContext.clearRect(0,0,hiddenContext.canvas.width,hiddenContext.canvas.height);
             hiddenContext.drawImage(canvas,0,0);
@@ -335,12 +400,25 @@ class melongame extends Component {
       backgroundColor: '#00D8FF',
       position:'absolute',
     };
+    const rankBoxStyle= {
+      display:'inline',
+      fontSize:'30px'
+    };
     return (
-      <div>
+      <FadeIn>
       <div style={wrapStyle}>
         <div id="exit" style={{display:'none'}}>go</div>
         <br/>
-        드래그하여 합이 10또는 20이 되도록 하면됩니다.
+        드래그하여 합이 10또는 20이 되도록 하면됩니다.<br/>
+        개발: lee gm / 디자인: tae hb / 음악: lee sh<br/>
+        게임실행에 문제가 있는경우 새로고침 후 시작을 눌러주세요<br/>
+        시간은 2분이 주어지며 종료시 스코어가 나옵니다.<br/>
+        시작버튼을 연속으로 누르면 시간이 두배로 가는 버그가 있습니다.<br/>
+        스코어가 나온후 왼쪽 아래에 랭킹등록 버튼이 나옵니다.<br/>
+        <br/>
+        <div id="rankBox" style={rankBoxStyle}>
+          랭킹<br/>
+        </div>
         <div style={{height:'0px'}}></div>
         <canvas style={canvasStyle} id='melonCanvas'>
 
@@ -353,9 +431,20 @@ class melongame extends Component {
         </canvas>
         <button style={{marginTop:'740px',marginLeft:'400px'}} onClick={this.test}>시작</button>
         <button onClick={this.test2}>종료</button>
+        <input id='userName' type="text" placeholder="이름" style={{display:"none"}}/>
+        <button id='rankButton' onClick={this.submitRank} style={{display:"none"}}> 랭킹 등록</button>
       </div>
-      <div style={{height:'1200px'}}></div>
+      <div style={{height:'1500px'}}></div>
+      <div style={{marginBottom:'100px'}}>
+      2021/08/07 - 로직 구현 및 기초 플레이 테스트<br/>
+      2021/08/10 - 드래그 이벤트 추가 및 멜론 디자인 입히기<br/>
+      2021/08/12 - bgm 추가 및 배경화면 디자인<br/>
+      2021/08/13 - 점수가 추가적으로 오르는 현상 수정, 게임이 종료되고나서도 플레이가 계속되는 현상 수정<br/>
+      종료시에 노래가 처음으로 돌아가도록 수정, 종료시 스코어가 사라지지 않던 오류 수정<br/>
+      호스팅 변경<br/>
+      2021/08/14 - 랭킹 추가<br/>
       </div>
+      </FadeIn>
     );
   }
 }

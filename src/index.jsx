@@ -6,6 +6,7 @@ import Nav from './Nav';
 import Body from './Body';
 import Footer from './Footer';
 import Top from './Top';
+import firebase from './firebase';
 
 ReactDOM.render(
   <div>
