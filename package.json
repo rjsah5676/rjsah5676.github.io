@@ -7,7 +7,6 @@
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
     "body-parser": "^1.19.0",
-    "concurrently": "^6.4.0",
     "cors": "^2.8.5",
     "cp": "^0.2.0",
     "express": "^4.17.1",
@@ -15,7 +14,6 @@
     "gatsby-plugin-disqus": "^1.2.2",
     "gh-pages": "^3.2.3",
     "jquery": "^3.6.0",
-    "nodemon": "^2.0.15",
     "react": "^17.0.2",
     "react-bootstrap": "^1.6.1",
     "react-dom": "^17.0.2",
@@ -27,9 +25,7 @@
     "web-vitals": "^1.1.2"
   },
   "scripts": {
-    "start": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "node ./servers/index.js",
-    "dev:client": "react-scripts start",
+    "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
