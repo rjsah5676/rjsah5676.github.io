@@ -1,0 +1,42 @@
+{
+  "files": {
+    "main.css": "/static/css/main.6c387306.chunk.css",
+    "main.js": "/static/js/main.f6a92803.chunk.js",
+    "main.js.map": "/static/js/main.f6a92803.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
+    "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
+    "static/js/2.4387d8b9.chunk.js": "/static/js/2.4387d8b9.chunk.js",
+    "static/js/2.4387d8b9.chunk.js.map": "/static/js/2.4387d8b9.chunk.js.map",
+    "index.html": "/index.html",
+    "static/css/main.6c387306.chunk.css.map": "/static/css/main.6c387306.chunk.css.map",
+    "static/js/2.4387d8b9.chunk.js.LICENSE.txt": "/static/js/2.4387d8b9.chunk.js.LICENSE.txt",
+    "static/media/bbyong.ca732c8c.mp3": "/static/media/bbyong.ca732c8c.mp3",
+    "static/media/bgm.0c2a9b64.mp3": "/static/media/bgm.0c2a9b64.mp3",
+    "static/media/endbgm.e9b606fc.mp3": "/static/media/endbgm.e9b606fc.mp3",
+    "static/media/tatasf.css": "/static/media/ffee.66b398ff.PNG",
+    "static/media/github.f4213b43.png": "/static/media/github.f4213b43.png",
+    "static/media/header.css": "/static/media/header-title.f558ee7e.png",
+    "static/media/info_calendar.82e2a1e8.png": "/static/media/info_calendar.82e2a1e8.png",
+    "static/media/top.css": "/static/media/logo.66b398ff.PNG",
+    "static/media/mainMelon.462a9337.png": "/static/media/mainMelon.462a9337.png",
+    "static/media/mainPage.css": "/static/media/main_left.74395b9a.jpg",
+    "static/media/info.css": "/static/media/oks.0eb191d5.jpg",
+    "static/media/tm1.25c3a76a.png": "/static/media/tm1.25c3a76a.png",
+    "static/media/tm2.5bb21e63.png": "/static/media/tm2.5bb21e63.png",
+    "static/media/tm3.9a876dc1.png": "/static/media/tm3.9a876dc1.png",
+    "static/media/tm4.6ac41505.png": "/static/media/tm4.6ac41505.png",
+    "static/media/tm5.18672eba.png": "/static/media/tm5.18672eba.png",
+    "static/media/tm6.5cd57833.png": "/static/media/tm6.5cd57833.png",
+    "static/media/tm7.032f76d8.png": "/static/media/tm7.032f76d8.png",
+    "static/media/tm8.3b5f7517.png": "/static/media/tm8.3b5f7517.png",
+    "static/media/tm9.8d4c08e9.png": "/static/media/tm9.8d4c08e9.png",
+    "static/media/tm_score.84d5f310.png": "/static/media/tm_score.84d5f310.png",
+    "static/media/tm_t.21ab9ad6.png": "/static/media/tm_t.21ab9ad6.png"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.0aa8ae79.js",
+    "static/js/2.4387d8b9.chunk.js",
+    "static/css/main.6c387306.chunk.css",
+    "static/js/main.f6a92803.chunk.js"
+  ]
+}
