@@ -67,12 +67,18 @@ class Nav extends Component {
                <li><a href="#/algorithm">알고리즘 공부</a></li>
                <li>
                    <a className="test-menu" href="#/melongame">게임</a>
-                    <ul className="test-sub">
+                    <ul className="test-sub-game">
                         <li><a href="#/melongame">멜론 게임</a></li>
                         <li><a href="#">테슷트</a></li>
                     </ul>
                </li>
-               <li><a href="#/info">생각중</a></li>
+               <li>
+                    <a href="#/info">생각중</a>
+                    <ul className="test-sub-plus">
+                        <li><a href="#">테슷트</a></li>
+                        <li><a href="#">테슷트</a></li>
+                    </ul>
+               </li>
                <li><a href="#/algorithm">사진</a></li>
                <div id="tesst"></div>
            </ul>
