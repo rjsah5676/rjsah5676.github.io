@@ -6,62 +6,28 @@ import $ from "jquery";
 
 class Nav extends Component {
     render() {
-        function goToInfo(){
-            window.location.href='#/info';
+        function navGo() {
+            document.addEventListener('scroll', onScroll, {passive: true});
+            function onScroll() {
+                const scrollpos = window.pageYOffset;
+                const nav = document.getElementById('test-nav');
+                const header = document.querySelector('.header');
+                if(373 <= scrollpos) {
+                    nav.style.position = "fixed";
+                    nav.style.top = '47px';
+                    nav.style.opacity = 0.8;
+                    header.style.marginBottom = '53px';
+                }
+                else {
+                    nav.style.position = "relative";
+                    nav.style.top = 0;
+                    nav.style.opacity = 1;
+                    header.style.marginBottom = '0px';
+                }
+            }
         }
-        function goToAlgo(){
-            window.location.href='#/algorithm';
-        }
-        function goToaa(){
-            window.location.href='#/melongame';
-        }
-        function goTobb(){
-            window.location.href='#/bb';
-        }
-        function goTocc(){
-            window.location.href='#/cc';
-        }
-        const buttonStyle = {
-
-        };
-        const subStyle = {
-            listStyleType: 'none'
-        };
+        navGo();
         return(
-            /*
-            <ul className="nav-bar">
-                <li onClick={goToInfo}>
-                    <Navbar>
-                        <NavLink className="nav-link" to="/info">소개</NavLink>
-                    </Navbar>
-                </li>
-                <li onClick={goToAlgo}>
-                    <Navbar style={buttonStyle}>
-                        <NavLink className="nav-link" to="/algorithm">알고리즘 공부</NavLink>
-                    </Navbar>
-                </li>
-                <li onClick={goToaa}>
-                    <Navbar style={buttonStyle}>
-                        <NavLink className="nav-link" to="/melongame">멜론 게임</NavLink>
-                    </Navbar>
-                    <div className="sub-menu">
-                        <Navbar style={buttonStyle}>
-                            <NavLink className="sub-link" to="/melongame">멜론 게임</NavLink>
-                        </Navbar>
-                    </div>
-                </li>
-                <li onClick={goTobb}>
-                    <Navbar style={buttonStyle}>
-                        <NavLink className="nav-link" to="/bb">생각중</NavLink>
-                    </Navbar>
-                </li>
-                <li onClick={goTocc}>
-                    <Navbar style={buttonStyle}>
-                        <NavLink className="nav-link" to="/cc">사진</NavLink>
-                    </Navbar>
-                </li>
-            </ul>
-            */
            <ul id="test-nav">
                <li><a href="#/info">소개</a></li>
                <li><a href="#/algorithm">알고리즘 공부</a></li>
