@@ -64,6 +64,8 @@
     height: 58px;
     padding: 0 0 0 0;
     position: relative;
+    width:100%;
+    z-index: 9999;
 }
 #test-nav li {
     position: relative;
@@ -145,7 +147,8 @@
 #test-nav ul li:hover {
     background-color: #121212;
     color: #00B4FF;
-}/*
+}
+/*
 #tesst {
     height: 16px;
     left: 13px;
