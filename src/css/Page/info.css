@@ -14,3 +14,36 @@ body {
 .post-box pre{
     font-family: 'Roboto', sans-serif;
 }
+
+.info-container{
+    background-color: #222222;
+    margin: 20px 20px 20px 20px;
+    border-radius: 15px;
+}
+.info-item{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    margin:20px 20px 100px 20px;
+}
+.info-image{
+    border-radius: 10px;
+    margin:10px;
+    grid-row:span 4;
+}
+.b {
+    font-size:25px;
+    color:#cccccc;
+    margin:5px;
+}
+.c {
+    background-color:yellow;
+    margin:5px;
+}
+.d {
+    background-color:green;
+    margin:5px;
+}
+.e {
+    background-color:pink;
+    margin:5px;
+}
