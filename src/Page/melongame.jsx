@@ -533,7 +533,7 @@ class melongame extends Component {
     };
     const rankBoxStyle= {
       position:'absolute',
-      fontSize:'30px',
+      fontSize:'20px',
       left:'5%'
     };
     const startButtonStyle = {

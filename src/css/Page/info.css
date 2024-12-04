@@ -1,12 +1,4 @@
-.info-img {
-    background:url(/src/img/Page/info/oks.jpg);
-    width:600px;
-    height:600px;
-    float:left;
-    background-position: center;
-    background-size: cover;
-}
-
+/*
 body {
     font-family: 'Roboto', sans-serif;
 }
@@ -14,36 +6,53 @@ body {
 .post-box pre{
     font-family: 'Roboto', sans-serif;
 }
-
+*/
 .info-container{
+    display:grid;
     background-color: #222222;
-    margin: 20px 20px 20px 20px;
+    margin: 20px 20px 50px 20px;
     border-radius: 15px;
 }
 .info-item{
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    margin:20px 20px 100px 20px;
+    margin:70px 20px 70px 20px;
 }
 .info-image{
+    margin:auto;
     border-radius: 10px;
-    margin:10px;
+
+    width:300px;
+    height:300px;
+    background-repeat: no-repeat;
+
     grid-row:span 4;
 }
-.b {
-    font-size:25px;
-    color:#cccccc;
+.info-title {
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: 600;
+    font-style: normal;
+    font-size:26px;
+
+    color:#eeeeee;
     margin:5px;
 }
-.c {
-    background-color:yellow;
+.info-desc {
+    font-family: 'Roboto', sans-serif;
+    color:#dddddd;
+
+    font-size:18px;
     margin:5px;
 }
-.d {
-    background-color:green;
+.info-tech {
+    color:#bbbbbb;
+    font-size:17px;
+    font-weight:600;
     margin:5px;
 }
-.e {
-    background-color:pink;
-    margin:5px;
+.info-link {
+    width:50px;
+    height:50px;
+    background-repeat: no-repeat;
+    margin-left:5px;
 }
