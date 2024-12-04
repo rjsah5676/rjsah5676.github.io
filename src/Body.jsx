@@ -8,7 +8,6 @@ import aa from "./Page/melongame";
 import bb from "./Page/bb";
 import cc from "./Page/cc";
 import feffsx from "./Page/feffsx";
-//import * as topFunc from './Top';
 import './css/Transition.css';
 import melongame from "./Page/melongame";
 import infoPage from "./Page/InfoPage";
@@ -22,7 +21,7 @@ class Body extends Component {
             <Route exact path="/algorithm" component={AlgoPage}></Route>
             <Route exact path="/ewfwfeff" component={feffsx}></Route>
             <Route exact path="/melongame" component={melongame}></Route>
-            <Route exact path="/infoPage" component={infoPage}></Route>
+            <Route path="/infoPage" component={infoPage}></Route>
             <Route exact path="/bb" component={bb}></Route>
             <Route exact path="/cc" component={cc}></Route>
             </div>
