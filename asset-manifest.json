@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.79331b77.chunk.css",
-    "main.js": "/static/js/main.e77847ff.chunk.js",
-    "main.js.map": "/static/js/main.e77847ff.chunk.js.map",
+    "main.css": "/static/css/main.b03dbcf7.chunk.css",
+    "main.js": "/static/js/main.06a54df4.chunk.js",
+    "main.js.map": "/static/js/main.06a54df4.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/js/2.81788699.chunk.js": "/static/js/2.81788699.chunk.js",
     "static/js/2.81788699.chunk.js.map": "/static/js/2.81788699.chunk.js.map",
     "index.html": "/index.html",
-    "static/css/main.79331b77.chunk.css.map": "/static/css/main.79331b77.chunk.css.map",
+    "static/css/main.b03dbcf7.chunk.css.map": "/static/css/main.b03dbcf7.chunk.css.map",
     "static/js/2.81788699.chunk.js.LICENSE.txt": "/static/js/2.81788699.chunk.js.LICENSE.txt",
     "static/media/AirBoard.7ee97f24.png": "/static/media/AirBoard.7ee97f24.png",
     "static/media/YoriJori.4507951f.png": "/static/media/YoriJori.4507951f.png",
@@ -36,7 +36,7 @@
   "entrypoints": [
     "static/js/runtime-main.0aa8ae79.js",
     "static/js/2.81788699.chunk.js",
-    "static/css/main.79331b77.chunk.css",
-    "static/js/main.e77847ff.chunk.js"
+    "static/css/main.b03dbcf7.chunk.css",
+    "static/js/main.06a54df4.chunk.js"
   ]
 }
