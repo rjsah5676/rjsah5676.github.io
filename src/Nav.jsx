@@ -29,8 +29,8 @@ class Nav extends Component {
         navGo();
         return(
            <ul id="test-nav">
-               <li><a href="#/info">소개</a></li>
-               <li><a href="#/algorithm">알고리즘 공부</a></li>
+               <li><a href="#/algorithm">소개</a></li>
+               <li><a href="#/info">프로젝트</a></li>
                <li>
                    <a className="test-menu" href="#/melongame">게임</a>
                     <ul className="test-sub-game">
@@ -39,7 +39,7 @@ class Nav extends Component {
                     </ul>
                </li>
                <li>
-                    <a href="#/info">생각중</a>
+                    <a href="#/algorithm">생각중</a>
                     <ul className="test-sub-plus">
                         <li><a href="#">테슷트</a></li>
                         <li><a href="#">테슷트</a></li>

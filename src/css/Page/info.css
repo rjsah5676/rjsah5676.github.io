@@ -14,14 +14,25 @@ body {
     border-radius: 15px;
 }
 .info-item{
+    width:1000px;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    margin:70px 20px 70px 20px;
+    margin:auto;
+    margin-top:50px;
+    margin-bottom:50px;
 }
+@media (max-width:950px) {
+    .info-item{
+        margin: 20 20 20 20;
+        grid-template-columns: repeat(1, 1fr);
+        grid-row:span 1;
+        width:100%;
+    }
+}
+
 .info-image{
     -webkit-transition: .5s ease-in-out;
 	transition: .5s ease-in-out;
-    margin:auto;
     border-radius: 10px;
 
     width:300px;
@@ -78,8 +89,14 @@ body {
     margin-left:5px;
 }
 .info-class {
+    text-align:center;
     color: white;
     font-weight:600;
     font-size: 40px;
-    margin-left: 30px;
+    margin-left: 100px;
+    margin-top: 70px;
+    margin-bottom: 40px;
+    margin-right: 100px;
+    border: 5px solid white;
+    border-radius: 9px;
 }
