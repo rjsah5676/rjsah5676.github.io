@@ -41,8 +41,8 @@ class MainPage extends Component {
                           <td>&nbsp;풍생고등학교 졸업</td>
                         </tr>
                         <tr>
-                          <td className="td_left">2016.03 ~ 2021.07</td>
-                          <td>&nbsp;아주대학교 소프트웨어학과 4학년 재학중</td>
+                          <td className="td_left">2016.03 ~ 2022.02</td>
+                          <td>&nbsp;아주대학교 소프트웨어학과 졸업</td>
                         </tr>
                         <tr>
                           <td className="td_left">2017.03 ~ 2018.12</td>

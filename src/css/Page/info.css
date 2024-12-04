@@ -19,6 +19,8 @@ body {
     margin:70px 20px 70px 20px;
 }
 .info-image{
+    -webkit-transition: .5s ease-in-out;
+	transition: .5s ease-in-out;
     margin:auto;
     border-radius: 10px;
 
@@ -28,7 +30,16 @@ body {
 
     grid-row:span 4;
 }
+.info-image:hover {
+	-webkit-transform: scale(1.07);
+	transform: scale(1.07);
+	-webkit-transition: .5s ease-in-out;
+	transition: .5s ease-in-out;
+
+}
 .info-title {
+    transition: all 0.5s;
+    text-decoration-line:none;
     font-family: Helvetica, Arial, sans-serif;
     font-weight: 600;
     font-style: normal;
@@ -37,6 +48,9 @@ body {
     color:#eeeeee;
     margin:5px;
 }
+.info-title:hover {
+    color:#aaaaaa;
+ }
 .info-desc {
     font-family: 'Roboto', sans-serif;
     color:#dddddd;
