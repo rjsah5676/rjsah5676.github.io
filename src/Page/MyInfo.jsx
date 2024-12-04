@@ -11,8 +11,8 @@ function MyInfo(props) {
     const [linkIndex, setLinkIndex] = useState(0);
     function renderItem(imgLink,title,desc,tech,idx) {
         return (<div className="info-item">
-                  <div style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
-                  <div className="info-title">{title}</div>
+                  <a href="" style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
+                  <a href="" className="info-title">{title}</a>
                   <div className="info-desc">{desc}</div>
                   <div className="info-tech"><pre>{tech}</pre></div>
                   <a onMouseOver={() => setLinkIndex(idx) }
