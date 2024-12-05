@@ -25,9 +25,9 @@ function MyInfo(props) {
                                 idx={1}/>
                      <InfoBox imgLink={taxImg}
                                 gitLink={"https://github.com/rjsah5676"}
-                                title={"TEST"}
-                                desc={"테스트 중"}
-                                tech={"TTTT   TTTT   TTTT   TTTT"}
+                                title={"[영천시 세무조사 사이트]"}
+                                desc={"세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."}
+                                tech={"JSP   Spring   Javascript   MySQL"}
                                 idx={2}/>
                       <div className="info-class">Personal Project</div>
                      <InfoBox imgLink={yoriJoriImg}
