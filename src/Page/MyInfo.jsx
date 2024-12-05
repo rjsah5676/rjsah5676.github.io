@@ -9,6 +9,7 @@ import gitImg from '../img/Page/info/github.png';
 import testImg from '../img/Page/info/Test.png';
 import gitHoverImg from '../img/Page/info/github_hover.png';
 import logoImg from '../img/Page/info/logo.PNG';
+import taxImg from '../img/Page/info/TaxProject.png';
 
 function MyInfo(props) {
     return (
@@ -22,7 +23,7 @@ function MyInfo(props) {
                                 desc={"웹 캠을 통한 필기 기능을 제공하는 화상 회의 플랫폼입니다."}
                                 tech={"Javascript   PeerJS   OpenCV   NodeJS   MongoDB"}
                                 idx={1}/>
-                     <InfoBox imgLink={testImg}
+                     <InfoBox imgLink={taxImg}
                                 gitLink={"https://github.com/rjsah5676"}
                                 title={"TEST"}
                                 desc={"테스트 중"}

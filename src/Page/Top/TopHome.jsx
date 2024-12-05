@@ -5,10 +5,11 @@ import {NavLink} from 'react-router-dom';
 class TopHome extends Component {
     render() {
         const topStyle = {
-            color: 'blue',
+            color: '#444444',
             padding: '16px',
             borderWidth: '0px 0px 2px 0px',
-            borderStyle: 'solid'
+            borderStyle: 'solid',
+            fontWeight: '800'
         };     
         const topStyle2 = {
             borderBottom: '0px'
