@@ -1,12 +1,8 @@
 import React, { useState, Component} from "react";
 import {Link} from 'react-router-dom';
 
-import airBoardImg from '../img/Page/info/AirBoard.png';
-import yoriJoriImg from '../img/Page/info/YoriJori.png';
 import gitImg from '../img/Page/info/github.png';
-import testImg from '../img/Page/info/Test.png';
 import gitHoverImg from '../img/Page/info/github_hover.png';
-import logoImg from '../img/Page/info/logo.PNG';
 
 function InfoBox({imgLink, gitLink, title,desc,tech,idx}) {
     const [linkIndex, setLinkIndex] = useState(0);

@@ -16,8 +16,6 @@ import bbyong_sound from '../../src/sounds/melongame/bbyong.mp3';
 import bsbgm from '../../src/sounds/melongame/bgm.mp3';
 import endbgm from '../../src/sounds/melongame/endbgm.mp3';
 import firebase from "../firebase";
-import { unstable_renderSubtreeIntoContainer } from "react-dom";
-
 
 var gameFlag = false;
 var userName = "익명";
@@ -138,7 +136,7 @@ class melongame extends Component {
       for(var i=0; i<8;i++) {
         var randImg = parseInt(Math.random()*9)+1;
         var tf = parseInt(Math.random()*9)+1;
-        if(i==4) {dy += 100;dx=500;}
+        if(i===4) {dy += 100;dx=500;}
         if(tf>=2) {
           if(randImg === 1) backContext.drawImage(img_1 ,dx, dy, 100, 100);
           else if(randImg === 2) backContext.drawImage(img_2 ,dx, dy, 100, 100);
@@ -185,7 +183,7 @@ class melongame extends Component {
     for(var i=0; i<8;i++) {
       var randImg = parseInt(Math.random()*9)+1;
       var tf = parseInt(Math.random()*9)+1;
-      if(i==4) {dy += 100;dx=500;}
+      if(i===4) {dy += 100;dx=500;}
       if(tf>=2) {
         if(randImg === 1) backContext.drawImage(img_1 ,dx, dy, 100, 100);
         else if(randImg === 2) backContext.drawImage(img_2 ,dx, dy, 100, 100);
@@ -235,14 +233,14 @@ class melongame extends Component {
 		if(p<21 && q<12) {
         melon_info[p][q]=parseInt(Math.random()*9)+1;
         melon_first=melon_info[p][q];
-		if(melon_first==1) {hiddenContext.drawImage(img_1 ,100+40*p, 100+q*40, 40, 40);}
-		else if(melon_first==2) {hiddenContext.drawImage(img_2 ,100+40*p, 100+q*40, 40, 40);}
-		else if(melon_first==3) {hiddenContext.drawImage(img_3 ,100+40*p, 100+q*40, 40, 40);}
-		else if(melon_first==4) {hiddenContext.drawImage(img_4 ,100+40*p, 100+q*40, 40, 40);}
-		else if(melon_first==5) {hiddenContext.drawImage(img_5 ,100+40*p, 100+q*40, 40, 40);}
-		else if(melon_first==6) {hiddenContext.drawImage(img_6 ,100+40*p, 100+q*40, 40, 40);}
-		else if(melon_first==7) {hiddenContext.drawImage(img_7 ,100+40*p, 100+q*40, 40, 40);}
-		else if(melon_first==8) {hiddenContext.drawImage(img_8 ,100+40*p, 100+q*40, 40, 40);}
+		if(melon_first===1) {hiddenContext.drawImage(img_1 ,100+40*p, 100+q*40, 40, 40);}
+		else if(melon_first===2) {hiddenContext.drawImage(img_2 ,100+40*p, 100+q*40, 40, 40);}
+		else if(melon_first===3) {hiddenContext.drawImage(img_3 ,100+40*p, 100+q*40, 40, 40);}
+		else if(melon_first===4) {hiddenContext.drawImage(img_4 ,100+40*p, 100+q*40, 40, 40);}
+		else if(melon_first===5) {hiddenContext.drawImage(img_5 ,100+40*p, 100+q*40, 40, 40);}
+		else if(melon_first===6) {hiddenContext.drawImage(img_6 ,100+40*p, 100+q*40, 40, 40);}
+		else if(melon_first===7) {hiddenContext.drawImage(img_7 ,100+40*p, 100+q*40, 40, 40);}
+		else if(melon_first===8) {hiddenContext.drawImage(img_8 ,100+40*p, 100+q*40, 40, 40);}
 		else {hiddenContext.drawImage(img_9 ,100+40*p, 100+q*40, 40, 40);}
 		}
 		else {
@@ -284,7 +282,7 @@ class melongame extends Component {
           for(var i=0; i<8;i++) {
             var randImg = parseInt(Math.random()*9)+1;
             var tf = parseInt(Math.random()*9)+1;
-            if(i==4) {dy += 100;dx=500;}
+            if(i===4) {dy += 100;dx=500;}
             if(tf>=2) {
               if(randImg === 1) backContext.drawImage(img_1 ,dx, dy, 100, 100);
               else if(randImg === 2) backContext.drawImage(img_2 ,dx, dy, 100, 100);
@@ -386,11 +384,11 @@ class melongame extends Component {
             var ee_x=parseInt(e_x/40),ee_y=parseInt(e_y/40);
             for(var t=ss_x;t<=ee_x;t++) {
               for(var s=ss_y;s<=ee_y;s++) {
-				if(t==ss_x && s==ss_y) {
+				if(t===ss_x && s===ss_y) {
 					t_sx=t;
 					t_sy=s;
 				}
-				if(t==ee_x && s==ee_y) {
+				if(t===ee_x && s===ee_y) {
 				t_ex=t;
 				t_ey=s;
 				}
@@ -403,8 +401,8 @@ class melongame extends Component {
           if(time<0) return;
             startX = me.offsetX;
             startY = me.offsetY;
-            stX = me. offsetX ; //눌렀을 때 현재 마우스 X좌표를 stX에 담음
-            stY = me. offsetY ; //눌렀을 때 현재 마우스 Y좌표를 stY에 담음
+            stX = me.offsetX ; //눌렀을 때 현재 마우스 X좌표를 stX에 담음
+            stY = me.offsetY ; //눌렀을 때 현재 마우스 Y좌표를 stY에 담음
             drag = true ; //그림 그리기는 그리는 상태로 변경
         }
 
@@ -432,7 +430,7 @@ class melongame extends Component {
 			for(var t=t_sx;t<=t_ex;t++) {
               for(var s=t_sy;s<=t_ey;s++) {
 			  if(t>=0 && s>=0 && t<=20 && s<=11)
-				if(melon_info[t][s]!=0)
+				if(melon_info[t][s]!==0)
 					context.drawImage(t_img,140+(t-1)*40,100+s*40, 40,40);
               }
             }
@@ -456,13 +454,6 @@ class melongame extends Component {
         if(time<0) return;
         else {
           mUp(e);
-          /*const rect = canvas.getBoundingClientRect()
-          up_mouse_x=e.clientX-rect.left-100;
-          up_mouse_y=e.clientY-rect.top-100;
-          var e_x=Math.max(up_mouse_x, down_mouse_x);
-          var s_x=Math.min(up_mouse_x, down_mouse_x);
-          var e_y=Math.max(up_mouse_y, down_mouse_y);
-          var s_y=Math.min(up_mouse_y, down_mouse_y);*/
           var sum=0;
           for(var i=parseInt(s_x/40);i<=parseInt(e_x/40);i++) {
             for(var j=parseInt(s_y/40);j<=parseInt(e_y/40);j++) {
@@ -475,11 +466,11 @@ class melongame extends Component {
             var ee_x=parseInt(e_x/40),ee_y=parseInt(e_y/40);
             for(var t=ss_x;t<=ee_x;t++) {
               for(var s=ss_y;s<=ee_y;s++) {
-                if(t>=0 && s>=0 && t<=20 && s<=11 && melon_info[t][s] != 0) {
+                if(t>=0 && s>=0 && t<=20 && s<=11 && melon_info[t][s] !== 0) {
                         cnt++;
                         melon_info[t][s]=0;
                 }
-                if(t==ss_x && s==ss_y) bbyong.play();
+                if(t===ss_x && s===ss_y) bbyong.play();
               }
             }
             backContext.fillStyle="#00D8FF";
