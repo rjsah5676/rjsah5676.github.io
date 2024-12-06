@@ -172,3 +172,9 @@
     font-size:18px;
     color:#DDDDDF;
 }
+.info-link-test {
+    width:150px;
+    height:30px;
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+}
