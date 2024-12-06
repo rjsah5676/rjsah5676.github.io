@@ -7,6 +7,7 @@ import Body from './Body';
 import Footer from './Footer';
 import Top from './Top';
 import firebase from './firebase';
+import './css/Page/info.css';
 
 ReactDOM.render(
   <div>
