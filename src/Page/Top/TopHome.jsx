@@ -7,7 +7,7 @@ class TopHome extends Component {
         const topStyle = {
             color: '#444444',
             padding: '16px',
-            borderWidth: '0px 0px 2px 0px',
+            borderWidth: '0px 0px 4px 0px',
             borderStyle: 'solid',
             fontWeight: '800'
         };     

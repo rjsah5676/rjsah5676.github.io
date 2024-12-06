@@ -100,3 +100,17 @@ body {
     border: 5px solid white;
     border-radius: 9px;
 }
+
+/* INFO_CONTENTS ↓*/
+.info-contents {
+    width:800px;
+    margin:auto;
+    margin-top:50px;
+    margin-bottom:50px;
+    color:white;
+}
+
+.info-contents-title {
+    font-size:40px;
+    font-weight:600;
+}
