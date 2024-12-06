@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.1771a936.chunk.css",
-    "main.js": "/static/js/main.6a3c5050.chunk.js",
-    "main.js.map": "/static/js/main.6a3c5050.chunk.js.map",
+    "main.css": "/static/css/main.08b24cf7.chunk.css",
+    "main.js": "/static/js/main.b96bc386.chunk.js",
+    "main.js.map": "/static/js/main.b96bc386.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/js/2.6354cc7a.chunk.js": "/static/js/2.6354cc7a.chunk.js",
     "static/js/2.6354cc7a.chunk.js.map": "/static/js/2.6354cc7a.chunk.js.map",
     "index.html": "/index.html",
-    "static/css/main.1771a936.chunk.css.map": "/static/css/main.1771a936.chunk.css.map",
+    "static/css/main.08b24cf7.chunk.css.map": "/static/css/main.08b24cf7.chunk.css.map",
     "static/js/2.6354cc7a.chunk.js.LICENSE.txt": "/static/js/2.6354cc7a.chunk.js.LICENSE.txt",
     "static/media/AirBoard.7ee97f24.png": "/static/media/AirBoard.7ee97f24.png",
     "static/media/TaxProject.7ca7e575.png": "/static/media/TaxProject.7ca7e575.png",
@@ -19,6 +19,7 @@
     "static/media/tatasf.css": "/static/media/ffee.66b398ff.PNG",
     "static/media/github.f4213b43.png": "/static/media/github.f4213b43.png",
     "static/media/header.css": "/static/media/header-title.d970dfd1.png",
+    "static/media/info_calendar.e6b52dd0.png": "/static/media/info_calendar.e6b52dd0.png",
     "static/media/logo.337e818c.PNG": "/static/media/logo.337e818c.PNG",
     "static/media/top.css": "/static/media/logo.66b398ff.PNG",
     "static/media/mainMelon.462a9337.png": "/static/media/mainMelon.462a9337.png",
@@ -38,7 +39,7 @@
   "entrypoints": [
     "static/js/runtime-main.0aa8ae79.js",
     "static/js/2.6354cc7a.chunk.js",
-    "static/css/main.1771a936.chunk.css",
-    "static/js/main.6a3c5050.chunk.js"
+    "static/css/main.08b24cf7.chunk.css",
+    "static/js/main.b96bc386.chunk.js"
   ]
 }
