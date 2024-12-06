@@ -11,7 +11,7 @@ function InfoBox({imgLink, gitLink, title,desc,tech,idx}) {
           <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
           <Link to={{pathname:'infoPage', state: {idx: idx} }} className="info-title">{title}</Link>
           <div className="info-desc">{desc}</div>
-          <div className="info-tech"><pre>{tech}</pre></div>
+          {tech}
           <a href={gitLink} onMouseOver={() => setLinkIndex(idx) }
                    onMouseOut={() => setLinkIndex(0)} style={linkIndex===idx? {backgroundImage:`url(${gitHoverImg})`}:{backgroundImage:`url(${gitImg})`}} className="info-link"/>
       </div>);
