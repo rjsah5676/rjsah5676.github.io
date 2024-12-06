@@ -21,7 +21,7 @@ function MyInfo(props) {
                                 gitLink={"https://github.com/rjsah5676/Capstone-Design-2021-1-"}
                                 title={"캠 필기 웹 화상 회의 서비스 [AirBoard]"}
                                 desc={"웹 캠을 통한 필기 기능을 제공하는 화상 회의 플랫폼입니다."}
-                                tech={"Javascript   PeerJS   OpenCV   NodeJS   MongoDB"}
+                                tech={"Javascript   WebRTC   OpenCV   NodeJS   MongoDB"}
                                 idx={1}/>
                      <InfoBox imgLink={taxImg}
                                 gitLink={"https://github.com/rjsah5676"}
@@ -40,7 +40,7 @@ function MyInfo(props) {
                                 gitLink={"https://github.com/rjsah5676/rjsah5676.github.io"}
                                 title={"[Gunmo's Dev Life]"}
                                 desc={"React를 사용하여 만든 나를 소개하는 사이트입니다."}
-                                tech={"React Firebase NodeJS"}
+                                tech={"React   Firebase   NodeJS"}
                                 idx={4}/>
                 </div>
               <div style={{height:'50px'}}></div>
