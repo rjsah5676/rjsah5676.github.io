@@ -1,17 +1,46 @@
 import React, { useState, Component} from "react";
-import '../css/Page/info.css';
 import InfoContentsDetail from './InfoContentsDetail';
+import InfoSlide from './InfoSlide';
+
 import calendarImg from '../img/Page/info/info_calendar.png';
+
+import leftArrowImg from '../img/Page/info/left_arrow.png';
+import rightArrowImg from '../img/Page/info/right_arrow.png';
+
+/*테스트용 다쓰고 삭제*/
+import airBoardImg from '../img/Page/info/AirBoard.png';
+import yoriJoriImg from '../img/Page/info/YoriJori.png';
+import testImg from '../img/Page/info/Test.png';
+import taxImg from '../img/Page/info/TaxProject.png';
 
 function InfoContents({idx}) {
     const cImg = (<img src={calendarImg} style={{width:'30px'}}/>);
+      const slideImages = [
+        {
+          id: 0,
+          img: airBoardImg,
+        },
+        {
+          id: 1,
+          img: yoriJoriImg,
+        },
+        {
+          id: 2,
+          img: testImg,
+        },
+        {
+          id: 3,
+          img: taxImg,
+        },
+      ];
+
     if(idx===1)
         return (
             <div className='info-contents'>
                 <div className='info-contents-title'>AIR BOARD</div>
                 <div className='info-contents-period'>{cImg} 2021.03 - 2021.06</div>
                 <div className='info-contents-tech'><div className='tech-box'>Javascript</div><div className='tech-box'>WebRTC</div><div className='tech-box'>OpenCV</div><div className='tech-box'>NodeJS</div><div className='tech-box'>MongoDB</div></div>
-                <div className='info-contents-img'>이미지 테스트</div>
+                <InfoSlide slideImages={slideImages}/>
                 <InfoContentsDetail title={'1. 개요'} text={`아 배고프다. 아무말 대잔치 아무말
                     대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말
                     대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말
@@ -25,10 +54,10 @@ function InfoContents({idx}) {
     if(idx===2)
         return (
             <div className='info-contents'>
-                <div className='info-contents-title'>영천시 세무조사 사이트</div>
+                <div className='info-contents-title'>영천시 세무조사 홈페이지</div>
                 <div className='info-contents-period'>{cImg} 2021.10 - 2022.01</div>
                 <div className='info-contents-tech'><div className='tech-box'>JSP</div><div className='tech-box'>Spring</div><div className='tech-box'>Javascript</div><div className='tech-box'>MySQL</div></div>
-                <div className='info-contents-img'>이미지 테스트</div>
+                <InfoSlide slideImages={slideImages}/>
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
             </div>
@@ -39,7 +68,7 @@ function InfoContents({idx}) {
                 <div className='info-contents-title'>요리조리</div>
                 <div className='info-contents-period'>{cImg} 2019.10 - 2019.12</div>
                 <div className='info-contents-tech'><div className='tech-box'>React</div><div className='tech-box'>NodeJS</div><div className='tech-box'>Ajax</div><div className='tech-box'>JQuery</div><div className='tech-box'>MongoDB</div></div>
-                <div className='info-contents-img'>이미지 테스트</div>
+                <InfoSlide slideImages={slideImages}/>
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
             </div>
@@ -50,7 +79,7 @@ function InfoContents({idx}) {
                 <div className='info-contents-title'>Gunmo's Dev Life</div>
                 <div className='info-contents-period'>{cImg} 2021.12 ~ </div>
                 <div className='info-contents-tech'><div className='tech-box'>React</div><div className='tech-box'>Firebase</div><div className='tech-box'>NodeJS</div></div>
-                <div className='info-contents-img'>이미지 테스트</div>
+                <InfoSlide slideImages={slideImages}/>
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
             </div>
