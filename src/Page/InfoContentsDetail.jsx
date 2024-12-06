@@ -4,8 +4,8 @@ import '../css/Page/info.css';
 function InfoContentsDetail({title, text}) {
     return(
         <div>
-            <div>{title}</div>
-            <div>{text}</div>
+            <div className='detail-title'>{title}</div>
+            <div className='detail-text'>{text}</div>
         </div>
     );
 }

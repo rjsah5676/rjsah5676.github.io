@@ -12,8 +12,14 @@ function InfoContents({idx}) {
                 <div className='info-contents-period'>{cImg} 2021.03 - 2021.06</div>
                 <div className='info-contents-tech'><div className='tech-box'>Javascript</div><div className='tech-box'>WebRTC</div><div className='tech-box'>OpenCV</div><div className='tech-box'>NodeJS</div><div className='tech-box'>MongoDB</div></div>
                 <div className='info-contents-img'>이미지 테스트</div>
-                <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
-                <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
+                <InfoContentsDetail title={'1. 개요'} text={`아 배고프다. 아무말 대잔치 아무말
+                    대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말
+                    대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말
+                    대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말
+                    대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말
+                    대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말 대잔치 아무말
+                    대잔치 아무말 대잔치 `}/>
+                <InfoContentsDetail title={'2. 기능 설명'} text={'오늘 점심 뭐먹지.'}/>
             </div>
         )
     if(idx===2)
