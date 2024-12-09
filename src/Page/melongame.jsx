@@ -16,6 +16,7 @@ import bbyong_sound from '../../src/sounds/melongame/bbyong.mp3';
 import bsbgm from '../../src/sounds/melongame/bgm.mp3';
 import endbgm from '../../src/sounds/melongame/endbgm.mp3';
 import firebase from "../firebase";
+import Faded from "../effect/Faded";
 
 var gameFlag = false;
 var userName = "익명";
@@ -584,7 +585,7 @@ class melongame extends Component {
       borderRadius: '10px',
     }
     return (
-      <div>
+      <Faded>
       <div style={wrapStyle}>
           <div style={{marginBottom:'50px',marginLeft:'30px', display:'grid', gridTemplateColumns: 'repeat(2, 1fr)',width:'1000px'}}>
           <div id="rankBox" style={rankBoxStyle}>
@@ -617,7 +618,7 @@ class melongame extends Component {
       <div style={{marginBottom:'100px', fontSize:'30px'}}>
           재밌게 해주세요.
       </div>
-      </div>
+      </Faded>
     );
   }
 }

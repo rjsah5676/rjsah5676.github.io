@@ -11,19 +11,21 @@ import feffsx from "./Page/feffsx";
 import './css/Transition.css';
 import melongame from "./Page/melongame";
 import infoPage from "./Page/InfoPage";
+import ImagePage from "./Page/ImagePage";
+import GuestBox from "./Page/GuestBox";
+import About from "./Page/About";
 
 class Body extends Component {
   render (){
     return (
             <div>
             <Route exact path="/" component={MainPage}></Route>
-            <Route exact path="/info" component={MyInfo}></Route>
+            <Route exact path="/project" component={MyInfo}></Route>
             <Route exact path="/algorithm" component={AlgoPage}></Route>
-            <Route exact path="/ewfwfeff" component={feffsx}></Route>
+            <Route exact path="/image" component={ImagePage}></Route>
+            <Route exact path="/guest" component={GuestBox}></Route>
             <Route exact path="/melongame" component={melongame}></Route>
-            <Route path="/infoPage" component={infoPage}></Route>
-            <Route exact path="/bb" component={bb}></Route>
-            <Route exact path="/cc" component={cc}></Route>
+            <Route exact path="/about" component={About}></Route>
             </div>
     );
   }
