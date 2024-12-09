@@ -159,6 +159,7 @@
 
 .guest-input-button:hover {
     background-color:rgba(92, 174, 227, 0.6);
+    cursor: pointer;
 }
 
 .guest-home-button {
