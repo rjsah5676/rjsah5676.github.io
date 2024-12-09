@@ -157,7 +157,7 @@ class melongame extends Component {
     db.collection("score").orderBy("score",'desc').limit(10).get()
     .then((querySnapshot) => {
       querySnapshot.forEach((doc) => {
-        rankBox.innerText += ct+"위: "+doc.data().name+" "+doc.data().score+"점\n";
+        rankBox.innerText += "▷"+ct+"위: "+doc.data().name+" "+doc.data().score+"점\n";
         if(ct===10) tenth_rank=doc.data().score; 
         ct+=1;
       });                          // "testcol" 컬렉션내 도큐먼트 조회 후 출력
@@ -496,8 +496,8 @@ class melongame extends Component {
   }
   render (){
     const wrapStyle = {
-      position:'absolute',
-      top: '30%', right: '50%',
+        marginTop:'50px',
+        marginLeft:'200px',
       transform:'translateX(-50%,-50%)'
     };
     const canvasStyle= {
@@ -523,9 +523,15 @@ class melongame extends Component {
       position:'absolute',
     };
     const rankBoxStyle= {
-      position:'absolute',
       fontSize:'20px',
-      left:'5%'
+      marginLeft:'20px',
+      backgroundColor:'#222222',
+      zIndex:'1000',
+      marginTop:'20px',
+      color:'white',
+      height:'290px',
+      width:'320px',
+      borderRadius:'15px',
     };
     const startButtonStyle = {
       position:'absolute',
@@ -578,21 +584,22 @@ class melongame extends Component {
       borderRadius: '10px',
     }
     return (
-      <FadeIn>
-        <div id="rankBox" style={rankBoxStyle}>
-          랭킹<br/>
-        </div>
+      <div>
       <div style={wrapStyle}>
-        <div id="exit" style={{display:'none'}}>go</div>
-        <br/>
-        드래그하여 합이 10또는 20이 되도록 하면됩니다.<br/>
+          <div style={{marginBottom:'50px',marginLeft:'30px', display:'grid', gridTemplateColumns: 'repeat(2, 1fr)',width:'1000px'}}>
+          <div id="rankBox" style={rankBoxStyle}>
+              랭킹<br/>
+          </div>
+          <div>
+        <br/><br/><br/><br/><br/><br/><br/><br/>
+        <div style={{fontSize:'20px',fontWeight:'600'}}>드래그하여 합이 10또는 20이 되도록 하면됩니다.</div><br/>
         개발: lee gm / 디자인: tae hb / 음악: lee sh<br/>
         게임실행에 문제가 있는경우 새로고침 후 시작을 눌러주세요<br/>
         시간은 2분이 주어지며 종료시 스코어가 나옵니다.<br/>
         랭킹 10위 안에드는 점수를 받을 시 랭킹 등록 창이 나옵니다.<br/>
         <br/>
-        
-        <div style={{height:'0px'}}></div>
+        <div id="exit" style={{display:'none'}}>go</div>
+        <div style={{height:'0px'}}></div></div></div>
         <canvas style={canvasStyle} id='melonCanvas'>
 
         </canvas>
@@ -606,18 +613,11 @@ class melongame extends Component {
         <button id="exitButton" style={exitButtonStyle} onClick={this.test2}>홈으로</button>
         <button id="exitButton2" style={exitButtonStyle2} onClick={this.goHome}>홈으로</button>
       </div>
-      <div style={{height:'1500px'}}></div>
-      <div style={{marginBottom:'100px'}}>
-      2021/08/07 - 로직 구현 및 기초 플레이 테스트<br/>
-      2021/08/10 - 드래그 이벤트 추가 및 멜론 디자인 입히기<br/>
-      2021/08/12 - bgm 추가 및 배경화면 디자인<br/>
-      2021/08/13 - 점수가 추가적으로 오르는 현상 수정, 게임이 종료되고나서도 플레이가 계속되는 현상 수정<br/>
-      종료시에 노래가 처음으로 돌아가도록 수정, 종료시 스코어가 사라지지 않던 오류 수정<br/>
-      호스팅 변경<br/>
-      2021/08/14 - 랭킹 추가<br/>
-      2021/08/15 - 랭킹 시스템 업데이트, 메인페이지 디자인, 랭킹 기능 취소 오류 수정<br/>
+      <div style={{marginTop:'800px'}}></div>
+      <div style={{marginBottom:'100px', fontSize:'30px'}}>
+          재밌게 해주세요.
       </div>
-      </FadeIn>
+      </div>
     );
   }
 }
