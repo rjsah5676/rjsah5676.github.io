@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import '../../css/top.css';
 import {NavLink} from 'react-router-dom';
-class TopNone extends Component {
+class TopArchive extends Component {
     render() {
         const topStyle = {
             color: '#444444',
@@ -13,7 +13,7 @@ class TopNone extends Component {
         const archiveStyle = {
                 color: '#444444',
                 padding: '16px',
-                borderWidth: '0px 0px 0px 0px',
+                borderWidth: '0px 0px 4px 0px',
                 borderStyle: 'solid',
                 fontWeight: '800',
                 textDecoration:'none'
@@ -43,4 +43,4 @@ class TopNone extends Component {
     };
 }
 
-export default TopNone;
+export default TopArchive;

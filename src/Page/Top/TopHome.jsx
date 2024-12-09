@@ -10,7 +10,15 @@ class TopHome extends Component {
             borderWidth: '0px 0px 4px 0px',
             borderStyle: 'solid',
             fontWeight: '800'
-        };     
+        };
+        const archiveStyle = {
+                color: '#444444',
+                padding: '16px',
+                borderWidth: '0px 0px 0px 0px',
+                borderStyle: 'solid',
+                fontWeight: '800',
+                textDecoration:'none'
+        };
         const topStyle2 = {
             borderBottom: '0px'
         };     
@@ -30,7 +38,7 @@ class TopHome extends Component {
                 <table>
                         <tr>
                             <td><div className="top-right-home"> <NavLink className="activ" style={topStyle} to="/">Home</NavLink></div></td>
-                            <td><div className="top-right-archives">Archives</div></td>
+                            <td><div className="top-right-archives"><NavLink style={archiveStyle} to="/archive">Archive</NavLink></div></td>
                         </tr>
                     </table>
                 </div>
