@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
+import {Link} from 'react-router-dom';
 import { Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 import './css/nav.css';
-import $ from "jquery";
 
 class Nav extends Component {
     render() {
@@ -29,23 +29,19 @@ class Nav extends Component {
         navGo();
         return(
            <ul id="test-nav">
-               <li><a href="#/algorithm">소개</a></li>
-               <li><a href="#/info">프로젝트</a></li>
+               <li><Link to={{pathname:'about'}}>소개</Link></li>
+               <li><Link to={{pathname:'project'}}>프로젝트</Link></li>
                <li>
-                   <a className="test-menu" href="#/melongame">게임</a>
+                   <Link className="test-menu" to={{pathname:'melongame'}}>게임</Link>
                     <ul className="test-sub-game">
-                        <li><a href="#/melongame">멜론 게임</a></li>
-                        <li><a href="#">테슷트</a></li>
+                        <li><Link to={{pathname:'melongame'}}>멜론 게임</Link></li>
+                        <li><Link to={{pathname:'/'}}>테슷트</Link></li>
                     </ul>
                </li>
                <li>
-                    <a href="#/algorithm">생각중</a>
-                    <ul className="test-sub-plus">
-                        <li><a href="#">테슷트</a></li>
-                        <li><a href="#">테슷트</a></li>
-                    </ul>
+                    <Link to={{pathname:'guest'}}>방명록</Link>
                </li>
-               <li><a href="#/algorithm">사진</a></li>
+               <li><Link to={{pathname:'image'}}>사진</Link></li>
                <div id="tesst"></div>
            </ul>
         );
