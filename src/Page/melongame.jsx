@@ -526,10 +526,10 @@ class melongame extends Component {
     const rankBoxStyle= {
       fontSize:'20px',
       marginLeft:'20px',
-      backgroundColor:'#222222',
+      backgroundColor:'#CBEFFF',
       zIndex:'1000',
       marginTop:'20px',
-      color:'white',
+      color:'#2D74FF',
       height:'290px',
       width:'320px',
       borderRadius:'15px',
