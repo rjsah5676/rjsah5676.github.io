@@ -8,7 +8,6 @@ const today = new Date();
 
 function GuestBox() {
     const [list, setList] = useState([]);
-    const [done, setDone] = useState(0);
     const [name, setName] = useState('');
     const [contents, setContents] = useState('');
     const [page, setPage] = useState(0);
@@ -27,7 +26,6 @@ function GuestBox() {
               });
             });
             setCnt(j);
-            //setDone();
         },[]);
 
     const onChangeName = (event) => {
@@ -47,7 +45,6 @@ function GuestBox() {
                 .then( (querySnapshot) => {
                   querySnapshot.forEach((doc) => {
                       if(j>i && j<=i+5) {
-                          console.log(doc);
                           newList.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
                       }
                       j++;
