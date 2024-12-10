@@ -90,7 +90,7 @@ function GuestBox() {
     async function submitGuest(){
         if(name!=="" && contents!=="") {
             var date = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일  ${today.getHours()}:${today.getMinutes()}`;
-            await db.collection("guest").add({name:name, contents:contents, id:cnt, date:date});
+            await db.collection("guest").add({name:name, contents:contents, id:today.getTime(), date:date});
             setCnt(cnt+1);
             setName("");
             setContents("");
