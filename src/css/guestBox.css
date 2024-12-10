@@ -11,8 +11,11 @@
 
 .guest-body {
     border-radius:8px;
-    background-color: #FEFEFE;
-
+    background-color:rgba(255, 255, 255, 0.5);
+    /*
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-image: url('../img/GuestBox/phone.png');*/
     height:100%;
     width:100%;
     margin: auto;
@@ -45,7 +48,7 @@
   top: 50%;
   left: 1em;
   border: 0.7em solid transparent;
-  border-right: 1em solid rgba(92, 174, 227, 0.9);
+  border-right: 1em solid rgba(52, 52, 52, 0.6);
   z-index: 0;
 }
 
@@ -55,7 +58,7 @@
   width: 80%;
   height: 70%;
 
-  background: rgba(92, 174, 227, 0.9);
+  background: rgba(52, 52, 52, 0.6);
   border-radius: 15px;
   padding-left: 1.8em;
   padding-right: 1.8em;
@@ -71,7 +74,7 @@
 }
 
 .message-who {
-    background: rgba(92, 174, 227, 0.9);
+    background: rgba(52, 52, 52, 0.7);
     font-size:20px;
     text-align:center;
     border-radius:8px;
@@ -89,7 +92,7 @@
     -webkit-transition: .5s ease-in-out;
     width:50px;
     height:50px;
-    background-color:rgba(92, 174, 227, 0.6);
+    background-color:rgba(52, 52, 52, 0.7);
     border-radius:100px;
     margin-bottom:10px;
     margin-right:10px;
@@ -99,7 +102,7 @@
     -webkit-transition: .5s ease-in-out;
     width:50px;
     height:50px;
-    background-color:rgba(92, 174, 227, 0.6);
+    background-color:rgba(52, 52, 52, 0.7);
     border-radius:30px;
     margin-bottom:10px;
     margin-left:10px;
@@ -108,15 +111,15 @@
 
 .guest-left-button:hover{
     cursor: pointer;
-    background-color:rgba(92, 174, 227, 0.9);
+    background-color:rgba(52, 52, 52, 0.4);
 }
 .guest-right-button:hover{
     cursor: pointer;
-    background-color:rgba(92, 174, 227, 0.9);
+    background-color:rgba(52, 52, 52, 0.4);
 }
 
 .guest-page {
-    color:rgba(92, 174, 227, 0.8);
+    color:rgba(52, 52, 52, 0.8);
     font-weight:500;
     margin-top:8px;
     font-size : 25px;
@@ -130,16 +133,16 @@
 .guest-nm{
     text-align:center;
     margin-left:23px;
-    color:rgba(92, 174, 227, 0.9);
+    color:rgba(52, 52, 52, 0.9);
     font-size:18px;
     font-weight:600;
 }
 
 .guest-input-name{
-    background-color:rgba(92, 174, 227, 0.3);
+    background-color:rgba(52, 52, 52, 0.3);
     border-width:0;
     width:30%;
-    color:rgba(92, 174, 227, 1.0);
+    color:rgba(52, 52, 52, 1.0);
     font-size:16px;
     border-radius:20px;
     height:28px;
@@ -147,10 +150,10 @@
 }
 
 .guest-input-info{
-    color:rgba(92, 174, 227, 1.0);
+    color:rgba(52, 52, 52, 1.0);
     font-size:16px;
     font-weight:400;
-    background-color:rgba(92, 174, 227, 0.3);
+    background-color:rgba(52, 52, 52, 0.3);
     border-width:0;
     margin-left:20px;
     margin-top:10px;
@@ -162,7 +165,7 @@
 }
 
 .guest-input-button {
-    background-color:rgba(92, 174, 227, 0.8);
+    background-color:rgba(52, 52, 52, 0.6);
     border-width:0;
     grid-row:span 3;
     margin:auto;
@@ -176,7 +179,7 @@
 }
 
 .guest-input-button:hover {
-    background-color:rgba(92, 174, 227, 0.6);
+    background-color:rgba(52, 52, 52, 0.3);
     cursor: pointer;
 }
 
