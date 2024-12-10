@@ -72,10 +72,11 @@
 
 .message-who {
     background: rgba(92, 174, 227, 0.9);
-    font-size:22px;
+    font-size:20px;
     text-align:center;
     border-radius:8px;
-    width:20%;
+    padding: 10px 0px 10px 0px;
+    width:15%;
     color:white;
 }
 
@@ -85,6 +86,7 @@
 }
 
 .guest-left-button{
+    -webkit-transition: .5s ease-in-out;
     width:50px;
     height:50px;
     background-color:rgba(92, 174, 227, 0.6);
@@ -94,6 +96,7 @@
     background-image: url('../img/GuestBox/leftButton.png');
 }
 .guest-right-button{
+    -webkit-transition: .5s ease-in-out;
     width:50px;
     height:50px;
     background-color:rgba(92, 174, 227, 0.6);
@@ -103,6 +106,21 @@
     background-image: url('../img/GuestBox/rightButton.png');
 }
 
+.guest-left-button:hover{
+    cursor: pointer;
+    background-color:rgba(92, 174, 227, 0.9);
+}
+.guest-right-button:hover{
+    cursor: pointer;
+    background-color:rgba(92, 174, 227, 0.9);
+}
+
+.guest-page {
+    color:rgba(92, 174, 227, 0.8);
+    font-weight:500;
+    margin-top:8px;
+    font-size : 25px;
+}
 .guest-input-box {
     margin-top:20px;
     display:grid;
