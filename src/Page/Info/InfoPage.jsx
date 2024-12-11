@@ -1,13 +1,13 @@
-import React, { useState, Component} from "react";
+import React from "react";
 import {useLocation} from 'react-router-dom';
-import Faded from "../effect/Faded";
+import Faded from "../../effect/Faded";
 import InfoContents from './InfoContents';
 
 function InfoPage() {
     const location = useLocation();
     function getContents() {
         if(location.state !== undefined){
-            for(var i=1;i<=100;i++) if(i==location.state.idx) return (<InfoContents idx={i}/>)
+            for(var i=1;i<=100;i++) if(i===location.state.idx) return (<InfoContents idx={i}/>)
         }
         else window.location.href='#/info';
     }

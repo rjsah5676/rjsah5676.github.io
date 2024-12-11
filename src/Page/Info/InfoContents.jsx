@@ -1,20 +1,16 @@
-import React, { useState, Component} from "react";
+import React from "react";
 import InfoContentsDetail from './InfoContentsDetail';
 import InfoSlide from './InfoSlide';
 
-import calendarImg from '../img/Page/info/info_calendar.png';
+import calendarImg from '../../img/Page/info/info_calendar.png';
 
-import leftArrowImg from '../img/Page/info/left_arrow.png';
-import rightArrowImg from '../img/Page/info/right_arrow.png';
-
-/*테스트용 다쓰고 삭제*/
-import airBoardImg from '../img/Page/info/AirBoard.png';
-import yoriJoriImg from '../img/Page/info/YoriJori.png';
-import testImg from '../img/Page/info/Test.png';
-import taxImg from '../img/Page/info/TaxProject.png';
+import airBoardImg from '../../img/Page/info/AirBoard.png';
+import yoriJoriImg from '../../img/Page/info/YoriJori.png';
+import testImg from '../../img/Page/info/Test.png';
+import taxImg from '../../img/Page/info/TaxProject.png';
 
 function InfoContents({idx}) {
-    const cImg = (<img src={calendarImg} style={{width:'30px'}}/>);
+    const cImg = (<img alt="" src={calendarImg} style={{width:'30px'}}/>);
       const slideImages = [
         {
           id: 0,

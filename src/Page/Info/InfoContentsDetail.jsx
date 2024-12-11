@@ -1,5 +1,5 @@
-import React, { useState, Component} from "react";
-import '../css/Page/info.css';
+import React from "react";
+import '../../css/Page/info.css';
 
 function InfoContentsDetail({title, text}) {
     return(

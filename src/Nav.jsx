@@ -41,7 +41,7 @@ class Nav extends Component {
                <li>
                     <Link to={{pathname:'guest'}}>방명록</Link>
                </li>
-               <li><Link to={{pathname:'image'}}>사진</Link></li>
+               <li><Link to={{pathname:'gallery'}}>사진</Link></li>
                <div id="tesst"></div>
            </ul>
         );

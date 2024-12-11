@@ -1,13 +1,8 @@
-import React, { useState, Component} from "react";
-import '../css/Page/info.css';
+import React, { useState } from "react";
+import '../../css/Page/info.css';
 
-import airBoardImg from '../img/Page/info/AirBoard.png';
-import yoriJoriImg from '../img/Page/info/YoriJori.png';
-import testImg from '../img/Page/info/Test.png';
-import taxImg from '../img/Page/info/TaxProject.png';
-
-import leftArrowImg from '../img/Page/info/left_arrow.png';
-import rightArrowImg from '../img/Page/info/right_arrow.png';
+import leftArrowImg from '../../img/Page/info/left_arrow.png';
+import rightArrowImg from '../../img/Page/info/right_arrow.png';
 
 function InfoSlide({slideImages}) {
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -44,10 +39,10 @@ function InfoSlide({slideImages}) {
                   />
                 ))}
                 <div className='pre_arrow'>
-                  <img onClick={preSlide} src={leftArrowImg} />
+                  <img onClick={preSlide} src={leftArrowImg} alt=""/>
                 </div>
                 <div className='next_arrow'>
-                  <img onClick={nextSlide} src={rightArrowImg} />
+                  <img onClick={nextSlide} src={rightArrowImg} alt=""/>
                 </div>
               </div>
             </div>
