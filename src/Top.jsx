@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Route, useLocation } from "react-router-dom";
 import TopHome from './Page/Top/TopHome';
 import TopNone from './Page/Top/TopNone';

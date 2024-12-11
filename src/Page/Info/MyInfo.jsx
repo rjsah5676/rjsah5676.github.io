@@ -1,15 +1,12 @@
-import React, { useState, Component} from "react";
-import Faded from "../effect/Faded";
-import '../css/Page/info.css';
+import React from "react";
+import Faded from "../../effect/Faded";
+import '../../css/Page/info.css';
 import InfoBox from './InfoBox';
 
-import airBoardImg from '../img/Page/info/AirBoard.png';
-import yoriJoriImg from '../img/Page/info/YoriJori.png';
-import gitImg from '../img/Page/info/github.png';
-import testImg from '../img/Page/info/Test.png';
-import gitHoverImg from '../img/Page/info/github_hover.png';
-import logoImg from '../img/Page/info/logo.PNG';
-import taxImg from '../img/Page/info/TaxProject.png';
+import airBoardImg from '../../img/Page/info/AirBoard.png';
+import yoriJoriImg from '../../img/Page/info/YoriJori.png';
+import logoImg from '../../img/Page/info/logo.PNG';
+import taxImg from '../../img/Page/info/TaxProject.png';
 
 function MyInfo(props) {
 

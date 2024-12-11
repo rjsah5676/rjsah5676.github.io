@@ -1,4 +1,4 @@
-import React, { useState,useEffect, Component} from "react";
+import React, { useState,useEffect } from "react";
 import Faded from "../effect/Faded";
 import '../css/guestBox.css';
 import firebase from "../firebase";
