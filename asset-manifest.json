@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/static/css/main.47c0da9e.chunk.css",
-    "main.js": "/static/js/main.dc0b7ed9.chunk.js",
-    "main.js.map": "/static/js/main.dc0b7ed9.chunk.js.map",
+    "main.css": "/static/css/main.d8c122ab.chunk.css",
+    "main.js": "/static/js/main.20180f1b.chunk.js",
+    "main.js.map": "/static/js/main.20180f1b.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
-    "static/js/2.809749ca.chunk.js": "/static/js/2.809749ca.chunk.js",
-    "static/js/2.809749ca.chunk.js.map": "/static/js/2.809749ca.chunk.js.map",
+    "static/js/2.17c27526.chunk.js": "/static/js/2.17c27526.chunk.js",
+    "static/js/2.17c27526.chunk.js.map": "/static/js/2.17c27526.chunk.js.map",
     "index.html": "/index.html",
-    "static/css/main.47c0da9e.chunk.css.map": "/static/css/main.47c0da9e.chunk.css.map",
-    "static/js/2.809749ca.chunk.js.LICENSE.txt": "/static/js/2.809749ca.chunk.js.LICENSE.txt",
+    "static/css/main.d8c122ab.chunk.css.map": "/static/css/main.d8c122ab.chunk.css.map",
+    "static/js/2.17c27526.chunk.js.LICENSE.txt": "/static/js/2.17c27526.chunk.js.LICENSE.txt",
     "static/media/AirBoard.7ee97f24.png": "/static/media/AirBoard.7ee97f24.png",
     "static/media/TaxProject.7ca7e575.png": "/static/media/TaxProject.7ca7e575.png",
     "static/media/YoriJori.4507951f.png": "/static/media/YoriJori.4507951f.png",
@@ -17,6 +17,14 @@
     "static/media/bgm.0c2a9b64.mp3": "/static/media/bgm.0c2a9b64.mp3",
     "static/media/endbgm.e9b606fc.mp3": "/static/media/endbgm.e9b606fc.mp3",
     "static/media/tatasf.css": "/static/media/ffee.66b398ff.PNG",
+    "static/media/gallery_1.d73a5ac3.png": "/static/media/gallery_1.d73a5ac3.png",
+    "static/media/gallery_2.e2e01a87.png": "/static/media/gallery_2.e2e01a87.png",
+    "static/media/gallery_3.4ccbab12.png": "/static/media/gallery_3.4ccbab12.png",
+    "static/media/gallery_4.2cd01129.png": "/static/media/gallery_4.2cd01129.png",
+    "static/media/gallery_5.c803eba4.png": "/static/media/gallery_5.c803eba4.png",
+    "static/media/gallery_6.40d22ae0.png": "/static/media/gallery_6.40d22ae0.png",
+    "static/media/gallery_7.67346c78.png": "/static/media/gallery_7.67346c78.png",
+    "static/media/gallery_8.8b8ecb8b.png": "/static/media/gallery_8.8b8ecb8b.png",
     "static/media/github.f4213b43.png": "/static/media/github.f4213b43.png",
     "static/media/header.css": "/static/media/header-title.d970dfd1.png",
     "static/media/info_calendar.e6b52dd0.png": "/static/media/info_calendar.e6b52dd0.png",
@@ -40,8 +48,8 @@
   },
   "entrypoints": [
     "static/js/runtime-main.0aa8ae79.js",
-    "static/js/2.809749ca.chunk.js",
-    "static/css/main.47c0da9e.chunk.css",
-    "static/js/main.dc0b7ed9.chunk.js"
+    "static/js/2.17c27526.chunk.js",
+    "static/css/main.d8c122ab.chunk.css",
+    "static/js/main.20180f1b.chunk.js"
   ]
 }
