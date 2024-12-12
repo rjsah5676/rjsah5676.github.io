@@ -25,3 +25,49 @@
     background-size: cover;
     background-repeat: no-repeat;
 }
+.clicked-img-box {
+    z-index:2000;
+    background-color:rgba(0, 0, 0, 0.7);
+    position:absolute;
+    width:65%;
+    padding-bottom: 49%;
+    top:83%;
+    left:50%;
+    transform: translate(-50%, -83%);
+    border-radius:10px;
+}
+
+.clicked-img {
+    width:75%;
+    padding-bottom: 70%;
+    top:50%;
+    left:50%;
+    transform: translate(-50%, -50%);
+    border-radius:10px;
+    position:absolute;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+.exit-button {
+    float:right;
+    top:5%;
+    left:95%;
+    transform: translate(-50%, -50%);
+    border-radius:10px;
+    position:absolute;
+    width:6%;
+    height:8%;
+    background-image: url('../img/Gallery/exit_button.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    cursor:pointer;
+}
+
+.gallery-item:hover {
+	-webkit-transform: scale(1.07);
+	transform: scale(1.07);
+	-webkit-transition: .5s ease-in-out;
+	transition: .5s ease-in-out;
+	cursor:pointer;
+}

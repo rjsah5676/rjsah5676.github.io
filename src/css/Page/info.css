@@ -37,7 +37,6 @@
 	transform: scale(1.07);
 	-webkit-transition: .5s ease-in-out;
 	transition: .5s ease-in-out;
-
 }
 .info-title {
     transition: all 0.5s;
