@@ -38,6 +38,7 @@
 }
 
 .clicked-img {
+    z-index:2000;
     width:75%;
     padding-bottom: 70%;
     top:50%;
@@ -67,7 +68,7 @@
 .gallery-item:hover {
 	-webkit-transform: scale(1.07);
 	transform: scale(1.07);
-	-webkit-transition: .5s ease-in-out;
-	transition: .5s ease-in-out;
+	-webkit-transition: .3s ease-in-out;
+	transition: .3s ease-in-out;
 	cursor:pointer;
 }

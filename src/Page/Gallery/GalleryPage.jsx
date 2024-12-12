@@ -25,9 +25,9 @@ function GalleryPage() {
     const [clicked, setClicked] = useState(false);
     const [imgInfo, setImgInfo] = useState(0);
     return (
-      <Faded>
+      <FadeIn>
         <div className='gallery-container'>
-            <FadeIn style={{display: !clicked ? 'none' :'block'}}>
+            <FadeIn duration={0} style={{display: !clicked ? 'none' :'block'}}>
                 <div className='clicked-img-box'>
                     <div className='clicked-img' style={{backgroundImage:`url(${arr[imgInfo]})`}}/>
                     <div className='exit-button' onClick={clickExit}/>
@@ -44,7 +44,7 @@ function GalleryPage() {
               <div onClick={() => clickImg(7)} className='gallery-item' style={{backgroundImage:`url(${gallery_8})`}}/>
           </div>
         </div>
-      </Faded>
+      </FadeIn>
     );
 }
 
