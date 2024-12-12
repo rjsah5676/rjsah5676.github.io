@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.5fde914c.chunk.css",
-    "main.js": "/static/js/main.a4ac969f.chunk.js",
-    "main.js.map": "/static/js/main.a4ac969f.chunk.js.map",
+    "main.css": "/static/css/main.bc1b5de7.chunk.css",
+    "main.js": "/static/js/main.d512f43f.chunk.js",
+    "main.js.map": "/static/js/main.d512f43f.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/js/2.3c4de7ea.chunk.js": "/static/js/2.3c4de7ea.chunk.js",
     "static/js/2.3c4de7ea.chunk.js.map": "/static/js/2.3c4de7ea.chunk.js.map",
     "index.html": "/index.html",
-    "static/css/main.5fde914c.chunk.css.map": "/static/css/main.5fde914c.chunk.css.map",
+    "static/css/main.bc1b5de7.chunk.css.map": "/static/css/main.bc1b5de7.chunk.css.map",
     "static/js/2.3c4de7ea.chunk.js.LICENSE.txt": "/static/js/2.3c4de7ea.chunk.js.LICENSE.txt",
     "static/media/AirBoard.7ee97f24.png": "/static/media/AirBoard.7ee97f24.png",
     "static/media/TaxProject.7ca7e575.png": "/static/media/TaxProject.7ca7e575.png",
@@ -49,7 +49,7 @@
   "entrypoints": [
     "static/js/runtime-main.0aa8ae79.js",
     "static/js/2.3c4de7ea.chunk.js",
-    "static/css/main.5fde914c.chunk.css",
-    "static/js/main.a4ac969f.chunk.js"
+    "static/css/main.bc1b5de7.chunk.css",
+    "static/js/main.d512f43f.chunk.js"
   ]
 }
