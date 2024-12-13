@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.1906828e.chunk.css",
-    "main.js": "/static/js/main.22acedec.chunk.js",
-    "main.js.map": "/static/js/main.22acedec.chunk.js.map",
+    "main.css": "/static/css/main.d1f30b72.chunk.css",
+    "main.js": "/static/js/main.40bf0e82.chunk.js",
+    "main.js.map": "/static/js/main.40bf0e82.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/js/2.3c4de7ea.chunk.js": "/static/js/2.3c4de7ea.chunk.js",
     "static/js/2.3c4de7ea.chunk.js.map": "/static/js/2.3c4de7ea.chunk.js.map",
     "index.html": "/index.html",
-    "static/css/main.1906828e.chunk.css.map": "/static/css/main.1906828e.chunk.css.map",
+    "static/css/main.d1f30b72.chunk.css.map": "/static/css/main.d1f30b72.chunk.css.map",
     "static/js/2.3c4de7ea.chunk.js.LICENSE.txt": "/static/js/2.3c4de7ea.chunk.js.LICENSE.txt",
     "static/media/AirBoard.7ee97f24.png": "/static/media/AirBoard.7ee97f24.png",
     "static/media/TaxProject.7ca7e575.png": "/static/media/TaxProject.7ca7e575.png",
@@ -33,6 +33,12 @@
     "static/media/gallery_9.0ce40503.png": "/static/media/gallery_9.0ce40503.png",
     "static/media/github.f4213b43.png": "/static/media/github.f4213b43.png",
     "static/media/header.css": "/static/media/header-title.d970dfd1.png",
+    "static/media/img_1.c18f7c7f.png": "/static/media/img_1.c18f7c7f.png",
+    "static/media/img_2.1194ff9e.png": "/static/media/img_2.1194ff9e.png",
+    "static/media/img_3.efab50ae.png": "/static/media/img_3.efab50ae.png",
+    "static/media/img_4.ac4780c7.png": "/static/media/img_4.ac4780c7.png",
+    "static/media/img_5.2ea1af1b.png": "/static/media/img_5.2ea1af1b.png",
+    "static/media/img_6.02794c84.png": "/static/media/img_6.02794c84.png",
     "static/media/info_calendar.e6b52dd0.png": "/static/media/info_calendar.e6b52dd0.png",
     "static/media/left_arrow.afdad369.png": "/static/media/left_arrow.afdad369.png",
     "static/media/logo.337e818c.PNG": "/static/media/logo.337e818c.PNG",
@@ -55,7 +61,7 @@
   "entrypoints": [
     "static/js/runtime-main.0aa8ae79.js",
     "static/js/2.3c4de7ea.chunk.js",
-    "static/css/main.1906828e.chunk.css",
-    "static/js/main.22acedec.chunk.js"
+    "static/css/main.d1f30b72.chunk.css",
+    "static/js/main.40bf0e82.chunk.js"
   ]
 }
