@@ -5,7 +5,7 @@ function InfoContentsDetail({title, text}) {
     return(
         <div>
             <div className='detail-title'>{title}</div>
-            <div className='detail-text'>{text}</div>
+            <pre className='detail-text'>{text}</pre>
         </div>
     );
 }
