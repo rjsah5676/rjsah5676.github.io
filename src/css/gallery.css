@@ -72,3 +72,44 @@
 	transition: .3s ease-in-out;
 	cursor:pointer;
 }
+
+.gallery-page-button {
+    display:flex;
+    justify-content: center;
+}
+
+.gallery-left-button{
+    -webkit-transition: .5s ease-in-out;
+    width:50px;
+    height:50px;
+    background-color:rgba(100, 100, 100, 0.7);
+    border-radius:100px;
+    margin-bottom:10px;
+    margin-right:10px;
+    background-image: url('../img/GuestBox/leftButton.png');
+}
+.gallery-right-button{
+    -webkit-transition: .5s ease-in-out;
+    width:50px;
+    height:50px;
+    background-color:rgba(100, 100, 100, 0.7);
+    border-radius:30px;
+    margin-bottom:10px;
+    margin-left:10px;
+    background-image: url('../img/GuestBox/rightButton.png');
+}
+
+.gallery-left-button:hover{
+    cursor: pointer;
+    background-color:rgba(52, 52, 52, 0.4);
+}
+.gallery-right-button:hover{
+    cursor: pointer;
+    background-color:rgba(52, 52, 52, 0.4);
+}
+.gallery-page {
+    color:rgba(122, 122, 122, 0.8);
+    font-weight:500;
+    margin-top:8px;
+    font-size : 25px;
+}

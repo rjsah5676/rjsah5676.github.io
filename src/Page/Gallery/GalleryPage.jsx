@@ -10,7 +10,7 @@ import gallery_5 from '../../img/Gallery/gallery_5.png';
 import gallery_6 from '../../img/Gallery/gallery_6.png';
 import gallery_7 from '../../img/Gallery/gallery_7.png';
 import gallery_8 from '../../img/Gallery/gallery_8.png';
-
+import gallery_9 from '../../img/Gallery/gallery_9.png';
 function GalleryPage() {
     function clickImg(i) {
         if(!clicked) {
@@ -21,9 +21,22 @@ function GalleryPage() {
     function clickExit() {
         setClicked(false);
     }
-    const arr = [gallery_1, gallery_2, gallery_3, gallery_4, gallery_5, gallery_6, gallery_7, gallery_8];
+    function goPage(i) {
+        if(i==1) setPage(page+1);
+        else if(page>0) setPage(page-1);
+    }
+    const imgRender = () => {
+        const res = [];
+        for(let i=0+8*page; i<8+8*page;i++) {
+          res.push(<div onClick={() => clickImg(i)} className='gallery-item' style={{backgroundImage:`url(${arr[i]})`}}/>);
+        }
+        return res;
+    }
+    const arr = [gallery_1, gallery_2, gallery_3, gallery_4, gallery_5, gallery_6, gallery_7, gallery_8, gallery_9];
     const [clicked, setClicked] = useState(false);
     const [imgInfo, setImgInfo] = useState(0);
+    const [page, setPage] = useState(0);
+
     return (
       <FadeIn>
         <div className='gallery-container'>
@@ -34,14 +47,12 @@ function GalleryPage() {
                 </div>
             </FadeIn>
           <div className='gallery-box'>
-              <div onClick={() => clickImg(0)} className='gallery-item' style={{backgroundImage:`url(${gallery_1})`}}/>
-              <div onClick={() => clickImg(1)} className='gallery-item' style={{backgroundImage:`url(${gallery_2})`}}/>
-              <div onClick={() => clickImg(2)} className='gallery-item' style={{backgroundImage:`url(${gallery_3})`}}/>
-              <div onClick={() => clickImg(3)} className='gallery-item' style={{backgroundImage:`url(${gallery_4})`}}/>
-              <div onClick={() => clickImg(4)} className='gallery-item' style={{backgroundImage:`url(${gallery_5})`}}/>
-              <div onClick={() => clickImg(5)} className='gallery-item' style={{backgroundImage:`url(${gallery_6})`}}/>
-              <div onClick={() => clickImg(6)} className='gallery-item' style={{backgroundImage:`url(${gallery_7})`}}/>
-              <div onClick={() => clickImg(7)} className='gallery-item' style={{backgroundImage:`url(${gallery_8})`}}/>
+              {imgRender()}
+          </div>
+          <div className='gallery-page-button'>
+              <div className='gallery-left-button' onClick={()=> goPage(-1)}/>
+              <div className='gallery-page'>{page+1}</div>
+              <div className='gallery-right-button' onClick={()=> goPage(1)}/>
           </div>
         </div>
       </FadeIn>
