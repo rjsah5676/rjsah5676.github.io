@@ -9,6 +9,19 @@ import pageOutHoverImg from '../../img/Page/info/page_out_hover.png';
 function InfoBox({imgLink, gitLink, title,desc,tech,idx}) {
     const [linkIndex, setLinkIndex] = useState(0);
     const [linkIndex2, setLinkIndex2] = useState(0);
+    if(idx===1) return(
+            <div className="info-item">
+                      <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
+                      <Link to={{pathname:'infoPage', state: {idx: idx} }} className="info-title">{title}</Link>
+                      <div className="info-desc">{desc}</div>
+                      {tech}
+                      <div className="info-link-test">
+                      <a href={gitLink} onMouseOver={() => setLinkIndex(idx) }
+                               onMouseOut={() => setLinkIndex(0)} style={linkIndex===idx? {backgroundImage:`url(${gitHoverImg})`}:{backgroundImage:`url(${gitImg})`}} className="info-link"> </a>
+                       <a href="https://softcon.ajou.ac.kr/works/works_prev.asp?uid=421&wTerm=2021-1" onMouseOver={() => setLinkIndex2(idx) }
+                                                  onMouseOut={() => setLinkIndex2(0)} style={linkIndex2===idx? {backgroundImage:`url(${pageOutHoverImg})`}:{backgroundImage:`url(${pageOutImg})`}} className="info-link"> </a>
+            </div></div>
+            );
     if(idx===4) return(
         <div className="info-item">
                   <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
