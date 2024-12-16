@@ -11,7 +11,7 @@ import infoPage from "./Page/Info/InfoPage";
 import GalleryPage from "./Page/Gallery/GalleryPage";
 import GuestBox from "./Page/GuestBox";
 import About from "./Page/About";
-import Archive from "./Page/Archive";
+import Archive from "./Page/Archive/Archive";
 
 class Body extends Component {
   render (){
