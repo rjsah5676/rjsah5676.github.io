@@ -7,6 +7,7 @@ import airBoardImg from '../../img/Page/info/AirBoard.png';
 import yoriJoriImg from '../../img/Page/info/YoriJori.png';
 import logoImg from '../../img/Page/info/logo.PNG';
 import taxImg from '../../img/Page/info/TaxProject.png';
+import acmicpcImg from '../../img/Page/info/acmicpc.png';
 
 function MyInfo(props) {
 
@@ -40,6 +41,13 @@ function MyInfo(props) {
                                 desc={"React를 사용하여 만든 나를 소개하는 사이트입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>Firebase</div><div className='info-tech-box'>NodeJS</div></div>}
                                 idx={4}/>
+                     <div className="info-class">Algorithm</div>
+                     <InfoBox imgLink={acmicpcImg}
+                                gitLink={"https://github.com/rjsah5676/ACMICPC"}
+                                title={"알고리즘 [BAEKJOON Online Judge]"}
+                                desc={"알고리즘을 배우기 위해 문제를 푼 사이트 입니다."}
+                                tech={<div className='info-tech'><div className='info-tech-box'>C++</div><div className='info-tech-box'>Java</div><div className='info-tech-box'>Python</div></div>}
+                                idx={5}/><br/><br/><br/>
                 </div>
               <div style={{height:'50px'}}></div>
             </div>
