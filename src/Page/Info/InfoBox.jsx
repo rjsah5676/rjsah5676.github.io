@@ -35,6 +35,19 @@ function InfoBox({imgLink, gitLink, title,desc,tech,idx}) {
                                               onMouseOut={() => setLinkIndex2(0)} style={linkIndex2===idx? {backgroundImage:`url(${pageOutHoverImg})`}:{backgroundImage:`url(${pageOutImg})`}} className="info-link"> </a>
         </div></div>
         );
+    if(idx===5) return(
+        <div className="info-item">
+                  <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
+                  <Link to={{pathname:'infoPage', state: {idx: idx} }} className="info-title">{title}</Link>
+                  <div className="info-desc">{desc}</div>
+                  {tech}
+                  <div className="info-link-test">
+                  <a href={gitLink} onMouseOver={() => setLinkIndex(idx) }
+                           onMouseOut={() => setLinkIndex(0)} style={linkIndex===idx? {backgroundImage:`url(${gitHoverImg})`}:{backgroundImage:`url(${gitImg})`}} className="info-link"> </a>
+                   <a href="https://solved.ac/profile/rjsah5676" onMouseOver={() => setLinkIndex2(idx) }
+                                              onMouseOut={() => setLinkIndex2(0)} style={linkIndex2===idx? {backgroundImage:`url(${pageOutHoverImg})`}:{backgroundImage:`url(${pageOutImg})`}} className="info-link"> </a>
+        </div></div>
+        );
     return (<div className="info-item">
           <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
           <Link to={{pathname:'infoPage', state: {idx: idx} }} className="info-title">{title}</Link>
