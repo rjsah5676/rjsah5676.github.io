@@ -1,5 +1,4 @@
 import React from "react";
-import '../../css/Page/info.css';
 
 function InfoContentsDetail({title, text, titleFont, titleMargin}) {
     const titleStyle = {

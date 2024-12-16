@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import {Link} from 'react-router-dom';
 import { Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
-import './css/nav.css';
 
 class Nav extends Component {
     render() {

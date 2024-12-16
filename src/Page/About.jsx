@@ -1,6 +1,5 @@
 import React, { Component} from "react";
 import Faded from "../effect/Faded";
-import '../css/about.css';
 
 function About() {
     return (

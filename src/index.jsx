@@ -7,6 +7,18 @@ import Body from './Body';
 import Footer from './Footer';
 import Top from './Top';
 
+import './css/index.css';
+import './css/gallery.css';
+import './css/nav.css';
+import './css/header.css';
+import './css/footer.css';
+import './css/Page/mainPage.css';
+import './css/guestBox.css';
+import './css/about.css';
+import './css/top.css';
+import './css/Page/info.css';
+import './css/archive.css';
+
 ReactDOM.render(
   <div>
     <HashRouter>

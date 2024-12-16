@@ -1,5 +1,4 @@
 import React from 'react';
-import '../../css/archive.css';
 
 function ArchiveBox({date, text}) {
     return(
