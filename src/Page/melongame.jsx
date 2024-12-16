@@ -615,7 +615,7 @@ class melongame extends Component {
         <button id="exitButton2" style={exitButtonStyle2} onClick={this.goHome}>홈으로</button>
       </div>
       <div style={{marginTop:'800px'}}></div>
-      <div style={{marginBottom:'100px', fontSize:'30px'}}>
+      <div style={{marginBottom:'100px', fontSize:'30px',marginLeft:'200px'}}>
           재밌게 해주세요.
       </div>
       </Faded>
