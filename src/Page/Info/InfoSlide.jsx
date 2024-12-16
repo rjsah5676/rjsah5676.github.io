@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import '../../css/Page/info.css';
 
 import leftArrowImg from '../../img/Page/info/left_arrow.png';
 import rightArrowImg from '../../img/Page/info/right_arrow.png';

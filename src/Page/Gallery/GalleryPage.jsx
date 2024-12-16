@@ -1,7 +1,7 @@
 import React , {useState,useEffect} from "react";
 import FadeIn from "../../effect/FadeIn";
 import Faded from "../../effect/Faded";
-import '../../css/gallery.css';
+
 import gallery_1 from '../../img/Gallery/gallery_1.png';
 import gallery_2 from '../../img/Gallery/gallery_2.png';
 import gallery_3 from '../../img/Gallery/gallery_3.png';

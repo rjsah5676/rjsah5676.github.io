@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import './css/footer.css';
 import gitImg from '../src/img/footer/github.png';
 
 class Footer extends Component {

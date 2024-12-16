@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import '../../css/top.css';
 import {NavLink} from 'react-router-dom';
 class TopArchive extends Component {
     render() {

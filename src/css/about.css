@@ -28,7 +28,6 @@
     width:564px;
 }
 .about-who {
-    font-family: "Prompt", sans-serif;
     font-weight: 100;
     font-style: normal;
     color:white;
@@ -38,8 +37,12 @@
 .about-cmd-detail {
     color:#CCCCCC;
     font-family: "Prompt", sans-serif;
-    font-weight: 100;
+    font-weight: 200;
     font-style: normal;
-    font-size:15px;
+    font-size:14px;
     padding:36px 20px 20px 13px;
+}
+
+.about-cmd-detail b {
+    font-weight: 600;
 }

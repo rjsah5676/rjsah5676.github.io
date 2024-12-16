@@ -65,8 +65,11 @@
 }
 
 .message-box p {
-  font-size: 17px;
-  color: white;
+    font-family: "Cute Font", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 24px;
+    color: white;
 }
 
 .message-box-next {
@@ -75,7 +78,10 @@
 
 .message-who {
     background: rgba(52, 52, 52, 0.7);
-    font-size:20px;
+    font-family: "Cute Font", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size:25px;
     text-align:center;
     border-radius:8px;
     padding: 10px 0px 10px 0px;

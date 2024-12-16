@@ -1,6 +1,5 @@
 import React from "react";
 import Faded from "../../effect/Faded";
-import '../../css/Page/info.css';
 import InfoBox from './InfoBox';
 
 import airBoardImg from '../../img/Page/info/AirBoard.png';

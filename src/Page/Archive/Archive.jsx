@@ -1,6 +1,5 @@
 import React from "react";
 import Faded from "../../effect/Faded";
-import '../../css/archive.css';
 
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
