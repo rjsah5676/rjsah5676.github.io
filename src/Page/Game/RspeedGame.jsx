@@ -3,6 +3,7 @@ import Faded from "../../effect/Faded";
 import firebase from "../../firebase";
 
 const db = firebase.firestore();
+var tenth_rank = 0;
 
 function RspeedGame()
 {
@@ -70,14 +71,16 @@ function RspeedGame()
     }
     function endGame() {
         let dd = (res[0]+res[1]+res[2]+res[3]+res[4])/5;
-        var userName = window.prompt(dd+"점으로 10위안에 랭크되셨습니다. 이름을 입력해주세요.");
-        if(userName !== null) {
-          while(userName >= 10 || userName < 1) {
-            userName = window.prompt("1글자 이상 9글자 이하로 이름을 입력해주세요.");
-          }
-          db.collection("reaction").add({name:userName, score: dd});
+        if(dd<list[9].score) {
+            var userName = window.prompt(dd+"점으로 10위안에 랭크되셨습니다. 이름을 입력해주세요.");
+            if(userName !== null) {
+              while(userName >= 10 || userName < 1) {
+                userName = window.prompt("1글자 이상 9글자 이하로 이름을 입력해주세요.");
+              }
+              db.collection("reaction").add({name:userName, score: dd});
+            }
+            window.location.href='#';
         }
-        setStart(0);
     }
     function makeBox(){
         var ct=1;
