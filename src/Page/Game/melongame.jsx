@@ -1,22 +1,22 @@
 import React, { Component} from "react";
-import FadeIn from "../effect/FadeIn";
-import tmImg1 from '../../src/img/melongame/tm1.png';
-import tmImg2 from '../../src/img/melongame/tm2.png';
-import tmImg3 from '../../src/img/melongame/tm3.png';
-import tmImg4 from '../../src/img/melongame/tm4.png';
-import tmImg5 from '../../src/img/melongame/tm5.png';
-import tmImg6 from '../../src/img/melongame/tm6.png';
-import tmImg7 from '../../src/img/melongame/tm7.png';
-import tmImg8 from '../../src/img/melongame/tm8.png';
-import tmImg9 from '../../src/img/melongame/tm9.png';
-import tmImg_score from '../../src/img/melongame/tm_score.png';
-import tmT from '../../src/img/melongame/tm_t.png';
-import tmMain from '../../src/img/melongame/mainMelon.png';
-import bbyong_sound from '../../src/sounds/melongame/bbyong.mp3';
-import bsbgm from '../../src/sounds/melongame/bgm.mp3';
-import endbgm from '../../src/sounds/melongame/endbgm.mp3';
-import firebase from "../firebase";
-import Faded from "../effect/Faded";
+import FadeIn from "../../effect/FadeIn";
+import tmImg1 from '../../img/melongame/tm1.png';
+import tmImg2 from '../../img/melongame/tm2.png';
+import tmImg3 from '../../img/melongame/tm3.png';
+import tmImg4 from '../../img/melongame/tm4.png';
+import tmImg5 from '../../img/melongame/tm5.png';
+import tmImg6 from '../../img/melongame/tm6.png';
+import tmImg7 from '../../img/melongame/tm7.png';
+import tmImg8 from '../../img/melongame/tm8.png';
+import tmImg9 from '../../img/melongame/tm9.png';
+import tmImg_score from '../../img/melongame/tm_score.png';
+import tmT from '../../img/melongame/tm_t.png';
+import tmMain from '../../img/melongame/mainMelon.png';
+import bbyong_sound from '../../sounds/melongame/bbyong.mp3';
+import bsbgm from '../../sounds/melongame/bgm.mp3';
+import endbgm from '../../sounds/melongame/endbgm.mp3';
+import firebase from "../../firebase";
+import Faded from "../../effect/Faded";
 
 var gameFlag = false;
 var userName = "익명";
@@ -161,7 +161,7 @@ class melongame extends Component {
         rankBox.innerText += "▷"+ct+"위: "+doc.data().name+" "+doc.data().score+"점\n";
         if(ct===10) tenth_rank=doc.data().score; 
         ct+=1;
-      });                          // "testcol" 컬렉션내 도큐먼트 조회 후 출력
+      });
     });
   }
   goHome()

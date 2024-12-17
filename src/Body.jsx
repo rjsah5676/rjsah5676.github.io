@@ -6,7 +6,8 @@ import MyInfo from "./Page/Info/MyInfo";
 import feffsx from "./Page/feffsx";
 import './css/Transition.css';
 
-import melongame from "./Page/melongame";
+import melongame from "./Page/Game/melongame";
+import rspeed from "./Page/Game/RspeedGame";
 import infoPage from "./Page/Info/InfoPage";
 import GalleryPage from "./Page/Gallery/GalleryPage";
 import GuestBox from "./Page/GuestBox";
@@ -25,6 +26,7 @@ class Body extends Component {
             <Route exact path="/about" component={About}></Route>
             <Route exact path="/infoPage" component={infoPage}></Route>
             <Route exact path="/archive" component={Archive}></Route>
+            <Route exact path="/rspeed" component={rspeed}></Route>
             </div>
     );
   }
