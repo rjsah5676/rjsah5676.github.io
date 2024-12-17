@@ -60,6 +60,7 @@ function RspeedGame()
     }
     function clickRed(){
         window.alert("파란색일때 클릭바랍니다.");
+        window.location.href='#';
     }
     function clickBlue() {
         let x=new Date().getTime()-startTime.getTime();
