@@ -225,7 +225,7 @@ function InfoContents({idx}) {
     5. 회원은 글 작성이 가능하다. (비 회원은 불가능)
 `}/>
                 <InfoContentsDetail title={'2-6. 내가 쓴 글'} titleFont={'30px'} titleMargin={'20px'}/>
-                <img src={img_yorijori_5} style={{width:'1000px'}} alt=""/>
+                <img src={img_yorijori_6} style={{width:'1000px'}} alt=""/>
                 <InfoContentsDetail text={`본인이 쓴 글을 확인 가능하고, 글의 삭제 및 수정이 용이하게 하였다.
 `}/>
             </div>

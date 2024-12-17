@@ -13,6 +13,7 @@ import './css/nav.css';
 import './css/header.css';
 import './css/footer.css';
 import './css/Page/mainPage.css';
+import './css/Page/rspeed.css';
 import './css/guestBox.css';
 import './css/about.css';
 import './css/top.css';

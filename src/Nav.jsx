@@ -34,7 +34,7 @@ class Nav extends Component {
                    <Link className="test-menu" to={{pathname:'melongame'}}>게임</Link>
                     <ul className="test-sub-game">
                         <li><Link to={{pathname:'melongame'}}>멜론 게임</Link></li>
-                        <li><Link to={{pathname:'/'}}>테슷트</Link></li>
+                        <li><Link to={{pathname:'rspeed'}}>반응속도 테스트</Link></li>
                     </ul>
                </li>
                <li>
