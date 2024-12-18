@@ -38,3 +38,40 @@
 .rspeed-start-button:hover {
     background-color:#444444;
 }
+
+.reaction-submit-alert {
+    text-align:center;
+    color: white;
+    margin-top:20px;
+    font-size:22px;
+}
+
+.reaction-submit-box {
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    place-items: center;
+    width:200px;
+    margin:auto;
+    margin-top:20px;
+}
+
+.reaction-submit-input{
+    width:100px;
+    height:30px;
+    background-color:#999999;
+    border-radius:10px;
+}
+.reaction-submit-button{
+    background-color:#555555;
+    width:70px;
+    text-align:center;
+    color:white;
+    border-radius:5px;
+    padding:5px;
+    -webkit-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+    cursor:pointer;
+}
+.reaction-submit-button:hover {
+    background-color:#777777;
+}
