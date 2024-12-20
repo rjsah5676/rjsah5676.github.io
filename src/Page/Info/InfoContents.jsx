@@ -254,6 +254,17 @@ function InfoContents({idx}) {
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
             </div>
         )
+        if(idx===6)
+            return (
+                <div className='info-contents'>
+                    <div className='info-contents-title'>일단 뭔가 만든 Unity 게임</div>
+                    <div className='info-contents-period'>{cImg} 2019.03 ~ 2019.04</div>
+                    <div className='info-contents-tech'><div className='tech-box'>Unity</div><div className='tech-box'>C#</div></div>
+                    <InfoSlide slideImages={slideImages}/>
+                    <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
+                    <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
+                </div>
+            )
     return <div></div>
 }
 
