@@ -8,6 +8,7 @@ import logoImg from '../../img/Page/info/logo.PNG';
 import taxImg from '../../img/Page/info/TaxProject.png';
 import acmicpcImg from '../../img/Page/info/acmicpc.png';
 import unityImg from '../../img/Page/info/unity.png';
+import dbImg from '../../img/Page/info/dbproj.png';
 
 function MyInfo(props) {
 
@@ -41,6 +42,12 @@ function MyInfo(props) {
                                 desc={"React를 사용하여 만든 나를 소개하는 사이트입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>Firebase</div><div className='info-tech-box'>NodeJS</div></div>}
                                 idx={4}/>
+                    <InfoBox imgLink={dbImg}
+                                gitLink={"https://github.com/rjsah5676/DBProject"}
+                                title={"[GM Movie]"}
+                                desc={"MySQL 학습을 위한 영화 정보 검색 사이트 "}
+                                tech={<div className='info-tech'><div className='info-tech-box'>Python</div><div className='info-tech-box'>Flask</div><div className='info-tech-box'>MySQL</div></div>}
+                                idx={7}/>
                      <InfoBox imgLink={unityImg}
                                 gitLink={"https://github.com/rjsah5676/Unity-Programming"}
                                 title={"[일단 뭔가 만든 Unity 게임]"}

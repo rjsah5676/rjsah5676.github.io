@@ -265,6 +265,17 @@ function InfoContents({idx}) {
                     <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
                 </div>
             )
+        if(idx===7)
+            return (
+                <div className='info-contents'>
+                    <div className='info-contents-title'>GM Movie</div>
+                    <div className='info-contents-period'>{cImg} 2020.09 ~ 2020.12</div>
+                    <div className='info-contents-tech'><div className='tech-box'>Python</div><div className='tech-box'>Flask</div><div className='tech-box'>MySQL</div></div>
+                    <InfoSlide slideImages={slideImages}/>
+                    <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
+                    <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
+                </div>
+            )
     return <div></div>
 }
 
