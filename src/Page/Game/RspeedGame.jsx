@@ -98,7 +98,7 @@ function RspeedGame()
     }
     var x=0;
     async function submitScore(sc) {
-        if(name !== ""&& name.length<10 && x===0) {
+        if(name !== ""&& name.length<20 && x===0) {
             x=1;
             await db.collection("reaction").add({name:name, score: sc});
             window.location.reload();
