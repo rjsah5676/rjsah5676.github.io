@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/static/css/main.96e87122.chunk.css",
-    "main.js": "/static/js/main.ce89553c.chunk.js",
-    "main.js.map": "/static/js/main.ce89553c.chunk.js.map",
+    "main.js": "/static/js/main.37d1baa0.chunk.js",
+    "main.js.map": "/static/js/main.37d1baa0.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/css/2.19627560.chunk.css": "/static/css/2.19627560.chunk.css",
@@ -17,6 +17,7 @@
     "static/media/YoriJori.4507951f.png": "/static/media/YoriJori.4507951f.png",
     "static/media/bbyong.ca732c8c.mp3": "/static/media/bbyong.ca732c8c.mp3",
     "static/media/bgm.0c2a9b64.mp3": "/static/media/bgm.0c2a9b64.mp3",
+    "static/media/dbproj.4def8c8e.png": "/static/media/dbproj.4def8c8e.png",
     "static/media/endbgm.e9b606fc.mp3": "/static/media/endbgm.e9b606fc.mp3",
     "static/media/tatasf.css": "/static/media/ffee.66b398ff.PNG",
     "static/media/gallery_1.bbdad28d.png": "/static/media/gallery_1.bbdad28d.png",
@@ -77,6 +78,6 @@
     "static/css/2.19627560.chunk.css",
     "static/js/2.829ff231.chunk.js",
     "static/css/main.96e87122.chunk.css",
-    "static/js/main.ce89553c.chunk.js"
+    "static/js/main.37d1baa0.chunk.js"
   ]
 }
