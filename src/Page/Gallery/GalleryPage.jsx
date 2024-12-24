@@ -18,6 +18,7 @@ import gallery_13 from '../../img/Gallery/gallery_13.png';
 import gallery_14 from '../../img/Gallery/gallery_14.png';
 import gallery_15 from '../../img/Gallery/gallery_15.png';
 import gallery_16 from '../../img/Gallery/gallery_16.png';
+import gallery_17 from '../../img/Gallery/gallery_17.jpg';
 
 function GalleryPage() {
     function clickImg(i) {
@@ -40,7 +41,7 @@ function GalleryPage() {
         }
         return res;
     }
-    const arr = [gallery_1, gallery_2, gallery_3, gallery_4, gallery_5, gallery_6, gallery_7, gallery_8, gallery_9, gallery_10, gallery_11, gallery_12, gallery_13, gallery_14, gallery_15, gallery_16];
+    const arr = [gallery_1, gallery_2, gallery_3, gallery_4, gallery_5, gallery_6, gallery_7, gallery_8, gallery_9, gallery_10, gallery_11, gallery_12, gallery_13, gallery_14, gallery_15, gallery_16, gallery_17];
     const [clicked, setClicked] = useState(false);
     const [imgInfo, setImgInfo] = useState(0);
     const [page, setPage] = useState(0);
