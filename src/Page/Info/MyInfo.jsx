@@ -42,6 +42,14 @@ function MyInfo(props) {
                                 desc={"React를 사용하여 만든 나를 소개하는 사이트입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>Firebase</div><div className='info-tech-box'>NodeJS</div></div>}
                                 idx={4}/>
+                     <div className="info-class">Algorithm</div>
+                     <InfoBox imgLink={acmicpcImg}
+                                gitLink={"https://github.com/rjsah5676/ACMICPC"}
+                                title={"알고리즘 [BAEKJOON Online Judge]"}
+                                desc={"알고리즘을 배우기 위해 문제를 푼 사이트 입니다."}
+                                tech={<div className='info-tech'><div className='info-tech-box'>C++</div><div className='info-tech-box'>Java</div><div className='info-tech-box'>Python</div></div>}
+                                idx={5}/>
+                     <div className="info-class">ETC</div>
                     <InfoBox imgLink={dbImg}
                                 gitLink={"https://github.com/rjsah5676/DBProject"}
                                 title={"[GM Movie]"}
@@ -54,13 +62,7 @@ function MyInfo(props) {
                                 desc={"Unity를 사용하여 만든 간단한 게임입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>Unity</div><div className='info-tech-box'>C#</div></div>}
                                 idx={6}/>
-                     <div className="info-class">Algorithm</div>
-                     <InfoBox imgLink={acmicpcImg}
-                                gitLink={"https://github.com/rjsah5676/ACMICPC"}
-                                title={"알고리즘 [BAEKJOON Online Judge]"}
-                                desc={"알고리즘을 배우기 위해 문제를 푼 사이트 입니다."}
-                                tech={<div className='info-tech'><div className='info-tech-box'>C++</div><div className='info-tech-box'>Java</div><div className='info-tech-box'>Python</div></div>}
-                                idx={5}/><br/><br/><br/>
+                                <br/><br/><br/>
                 </div>
               <div style={{height:'50px'}}></div>
             </div>

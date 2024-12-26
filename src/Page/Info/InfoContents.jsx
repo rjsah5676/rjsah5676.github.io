@@ -23,6 +23,12 @@ import img_yorijori_4 from '../../img/Page/info/yorijori/img_writen.png';
 import img_yorijori_5 from '../../img/Page/info/yorijori/img_board.png';
 import img_yorijori_6 from '../../img/Page/info/yorijori/img_mine.png';
 
+import img_db_1 from '../../img/Page/info/dbproject/img_1.png';
+import img_db_2 from '../../img/Page/info/dbproject/img_diagram.png';
+import img_db_3 from '../../img/Page/info/dbproject/img_create_1.png';
+import img_db_4 from '../../img/Page/info/dbproject/img_read.png';
+import img_db_5 from '../../img/Page/info/dbproject/img_update.png';
+
 import img_slide_4 from '../../img/Page/info/yorijori/img_slide_4.png';
 import img_slide_5 from '../../img/Page/info/yorijori/img_slide_5.png';
 
@@ -76,6 +82,17 @@ function InfoContents({idx}) {
               img: img_slide_5,
             },
           ];
+     const slideImages_db = [
+              {
+                id: 0,
+                img: img_db_1,
+              },
+              {
+                id: 1,
+                img: img_db_2,
+              },
+            ];
+
     if(idx===1)
         return (
             <div className='info-contents'>
@@ -271,9 +288,28 @@ function InfoContents({idx}) {
                     <div className='info-contents-title'>GM Movie</div>
                     <div className='info-contents-period'>{cImg} 2020.09 ~ 2020.12</div>
                     <div className='info-contents-tech'><div className='tech-box'>Python</div><div className='tech-box'>Flask</div><div className='tech-box'>MySQL</div></div>
-                    <InfoSlide slideImages={slideImages}/>
-                    <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
-                    <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
+                    <InfoSlide slideImages={slideImages_db}/>
+                    <InfoContentsDetail title={'1. 개요'} text={`GM Movie는 2020년 2학기 데이터 베이스 수업 중 MySQL 을 활용 해보기 위해 진행한 프로젝트 이다.
+혼자서 진행한 소규모 프로젝트 였으나 기본적인 CRUD / DDL, DML문 학습 및 Flask를 써볼 수 있는 기회였다.`}/>
+                    <InfoContentsDetail title={'2. 기능 설명'} />
+            <div style={{marginLeft:'15px'}}>
+            <InfoContentsDetail title={'2-1. CREATE'} titleFont={'30px'} titleMargin={'20px'}/>
+            <img src={img_db_3} style={{width:'1000px'}} alt=""/>
+            <InfoContentsDetail text={`각 요소들의 특성에 따라 제약 조건을 설정하여 테이블을 생성하였다.
+추가적으로 ACTORS, MOVIES, ORDERS, MOVIEQUEUE, APPEARED_IN 테이블이 있다.
+                `}/></div>
+            <div style={{marginLeft:'15px'}}>
+            <InfoContentsDetail title={'2-2. READ'} titleFont={'30px'} titleMargin={'20px'}/>
+            <img src={img_db_4} style={{width:'1000px'}} alt=""/>
+            <InfoContentsDetail text={`구현하려는 기능들을 위해 필요한 READ 쿼리문이다.
+`}/></div>
+<div style={{marginLeft:'15px'}}>
+      <InfoContentsDetail title={'2-3. UPDATE'} titleFont={'30px'} titleMargin={'20px'}/>
+      <img src={img_db_5} style={{width:'1000px'}} alt=""/>
+      <InfoContentsDetail text={`구현하려는 기능들을 위해 필요한 UPDATE 쿼리문이다.
+`}/></div>
+<InfoContentsDetail title={'3. DB 모델링'} />
+<img src={img_db_2} style={{width:'1000px'}} alt=""/>
                 </div>
             )
     return <div></div>
