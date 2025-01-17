@@ -43,7 +43,7 @@ function GalleryPage() {
         }
         return res;
     }
-    const IMAGE_NUM=17;
+    const IMAGE_NUM=20;
 
     const arr = [img_1, img_2, img_3, img_4, 
         img_5, img_6, img_7, img_8, img_9, 
@@ -57,8 +57,8 @@ function GalleryPage() {
     return (
       <FadeIn>
         <div className='gallery-container'>
-            <FadeIn duration={0} style={{display: !clicked ? 'none' :'block'}}>
-                <div className='clicked-img-box'>
+            <FadeIn duration={0}>
+                <div className='clicked-img-box' style={{opacity: !clicked ? '0' :'1', zIndex: !clicked ? '-10':'10'}}>
                     <div className='clicked-img' style={{backgroundImage:`url(${arr[imgInfo]})`}}/>
                     <div className='exit-button' onClick={clickExit}/>
                 </div>
@@ -67,9 +67,9 @@ function GalleryPage() {
               {imgRender()}
           </div>
           <div className='gallery-page-button'>
-              <div className='gallery-left-button' onClick={()=> goPage(-1)}/>
+              <div className='gallery-left-button' onClick={()=> goPage(-1)}>◀</div>
               <div className='gallery-page'>{page+1}</div>
-              <div className='gallery-right-button' onClick={()=> goPage(1)}/>
+              <div className='gallery-right-button' onClick={()=> goPage(1)}>▶</div>
           </div>
         </div>
       </FadeIn>

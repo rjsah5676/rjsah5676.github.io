@@ -18,10 +18,7 @@ function GuestBox() {
         await db.collection('guest').orderBy('id','desc').get()
             .then(async (querySnapshot) => {
               await querySnapshot.forEach((doc) => {
-                  if(j>i && j<=i+5) {
                       list.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
-                  }
-                  j++;
               });
             });
             setCnt(j);
@@ -34,57 +31,8 @@ function GuestBox() {
         setContents(event.target.value);
     };
 
-    async function goLeftPage(){
-        if(page>0) {
-            setPage(page-1);
-            var newList=[];
-            var i = (page-1)*5;
-            var j = 1;
-            await db.collection('guest').orderBy('id','desc').get()
-                .then( (querySnapshot) => {
-                  querySnapshot.forEach((doc) => {
-                      if(j>i && j<=i+5) {
-                          newList.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
-                      }
-                      j++;
-                  });
-                });
-            setList(newList);
-        }
-    }
-
-    async function goRightPage(){
-        setPage(page+1);
-        var newList=[];
-        var i = (page+1)*5;
-        var j = 1;
-        await db.collection('guest').orderBy('id','desc').get()
-            .then( (querySnapshot) => {
-              querySnapshot.forEach((doc) => {
-                  if(j>i && j<=i+5) {
-                      newList.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
-                  }
-                  j++;
-              });
-            });
-        setList(newList);
-    }
-
-    async function goHomePage(){
-        setPage(0);
-        var newList=[];
-        var i = 0;
-        var j = 1;
-        await db.collection('guest').orderBy('id','desc').get()
-            .then( (querySnapshot) => {
-              querySnapshot.forEach((doc) => {
-                  if(j>i && j<=i+5) {
-                      newList.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
-                  }
-                  j++;
-              });
-            });
-        setList(newList);
+    function goHomePage(){
+        document.getElementsByClassName('guest-body')[0].scrollTo({top:0,left:0,behavior:'smooth'});
     }
     async function submitGuest(){
         if(name!=="" && contents!=="" && contents.length <50) {
@@ -100,13 +48,11 @@ function GuestBox() {
             await db.collection('guest').orderBy('id','desc').get()
                 .then( (querySnapshot) => {
                   querySnapshot.forEach((doc) => {
-                      if(j>i && j<=i+5) {
-                          newList.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
-                      }
-                      j++;
+                    newList.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
                   });
                 });
             setList(newList);
+            document.getElementsByClassName('guest-body')[0].scrollTo({top:0,left:0,behavior:'smooth'});
         }
     }
 
@@ -117,7 +63,14 @@ function GuestBox() {
                 <div className='message-who'>{item.name}</div>
                 <div class="message-container">
                   <div class='message-box'>
-                    <p><div style={{fontSize:'13px'}}>{item.date}</div>{item.contents}</p>
+                    <ul>
+                        <li className="message-date">
+                            {item.date}
+                        </li>
+                        <li className="message-text">
+                            {item.contents}
+                        </li>
+                    </ul>
                   </div>
                 </div>
               </div></li>
@@ -131,20 +84,15 @@ function GuestBox() {
                 <ol>
                     {makeBox()}
                 </ol>
-                <div className='guest-page-button'>
-                    <div className='guest-left-button' onClick={goLeftPage}/>
-                    <div className='guest-page'>{page+1}</div>
-                    <div className='guest-right-button' onClick={goRightPage}/>
-                </div>
+            </div>
                 <div className='guest-input-box'>
                     <div className='guest-nm'>이름</div>
                     <input className='guest-input-name' onChange={onChangeName} value={name}></input>
                     <button className='guest-input-button' onClick={submitGuest}>등록</button>
                     <input className='guest-input-info' onChange={onChangeContents} value={contents}></input>
                 </div>
+                <div className='guest-home-button' onClick={goHomePage}>□</div>
             </div>
-            <div className='guest-home-button' onClick={goHomePage}/>
-        </div>
       </Faded>
     );
 }
