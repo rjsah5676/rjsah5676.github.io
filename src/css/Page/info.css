@@ -1,44 +1,96 @@
 .info-container{
-    display:grid;
-    background-color: #222222;
-    margin: 20px 20px 50px 20px;
-    border-radius: 15px;
-}
-.info-item{
+    font-family: "Noto Sans KR", serif;
+    font-weight: 400;
+    font-style: normal;
     width:1000px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    margin:auto;
-    margin-top:50px;
+    margin: 0 auto;
+    margin-top:150px;
+    margin-bottom:100px;
+    color:white;
+}
+
+.project-index-button {
+    display:flex;
     margin-bottom:50px;
 }
-@media (max-width:950px) {
-    .info-item{
-        margin: 20 20 20 20;
-        grid-template-columns: repeat(1, 1fr);
-        grid-row:span 1;
-        width:100%;
-    }
+
+.project-index-button > div {
+    margin-right: 20px;
+    width:100px;
+    height:30px;
+    line-height:30px;
+    font-size:20px;
+    text-align:center;
+    border: 2px solid white;
+    border-radius: 7px;
+    transition: all 0.6s;
 }
+
+.project-index-button > div:hover {
+    cursor: pointer;
+}
+
+#team-button {
+    background-color: white;
+    color:#121212;
+    font-weight:600;
+}
+
+#personal-box{
+    transition: all 0.7s;
+}
+
+#team-box{
+    transition: all 0.7s;
+}
+
+.info-class{
+    width:100%;
+    transition: all 0.7s;
+}
+
+.info-item{
+    display:grid;
+    height:300px;
+    margin-top:20px;
+    margin-left:20px;
+    margin-bottom:60px;
+    grid-template-columns: 0.5fr 1fr;
+}
+
 
 .info-image{
-    -webkit-transition: .5s ease-in-out;
-	transition: .5s ease-in-out;
-    border-radius: 10px;
-
+    margin:auto;
     width:300px;
-    height:300px;
+    height:100%;
+    border-radius: 10px;
+    transition: .5s ease-in-out;
+    -webkit-transition: .5s ease-in-out;
     background-size: cover;
-    background-repeat: no-repeat;
-
-    grid-row:span 4;
 }
+
+
 .info-image:hover {
 	-webkit-transform: scale(1.07);
 	transform: scale(1.07);
 	-webkit-transition: .5s ease-in-out;
 	transition: .5s ease-in-out;
 }
+
+.right-content {
+    margin-left:30px;
+    height:100%;
+}
+
+#pl-viewer{
+    width:100%;
+    overflow: hidden;
+}
+#pl-list {
+    margin-left:20px;
+    display:flex;
+}
+
 .info-title {
     transition: all 0.5s;
     text-decoration-line:none;
@@ -54,11 +106,10 @@
     color:#aaaaaa;
  }
 .info-desc {
-    font-family: 'Roboto', sans-serif;
-    color:#dddddd;
-
-    font-size:18px;
-    margin:5px;
+    width:600px;
+    font-size:16px;
+    margin-left:10px;
+    margin-top:20px;
 }
 .info-tech {
     display:grid;
@@ -66,7 +117,7 @@
     width:400px;
     font-size: 15px;
     font-weight: 500;
-    margin-bottom:10px;
+    margin-top:30px;
 }
 .info-link {
     transition: all 0.5s;
@@ -74,24 +125,13 @@
     height:50px;
     background-repeat: no-repeat;
     margin-left:5px;
+    margin-top:40px;
 }
 .info-link:hover {
     width:50px;
     height:50px;
     background-repeat: no-repeat;
     margin-left:5px;
-}
-.info-class {
-    text-align:center;
-    color: white;
-    font-weight:600;
-    font-size: 40px;
-    margin-left: 100px;
-    margin-top: 70px;
-    margin-bottom: 40px;
-    margin-right: 100px;
-    border: 5px solid white;
-    border-radius: 9px;
 }
 
 /* INFO_CONTENTS ↓*/

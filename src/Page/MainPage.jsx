@@ -12,13 +12,15 @@ function MainPage() {
     function handleMain(winWidth) {
       let mc = document.getElementById('main-page-box');
       let bt = document.getElementById('plus-button');
-      if(winWidth<1024) {
-          mc.style.display='none';
-          bt.style.display='block';
-      } else {
-          mc.style.display='block';
-          bt.style.display='none';
-      }
+      if(mc!==null && bt!==null) {
+        if(winWidth<1024) {
+            mc.style.display='none';
+            bt.style.display='block';
+        } else {
+            mc.style.display='block';
+            bt.style.display='none';
+        }
+        }
     }
 
     const openModal = () => {
