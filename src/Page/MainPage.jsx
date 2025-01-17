@@ -1,83 +1,101 @@
-import React, { Component } from "react";
-import FadeIn from "../effect/FadeIn";
-class MainPage extends Component {  
-  render (){
+import React, { useEffect} from "react";
+import Faded from "../effect/Faded";
+
+function MainPage() {  
+    useEffect(()=>{
+      window.scrollTo({top:400,left:0,behavior:'smooth'});
+            handleMain(window.innerWidth);
+            },[]);
+    window.addEventListener('resize', function() {
+      handleMain(this.window.innerWidth);
+    });
+    function handleMain(winWidth) {
+      let mc = document.getElementById('main-page-box');
+      let bt = document.getElementById('plus-button');
+      if(winWidth<1024) {
+          mc.style.display='none';
+          bt.style.display='block';
+      } else {
+          mc.style.display='block';
+          bt.style.display='none';
+      }
+    }
+
+    const openModal = () => {
+        var left=Math.ceil((window.screen.width-1200)/2);
+        var top=Math.ceil((window.screen.height-660)/2);
+      window.open('/',"gunmo-lee","location=no,width=1200,height=660,left="+left+",top="+top);
+    };
+
     return (
-      <FadeIn>
-        <div className="main_page">
-          <div className="main-title"><h1>ABOUT ME</h1></div>
-          <div className="main_box">          
-              <div className="main_page-left">
-                <div className="main_page-left-img"/>
-              </div>
-              <div className="main_page-right">
+      <Faded>
+        <div class="main-page-container">
+        <h3>ABOUT ME</h3>
+        <h5>안녕하세요🖐<br/>풀스택 개발자를 목표하는 <b style={{color:'white'}}>이건모</b> 입니다.🙂</h5>
+        <div><button id="plus-button" style={{display:'none'}} onClick={openModal}>+</button></div>
+
+        <div id="main-page-box">
+            <div id="main-page-left-box"></div>
+            <div id="main-page-right-box">
                 <ul>
-                  <li>
-                    <h2>&nbsp;PROFILE</h2>
-                    <ul>
-                      <table>
-                        <tr>
-                          <td className="td_left">거주지</td>
-                          <td>&nbsp;경기도 성남시</td>
-                        </tr>
-                        <tr>
-                          <td className="td_left">생년월일</td>
-                          <td>&nbsp;1997. 12. 10</td>
-                        </tr>
-                        <tr>
-                          <td className="td_left">이메일</td>
-                          <td>&nbsp;rjsah5676@gmail.com</td>
-                        </tr>
-                      </table>
-                    </ul>
-                  </li>
-                  <li>
-                  <h2>&nbsp;HISTORY</h2>
-                    <ul>
-                      <table>
-                        <tr>
-                          <td className="td_left">2013.03 ~ 2016.02</td>
-                          <td>&nbsp;풍생고등학교 졸업</td>
-                        </tr>
-                        <tr>
-                          <td className="td_left">2016.03 ~ 2022.02</td>
-                          <td>&nbsp;아주대학교 소프트웨어학과 졸업</td>
-                        </tr>
-                        <tr>
-                          <td className="td_left">2017.03 ~ 2018.12</td>
-                          <td>&nbsp;5사단 근무 및 군휴학</td>
-                        </tr>
-                      </table>
-                    </ul>
-                  </li>
-                  <li>
-                    <h2>&nbsp;TECH</h2>
-                    <ul>
-                    <table>
-                      <th>구분</th>
-                      <th>범위</th>
-                      <tr>
-                        <td className="td_left">Frontend</td>
-                        <td>&nbsp;React, JSP, JS</td>
-                      </tr>
-                      <tr>
-                        <td className="td_left">Backend</td>
-                        <td>&nbsp;NodeJS(Express), Java(Spring), Python(Flask)</td>
-                      </tr>
-                      <tr>
-                        <td className="td_left">DataBase</td>
-                        <td>&nbsp;MongoDB, MySQL</td>
-                      </tr>
-                    </table>
-                    </ul>
-                  </li>
+                    <li>
+                        <h4 class="yy">PROFILE</h4>
+                        <ul>
+                            <li class="lists">
+                                <div class="left-msg">이름</div>
+                                <div class="right-msg">이건모</div>
+                            </li>
+                            <li class="lists">
+                                <div class="left-msg">생년월일</div>
+                                <div class="right-msg">1997.12.10</div>
+                            </li>
+                            <li class="lists">
+                                <div class="left-msg">거주지</div>
+                                <div class="right-msg">경기도 성남시 수정구</div>
+                            </li>
+                            <li class="lists">
+                                <div class="left-msg">최종학력</div>
+                                <div class="right-msg">아주대학교 소프트웨어학과 졸업</div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <h4 class="xx">TECH</h4>
+                        <ul>
+                            <li class="lists">
+                                <div class="left-msg">Frontend</div>
+                                <div class="right-msg">React, JSP, JS</div>
+                            </li>
+                            <li class="lists">
+                                <div class="left-msg">Backend</div>
+                                <div class="right-msg">NodeJS, Flask, Spring</div>
+                            </li>
+                            <li class="lists">
+                                <div class="left-msg">Database</div>
+                                <div class="right-msg">MySQL, MongoDB, FireStore</div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <h4 class="xx">SITE</h4>
+                        <ul id="sites">
+                            <li class="lists">
+                                <a href="https://github.com/rjsah5676"><div id="git-img" src="../../img/page/mainPage/github.png"></div></a>
+                            </li>
+                            <li class="lists">
+                                <a href="https://rjsah5676.github.io/"><div id="gm-img" src="../../img/page/mainPage/logo.png"></div></a>
+                            </li>
+                            <li class="lists">
+                                <a href="https://www.acmicpc.net/user/rjsah5676"><div id="acm-img" src="../../img/page/mainPage/acmicpc.png"></div></a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
-              </div>
-            </div>     
+            </div>
         </div>
-      </FadeIn>
+    </div>
+      </Faded>
     );
-  }
 }
 
 export default MainPage;

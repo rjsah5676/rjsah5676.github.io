@@ -7,14 +7,14 @@ class TopNone extends Component {
             padding: '16px',
             borderWidth: '0px 0px 0px 0px',
             borderStyle: 'solid',
-            fontWeight: '800'
+            fontWeight: '400'
         };
         const archiveStyle = {
                 color: '#444444',
                 padding: '16px',
                 borderWidth: '0px 0px 0px 0px',
                 borderStyle: 'solid',
-                fontWeight: '800',
+                fontWeight: '400',
                 textDecoration:'none'
         };
         return(

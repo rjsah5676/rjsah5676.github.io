@@ -9,6 +9,7 @@ class Nav extends Component {
             document.addEventListener('scroll', onScroll, {passive: true});
             function onScroll() {
                 const scrollpos = window.pageYOffset;
+                console.log(scrollpos);
                 const nav = document.getElementById('test-nav');
                 const header = document.querySelector('.header');
                 if(373 <= scrollpos) {
@@ -26,21 +27,22 @@ class Nav extends Component {
             }
         }
         navGo();
+
         return(
            <ul id="test-nav">
-               <li><Link to={{pathname:'about'}}>소개</Link></li>
-               <li><Link to={{pathname:'project'}}>프로젝트</Link></li>
+               <li><Link to={{pathname:'about'}}><div class='nav-text'>ABOUT</div></Link></li>
+               <li><Link to={{pathname:'project'}}><div class='nav-text'>PROJECT</div></Link></li>
                <li>
-                   <Link className="test-menu" to={{pathname:'melongame'}}>게임</Link>
+                   <Link className="test-menu" to={{pathname:'melongame'}}><div class='nav-text'>GAMES</div></Link>
                     <ul className="test-sub-game">
                         <li><Link to={{pathname:'melongame'}}>멜론 게임</Link></li>
                         <li><Link to={{pathname:'rspeed'}}>반응속도 테스트</Link></li>
                     </ul>
                </li>
                <li>
-                    <Link to={{pathname:'guest'}}>방명록</Link>
+                    <Link to={{pathname:'guest'}}><div class='nav-text'>GUEST BOX</div></Link>
                </li>
-               <li><Link to={{pathname:'gallery'}}>사진</Link></li>
+               <li><Link to={{pathname:'gallery'}}><div class='nav-text'>GALLERY</div></Link></li>
                <div id="tesst"></div>
            </ul>
         );
