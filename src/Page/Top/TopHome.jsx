@@ -15,7 +15,7 @@ class TopHome extends Component {
                 padding: '16px',
                 borderWidth: '0px 0px 0px 0px',
                 borderStyle: 'solid',
-                fontWeight: '800',
+                fontWeight: '400',
                 textDecoration:'none'
         };
         const topStyle2 = {

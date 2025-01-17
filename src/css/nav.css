@@ -55,6 +55,7 @@
     padding: 0;
 }
 #test-nav {
+    font-family: "Roboto Condensed", serif;
     display:flex;
     flex-direction: row;
     list-style-type: none;
@@ -70,17 +71,22 @@
 #test-nav li {
     position: relative;
     width:100%;
-    background-color: #FFFFFF;
+    background-color: #121212;
+    transition:all 0.5s;
+    border-radius: 10px;
 }
 #test-nav li:hover {
-    background: none repeat scroll 0 0 rgb(71, 67, 67);
-    outline: 0 none;
+    background:rgba(0,0,0,0.2);
+    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
+    7px 7px 20px 0px rgba(0,0,0,.3),
+    4px 4px 5px 5px rgba(0,0,0,.3);
 }
 #test-nav li:hover > a {
     color: #FFFFFF;
 }
 
 #test-nav li a {
+    font-family: sans-serif;
     top:25%;
     text-align: center;
     color: #121212;
@@ -89,49 +95,39 @@
     font-weight: bold;
     position: relative;
     text-decoration: none;
-    font-family: 'Roboto', sans-serif;
+     
+    transition:all 0.5s;
 }
 
 #test-nav ul {
-    background-color: #222;
-    border-radius: 0 0 5px 5px;
-    border-width: 0 1px 1px;
-    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
-    left: -9999px;
+    left: 0px;
+    top: 58px;
+
+    width: 100%;
+    background:rgba(104, 104, 104, 0.2);
+    box-shadow:inset 2px 2px 2px 0px rgba(66, 66, 66, 0.5),
+    7px 7px 20px 0px rgba(0,0,0,.3),
+    4px 4px 5px 5px rgba(0,0,0,.3);
+    border-radius: 10px;
+
     overflow: hidden;
     position: absolute;
-    top: -9999px;
+
     z-index: 2;
- 
-    -moz-transform: scaleY(0);
-    -ms-transform: scaleY(0);
-    -o-transform: scaleY(0);
-    -webkit-transform: scaleY(0);
+
     transform: scaleY(0);
- 
-    -moz-transform-origin: 0 0;
-    -ms-transform-origin: 0 0;
-    -o-transform-origin: 0 0;
-    -webkit-transform-origin: 0 0;
-    transform-origin: 0 0;
- 
-    -moz-transition: -moz-transform 0.1s linear;
-    -ms-transition: -ms-transform 0.1s linear;
-    -o-transition: -o-transform 0.1s linear;
-    -webkit-transition: -webkit-transform 0.1s linear;
-    transition: transform 0.1s linear;
+
+    transition: all 0.2s;
 }
 
 #test-nav li:hover ul {
     left: 0px;
     top: 58px;
+
     width: 100%;
  
-    -moz-transform: scaleY(1);
-    -ms-transform: scaleY(1);
-    -o-transform: scaleY(1);
-    -webkit-transform: scaleY(1);
     transform: scaleY(1);
+    transition: all 0.5s;
 }
 
 #test-nav ul li {
@@ -144,9 +140,18 @@
     color:#FFFFFF;
     padding: 5px 0 5px 0;
 }
-#test-nav ul li:hover {
-    background-color: #121212;
-    color: #00B4FF;
+
+.nav-text {
+    color:white;
+    font-size:20px;
+    transition: all 0.5s;
+}
+
+@media (max-width:800px){
+    .nav-text{
+        font-size:16px;
+        line-height: 30px;
+    }
 }
 /*
 #tesst {
