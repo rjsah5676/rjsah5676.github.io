@@ -12,28 +12,76 @@ import dbImg from '../../img/Page/info/dbproj.png';
 
 function MyInfo(props) {
 
+    function clickPersonal(){
+        let pbutton = document.getElementById("personal-button");
+        let tbutton = document.getElementById("team-button");
+    
+        let pb = document.getElementById("info-personal");
+        let tb = document.getElementById("info-team");
+    
+        pb.style.transform="translateX(-960px)";
+        tb.style.transform="translateX(-960px)";
+    
+        tbutton.style.backgroundColor='#121212';
+        tbutton.style.color='white';
+        tbutton.style.fontWeight=400;
+    
+        pbutton.style.backgroundColor='white';
+        pbutton.style.color='#121212';
+        pbutton.style.fontWeight=600;
+    }
+
+    function clickTeam(){
+        let pbutton = document.getElementById("personal-button");
+        let tbutton = document.getElementById("team-button");
+    
+        let pb = document.getElementById("info-personal");
+        let tb = document.getElementById("info-team");
+    
+        pb.style.transform="translateX(0px)";
+        tb.style.transform="translateX(0px)";
+    
+        pbutton.style.backgroundColor='#121212';
+        pbutton.style.color='white';
+        pbutton.style.fontWeight=400;
+    
+        tbutton.style.backgroundColor='white';
+        tbutton.style.color='#121212';
+        tbutton.style.fontWeight=600;
+    }
     return (
         <Faded>
             <div className="info-wrap">
                   <div className="info-container">
-                      <div className="info-class">Team Project</div>
+                  <div class="project-index-button">
+                     <div id="team-button" onClick={clickTeam}>Team</div>
+                     <div id="personal-button" onClick={clickPersonal}>Personal</div>
+                  </div>
+                  <div id="pl-viewer">
+                    <div id="pl-list">
+                      <div className="info-class" id="info-team">
+                        <ul>
+                            <li>
                       <InfoBox imgLink={airBoardImg}
                                 gitLink={"https://github.com/rjsah5676/Capstone-Design-2021-1-"}
                                 title={"캠 필기 웹 화상 회의 서비스 [AirBoard]"}
                                 desc={"웹 캠을 통한 필기 기능을 제공하는 화상 회의 플랫폼입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>Javascript</div><div className='info-tech-box'>WebRTC</div><div className='info-tech-box'>OpenCV</div><div className='info-tech-box'>NodeJS</div><div className='info-tech-box'>MongoDB</div></div>}
-                                idx={1}/>
+                                idx={1}/></li>
+                     <li>
                      <InfoBox imgLink={taxImg}
-                                gitLink={"https://github.com/rjsah5676"}
+                                gitLink={"https://github.com/rjsah5676/Tax-Investigation"}
                                 title={"[영천시 세무조사 홈페이지]"}
                                 desc={"세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>JSP</div><div className='info-tech-box'>Spring</div><div className='info-tech-box'>Javascript</div><div className='info-tech-box'>MySQL</div></div>}
-                                idx={2}/>
-                      <div className="info-class">Personal Project</div>
+                                idx={2}/></li>
+                        </ul>
+                      </div>
+                      <div className="info-class" id="info-personal">
                      <InfoBox imgLink={yoriJoriImg}
                                 gitLink={"https://github.com/rjsah5676/WebProject"}
                                 title={"음식 레시피 공유 사이트 [요리조리]"}
-                                desc={"음식 레시피를 공유하는 커뮤니티 웹 사이트입니다. 이용자들은 음식 레시피를 등록할 수 있고 자유롭게 음식에 대한 리뷰를 남길 수 있습니다."}
+                                desc={`음식 레시피를 공유하는 커뮤니티 웹 사이트입니다.`}
                                 tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>NodeJS</div><div className='info-tech-box'>Ajax</div><div className='info-tech-box'>JQuery</div><div className='info-tech-box'>MongoDB</div></div>}
                                 idx={3}/>
                      <InfoBox imgLink={logoImg}
@@ -42,14 +90,12 @@ function MyInfo(props) {
                                 desc={"React를 사용하여 만든 나를 소개하는 사이트입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>Firebase</div><div className='info-tech-box'>NodeJS</div></div>}
                                 idx={4}/>
-                     <div className="info-class">Algorithm</div>
                      <InfoBox imgLink={acmicpcImg}
                                 gitLink={"https://github.com/rjsah5676/ACMICPC"}
                                 title={"알고리즘 [BAEKJOON Online Judge]"}
                                 desc={"알고리즘을 배우기 위해 문제를 푼 사이트 입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>C++</div><div className='info-tech-box'>Java</div><div className='info-tech-box'>Python</div></div>}
                                 idx={5}/>
-                     <div className="info-class">ETC</div>
                     <InfoBox imgLink={dbImg}
                                 gitLink={"https://github.com/rjsah5676/DBProject"}
                                 title={"[GM Movie]"}
@@ -62,9 +108,9 @@ function MyInfo(props) {
                                 desc={"Unity를 사용하여 만든 간단한 게임입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>Unity</div><div className='info-tech-box'>C#</div></div>}
                                 idx={6}/>
-                                <br/><br/><br/>
+                                <br/><br/><br/></div>
                 </div>
-              <div style={{height:'50px'}}></div>
+              <div></div></div></div>
             </div>
         </Faded>
     )

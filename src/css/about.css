@@ -1,13 +1,11 @@
 .about-wrap {
     display:grid;
-    background-color: #222222;
     margin: 20px 20px 100px 20px;
     border-radius: 15px;
 }
 .about-container {
-    margin-left:200px;
     margin-top:50px;
-    margin-bottom:50px;
+    margin-left:25%;
 }
 
 .about-title {

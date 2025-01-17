@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+
+.center {
+  z-index:100;
+  position: fixed;
+  margin: auto;
+  top:85%;
+  right: 5%;
+}
+
+.menu {
+  z-index:99999;
+  width: 70px;
+  height: 70px;
+  color:white;
+}
+
+.item {
+  box-shadow: 1px 1px 1px 1px gray;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 70px;
+  height: 70px;
+  background-color: white;
+  -moz-border-radius: 50%;
+  -webkit-border-radius: 50%;
+  border-radius: 50%;
+  cursor: pointer;
+  text-align: center;
+  line-height: 40px;
+  border:none;
+}
+
+i {
+  font-size: 24px;
+  color: #222222;
+}
+
+/*
+.item span {
+  position: absolute;
+  top: 60%;
+  margin-top: 10px;
+  padding: 0px 10px 0px 10px;
+  font-size: 14px;
+  font-weight: 1000;
+  white-space: nowrap;
+  color: #000;
+  border-radius: 50px;
+  background-color: #fff;
+  box-shadow: 0 15px 35px rgba(50, 50, 93, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07);
+  pointer-events: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  opacity: 0;
+  transition: all 0.2s ease-in-out;
+}
+*/
+
+#list {
+    background-image:url(../img/float/list.png);
+    background-position: center;
+    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
+    7px 7px 20px 0px rgba(0,0,0,.3),
+    4px 4px 5px 0px rgba(0,0,0,.3);
+}
+
+#home {
+    background-image:url(../img/float/home.jpg);
+    background-position: center;
+    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
+    7px 7px 20px 0px rgba(0,0,0,.3),
+    4px 4px 5px 0px rgba(0,0,0,.3);
+}
+
+#up {
+    background-image:url(../img/float/up.png);
+    background-position: center;
+    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
+    7px 7px 20px 0px rgba(0,0,0,.3),
+    4px 4px 5px 0px rgba(0,0,0,.3);
+}
+
+#my-info {
+    background-image:url(../img/float/canvas.png);
+    background-position: center;
+    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
+    7px 7px 20px 0px rgba(0,0,0,.3),
+    4px 4px 5px 0px rgba(0,0,0,.3);
+}
+
+
+.item span{
+  display:none;
+}
+
+#info-contents{
+  opacity:0;
+  background:rgba(68, 68, 68, 0.9);
+  box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
+  7px 7px 20px 0px rgba(0,0,0,.3),
+  4px 4px 5px 0px rgba(0,0,0,.3);
+  transition: all 0.3s;
+  width:450px;
+  height: 200px;
+  border-radius: 20px;
+}
+
+#info-contents >ul {
+  margin:0;
+  padding:0;
+
+  padding-top:0px;
+}
+
+#info-contents ul > li {
+  font-family: "Noto Sans KR", serif;
+  font-size:15px;
+  line-height: 28px;
+  padding:0;
+  margin:0;
+  text-align: left;
+  color:white;
+  display: flex;
+}
+
+#info-contents:hover {
+  cursor: default;
+}
+
+#contents-date{
+  margin-left:10px;
+  width:45%;
+}
+
+#contents-text {
+  width:55%;
+}
+
+#dot {
+  line-height: 28px;
+  font-size:20px;
+}
+
+#contents-line {
+  position:absolute;
+  border-left:3px solid white;
+  left:14px;
+  height: 170px;
+}

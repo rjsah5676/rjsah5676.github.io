@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
 import {Link} from 'react-router-dom';
-import { Navbar } from "react-bootstrap";
-import { NavLink } from "react-router-dom";
 
 class Nav extends Component {
     render() {
@@ -9,7 +7,6 @@ class Nav extends Component {
             document.addEventListener('scroll', onScroll, {passive: true});
             function onScroll() {
                 const scrollpos = window.pageYOffset;
-                console.log(scrollpos);
                 const nav = document.getElementById('test-nav');
                 const header = document.querySelector('.header');
                 if(373 <= scrollpos) {

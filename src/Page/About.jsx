@@ -7,8 +7,8 @@ function About() {
         <div className="about-wrap">
             <div className='about-container'>
               <div className="about-title">About</div>
-              <div className='about-info'>안녕하세요🖐<br/>풀스택 개발자를 목표하는 <b style={{color:'white'}}>이건모</b> 입니다.🙂</div>
-              <div className='about-who'>WHO AM I ?</div>
+              <div className='about-info'>&nbsp;안녕하세요🖐<br/>&nbsp;풀스택 개발자를 목표하는 <b style={{color:'white'}}>이건모</b> 입니다.🙂</div>
+              <div className='about-who'>&nbsp;WHO AM I ?</div>
               <div className='about-cmd'><div className='about-cmd-detail'>Gunmo's Dev Life [Version 1.0.0]<br/>(c) Gunmo's Dev Life Corporation. All rights reserved
               <br/>
               <br/>C:\Gunmo\Name><b> Lee Gunmo</b>
@@ -30,7 +30,7 @@ function About() {
 
               </div>
               </div>
-              <div className="about-who">좀 더 써내려갈 예정...</div>
+              <div className="about-who">&nbsp;좀 더 써내려갈 예정...</div>
             </div>
         </div>
       </Faded>
