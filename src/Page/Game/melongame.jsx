@@ -158,7 +158,7 @@ class melongame extends Component {
     db.collection("score").orderBy("score",'desc').limit(10).get()
     .then((querySnapshot) => {
       querySnapshot.forEach((doc) => {
-        rankBox.innerText += "▷"+ct+"위: "+doc.data().name+" "+doc.data().score+"점\n";
+        rankBox.innerHTML += "<div id='rank-info'>"+ct+"위: "+doc.data().name+" "+doc.data().score+"점</div>";
         if(ct===10) tenth_rank=doc.data().score; 
         ct+=1;
       });
@@ -496,47 +496,33 @@ class melongame extends Component {
     }
   }
   render (){
-    const wrapStyle = {
-        marginTop:'50px',
-        marginLeft:'200px',
-      transform:'translateX(-50%,-50%)'
-    };
+
     const canvasStyle= {
       width:'1030px',
       height:'700px',
       borderRadius: '30px',
       position: 'absolute',
-      zIndex: '700',
+      zIndex: '2',
       backgroundColor: 'transparent',
     };
     const hiddenCanvasStyle= {
       width:'1030px',
       height:'700px',
       display:'none',
-      borderRadius: '30px'
+      borderRadius: '30px',
+      position:'absolute'
     };
     const backCanvasStyle= {
       width:'1030px',
       height:'700px',
       borderRadius: '30px',
-      zIndex: '500',
+      zIndex: '1',
       backgroundColor: '#00D8FF',
       position:'absolute',
     };
-    const rankBoxStyle= {
-      fontSize:'20px',
-      marginLeft:'20px',
-      backgroundColor:'#CBEFFF',
-      zIndex:'1000',
-      marginTop:'20px',
-      color:'#2D74FF',
-      height:'290px',
-      width:'320px',
-      borderRadius:'15px',
-    };
     const startButtonStyle = {
       position:'absolute',
-      zIndex:'1000',
+      zIndex:'2',
       marginTop:'480px',
       marginLeft:'190px',
       width: '200px',
@@ -553,7 +539,7 @@ class melongame extends Component {
     const exitButtonStyle = {
       display:'none',
       position:'absolute',
-      zIndex:'1000',
+      zIndex:'2',
       marginTop:'655px',
       marginLeft:'130px',
       width: '100px',
@@ -586,21 +572,23 @@ class melongame extends Component {
     }
     return (
       <Faded>
-      <div style={wrapStyle}>
-          <div style={{marginBottom:'50px',marginLeft:'30px', display:'grid', gridTemplateColumns: 'repeat(2, 1fr)',width:'1000px'}}>
-          <div id="rankBox" style={rankBoxStyle}>
-              랭킹<br/>
-          </div>
-          <div>
-        <br/><br/><br/><br/><br/><br/><br/><br/>
-        <div style={{fontSize:'20px',fontWeight:'600'}}>드래그하여 합이 10또는 20이 되도록 하면됩니다.</div><br/>
-        개발: lee gm / 디자인: tae hb / 음악: lee sh<br/>
-        게임실행에 문제가 있는경우 새로고침 후 시작을 눌러주세요<br/>
-        시간은 2분이 주어지며 종료시 스코어가 나옵니다.<br/>
-        랭킹 10위 안에드는 점수를 받을 시 랭킹 등록 창이 나옵니다.<br/>
+        <div id='blocking'></div>
+      <div id='melon-wrap'>
+          <div id='melon-container'>
+            <div id="rankBox">
+                <div id='rank-title'>랭킹</div>
+            </div>
+            <div id="melon-box">
+              <div id='melon-title'>드래그하여 합이 10또는 20이 되도록 하면됩니다.<br/></div>
+              <div id='melon-text'>
+              개발: lee gm / 디자인: tae hb / 음악: lee sh<br/>
+              게임실행에 문제가 있는경우 새로고침 후 시작을 눌러주세요<br/>
+              시간은 2분이 주어지며 종료시 스코어가 나옵니다.<br/>
+              랭킹 10위 안에드는 점수를 받을 시 랭킹 등록 창이 나옵니다.<br/>
+            </div>
         <br/>
         <div id="exit" style={{display:'none'}}>go</div>
-        <div style={{height:'0px'}}></div></div></div>
+        </div></div>
         <canvas style={canvasStyle} id='melonCanvas'>
 
         </canvas>
@@ -613,10 +601,6 @@ class melongame extends Component {
         <button style={startButtonStyle} id="startButton" onClick={this.test}>시작하기</button>
         <button id="exitButton" style={exitButtonStyle} onClick={this.test2}>홈으로</button>
         <button id="exitButton2" style={exitButtonStyle2} onClick={this.goHome}>홈으로</button>
-      </div>
-      <div style={{marginTop:'800px'}}></div>
-      <div style={{marginBottom:'100px', fontSize:'30px',marginLeft:'200px'}}>
-          재밌게 해주세요.
       </div>
       </Faded>
     );

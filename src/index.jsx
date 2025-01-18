@@ -19,6 +19,7 @@ import './css/about.css';
 import './css/top.css';
 import './css/Page/info.css';
 import './css/archive.css';
+import './css/Page/melon.css';
 
 ReactDOM.render(
   <div>
