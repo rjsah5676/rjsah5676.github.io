@@ -5,9 +5,6 @@ import InfoSlide from './InfoSlide';
 import calendarImg from '../../img/Page/info/info_calendar.png';
 
 import airBoardImg from '../../img/Page/info/AirBoard.png';
-import yoriJoriImg from '../../img/Page/info/YoriJori.png';
-import testImg from '../../img/Page/info/Test.png';
-import taxImg from '../../img/Page/info/TaxProject.png';
 
 import img_airboard_1 from '../../img/Page/info/airboard/img_1.png';
 import img_airboard_2 from '../../img/Page/info/airboard/img_2.png';
@@ -31,6 +28,16 @@ import img_db_5 from '../../img/Page/info/dbproject/img_update.png';
 
 import img_slide_4 from '../../img/Page/info/yorijori/img_slide_4.png';
 import img_slide_5 from '../../img/Page/info/yorijori/img_slide_5.png';
+
+import img_gm_1 from '../../img/Page/info/gmlee/img01.jpg';
+import img_gm_2 from '../../img/Page/info/gmlee/img02.jpg';
+import img_gm_3 from '../../img/Page/info/gmlee/img03.jpg';
+import img_gm_4 from '../../img/Page/info/gmlee/img04.jpg';
+import img_gm_5 from '../../img/Page/info/gmlee/img05.jpg';
+import img_gm_6 from '../../img/Page/info/gmlee/img06.jpg';
+import img_gm_7 from '../../img/Page/info/gmlee/img07.jpg';
+import img_gm_8 from '../../img/Page/info/gmlee/img08.jpg';
+import img_gm_9 from '../../img/Page/info/gmlee/img09.jpg';
 
 function InfoContents({idx}) {
     const cImg = (<img alt="" src={calendarImg} style={{width:'30px'}}/>);
@@ -92,6 +99,34 @@ function InfoContents({idx}) {
                 img: img_db_2,
               },
             ];
+    const slideImages_gmlee = [
+      {
+        id: 0,
+        img: img_gm_1,
+      },
+      {
+        id: 1,
+        img: img_gm_2,
+      },      {
+        id: 2,
+        img: img_gm_3,
+      },      {
+        id: 3,
+        img: img_gm_4,
+      },      {
+        id: 4,
+        img: img_gm_5,
+      },      {
+        id: 5,
+        img: img_gm_6,
+      },      {
+        id: 6,
+        img: img_gm_7,
+      },      {
+        id: 7,
+        img: img_gm_8,
+      }
+    ];
 
     if(idx===1)
         return (
@@ -255,9 +290,63 @@ function InfoContents({idx}) {
                 <div className='info-contents-title'>Gunmo's Dev Life</div>
                 <div className='info-contents-period'>{cImg} 2021.12 ~ </div>
                 <div className='info-contents-tech'><div className='tech-box'>React</div><div className='tech-box'>Firebase</div><div className='tech-box'>NodeJS</div></div>
-                <InfoSlide slideImages={slideImages}/>
-                <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
-                <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
+                <InfoSlide slideImages={slideImages_gmlee}/>
+                <InfoContentsDetail title={'1. 개요'} text={`웹 프로젝트들을 진행해보며 나도 실제로 내 관련 이야기들을 담을 수 있는 사이트를 
+하나 남길 수 있었으면 좋겠다고 생각하였다. 그렇지만 개인용 사이트를 만든다 하면 서버 비용 등 생각할 것이 많아서
+고민하던 찰나에 깃허브 페이지라는 서비스를 알게 되었고 이것을 통해 내 사이트를 한번 만들어 보자 하고 시작하였다.
+대부분의 프론트 기반 움직임은 리액트를 통하여 구현하였고, 데이터 베이스가 필요한 작업들은 작게나마 파이어베이스의
+파이어 스토어를 통하여 구현하였다.
+`}/>
+                                <InfoContentsDetail title={'2. 페이지 설명'} />
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-1. MAIN'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_1} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`사이트에 접속시 처음으로 볼 수 있는 페이지이다.
+나에 대한 전반적인 정보를 담고있다. 최대한 화면 크기에 맞게 반응하도록 페이지를 설계하였다.`}/></div>
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-2. ABOUT'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_2} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`메뉴 중 'ABOUT' 버튼을 클릭시 렌더링 되는 페이지이다.
+나에 대한 세부적인 정보를 담고있다.`}/></div>
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-3. PROJECT'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_3} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`메뉴 중 'PROJECT' 버튼을 클릭시 렌더링 되는 페이지이다.
+내가 진행했던 개인/팀프로젝트에 대한 내용을 확인해볼 수 있다.`}/></div>
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-4. GAMES-멜론게임'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_4} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`메뉴 중 'GAMES'의 멜론 게임을 클릭시 렌더링 되는 페이지이다.
+HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든 게임이라 애정이 있는 게임이다.
+나름 재밌으므로 한번쯤 해보는 것을 추천한다.`}/></div>
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-5. GAMES-반응속도 테스트'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_5} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`메뉴 중 'GAMES'의 반응속도 테스트를를 클릭시 렌더링 되는 페이지이다.
+가끔 심심할 때 마다 반응속도 테스트를 타 사이트에서 해보았는데 나도 만들어볼 수 있을 것 같아서 만든 게임이다.
+`}/></div>
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-6. GUEST BOX'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_6} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`메뉴 중 'GUEST BOX'를 클릭시 렌더링 되는 페이지이다.
+방명록 하나 쯤 있으면 좋을 것 같아서 만들어 봤다. 실제 있는 패드를 CSS를 이용해 디자인 해보았다.`}/></div>
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-7. GALLERY'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_7} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`메뉴 중 'GALLERY'를 클릭시 렌더링 되는 페이지이다.
+내가 찍은 사진들을 넣어보았다. 생각보다 사진이 많지는 않지만 나름 추가해 보았다.
+클릭하면 사진을 크게 볼 수 있다.`}/></div>
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-8. Archive'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_8} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`헤더 메뉴 중 'Archive'를 클릭시 렌더링 되는 페이지이다.
+주저리 주저리 그 날 생각나는 것들을 적어보았다.`}/></div>
+                <div style={{marginLeft:'15px'}}>
+                <InfoContentsDetail title={'2-9. Etc'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_gm_9} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`기타 추가적인 기능들이다.
+헤더 메뉴 중 Contact를 누르면 내 연락처가 화면에 보이게 하였고, Floating 버튼을 화면에 추가하여
+도움을 주는 기능들을 추가하였다.`}/></div>
             </div>
         )
     if(idx===5)
