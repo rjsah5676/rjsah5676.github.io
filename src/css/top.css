@@ -48,3 +48,21 @@
     text-decoration: none;
     color: black;
 }
+
+.top-contact {
+    font-weight:800;
+    border: 3px solid #121212;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: 10px;
+    height:40px;
+    line-height:40px;
+    margin-right:10px;
+    cursor:pointer;
+    transition:all 0.7s;
+}
+
+.top-contact:hover {
+    background-color: #121212;
+    color:white;
+}
