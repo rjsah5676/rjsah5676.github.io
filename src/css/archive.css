@@ -2,13 +2,12 @@
     margin:20px;
     padding:20px;
     border-radius:20px;
-    margin-top:100px;
+    margin-top:30px;
 }
 
 .archive-container {
-
-    margin-left:100px;
-    margin-right:100px;
+    width:960px;
+    margin:0 auto;
     margin-top:20px;
     margin-bottom:50px;
     border-radius: 15px;
@@ -23,13 +22,12 @@
 
 .archive-box {
     height:500px;
-    width:85%;
+    width:960px;
     margin:auto;
     margin-top:10px;
     padding:20px;
     background-color:black;
     color:white;
-    border-radius:13px;
 }
 .archive-date {
     font-weight: 600;
@@ -44,4 +42,83 @@
     margin-left: 35px;
 }
 
+#slider-next {
+    font-family: "Dongle", sans-serif;
+    position: absolute;
+    left:980px;
+    bottom:150px;
+    font-size:40px;
+    line-height:40px;
+    padding-top:107px;
+    padding-bottom:100px;
+    padding-left:10px;
+    padding-right:10px;
+    border-radius: 20px;
+    border:none;
+    background:rgba(236, 236, 236, 0.76);
+    box-shadow:inset 2px 2px 2px 0px rgba(255, 255, 255, 0.918),
+    7px 7px 20px 0px rgba(255, 255, 255, 0.096),
+    4px 4px 5px 0px rgba(255, 255, 255, 0.048);
+    cursor:pointer;
+    transition: all 0.5s;
+}
 
+#slider-prev {
+    font-family: "Dongle", sans-serif;
+    background-color: white;
+    position: absolute;
+    right:980px;
+    top:150px;
+    font-size:40px;
+    line-height:40px;
+    padding-top:107px;
+    padding-bottom:100px;
+    padding-left:10px;
+    padding-right:10px;
+    border-radius: 20px;
+    border:none;
+    background:rgba(236, 236, 236, 0.76);
+    box-shadow:inset 2px 2px 2px 0px rgba(255, 255, 255, 0.918),
+    7px 7px 20px 0px rgba(255, 255, 255, 0.096),
+    4px 4px 5px 0px rgba(255, 255, 255, 0.048);
+    cursor:pointer;
+    transition: all 0.5s;
+}
+
+#slider-prev:hover {
+    background:rgba(150, 150, 150, 0.76);
+}
+#slider-next:hover {
+    background:rgba(150, 150, 150, 0.76);
+}
+
+.dots_custom {
+    display: inline-block;
+    vertical-align: middle;
+    margin: auto 0;
+    padding: 0;
+  }
+  
+  .dots_custom li {
+    list-style: none;
+    cursor: pointer;
+    display: inline-block;
+    margin: 0 6px;
+    padding: 0;
+  }
+  
+  .dots_custom li button {
+    border: none;
+    background: #363636;
+    color: transparent;
+    cursor: pointer;
+    display: block;
+    height: 10px;
+    width: 30px;
+    border-radius: 5px;
+    padding: 0;
+  }
+  
+  .dots_custom li.slick-active button {
+    background-color: #cccccc;
+  }

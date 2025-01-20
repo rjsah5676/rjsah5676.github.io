@@ -9,12 +9,48 @@ import ArchiveBox from './ArchiveBox';
 
 
 function Archive() {
+    const NextArrow = ({ onClick }) => {
+        return (
+            <button id="slider-next"
+                onClick={onClick}
+                type='button'
+            >▶
+            </button>
+        );
+    };
+    
+    const PrevArrow = ({ onClick }) => {
+        return (
+            <button id="slider-prev"
+                onClick={onClick}
+                type='button'
+            >◀
+            </button>
+        );
+    };
     const settings = {
           dots: true,
           infinite: true,
           speed: 500,
           slidesToShow: 1,
-          slidesToScroll: 1
+          slidesToScroll: 1,
+          nextArrow: <NextArrow />,
+          prevArrow: <PrevArrow />,
+          appendDots: (dots) => (
+            <div
+              style={{
+                width: '100%',
+                position: 'absolute',
+                top: '550px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <ul> {dots} </ul>
+            </div>
+          ),
+          dotsClass: 'dots_custom'
         };
     return (
       <Faded className='archive-wrap'>

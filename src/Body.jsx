@@ -48,16 +48,6 @@ class Body extends Component {
     var item2 = new Item("home", "fas fa-sign-out-alt", "", "");
     var item3 = new Item("up", "fas fa-id-card", "", "");
     var item4 = new Item("my-info", "fas fa-exchange-alt", "",
-        `<ul id='myinfo'>
-        <li>ㅎㅇㅇ</li>
-        <li>ㅎㅇㅇㅇ</li>
-        <li>ㅎㅇㅇㅇㅇ</li>
-        </ul>`);
-    var item5 = new Item("info-contents", "fas fa-exchange-alt", "","");
-    var item1 = new Item("list", "fas fa-bars", "");
-    var item2 = new Item("home", "fas fa-sign-out-alt", "", "");
-    var item3 = new Item("up", "fas fa-id-card", "", "");
-    var item4 = new Item("my-info", "fas fa-exchange-alt", "",
         ``);
     var item5 = new Item("info-contents", "fas fa-exchange-alt", "","");
 
