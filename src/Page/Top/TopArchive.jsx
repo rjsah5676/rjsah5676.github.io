@@ -2,6 +2,16 @@ import React, { Component } from 'react';
 import {NavLink} from 'react-router-dom';
 class TopArchive extends Component {
     render() {
+        function openContact(a){
+            let ct=document.getElementById("contact-container");
+            ct.style.opacity=a;
+            if(a==1) {
+                ct.style.zIndex=10;
+            }
+            if(a==0) {
+                ct.style.zIndex=-1;
+            }
+        }
         const topStyle = {
             color: '#444444',
             padding: '16px',
@@ -32,6 +42,7 @@ class TopArchive extends Component {
             <div className="top-right">
                 <table>
                         <tr>
+                            <td><div className="top-contact" onClick={() => openContact(1)}>Contact</div></td>
                             <td><div className="top-right-home"> <NavLink style={topStyle} to="/">Home</NavLink></div></td>
                             <td><div className="top-right-archives"><NavLink style={archiveStyle} to="/archive">Archive</NavLink></div></td>
                         </tr>

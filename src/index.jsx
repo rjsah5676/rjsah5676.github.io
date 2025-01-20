@@ -6,6 +6,7 @@ import Nav from './Nav';
 import Body from './Body';
 import Footer from './Footer';
 import Top from './Top';
+import Contact from './Contact';
 
 import './css/index.css';
 import './css/gallery.css';
@@ -29,6 +30,7 @@ ReactDOM.render(
       <Nav/>
       <Body />
     <Footer/>
+    <Contact/>
     </HashRouter>
   </div>,
   document.querySelector('#container')

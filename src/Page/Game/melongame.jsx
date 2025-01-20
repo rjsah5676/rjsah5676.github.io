@@ -556,7 +556,7 @@ class melongame extends Component {
     const exitButtonStyle2 = {
       display:'none',
       position:'absolute',
-      zIndex:'1000',
+      zIndex:'2',
       marginTop:'455px',
       marginLeft:'420px',
       width: '200px',
