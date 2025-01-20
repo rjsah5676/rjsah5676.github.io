@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.css": "/static/css/main.03167492.chunk.css",
-    "main.js": "/static/js/main.96a42009.chunk.js",
-    "main.js.map": "/static/js/main.96a42009.chunk.js.map",
+    "main.css": "/static/css/main.00f5f3a7.chunk.css",
+    "main.js": "/static/js/main.dec33abb.chunk.js",
+    "main.js.map": "/static/js/main.dec33abb.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/css/2.19627560.chunk.css": "/static/css/2.19627560.chunk.css",
@@ -10,13 +10,14 @@
     "static/js/2.fe0e2009.chunk.js.map": "/static/js/2.fe0e2009.chunk.js.map",
     "index.html": "/index.html",
     "static/css/2.19627560.chunk.css.map": "/static/css/2.19627560.chunk.css.map",
-    "static/css/main.03167492.chunk.css.map": "/static/css/main.03167492.chunk.css.map",
+    "static/css/main.00f5f3a7.chunk.css.map": "/static/css/main.00f5f3a7.chunk.css.map",
     "static/js/2.fe0e2009.chunk.js.LICENSE.txt": "/static/js/2.fe0e2009.chunk.js.LICENSE.txt",
     "static/media/AirBoard.d2211473.png": "/static/media/AirBoard.d2211473.png",
     "static/media/TaxProject.7ca7e575.png": "/static/media/TaxProject.7ca7e575.png",
     "static/media/YoriJori.4507951f.png": "/static/media/YoriJori.4507951f.png",
     "static/media/bbyong.ca732c8c.mp3": "/static/media/bbyong.ca732c8c.mp3",
     "static/media/bgm.0c2a9b64.mp3": "/static/media/bgm.0c2a9b64.mp3",
+    "static/media/index.css": "/static/media/contact_img.e731c26f.png",
     "static/media/dbproj.4def8c8e.png": "/static/media/dbproj.4def8c8e.png",
     "static/media/endbgm.e9b606fc.mp3": "/static/media/endbgm.e9b606fc.mp3",
     "static/media/github.6ef3e8a8.png": "/static/media/github.6ef3e8a8.png",
@@ -84,7 +85,7 @@
     "static/js/runtime-main.0aa8ae79.js",
     "static/css/2.19627560.chunk.css",
     "static/js/2.fe0e2009.chunk.js",
-    "static/css/main.03167492.chunk.css",
-    "static/js/main.96a42009.chunk.js"
+    "static/css/main.00f5f3a7.chunk.css",
+    "static/js/main.dec33abb.chunk.js"
   ]
 }
