@@ -21,6 +21,7 @@ import './css/top.css';
 import './css/Page/info.css';
 import './css/archive.css';
 import './css/Page/melon.css';
+import './css/Page/sketch.css';
 
 ReactDOM.render(
   <div>
