@@ -2,8 +2,6 @@ import $ from "jquery";
 import anime from "animejs";
 import 'jquery-ui-dist/jquery-ui';
 
-var timeOut;
-
 class Menu {
     constructor(menu) {
         this.$element = $(menu);
@@ -17,7 +15,7 @@ class Menu {
     
     add(item) {
         var menu = this;
-        if (this.first == null) {
+        if (this.first === null) {
             this.first = item;
             this.last = item;
             this.first.$element.on("mouseup", function() {
@@ -80,7 +78,6 @@ class Menu {
         this.status = "closed";
         var current = this.first.next;
         var head = this.first;
-        var iterator = 1;
         while (current != null) {
             anime({
                 targets: current.$element[0],
@@ -88,13 +85,12 @@ class Menu {
                 top: head.$element.css("top"),
                 duration: 500
             });
-            iterator++;
             current = current.next;
         }
     }
     
     click() {
-        if (this.status == "closed") {
+        if (this.status === "closed") {
             this.open();
         } else {
             this.close();

@@ -31,7 +31,7 @@ function MainPage() {
 
     return (
       <Faded>
-        <div class="main-page-container">
+        <div className="main-page-container">
         <h3>ABOUT ME</h3>
         <h5>안녕하세요🖐<br/>풀스택 개발자를 목표하는 <b style={{color:'white'}}>이건모</b> 입니다.🙂</h5>
         <div><button id="plus-button" style={{display:'none'}} onClick={openModal}>+</button></div>
@@ -41,53 +41,53 @@ function MainPage() {
             <div id="main-page-right-box">
                 <ul>
                     <li>
-                        <h4 class="yy">PROFILE</h4>
+                        <h4 className="yy">PROFILE</h4>
                         <ul>
-                            <li class="lists">
-                                <div class="left-msg">이름</div>
-                                <div class="right-msg">이건모</div>
+                            <li className="lists">
+                                <div className="left-msg">이름</div>
+                                <div className="right-msg">이건모</div>
                             </li>
-                            <li class="lists">
-                                <div class="left-msg">생년월일</div>
-                                <div class="right-msg">1997.12.10</div>
+                            <li className="lists">
+                                <div className="left-msg">생년월일</div>
+                                <div className="right-msg">1997.12.10</div>
                             </li>
-                            <li class="lists">
-                                <div class="left-msg">거주지</div>
-                                <div class="right-msg">경기도 성남시 수정구</div>
+                            <li className="lists">
+                                <div className="left-msg">거주지</div>
+                                <div className="right-msg">경기도 성남시 수정구</div>
                             </li>
-                            <li class="lists">
-                                <div class="left-msg">최종학력</div>
-                                <div class="right-msg">아주대학교 소프트웨어학과 졸업</div>
+                            <li className="lists">
+                                <div className="left-msg">최종학력</div>
+                                <div className="right-msg">아주대학교 소프트웨어학과 졸업</div>
                             </li>
                         </ul>
                     </li>
                     <li>
-                        <h4 class="xx">TECH</h4>
+                        <h4 className="xx">TECH</h4>
                         <ul>
-                            <li class="lists">
-                                <div class="left-msg">Frontend</div>
-                                <div class="right-msg">React, JSP, JS</div>
+                            <li className="lists">
+                                <div className="left-msg">Frontend</div>
+                                <div className="right-msg">React, JSP, JS</div>
                             </li>
-                            <li class="lists">
-                                <div class="left-msg">Backend</div>
-                                <div class="right-msg">NodeJS, Flask, Spring</div>
+                            <li className="lists">
+                                <div className="left-msg">Backend</div>
+                                <div className="right-msg">NodeJS, Flask, Spring</div>
                             </li>
-                            <li class="lists">
-                                <div class="left-msg">Database</div>
-                                <div class="right-msg">MySQL, MongoDB, FireStore</div>
+                            <li className="lists">
+                                <div className="left-msg">Database</div>
+                                <div className="right-msg">MySQL, MongoDB, FireStore</div>
                             </li>
                         </ul>
                     </li>
                     <li>
-                        <h4 class="xx">SITE</h4>
+                        <h4 className="xx">SITE</h4>
                         <ul id="sites">
-                            <li class="lists">
+                            <li className="lists">
                                 <a href="https://github.com/rjsah5676"><div id="git-img" src="../../img/page/mainPage/github.png"></div></a>
                             </li>
-                            <li class="lists">
+                            <li className="lists">
                                 <a href="https://rjsah5676.github.io/"><div id="gm-img" src="../../img/page/mainPage/logo.png"></div></a>
                             </li>
-                            <li class="lists">
+                            <li className="lists">
                                 <a href="https://www.acmicpc.net/user/rjsah5676"><div id="acm-img" src="../../img/page/mainPage/acmicpc.png"></div></a>
                             </li>
                         </ul>

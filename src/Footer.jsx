@@ -15,7 +15,7 @@ class Footer extends Component {
         }
         return(
             <div className="footer">
-                <a href="https://github.com/rjsah5676"><img src={gitImg} style={gitst}/></a>
+                <a href="https://github.com/rjsah5676"><img src={gitImg} style={gitst} alt=""/></a>
                 Copyright 2021. 이건모. All right Reserved<a style= {st} href="#/ewfwfeff">.</a>
             </div>
         );

@@ -4,10 +4,10 @@ function Contact(){
     function openContact(a){
         let ct=document.getElementById("contact-container");
         ct.style.opacity=a;
-        if(a==1) {
+        if(a===1) {
             ct.style.zIndex=10;
         }
-        if(a==0) {
+        if(a===0) {
             ct.style.zIndex=-1;
         }
     }
@@ -18,13 +18,13 @@ function Contact(){
                     <div id="contact-img"></div>
                 </div>
                 <ul>
-                    <li class="contact-name">
+                    <li className="contact-name">
                         Gunmo Lee
                     </li>
-                    <li class="contact-info" id="contact-tel">
+                    <li className="contact-info" id="contact-tel">
                         Tel.&nbsp;&nbsp; 010-6385-4676
                     </li>
-                    <li class="contact-info" id="contact-email">
+                    <li className="contact-info" id="contact-email">
                         Email.&nbsp;&nbsp; rjsah5676@gmail.com
                     </li>
                 </ul>

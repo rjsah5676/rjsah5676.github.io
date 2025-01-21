@@ -53,7 +53,7 @@ function MyInfo(props) {
         <Faded>
             <div className="info-wrap">
                   <div className="info-container">
-                  <div class="project-index-button">
+                  <div className="project-index-button">
                      <div id="team-button" onClick={clickTeam}>Team</div>
                      <div id="personal-button" onClick={clickPersonal}>Personal</div>
                   </div>
