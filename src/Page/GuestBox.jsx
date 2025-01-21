@@ -13,7 +13,6 @@ function GuestBox() {
     const [cnt, setCnt] = useState(0);
 
     useEffect(async()=>{
-        var i = page*5;
         var j = 1;
         await db.collection('guest').orderBy('id','desc').get()
             .then(async (querySnapshot) => {
@@ -43,8 +42,6 @@ function GuestBox() {
             setContents("");
             setPage(0);
             var newList=[];
-            var i = 0;
-            var j = 1;
             await db.collection('guest').orderBy('id','desc').get()
                 .then( (querySnapshot) => {
                   querySnapshot.forEach((doc) => {
@@ -59,10 +56,10 @@ function GuestBox() {
     function makeBox(){
         const listItems = list.map((item) =>
             (
-            <li className="guest-chat-box"><div class="container">
+            <li className="guest-chat-box"><div className="container">
                 <div className='message-who'>{item.name}</div>
-                <div class="message-container">
-                  <div class='message-box'>
+                <div className="message-container">
+                  <div className='message-box'>
                     <ul>
                         <li className="message-date">
                             {item.date}

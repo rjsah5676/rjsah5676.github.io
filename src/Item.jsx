@@ -5,7 +5,7 @@ var timeOut;
 
 class Item {
     constructor(icon, fw, backgroundColor, message) {
-        if(icon=="list"){
+        if(icon==="list"){
             this.$element = $(document.createElement("div"));
         }
         else{
@@ -17,7 +17,7 @@ class Item {
         this.$element.attr("id",icon);
         this.$element.css("background-color", backgroundColor);
         var i = document.createElement("i");
-        if(icon!="list"){
+        if(icon!=="list"){
             var span = document.createElement("span");
             span.innerHTML=message;
             span.style.backgroundColor=backgroundColor;

@@ -3,7 +3,7 @@ import Faded from "../../effect/Faded";
 import firebase from "../../firebase";
 
 const db = firebase.firestore();
-var tenth_rank = 0;
+
 var ct = 0;
 function RspeedGame()
 {
@@ -17,7 +17,6 @@ function RspeedGame()
     const [list, setList] = useState([]);
     const [ren, setRen] = useState(0);
 
-    const [end, setEnd] = useState(0);
     const [name, setName] = useState('');
 
     useEffect(async()=>{

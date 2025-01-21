@@ -12,7 +12,7 @@ function InfoBox({imgLink, gitLink, title,desc,tech,idx}) {
     if(idx===1) return(
             <div className="info-item">
                       <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
-                <div class="right-content">
+                <div className="right-content">
                     <div>
                       <Link to={{pathname:'infoPage', state: {idx: idx} }} className="info-title">{title}</Link>
                       <div className="info-desc">{desc}</div>
@@ -27,7 +27,7 @@ function InfoBox({imgLink, gitLink, title,desc,tech,idx}) {
     if(idx===4) return(
         <div className="info-item">
                   <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
-                  <div class="right-content">
+                  <div className="right-content">
                   <div>
                   <Link to={{pathname:'infoPage', state: {idx: idx} }} className="info-title">{title}</Link>
                 <div className="info-desc">{desc}</div>
@@ -42,7 +42,7 @@ function InfoBox({imgLink, gitLink, title,desc,tech,idx}) {
     if(idx===5) return(
         <div className="info-item">
                   <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
-                  <div class="right-content">
+                  <div className="right-content">
                   <Link to={{pathname:'infoPage', state: {idx: idx} }} className="info-title">{title}</Link>
                   <div className="info-desc">{desc}</div>
                   {tech}
@@ -55,7 +55,7 @@ function InfoBox({imgLink, gitLink, title,desc,tech,idx}) {
         );
     return (<div className="info-item">
           <Link to={{pathname:'infoPage', state: {idx: idx} }} style={{backgroundImage:`url(${imgLink})`}} className="info-image"/>
-          <div class="right-content">
+          <div className="right-content">
           <Link to={{pathname:'infoPage', state: {idx: idx} }} className="info-title">{title}</Link>
           <div className="info-desc">{desc}</div>
           {tech}

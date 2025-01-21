@@ -9,6 +9,8 @@ import './css/floatstyle.css';
 
 import melongame from "./Page/Game/melongame";
 import rspeed from "./Page/Game/RspeedGame";
+import Sketch from "./Page/Game/Sketch";
+
 import infoPage from "./Page/Info/InfoPage";
 import GalleryPage from "./Page/Gallery/GalleryPage";
 import GuestBox from "./Page/GuestBox";
@@ -22,7 +24,7 @@ import Item from './Item';
 class Body extends Component {
   componentDidMount() {
     function getNumberFromPixel(_px) {
-      if (_px == null || _px == "") {
+      if (_px === null || _px === "") {
           return 0;
       }
      
@@ -37,7 +39,7 @@ class Body extends Component {
       }
      
       var result = parseInt(_px, 10);
-      if ((result + "") == "NaN") {
+      if ((result + "") === "NaN") {
           return 0;
       }
      
@@ -118,6 +120,7 @@ class Body extends Component {
             <Route exact path="/infoPage" component={infoPage}></Route>
             <Route exact path="/archive" component={Archive}></Route>
             <Route exact path="/rspeed" component={rspeed}></Route>
+            <Route exact path="/sketch" component={Sketch}></Route>
             </div>
     );
   }

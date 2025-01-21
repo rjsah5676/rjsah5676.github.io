@@ -1,4 +1,4 @@
-import React , {useState,useEffect} from "react";
+import React , {useState} from "react";
 import FadeIn from "../../effect/FadeIn";
 
 import img_1 from '../../img/Gallery/img_1.jpg';
@@ -33,7 +33,7 @@ function GalleryPage() {
         setClicked(false);
     }
     function goPage(i) {
-        if(i==1) setPage(page+1);
+        if(i===1) setPage(page+1);
         else if(page>0) setPage(page-1);
     }
     const imgRender = () => {
@@ -43,7 +43,6 @@ function GalleryPage() {
         }
         return res;
     }
-    const IMAGE_NUM=20;
 
     const arr = [img_1, img_2, img_3, img_4, 
         img_5, img_6, img_7, img_8, img_9, 
