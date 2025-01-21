@@ -9,7 +9,7 @@ import './css/floatstyle.css';
 
 import melongame from "./Page/Game/melongame";
 import rspeed from "./Page/Game/RspeedGame";
-import Sketch from "./Page/Game/Sketch";
+import Sketch from "./Page/Game/Sketch/Sketch";
 
 import infoPage from "./Page/Info/InfoPage";
 import GalleryPage from "./Page/Gallery/GalleryPage";
