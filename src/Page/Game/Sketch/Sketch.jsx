@@ -12,11 +12,22 @@ function Sketch() {
     const [room,setRoom] = useState('');
     const [list, setList] = useState([]);
     const [roomnum,setRoomnum] = useState(0);
+    const [chatList, setChatList] = useState([]);
+    const [chat, setChat] = useState('');
+    const [join, setJoin] = useState(0);
 
-   useEffect(()=>{
+    useEffect(()=>{
         renderList();
         },[]);
     
+    useEffect(()=> {
+        if(document.getElementById("room-chat") !== null) {
+            document.getElementById("room-chat").innerHTML = "";
+            chatList.map((item) =>
+            { document.getElementById("room-chat").innerHTML+= "<div>"+item.chatname+": "+item.text+"</div>"});
+        }
+    },[chatList]);
+
     async function submitName(username) {
         var cnt=1;
         var isDup=false;
@@ -42,6 +53,11 @@ function Sketch() {
     const onChangeRoom = (event) => {
         setRoom(event.target.value);
     };
+
+    const onChangeChat = (event) => {
+        setChat(event.target.value);
+    };
+
     async function createRoom(c_room,c_name) {
         var cnt=1;
         await db.collection("sketch_user_room").get()
@@ -64,21 +80,60 @@ function Sketch() {
               });
             });
     }
+    async function renderChat() {
+        var newList=[];
+        await db.collection('sketch_user_chat').orderBy('num','asc').get()
+            .then((querySnapshot) => {
+              querySnapshot.forEach((doc) => {
+                    if(doc.data().chatroom === roomnum)
+                        newList.push({num:doc.data().num, chatname:doc.data().chatname, text:doc.data().text});
+              });
+            });
+        setChatList(newList);
+        setJoin(1);
+    }
+    async function sendChat(s_room,s_name,s_text) {
+        var cnt=1;
+        await db.collection("sketch_user_chat").get()
+        .then(async (querySnapshot) => {
+          querySnapshot.forEach((doc) => {
+            if(s_room===doc.data().room) cnt++;
+          });
+        });
+        if(s_text !== ""&& s_text.length<20) {
+            await db.collection("sketch_user_chat").add({num:cnt,chatname:s_name,text:s_text,chatroom:s_room,date:new Date()});
+            setChat('');
+            renderChat();
+        }
+    }
     function makeBox(){
         const listItems = list.map((item) =>
             (
                 <ul>
                 <li>{item.num}</li>
-                <li style={{cursor:'pointer'}}onClick={()=>{setRoomnum(item.num)}}>{item.roomname}</li>
+                <li style={{cursor:'pointer'}} onClick={()=>{setRoomnum(item.num)}}>{item.roomname}</li>
                 <li>{item.name}</li>
                 </ul>
         ));
         return (listItems);
     }
     if(roomnum !== 0) {
+        if(join===0) renderChat();
         return(<Faded>
             <div style={{color:'white'}}>
                 {roomnum}번 방입니다.
+            </div>
+            <div className="room-container">
+                <div className="room-canvas"></div>
+                <div className="room-chat-box">
+                    <ul id="room-chat">
+                        <li>안녕하세요</li>
+                    </ul>
+                    <div>
+                        <input id="chat-input" onChange={onChangeChat} type="text" value={chat}/>
+                        <button onClick={()=>{sendChat(roomnum,name,chat)}}>입력</button>
+                    </div>
+                </div>
             </div>
         </Faded>);
     }
