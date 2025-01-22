@@ -21,3 +21,30 @@
 .sketch-box > input {
     float:right;
 }
+
+.room-container {
+    width:1240px;
+    height:600px;
+    background-color: rgb(73, 61, 95);
+    margin:auto;
+    margin-top: 50px;
+    display: flex;
+    border-radius: 15px;
+}
+
+.room-canvas {
+    background-color: white;
+    float:left;
+    width:75%;
+}
+
+.room-chat-box {
+    width:25%;
+}
+
+#room-chat {
+    margin:0;
+    padding:0;
+    height:80%;
+    background-color: rgb(148, 148, 185);
+}
