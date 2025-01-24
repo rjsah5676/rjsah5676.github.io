@@ -37,7 +37,7 @@ function Sketch() {
               if(doc.data().name === username) {
                 isDup=true;
               }
-              cnt++;
+              cnt++; //
           });
         });
         if(name !== ""&& name.length<10&& !isDup) {
