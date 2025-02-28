@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/static/css/main.2a8a4e2e.chunk.css",
-    "main.js": "/static/js/main.edf1b25d.chunk.js",
-    "main.js.map": "/static/js/main.edf1b25d.chunk.js.map",
+    "main.js": "/static/js/main.301838c5.chunk.js",
+    "main.js.map": "/static/js/main.301838c5.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/css/2.19627560.chunk.css": "/static/css/2.19627560.chunk.css",
@@ -15,6 +15,7 @@
     "static/media/AirBoard.d2211473.png": "/static/media/AirBoard.d2211473.png",
     "static/media/TaxProject.7ca7e575.png": "/static/media/TaxProject.7ca7e575.png",
     "static/media/YoriJori.4507951f.png": "/static/media/YoriJori.4507951f.png",
+    "static/media/artpart.338eafa6.jpg": "/static/media/artpart.338eafa6.jpg",
     "static/media/bbyong.ca732c8c.mp3": "/static/media/bbyong.ca732c8c.mp3",
     "static/media/bgm.0c2a9b64.mp3": "/static/media/bgm.0c2a9b64.mp3",
     "static/media/index.css": "/static/media/contact_img.e731c26f.png",
@@ -77,6 +78,12 @@
     "static/media/mainMelon.462a9337.png": "/static/media/mainMelon.462a9337.png",
     "static/media/right_arrow.4dfcdef0.png": "/static/media/right_arrow.4dfcdef0.png",
     "static/media/slick-theme.css": "/static/media/slick.c94f7671.ttf",
+    "static/media/slide_1.a6913491.jpg": "/static/media/slide_1.a6913491.jpg",
+    "static/media/slide_2.1328e671.jpg": "/static/media/slide_2.1328e671.jpg",
+    "static/media/slide_3.9577d176.jpg": "/static/media/slide_3.9577d176.jpg",
+    "static/media/slide_4.59a659c5.jpg": "/static/media/slide_4.59a659c5.jpg",
+    "static/media/slide_5.31bac61a.jpg": "/static/media/slide_5.31bac61a.jpg",
+    "static/media/slide_6.e0dfd9f7.jpg": "/static/media/slide_6.e0dfd9f7.jpg",
     "static/media/tm1.25c3a76a.png": "/static/media/tm1.25c3a76a.png",
     "static/media/tm2.5bb21e63.png": "/static/media/tm2.5bb21e63.png",
     "static/media/tm3.9a876dc1.png": "/static/media/tm3.9a876dc1.png",
@@ -95,6 +102,6 @@
     "static/css/2.19627560.chunk.css",
     "static/js/2.9e8ee2bf.chunk.js",
     "static/css/main.2a8a4e2e.chunk.css",
-    "static/js/main.edf1b25d.chunk.js"
+    "static/js/main.301838c5.chunk.js"
   ]
 }
