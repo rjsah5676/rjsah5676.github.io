@@ -9,6 +9,7 @@ import taxImg from '../../img/Page/info/TaxProject.png';
 import acmicpcImg from '../../img/Page/info/acmicpc.png';
 import unityImg from '../../img/Page/info/unity.png';
 import dbImg from '../../img/Page/info/dbproj.png';
+import artpartImg from '../../img/Page/info/artpart/artpart.jpg';
 
 function MyInfo(props) {
 
@@ -75,6 +76,13 @@ function MyInfo(props) {
                                 desc={"세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>JSP</div><div className='info-tech-box'>Spring</div><div className='info-tech-box'>Javascript</div><div className='info-tech-box'>MySQL</div></div>}
                                 idx={2}/></li>
+                        <li>
+                     <InfoBox imgLink={artpartImg}
+                                gitLink={"https://github.com/rjsah5676/ArtPart"}
+                                title={"예술과 호텔의 만남 [ArtPart]"}
+                                desc={"예술을 접할수 있는 호텔 사이트입니다."}
+                                tech={<div className='info-tech'><div className='info-tech-box'>JSP</div><div className='info-tech-box'>Spring</div><div className='info-tech-box'>MyBatis</div><div className='info-tech-box'>MySQL</div></div>}
+                                idx={8}/></li>
                         </ul>
                       </div>
                       <div className="info-class" id="info-personal">
