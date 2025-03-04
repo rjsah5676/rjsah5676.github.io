@@ -46,6 +46,19 @@ import img_artpart_4 from '../../img/Page/info/artpart/slide_4.jpg';
 import img_artpart_5 from '../../img/Page/info/artpart/slide_5.jpg';
 import img_artpart_6 from '../../img/Page/info/artpart/slide_6.jpg';
 
+import img_artpart_ppt_1 from '../../img/Page/info/artpart/ppt_1.jpg';
+import img_artpart_ppt_2 from '../../img/Page/info/artpart/ppt_2.jpg';
+import img_artpart_ppt_3 from '../../img/Page/info/artpart/ppt_3.jpg';
+import img_artpart_ppt_4 from '../../img/Page/info/artpart/ppt_4.jpg';
+import img_artpart_ppt_5 from '../../img/Page/info/artpart/ppt_5.jpg';
+import img_artpart_ppt_6 from '../../img/Page/info/artpart/ppt_6.jpg';
+import img_artpart_ppt_7 from '../../img/Page/info/artpart/ppt_7.jpg';
+import img_artpart_ppt_8 from '../../img/Page/info/artpart/ppt_8.jpg';
+import img_artpart_ppt_9 from '../../img/Page/info/artpart/ppt_9.jpg';
+import img_artpart_ppt_10 from '../../img/Page/info/artpart/ppt_10.jpg';
+import img_artpart_ppt_11 from '../../img/Page/info/artpart/ppt_11.jpg';
+import img_artpart_ppt_12 from '../../img/Page/info/artpart/ppt_12.jpg';
+
 function InfoContents({idx}) {
     const cImg = (<img alt="" src={calendarImg} style={{width:'30px'}}/>);
       const slideImages = [
@@ -436,72 +449,121 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
                       <div className='info-contents-period'>{cImg} 2025.02 - 2025.02</div>
                       <div className='info-contents-tech'><div className='tech-box'>JSP</div><div className='tech-box'>Spring</div><div className='tech-box'>MyBatis</div><div className='tech-box'>MySQL</div></div>
                       <InfoSlide slideImages={slideImages_artpart}/>
-                      <InfoContentsDetail title={'1. 개요'} text={`ArtPart`}/>
+                      <InfoContentsDetail title={'1. 개요'} text={`ArtPart
+Art+Apartment
+
+예술과 고급스러움이 어우러진, 당신만을 위한 특별한 공간.
+우리는 단순한 호텔을 넘어, 예술적 영감을 불러일으키는 공간을 제공합니다.
+최고의 디자인과 세심한 디테일로 꾸며진 객실, 
+고유의 분위기를 자랑하는 갤러리와 같은 로비, 
+그리고 세련된 분위기 속에서 제공되는 미식 경험까지, 
+모든 순간이 예술입니다.
+세상의 모든 예술을 담은 듯한 이곳에서, 고급스러움과 독창성을 동시에 만끽하십시오.
+
+스프링의 기본 MVC 패턴을 익혀보기 위해 진행했던 작은 프로젝트이다.
+규모는 작게 시작했지만 디자인적으로 많은 도전을 해본 프로젝트였다.
+기본 스프링 구조와 JSP/JSTL 문법을 익히는데 좋은 프로젝트였다고 생각한다.
+`}/>
             <InfoContentsDetail title={'2. 기능 설명'} />
             <div style={{marginLeft:'15px'}}>
-            <InfoContentsDetail title={'2-1. 로그인 이전'} titleFont={'30px'} titleMargin={'20px'}/>
-            <img src={img_airboard_1} style={{width:'1000px'}} alt=""/>
-            <InfoContentsDetail text={`로그인 전에는 3가지 메뉴가 있고, 각 메뉴의 기능은 다음과 같다.
+            <InfoContentsDetail title={'2-1. 헤더&타이틀&네비'} titleFont={'30px'} titleMargin={'20px'}/>
+            <img src={img_artpart_ppt_1} style={{width:'1000px'}} alt=""/>
+            <InfoContentsDetail text={`모든 페이지에서는 같은 헤더와 페이지마다 다른 타이틀 이미지를 가지고 있다.
       
-            1. 회의 생성 : 회의를 생성한다. 만약 로그인을 하지 않았다면 회의를 만들 수 없다.
-            2. 로그인 : 로그인 기능을 제공한다.
-            3. 회원가입 : 회원가입 기능을 제공한다. 회원가입은 이메일을 이용해 실시한다.`}/>
-            <InfoContentsDetail title={'2-2. 로그인 이후'} titleFont={'30px'} titleMargin={'20px'}/>
-            <img src={img_airboard_2} style={{width:'1000px'}} alt=""/>
-            <InfoContentsDetail text={`로그인 후에는 4가지 메뉴가 있고, 각 메뉴의 기능은 다음과 같다.
+            1. 스크롤시 타이틀이 걷히며 메인 컨텐츠가 나타난다.
+            2. 이후 스크롤시 헤더가 걷히며 네비게이션 바만 남게 된다.
+            3. 네비게이션 바를 통해 이동시 바로 이동하는 것이 아닌 화면 최상단 이동 후 페이지가 변경된다.
+            4. 각 동작은 부드럽게 실행된다.`}/>
+            <InfoContentsDetail title={'2-2. 플로팅 버튼'} titleFont={'30px'} titleMargin={'20px'}/>
+            <img src={img_artpart_ppt_2} style={{width:'1000px'}} alt=""/>
+            <InfoContentsDetail text={`모든 페이지 우측 하단에는 떠다니는 버튼이 활성화 되어있다.
       
-            1. 회의 생성: 회의를 생성한다. 로그인을 한 후에는 회의를 생성할 수 있다.
-            2. 로그아웃 : 로그아웃 기능을 제공한다.
-            3. 계정 정보 : 로그인 한 계정의 정보를 확인할 수 있다. 자신의 이름을 바꿀 수 있다.
-            4. 제스처 추가 : 자신이 설정하는 커스텀 제스처를 만들 수 있다.`}/>
-            <InfoContentsDetail title={'2-3. 회의 생성'} titleFont={'30px'} titleMargin={'20px'}/>
-            <img src={img_airboard_3} style={{width:'1000px'}} alt=""/>
-            <InfoContentsDetail text={`회의를 생성한 후 화상회의 방의 모습이다. 화상회의 방은 크게 4부분으로 나눌 수 있다.
+            1. 홈 버튼: 홈으로 이동
+            2. 화살표 버튼: 페이지 최상단으로 이동
+            3. 돋보기 버튼: 각 페이지마다 설명 or 기능 제공`}/>
+            <InfoContentsDetail title={'2-3. 하단 메뉴'} titleFont={'30px'} titleMargin={'20px'}/>
+            <img src={img_artpart_ppt_3} style={{width:'1000px'}} alt=""/>
+            <InfoContentsDetail text={`모든 페이지 최하단에는 하단 메뉴가 있다.
       
-               1.사용자 기능 버튼 : 사용자가 이용할 수 있는 기능들이 있는 버튼이다. 호스트 유저는 다른 유저들의 권한을 컨트롤 하기 위한
-                                               버튼을 추가적으로 가지고 있다. 각 기능들의 설명은 다음과 같다.
+            1. 정책 문구: 정책 페이지로 이동
+            2. 이메일 문구: 메일 보내기 기능 제공
+            3. SNS 아이콘: 해당 기능 제공`}/>
+                <InfoContentsDetail title={'2-4. 메인 소개 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_artpart_ppt_4} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`메인 페이지는 스크롤이 내려가는 효과보다 부드럽게 화면이 변화하는 효과를 줌
       
-                ○호스트 전용 버튼
-                  ㅁ유저 리스트 보기 : 해당 버튼을 눌러 다른 사용자들의 캠, 오디오를 켜고 끌 수 있다. 다른 사용자를 강퇴시킬 수 있다.
-                  ㅁ각자 캔버스 사용 : 회의 방에 참가한 사람들이 공유된 캔버스를 이용하는 것이 아닌, 각자의 캔버스에 필기할 수 있다.
-                  ㅁ호스트만 캔버스 사용 : 회의 방의 캔버스를 호스트만 쓸 수 있도록 설정한다.
-                  ㅁ모든 사용자 캔버스 사용 : 회의 방의 사람들이 공유되는 캔버스에 자유롭게 필기할 수 있다.
-                ○공통 버튼
-                  ㅁ스크린샷 : 캔버스에 그려진 내용들을 사진 파일로 저장한다.
-                  ㅁ캠 필기 좌우 반전 : 자신이 사용하는 캠 필기 기능을 좌우 반전시킨다.
-                  ㅁ자신의 보이는 이름 변경 : 해당 회의에서 보이는 자신의 이름을 변경한다.
-                  ㅁ방에서 퇴장 : 방에서 퇴장한다.
-      
-               2.사용자 회의 기능 버튼 : 사용자가 이용할 수 있는 회의 기능들이 있는 버튼이다. 각 기능들의 설명은 다음과 같다.
-                ○캠 켜기/끄기 : 자신의 캠을 키거나 끌 수 있다.
-                ○마이크 켜기/끄기 : 자신의 마이크를 키거나 끌 수 있다.
-                ○화면 공유 켜기/끄기 : 자신이 보여주고 싶은 화면을 공유하고, 공유를 취소할 수 있다.
-                ○캠 필기 켜기/끄기 : 자신의 캠을 이용해서 인식한 필기구를 이용해, 허공에 그리는 것으로
-                                                  캔버스에 그릴 수 있는 캠 필기 기능을 키거나 끌 수 있다.
-                ○제스처 켜기/끄기 : 자신의 캠을 이용해서 인식한 손 제스처로 다양한 회의 기능들을
-                                                  이용할 수 있게 하는 기능을 키거나 끌 수 있다.
-                ○제스처 불러오기 : 자신이 설정한 나만의 제스처를 불러와 기능을 사용할 수 있게 한다.
-                                                  현재 나만의 제스처로 사용할 수 있는 기능은 마이크 켜기/끄기 기능이다.
-                ○캔버스 영역 : 사용자가 다른 사용자들과 함께 이용할 수 있는 캔버스이다.
-                                                  아래쪽에는 캔버스에서 이용할 수 있는 다양한 기능 버튼들이 있다.
-                ○채팅 영역 : 다른 사용자들과 채팅을 나눌 수 있는 영역이다.`}/>
-                <InfoContentsDetail title={'2-4. 캠 필기'} titleFont={'30px'} titleMargin={'20px'}/>
-                <img src={img_airboard_6} style={{width:'1000px'}} alt=""/>
-                <InfoContentsDetail text={`회의실 내에서 웹캠을 이용한 캔버스 필기가 가능하다.
-      
-               1. 캠 필기 켜기 버튼을 누른다.
-               2. 인식할 도구의 색을 화면에서 4번 클릭한다. 이때 선택한 색을 가진 물체 중 화면에 인식되는 가장 큰 물체를 트래킹한다.
-                   (화면에서 유일하고, 빛에 영향을 적게 받는 물체를 사용하는 것이 좋다.)
-               3. 키보드의 \`키를 입력하여 필기 또는 캔버스 기능에 접근할 수 있다.`}/>
-               <InfoContentsDetail title={'2-5. 제스처 인식'} titleFont={'30px'} titleMargin={'20px'}/>
-               <img src={img_airboard_5} style={{width:'1000px'}} alt=""/>
-               <InfoContentsDetail text={`회의실 내에서 제스처 인식 기능 사용이 가능하다.
-      
-               1. 제스처 켜기 버튼을 누른다.
-               2. 웹캠에서 등록된 제스처를 인식하게 한다.
+               1. 스크롤 다운시 화면이 부드럽게 변환
+               2. 사진에 마우스 오버시 랜덤하게 사진이 이동`}/>
+               <InfoContentsDetail title={'2-5. 회원가입/로그인/마이페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+               <img src={img_artpart_ppt_5} style={{width:'1000px'}} alt=""/>
+               <InfoContentsDetail text={`로그인/회원가입은 비동기로 사용자가 입력 정보의 유효성을 바로 확인할 수 있도록 함.
+마이페이지는 호텔 예약에 필요한 정보를 확인할 수 있도록 함.      
+
+               1. 회원가입: 올바르지 않은 정보 입력 시 문구를 띄워 준다.
+               2. 로그인: 아이디와 비밀번호의 일치를 체크하여 알려 준다.
+               3. 마이페이지: 찜 목록/예약 목록/내 정보들을 확인할 수 있다.
       `}/>
+      <InfoContentsDetail title={'2-6. 객실 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_artpart_ppt_6} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`호텔의 객실은 4가지의 종류가 있으며 각 페이지에서 해당 객실 정보를 확인 가능
+      
+               1. 4가지 컨셉중 한 가지 선택이 가능하다.
+               2. 선택 시 각 컨셉에 맞는 객실들을 보여 준다.
+               3. 사용자는 마음에 드는 객실을 찜 목록에 등록이 가능하다.
+               4. 객실 클릭시 객실에 대한 상세 정보가 나타난다.
+               5. 화면의 너비가 작아지면 그에 맞게 반응형으로 컨텐츠의 크기가 조절 된다.`}/>
+            <InfoContentsDetail title={'2-7. 예약 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_artpart_ppt_7} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`호텔의 각 객실은 2박 3일까지의 예약이 가능하다.
+      
+               1. 방 찾기 버튼을 클릭 시 예약이 가능한 객실들을 보여준다.
+               2. 체크인 날짜 찾기 버튼을 클릭 시 해당 객실의 이미 예약 된 날짜와 예약이 가능한 날짜를 보여준다.
+               3. 체크아웃 날짜 찾기 버튼을 클릭 시 체크인 날짜 +2일까지 선택 가능하도록 한다.(중간에 예약이 껴있는 경우 선택 불가)
+               4. 이미 예약이 된 사용자는 예약 페이지 진입시 예약 정보 확인 및 취소가 가능하다.`}/>
+            <InfoContentsDetail title={'2-8. 식사/시설 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_artpart_ppt_8} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`호텔 내 식사와 부대 시설들을 확인할 수 있는 페이지이다.
+      
+               1. 식당 메뉴 클릭 시 해당 메뉴 정보를 띄워준다.
+               2. 각 부대시설 클릭시 부대시설의 운영 시간 등의 정보들을 확인할 수 있다.`}/>
+            <InfoContentsDetail title={'2-9. 후기 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_artpart_ppt_9} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`예약을 한 기록이 있는 이용자가 남길 수 있는 후기 게시판이다.
+      
+               1. 후기 글을 클릭 시 해당 후기에 대한 정보가 모달 창으로 띄워진다.
+               2. 후기 글들은 평점/조회/컨셉/제목 등 다양한 검색 옵션으로 검색이 가능하다.
+               3. 후기글에 대한 평점의 평균은 객실 정보에 반영된다.
+               4. 글 작성시 최소 1개 / 최대 5개의 사진이 첨부 가능하다.
+               5. 첨부된 사진들은 띄워진 창에서 넘기며 확인이 가능하다.`}/>
+                           <InfoContentsDetail title={'2-10. 관리자 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                <img src={img_artpart_ppt_10} style={{width:'1000px'}} alt=""/>
+            <InfoContentsDetail text={`관리자로 로그인 시 진입하게 되는 페이지이다.
+      
+               1. 호텔에 있는 정보들을 한눈에 확인 가능하다.`}/><br/><br/><br/><br/><br/><br/>
               </div>
-              <InfoContentsDetail title={'3. -----'} />
+              <InfoContentsDetail title={'3. 개발 환경'} />
+              <img src={img_artpart_ppt_11} style={{width:'1000px'}} alt=""/>
+              <br/><br/><br/><br/><br/><br/>
+              <InfoContentsDetail title={'4. DB 모델링'} />
+              <img src={img_artpart_ppt_12} style={{width:'1000px'}} alt=""/>
+              <br/><br/><br/><br/><br/><br/>
+              <InfoContentsDetail title={'5. 프로젝트 회고'} />
+              <InfoContentsDetail text={`처음 팀장을 맡고 진행한 프로젝트이다.
+모든 것을 반응형으로 구현하려고 마음을 먹다보니 생각보다 프론트엔드 쪽의 기술도 많이 중요하다고 느낄 수 있었다.
+스프링으로 진행한 프로젝트는 처음이었는데, 진행하면서 체계적으로 코드를 짜는 것이 가능하다는 것을 느꼈다.
+이를 통해, 문제가 발생한 지점을 바로바로 찾고 수정할 수 있다는 것을 프로젝트를 진행함에 따라 계속 느낄 수 있었다.
+하지만 리액트에 익숙했던 나에게 수정한 사항이 바로바로 적용이 되지 않는 것은 불편하게 느껴졌다.
+
+백엔드 쪽에서도 파일 관련해서 고려해야될 것이 많다는 것도 느꼈다. 파일을 여러개 첨부하고 작성하는 것 까지는 쉬웠는데,
+파일을 수정하는 과정에서 기존 파일의 수가 현재 파일의 수보다 많거나 기존 파일의 수가 현재 파일의 수보다 적거나 하는
+모든 경우를 고려 해주어야 한다는 것을 알게 되었다.
+
+찾아오는게 아닌 직접 코딩을 해보자는 느낌으로 플로팅 버튼을 제외한 모든 기능들은 혼자의 힘으로 해보았는데
+재밌었던 도전들이 많았다. 모달 창을 집고 이동하기 / 사진을 랜덤하게 흩뿌리기등등 자바스크립트로도 재밌는 도전
+들을 많이 해볼 수 있었다.
+
+팀장으로써 책임감도 느껴볼 수 있었고, 내가 열심히 하다보면 팀원들도 따라와 준다는 것을 느낄 수 있었다.
+맡은 부분은 공용기능/메인/예약/리뷰 페이지 및 작업물을 깃에서 병합하는 역할을 하였다.`}/>
            </div>
               )
     return <div></div>
