@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/static/css/main.2a8a4e2e.chunk.css",
-    "main.js": "/static/js/main.301838c5.chunk.js",
-    "main.js.map": "/static/js/main.301838c5.chunk.js.map",
+    "main.js": "/static/js/main.46cdd748.chunk.js",
+    "main.js.map": "/static/js/main.46cdd748.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/css/2.19627560.chunk.css": "/static/css/2.19627560.chunk.css",
@@ -76,6 +76,18 @@
     "static/media/top.css": "/static/media/logo.66b398ff.PNG",
     "static/media/mainPage.css": "/static/media/me.6154d6c2.png",
     "static/media/mainMelon.462a9337.png": "/static/media/mainMelon.462a9337.png",
+    "static/media/ppt_1.881b631f.jpg": "/static/media/ppt_1.881b631f.jpg",
+    "static/media/ppt_10.baf6568a.jpg": "/static/media/ppt_10.baf6568a.jpg",
+    "static/media/ppt_11.30c9fa99.jpg": "/static/media/ppt_11.30c9fa99.jpg",
+    "static/media/ppt_12.70268ec4.jpg": "/static/media/ppt_12.70268ec4.jpg",
+    "static/media/ppt_2.a0af7651.jpg": "/static/media/ppt_2.a0af7651.jpg",
+    "static/media/ppt_3.862226c9.jpg": "/static/media/ppt_3.862226c9.jpg",
+    "static/media/ppt_4.1a7dd5ca.jpg": "/static/media/ppt_4.1a7dd5ca.jpg",
+    "static/media/ppt_5.ed40120a.jpg": "/static/media/ppt_5.ed40120a.jpg",
+    "static/media/ppt_6.33a17d1e.jpg": "/static/media/ppt_6.33a17d1e.jpg",
+    "static/media/ppt_7.4ff817f4.jpg": "/static/media/ppt_7.4ff817f4.jpg",
+    "static/media/ppt_8.2fc40a53.jpg": "/static/media/ppt_8.2fc40a53.jpg",
+    "static/media/ppt_9.f7bbbfa1.jpg": "/static/media/ppt_9.f7bbbfa1.jpg",
     "static/media/right_arrow.4dfcdef0.png": "/static/media/right_arrow.4dfcdef0.png",
     "static/media/slick-theme.css": "/static/media/slick.c94f7671.ttf",
     "static/media/slide_1.a6913491.jpg": "/static/media/slide_1.a6913491.jpg",
@@ -102,6 +114,6 @@
     "static/css/2.19627560.chunk.css",
     "static/js/2.9e8ee2bf.chunk.js",
     "static/css/main.2a8a4e2e.chunk.css",
-    "static/js/main.301838c5.chunk.js"
+    "static/js/main.46cdd748.chunk.js"
   ]
 }
