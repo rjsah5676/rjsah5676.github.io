@@ -1,8 +1,10 @@
-import React from 'react';
+import React, {useEffect, useRef} from 'react';
 
 function Contact(){
     function openContact(a){
         let ct=document.getElementById("contact-container");
+        ct.style.left=(window.innerWidth-ct.offsetWidth)/2 + 'px';
+	    ct.style.top=window.innerHeight/4+'px';
         ct.style.opacity=a;
         if(a===1) {
             ct.style.zIndex=10;
