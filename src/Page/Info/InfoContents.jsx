@@ -20,6 +20,8 @@ import img_yorijori_4 from '../../img/Page/info/yorijori/img_writen.png';
 import img_yorijori_5 from '../../img/Page/info/yorijori/img_board.png';
 import img_yorijori_6 from '../../img/Page/info/yorijori/img_mine.png';
 
+import img_yc_1 from '../../img/Page/info/yctest/slide_1.jpg';
+
 import img_db_1 from '../../img/Page/info/dbproject/img_1.png';
 import img_db_2 from '../../img/Page/info/dbproject/img_diagram.png';
 import img_db_3 from '../../img/Page/info/dbproject/img_create_1.png';
@@ -109,6 +111,12 @@ function InfoContents({idx}) {
               img: img_slide_5,
             },
           ];
+    const slideImages_yctest = [
+      {
+        id: 0,
+        img: img_yc_1,
+      },
+    ];
      const slideImages_db = [
               {
                 id: 0,
@@ -255,7 +263,7 @@ function InfoContents({idx}) {
                 <div className='info-contents-title'>영천시 세무조사 홈페이지</div>
                 <div className='info-contents-period'>{cImg} 2021.10 - 2022.01</div>
                 <div className='info-contents-tech'><div className='tech-box'>JSP</div><div className='tech-box'>Spring</div><div className='tech-box'>Javascript</div><div className='tech-box'>MySQL</div></div>
-                <InfoSlide slideImages={slideImages}/>
+                <InfoSlide slideImages={slideImages_yctest}/>
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
                 <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
             </div>

@@ -5,7 +5,7 @@ import InfoBox from './InfoBox';
 import airBoardImg from '../../img/Page/info/AirBoard.png';
 import yoriJoriImg from '../../img/Page/info/YoriJori.png';
 import logoImg from '../../img/Page/info/logo.PNG';
-import taxImg from '../../img/Page/info/TaxProject.png';
+import taxImg from '../../img/Page/info/yctest/slide_1.jpg';
 import acmicpcImg from '../../img/Page/info/acmicpc.png';
 import unityImg from '../../img/Page/info/unity.png';
 import dbImg from '../../img/Page/info/dbproj.png';
