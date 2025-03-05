@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/static/css/main.2a8a4e2e.chunk.css",
-    "main.js": "/static/js/main.46cdd748.chunk.js",
-    "main.js.map": "/static/js/main.46cdd748.chunk.js.map",
+    "main.js": "/static/js/main.f813c09e.chunk.js",
+    "main.js.map": "/static/js/main.f813c09e.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/css/2.19627560.chunk.css": "/static/css/2.19627560.chunk.css",
@@ -13,7 +13,6 @@
     "static/css/main.2a8a4e2e.chunk.css.map": "/static/css/main.2a8a4e2e.chunk.css.map",
     "static/js/2.9e8ee2bf.chunk.js.LICENSE.txt": "/static/js/2.9e8ee2bf.chunk.js.LICENSE.txt",
     "static/media/AirBoard.d2211473.png": "/static/media/AirBoard.d2211473.png",
-    "static/media/TaxProject.7ca7e575.png": "/static/media/TaxProject.7ca7e575.png",
     "static/media/YoriJori.4507951f.png": "/static/media/YoriJori.4507951f.png",
     "static/media/artpart.338eafa6.jpg": "/static/media/artpart.338eafa6.jpg",
     "static/media/bbyong.ca732c8c.mp3": "/static/media/bbyong.ca732c8c.mp3",
@@ -90,6 +89,7 @@
     "static/media/ppt_9.f7bbbfa1.jpg": "/static/media/ppt_9.f7bbbfa1.jpg",
     "static/media/right_arrow.4dfcdef0.png": "/static/media/right_arrow.4dfcdef0.png",
     "static/media/slick-theme.css": "/static/media/slick.c94f7671.ttf",
+    "static/media/slide_1.1c6fc5d8.jpg": "/static/media/slide_1.1c6fc5d8.jpg",
     "static/media/slide_1.a6913491.jpg": "/static/media/slide_1.a6913491.jpg",
     "static/media/slide_2.1328e671.jpg": "/static/media/slide_2.1328e671.jpg",
     "static/media/slide_3.9577d176.jpg": "/static/media/slide_3.9577d176.jpg",
@@ -114,6 +114,6 @@
     "static/css/2.19627560.chunk.css",
     "static/js/2.9e8ee2bf.chunk.js",
     "static/css/main.2a8a4e2e.chunk.css",
-    "static/js/main.46cdd748.chunk.js"
+    "static/js/main.f813c09e.chunk.js"
   ]
 }
