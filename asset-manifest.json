@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/static/css/main.393809a8.chunk.css",
-    "main.js": "/static/js/main.beed33fa.chunk.js",
-    "main.js.map": "/static/js/main.beed33fa.chunk.js.map",
+    "main.js": "/static/js/main.a8d7da6d.chunk.js",
+    "main.js.map": "/static/js/main.a8d7da6d.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/css/2.19627560.chunk.css": "/static/css/2.19627560.chunk.css",
@@ -61,6 +61,23 @@
     "static/media/img_board.615602f8.png": "/static/media/img_board.615602f8.png",
     "static/media/img_create_1.c9ca266d.png": "/static/media/img_create_1.c9ca266d.png",
     "static/media/img_diagram.11c1122d.png": "/static/media/img_diagram.11c1122d.png",
+    "static/media/img_kickeat_0.bef10986.jpg": "/static/media/img_kickeat_0.bef10986.jpg",
+    "static/media/img_kickeat_1.913e60d9.jpg": "/static/media/img_kickeat_1.913e60d9.jpg",
+    "static/media/img_kickeat_10.690bdd35.jpg": "/static/media/img_kickeat_10.690bdd35.jpg",
+    "static/media/img_kickeat_11.da6ee0be.jpg": "/static/media/img_kickeat_11.da6ee0be.jpg",
+    "static/media/img_kickeat_12.c74a753e.jpg": "/static/media/img_kickeat_12.c74a753e.jpg",
+    "static/media/img_kickeat_13.80b61842.jpg": "/static/media/img_kickeat_13.80b61842.jpg",
+    "static/media/img_kickeat_2.194a429a.jpg": "/static/media/img_kickeat_2.194a429a.jpg",
+    "static/media/img_kickeat_3.8a751e24.jpg": "/static/media/img_kickeat_3.8a751e24.jpg",
+    "static/media/img_kickeat_4.0162f02d.jpg": "/static/media/img_kickeat_4.0162f02d.jpg",
+    "static/media/img_kickeat_5.99d7360a.jpg": "/static/media/img_kickeat_5.99d7360a.jpg",
+    "static/media/img_kickeat_6.92d10b6c.jpg": "/static/media/img_kickeat_6.92d10b6c.jpg",
+    "static/media/img_kickeat_7.1bd05866.jpg": "/static/media/img_kickeat_7.1bd05866.jpg",
+    "static/media/img_kickeat_8.9469f3b2.jpg": "/static/media/img_kickeat_8.9469f3b2.jpg",
+    "static/media/img_kickeat_9.b36b87f9.jpg": "/static/media/img_kickeat_9.b36b87f9.jpg",
+    "static/media/img_kickeat_db.c9d40998.jpg": "/static/media/img_kickeat_db.c9d40998.jpg",
+    "static/media/img_kickeat_dv.a4574e99.jpg": "/static/media/img_kickeat_dv.a4574e99.jpg",
+    "static/media/img_kickeat_tc.9b54d0e1.jpg": "/static/media/img_kickeat_tc.9b54d0e1.jpg",
     "static/media/img_main.d67c0554.png": "/static/media/img_main.d67c0554.png",
     "static/media/img_mine.5e05f375.png": "/static/media/img_mine.5e05f375.png",
     "static/media/img_read.6bc609a8.png": "/static/media/img_read.6bc609a8.png",
@@ -114,6 +131,6 @@
     "static/css/2.19627560.chunk.css",
     "static/js/2.9e8ee2bf.chunk.js",
     "static/css/main.393809a8.chunk.css",
-    "static/js/main.beed33fa.chunk.js"
+    "static/js/main.a8d7da6d.chunk.js"
   ]
 }
