@@ -61,6 +61,22 @@ import img_artpart_ppt_10 from '../../img/Page/info/artpart/ppt_10.jpg';
 import img_artpart_ppt_11 from '../../img/Page/info/artpart/ppt_11.jpg';
 import img_artpart_ppt_12 from '../../img/Page/info/artpart/ppt_12.jpg';
 
+import img_kickeat_1 from '../../img/Page/info/kickeat/img_kickeat_1.jpg';
+import img_kickeat_2 from '../../img/Page/info/kickeat/img_kickeat_2.jpg';
+import img_kickeat_3 from '../../img/Page/info/kickeat/img_kickeat_3.jpg';
+import img_kickeat_4 from '../../img/Page/info/kickeat/img_kickeat_4.jpg';
+import img_kickeat_5 from '../../img/Page/info/kickeat/img_kickeat_5.jpg';
+import img_kickeat_6 from '../../img/Page/info/kickeat/img_kickeat_6.jpg';
+import img_kickeat_7 from '../../img/Page/info/kickeat/img_kickeat_7.jpg';
+import img_kickeat_8 from '../../img/Page/info/kickeat/img_kickeat_8.jpg';
+import img_kickeat_9 from '../../img/Page/info/kickeat/img_kickeat_9.jpg';
+import img_kickeat_10 from '../../img/Page/info/kickeat/img_kickeat_10.jpg';
+import img_kickeat_11 from '../../img/Page/info/kickeat/img_kickeat_11.jpg';
+import img_kickeat_12 from '../../img/Page/info/kickeat/img_kickeat_12.jpg';
+import img_kickeat_13 from '../../img/Page/info/kickeat/img_kickeat_13.jpg';
+import img_kickeat_dv from '../../img/Page/info/kickeat/img_kickeat_dv.jpg';
+import img_kickeat_db from '../../img/Page/info/kickeat/img_kickeat_db.jpg';
+import img_kickeat_tc from '../../img/Page/info/kickeat/img_kickeat_tc.jpg';
 function InfoContents({idx}) {
     const cImg = (<img alt="" src={calendarImg} style={{width:'30px'}}/>);
       const slideImages = [
@@ -175,6 +191,43 @@ function InfoContents({idx}) {
       },      {
         id: 5,
         img: img_artpart_6,
+      }
+    ];
+    const slideImages_kickeat = [
+      {
+        id: 0,
+        img: img_kickeat_1,
+      },
+      {
+        id: 1,
+        img: img_kickeat_4,
+      },      {
+        id: 2,
+        img: img_kickeat_5,
+      },      {
+        id: 3,
+        img: img_kickeat_6,
+      },      {
+        id: 4,
+        img: img_kickeat_7,
+      },      {
+        id: 5,
+        img: img_kickeat_8,
+      },      {
+        id: 6,
+        img: img_kickeat_9,
+      },      {
+        id: 7,
+        img: img_kickeat_10
+      },      {
+        id: 8,
+        img: img_kickeat_11,
+      },      {
+        id: 9,
+        img: img_kickeat_12,
+      },      {
+        id: 10,
+        img: img_kickeat_13,
       }
     ];
     if(idx===1)
@@ -574,6 +627,121 @@ Art+Apartment
 맡은 부분은 공용기능/메인/예약/리뷰 페이지 및 작업물을 깃에서 병합하는 역할을 하였다.`}/>
            </div>
               )
+              if(idx===9)
+                return (
+                    <div className='info-contents'>
+                        <div className='info-contents-title'>KickEat</div>
+                        <div className='info-contents-period'>{cImg} 2025.02 - 2025.02</div>
+                        <div className='info-contents-tech'><div className='tech-box'>React</div><div className='tech-box'>SpringBoot</div><div className='tech-box'>JPA</div><div className='tech-box'>MySQL</div></div>
+                        <InfoSlide slideImages={slideImages_kickeat}/>
+                        <InfoContentsDetail title={'1. 개요'} text={`KickEat
+  Kick+Eat
+    평범한 식사는 이제 그만!
+    당신의 미각을 깨워줄 최고의 맛집 추천!
+    당신의 취향과 원하는 조건을 알려주시면 남들이 미처 생각하지 못한 숨은 맛의 비법,
+    한입 베어 무는 순간 정신이 번쩍 드는 맛집을 소개해 드립니다.
+    새로운 맛의 발견과 특별한 경험을 원한다면, 지금 바로 KickEat과 함께하세요.
+    이제껏 몰랐던 미식의 새로운 세계, KickEat과 함께라면 당신의 입맛도 한 단계 업그레이드됩니다!
+  `}/>
+              <InfoContentsDetail title={'2. 기능 설명'} />
+              <div style={{marginLeft:'15px'}}>
+              <InfoContentsDetail title={'2-1. 공용 기능'} titleFont={'30px'} titleMargin={'20px'}/>
+              <img src={img_kickeat_13} style={{width:'1000px'}} alt=""/>
+              <InfoContentsDetail text={`모든 페이지에서 이용 가능한 기능이다.
+        
+              1. 스크롤시 헤더가 사라지고 사이드 바가 나오게 된다.
+              2. 사용자의 이름을 클릭시 정보보기/쪽지보내기/신고하기가 가능하다.
+              3. 사이드 바를 통해 헤더와 동일한 기능을 이용 가능하다.`}/>
+                  <InfoContentsDetail title={'2-4. 메인 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_1} style={{width:'1000px'}} alt=""/>
+                  <InfoContentsDetail text={`메인 페이지에서는 진행중인 이벤트와 인기 리뷰/맛집/게시글을 한눈에 확인할 수 있다.
+        
+                 1. 이벤트 배너에는 관리자가 작성한 이벤트 글의 썸네일이 걸리게 된다. 
+                 2. 이벤트 배너를 클릭 시 해당 이벤트 페이지로 이동하며, 이벤트의 남은 기간도 확인할 수 있다.
+                 3. dd`}/>
+                 <InfoContentsDetail title={'2-5. 소개페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                 <img src={img_kickeat_2} style={{width:'1000px'}} alt=""/>
+                 <InfoContentsDetail text={`마우스를 따라 음식들이 이동하는 효과를 준 소개페이지이다.   
+아래 버튼을 클릭시 소개 문구가 나오게 된다.
+        `}/>
+        <InfoContentsDetail title={'2-6. 회원가입'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_3} style={{width:'1000px'}} alt=""/>
+                  <InfoContentsDetail text={`회원가입은 실시간으로 아이디 중복체크 및 유효성 검사를 해준다.
+선호 음식을 카테고리별로 선택이 가능하다.`}/>
+              <InfoContentsDetail title={'2-7. 마이 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_4} style={{width:'1000px'}} alt=""/>
+                  <InfoContentsDetail text={`마이 페이지에서는 유저의 선호음식/찜목록/글목록 등을 확인 가능하다.
+        
+                 1. 유저의 찜 상태에 따른 선호 음식을 차트로 확인이 가능하다.
+                 2. 찜목록/리뷰 목록/글 목록/댓글 목록을 확인가능하다.
+                 3. 다른 유저의 정보보기로 해당 유저의 정보도 동일하게 확인가능하다.
+                 4. 본인의 마이페이지에서는 해당 목록들을 삭제 가능하다.
+                 5. 최하단의 개인정보 수정에서 회원 정보 수정이 가능하다.`}/>
+              <InfoContentsDetail title={'2-8. 맛집 추천'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_5} style={{width:'1000px'}} alt=""/>
+                  <InfoContentsDetail text={`사용자의 정보에 따라 음식점을 추천해주는 맛집 추천 페이지이다.
+        
+                 1. 사용자는 본인이 선호하는 음식을 EAT을 통해 하단 카트에 담을 수 있다.
+                 2. 사용자가 회원가입시 등록한 주소 정보와 선택한 음식의 카테고리를 통해 음식점을 추천해준다.
+                 3. 갱신 버튼을 통해 추천 음식점을 갱신 가능하다.
+                 4. 주소 검색버튼을 통해 다른 주소에서도 추천을 받을 수 있다.`}/>
+              <InfoContentsDetail title={'2-9. 음식점 찾기'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_8} style={{width:'1000px'}} alt=""/>
+                  <img src={img_kickeat_9} style={{width:'1000px'}} alt=""/>
+                  <InfoContentsDetail text={`사용자는 상세 카테고리를 선택하여 상세 검색이 가능하다.
+        
+                 1. 선택한 카테고리와 검색어가 일치하는 음식점들을 리스트로 보여준다.
+                 2. 검색 결과들은 조회순/평점순/리뷰순/찜순으로 정렬이 가능하다.
+                 3. 상단 찜 버튼을 통해 찜목록에 등록이 가능하다.`}/>
+                             <InfoContentsDetail title={'2-10. 음식점 상세 페이지'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_6} style={{width:'1000px'}} alt=""/>
+                  <img src={img_kickeat_7} style={{width:'1000px'}} alt=""/>
+              <InfoContentsDetail text={`검색 후 해당 음식점을 클릭시 상세 정보를 확인할 수 있다.
+        
+                 1. 셀레니움 라이브러리를 통해 카카오맵 페이지에서 불러온 정보들을 확인할 수 있다.
+                 2. 음식점과 사용자가 등록한 주소와의 거리를 보여준다.
+                 3. 음식점 사진들을 확인할 수 있고 리뷰작성 및 리뷰 보기가 가능하다.`}/>
+                 <InfoContentsDetail title={'2-11. 자유게시판'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_10} style={{width:'1000px'}} alt=""/>
+              <InfoContentsDetail text={`유저들이 소통이 가능한 자유 게시판 페이지이다.
+        
+                 1. 관리자는 공지등록이 가능하며 공지는 글 최상단에 2개가 보여진다.
+                 2. 일반 유저는 글을 쓸 수 있고 댓글을 작성이 가능하다.
+                 3. 글 제목/내용 검색이 가능하다.`}/>
+                 <InfoContentsDetail title={'2-11. 이벤트 게시판'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_11} style={{width:'1000px'}} alt=""/>
+              <InfoContentsDetail text={`관리자가 등록 가능한 이벤트 페이지이다.
+        
+                 1. 관리자는 이벤트 일자, 썸네일, 내용을 작성이 가능하다.
+                 2. 관리자가 등록한 이벤트는 끝난 일자 기준 먼저 끝나는 이벤트부터 5개가 메인 페이지 배너에 걸리게 된다.
+                 3. 사용자는 해당 이벤트 내용을 확인 가능하다.`}/>
+                 <InfoContentsDetail title={'2-12. 1:1 문의 게시판'} titleFont={'30px'} titleMargin={'20px'}/>
+                  <img src={img_kickeat_12} style={{width:'1000px'}} alt=""/>
+              <InfoContentsDetail text={`1:1 문의 게시판 페이지이다.
+        
+                 1. 관리자는 자주묻는 질문을 등록할 수 있고, 사용자는 자주묻는 질문 정보를 확인 가능하다.
+                 2. 사용자는 채팅 형식으로 문의를 남길 수 있고, 관리자는 답변이 가능하다.
+                 3. 문의 등록시 추가적인 비밀번호를 등록하여 다시 문의를 확인 시 비밀번호를 입력하여 접근이 가능하다.`}/>
+                </div><br/><br/><br/><br/><br/><br/>
+                <InfoContentsDetail title={'3. 개발 환경'} />
+                <img src={img_kickeat_dv} style={{width:'1000px'}} alt=""/>
+                <br/><br/><br/><br/><br/><br/>
+                <InfoContentsDetail title={'4. DB 모델링'} />
+                <img src={img_kickeat_db} style={{width:'1000px'}} alt=""/>
+                <br/><br/><br/><br/><br/><br/>
+                <InfoContentsDetail title={'5. 핵심 기술'} />
+                <img src={img_kickeat_tc} style={{width:'1000px'}} alt=""/>
+                <InfoContentsDetail text={`프로젝트 진행시 서울시 공공데이터 포탈에서 찾은 api에는 12만개의 많은 정보가 있었다.
+데이터가 많다는 장점은 있었지만 사용 가능한 정보는 위치/카테고리/음식점명 정도가 있었다.
+음식점의 메뉴 정보와 사진 정보도 얻고 싶었기 때문에 방법이 없을까 고민하였고 웹 크롤링을 통해 기능을 구현하기로 하였다.
+-> 카카오 맵 API의 keyword search를 통해 음식점 명을 검색한 후 고유 ID를 얻음
+-> 해당 고유 ID로 동적 페이지 크롤링 라이브러리인 셀리니움을 통해 카카오맵 해당 페이지의 정보를 크롤링
+-> 크롤링한 상세정보를 음식점 상세 페이지에 담음`}/>
+<InfoContentsDetail title={'6. 프로젝트 회고'} />
+                <InfoContentsDetail text={`...`}/>
+             </div>
+             
+                )
     return <div></div>
 }
 

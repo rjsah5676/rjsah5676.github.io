@@ -10,6 +10,7 @@ import acmicpcImg from '../../img/Page/info/acmicpc.png';
 import unityImg from '../../img/Page/info/unity.png';
 import dbImg from '../../img/Page/info/dbproj.png';
 import artpartImg from '../../img/Page/info/artpart/artpart.jpg';
+import kickeatImg from '../../img/Page/info/kickeat/img_kickeat_0.jpg';
 
 function MyInfo(props) {
 
@@ -83,6 +84,13 @@ function MyInfo(props) {
                                 desc={"예술을 접할수 있는 호텔 사이트입니다."}
                                 tech={<div className='info-tech'><div className='info-tech-box'>JSP</div><div className='info-tech-box'>Spring</div><div className='info-tech-box'>MyBatis</div><div className='info-tech-box'>MySQL</div></div>}
                                 idx={8}/></li>
+                        <li>
+                    <InfoBox imgLink={kickeatImg}
+                              gitLink={"https://github.com/rjsah5676/KickEat"}
+                              title={"당신을 위한 맛집 도우미 [KickEat]"}
+                              desc={"서울시 음식점 검색 및 추천 사이트입니다."}
+                              tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>Springboot</div><div className='info-tech-box'>JPA</div><div className='info-tech-box'>MySQL</div></div>}
+                              idx={9}/></li>
                         </ul>
                       </div>
                       <div className="info-class" id="info-personal">
