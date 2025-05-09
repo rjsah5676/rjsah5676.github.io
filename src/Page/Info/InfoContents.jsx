@@ -77,6 +77,19 @@ import img_kickeat_13 from '../../img/Page/info/kickeat/img_kickeat_13.jpg';
 import img_kickeat_dv from '../../img/Page/info/kickeat/img_kickeat_dv.jpg';
 import img_kickeat_db from '../../img/Page/info/kickeat/img_kickeat_db.jpg';
 import img_kickeat_tc from '../../img/Page/info/kickeat/img_kickeat_tc.jpg';
+
+import img_mimyo_1 from '../../img/Page/info/mimyo/mimyo_slide_1.jpg';
+import img_mimyo_2 from '../../img/Page/info/mimyo/mimyo_slide_2.jpg';
+import img_mimyo_3 from '../../img/Page/info/mimyo/mimyo_slide_3.jpg';
+import img_mimyo_4 from '../../img/Page/info/mimyo/mimyo_slide_4.jpg';
+import img_mimyo_5 from '../../img/Page/info/mimyo/mimyo_slide_5.jpg';
+import img_mimyo_6 from '../../img/Page/info/mimyo/mimyo_slide_6.jpg';
+import img_mimyo_7 from '../../img/Page/info/mimyo/mimyo_slide_7.jpg';
+import img_mimyo_8 from '../../img/Page/info/mimyo/mimyo_slide_8.jpg';
+import img_mimyo_develop_1 from '../../img/Page/info/mimyo/mimyo_develop_1.jpg';
+import img_mimyo_develop_2 from '../../img/Page/info/mimyo/mimyo_develop_2.jpg';
+import img_mimyo_db from '../../img/Page/info/mimyo/mimyo_db.jpg';
+
 function InfoContents({idx}) {
     const cImg = (<img alt="" src={calendarImg} style={{width:'30px'}}/>);
       const slideImages = [
@@ -229,6 +242,34 @@ function InfoContents({idx}) {
         id: 10,
         img: img_kickeat_13,
       }
+    ];
+    const slideImages_mimyo = [
+      {
+        id: 0,
+        img: img_mimyo_1,
+      },
+      {
+        id: 1,
+        img: img_mimyo_2,
+      },      {
+        id: 2,
+        img: img_mimyo_3,
+      },      {
+        id: 3,
+        img: img_mimyo_4,
+      },      {
+        id: 4,
+        img: img_mimyo_5,
+      },      {
+        id: 5,
+        img: img_mimyo_6,
+      },      {
+        id: 6,
+        img: img_mimyo_7,
+      },      {
+        id: 7,
+        img: img_mimyo_8
+      }, 
     ];
     if(idx===1)
         return (
@@ -657,8 +698,7 @@ Art+Apartment
                   <InfoContentsDetail text={`메인 페이지에서는 진행중인 이벤트와 인기 리뷰/맛집/게시글을 한눈에 확인할 수 있다.
         
                  1. 이벤트 배너에는 관리자가 작성한 이벤트 글의 썸네일이 걸리게 된다. 
-                 2. 이벤트 배너를 클릭 시 해당 이벤트 페이지로 이동하며, 이벤트의 남은 기간도 확인할 수 있다.
-                 3. dd`}/>
+                 2. 이벤트 배너를 클릭 시 해당 이벤트 페이지로 이동하며, 이벤트의 남은 기간도 확인할 수 있다.`}/>
                  <InfoContentsDetail title={'2-5. 소개페이지'} titleFont={'30px'} titleMargin={'20px'}/>
                  <img src={img_kickeat_2} style={{width:'1000px'}} alt=""/>
                  <InfoContentsDetail text={`마우스를 따라 음식들이 이동하는 효과를 준 소개페이지이다.   
@@ -742,6 +782,68 @@ Art+Apartment
              </div>
              
                 )
+                if(idx===10)
+                  return (
+                      <div className='info-contents'>
+                          <div className='info-contents-title'>MIMYO</div>
+                          <div className='info-contents-period'>{cImg} 2025.03.31 - 2025.05.08</div>
+                          <div className='info-contents-tech'><div className='tech-box'>React</div><div className='tech-box'>SpringBoot</div><div className='tech-box'>WebSocket</div><div className='tech-box'>Redux</div><div className='tech-box'>JPA</div></div>
+                          <InfoSlide slideImages={slideImages_mimyo}/>
+                          <InfoContentsDetail title={'1. 개요'} text={`MIMYO
+Make It. Make Your Own.
+
+수제의 정성, 실시간의 편리함.
+
+흘러넘치는 기성품 속에서,
+당신만의 감성과 취향을 담은 핸드메이드 제품을 만나보세요.
+
+MIMYO는 단순한 쇼핑몰이 아닙니다.
+작가와 실시간 소통하며 원하는 제품을 맞춤 제작하고,
+실시간 경매로 더 특별한 가치를 가진 작품을 직접 낙찰할 수 있는
+새로운 커머스 플랫폼입니다.
+
+정성스레 만든 하나뿐인 상품,
+직접 만든 것처럼 의미 있는 소비.
+
+이제 MIMYO와 함께,
+당신의 손끝에서 시작되는 진짜 ‘소유’의 경험을 느껴보세요.
+
+평범한 쇼핑에 지쳤다면, MIMYO가 답입니다.
+    `}/>
+                <InfoContentsDetail title={'2. 기능 설명'} />
+                <div style={{marginLeft:'15px'}}>
+                  <span>기능이 너무 많은 관계로 링크 걸어두겠습니다..</span><br/>
+                  <a style={{fontSize:'25px', color:'white'}} href='https://drive.google.com/file/d/1ZVTpuval2WbT_x1n-3tOS7dhkpnCJQ8C/view?usp=drive_link'>미묘 PDF</a><br/>
+                  <a style={{fontSize:'25px', color:'white'}} href='https://mimyo.my'>미묘 사이트</a>
+                  </div><br/><br/><br/><br/><br/><br/>
+                  <InfoContentsDetail title={'3. 개발 환경'} />
+                  <img src={img_mimyo_develop_1} style={{width:'1000px'}} alt=""/>
+                  <img src={img_mimyo_develop_2} style={{width:'1000px'}} alt=""/>
+                  <br/><br/><br/><br/><br/><br/>
+                  <InfoContentsDetail title={'4. DB 모델링'} />
+                  <img src={img_mimyo_db} style={{width:'1000px'}} alt=""/>
+                  <br/><br/><br/><br/><br/><br/>
+  <InfoContentsDetail title={'5. 프로젝트 회고'} />
+                  <InfoContentsDetail text={`파이널 프로젝트에서 팀장을 맡아 기획부터 개발, 배포까지 전체 과정을 리드해본 경험은 매우 값지고 인상 깊었습니다.
+처음에는 여러 명이 함께 작업하는 만큼 의견 충돌이나 갈등이 생기지 않을까 우려도 있었지만,
+팀원들이 적극적으로 소통해주고 저의 의견을 존중해준 덕분에 큰 마찰 없이 협업을 이어갈 수 있었습니다.
+
+프로젝트는 초기에는 전체 구조를 설계하고 역할을 분담한 뒤, 직접 코드 구현에 돌입했습니다.
+처음 예상보다 복잡한 기능이 많았고, 진행이 순조로운 부분도 있었지만 프로젝트 규모가 커질수록 코드의 복잡도가 증가하며
+유지보수와 확장성 측면에서 개선한 부분도 보였습니다. 특히 실시간 기능을 구현하면서 동시성 처리와 데이터 동기화의 어려움을 체감했고,
+초기에 구조를 탄탄하게 잡는 것의 중요성을 다시금 느꼈습니다.
+
+또한 데이터베이스 정규화의 중요성도 이번 경험을 통해 명확히 이해할 수 있었습니다.
+초기에 구조를 제대로 잡지 않으면 나중에 데이터 처리와 쿼리 최적화에서 큰 어려움을 겪게 된다는 점을 직접 경험했습니다.
+
+한편, 배포 후 자동화된 공격 분석 / 서버에 무차별 접근하는 상황을 마주하면서,
+단순히 기능 구현뿐 아니라 보안의 중요성 역시 실감할 수 있었습니다.
+방화벽 설정, SSH 보안, 인증 방식 등 실무에서 요구되는 인프라 측면까지 고민해보게 된 계기가 되었습니다.
+
+이 프로젝트는 단순한 결과물 제작을 넘어, 기획, 협업, 문제 해결, 성능 최적화, 보안 등
+소프트웨어 개발 전반에 대해 실질적인 경험을 쌓을 수 있었던 소중한 시간이었습니다.`}/>
+               </div>
+                  )
     return <div></div>
 }
 
