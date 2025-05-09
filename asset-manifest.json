@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/static/css/main.393809a8.chunk.css",
-    "main.js": "/static/js/main.a8d7da6d.chunk.js",
-    "main.js.map": "/static/js/main.a8d7da6d.chunk.js.map",
+    "main.js": "/static/js/main.bc535e5f.chunk.js",
+    "main.js.map": "/static/js/main.bc535e5f.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.0aa8ae79.js",
     "runtime-main.js.map": "/static/js/runtime-main.0aa8ae79.js.map",
     "static/css/2.19627560.chunk.css": "/static/css/2.19627560.chunk.css",
@@ -92,6 +92,18 @@
     "static/media/top.css": "/static/media/logo.66b398ff.PNG",
     "static/media/mainPage.css": "/static/media/me.6154d6c2.png",
     "static/media/mainMelon.462a9337.png": "/static/media/mainMelon.462a9337.png",
+    "static/media/mimyo.e6fb8c99.jpg": "/static/media/mimyo.e6fb8c99.jpg",
+    "static/media/mimyo_db.3ba4a96a.jpg": "/static/media/mimyo_db.3ba4a96a.jpg",
+    "static/media/mimyo_develop_1.2fa5a3f6.jpg": "/static/media/mimyo_develop_1.2fa5a3f6.jpg",
+    "static/media/mimyo_develop_2.f9a9b813.jpg": "/static/media/mimyo_develop_2.f9a9b813.jpg",
+    "static/media/mimyo_slide_1.c1a960bb.jpg": "/static/media/mimyo_slide_1.c1a960bb.jpg",
+    "static/media/mimyo_slide_2.a795817b.jpg": "/static/media/mimyo_slide_2.a795817b.jpg",
+    "static/media/mimyo_slide_3.15bed00a.jpg": "/static/media/mimyo_slide_3.15bed00a.jpg",
+    "static/media/mimyo_slide_4.a8c7ec9f.jpg": "/static/media/mimyo_slide_4.a8c7ec9f.jpg",
+    "static/media/mimyo_slide_5.82e3c4d9.jpg": "/static/media/mimyo_slide_5.82e3c4d9.jpg",
+    "static/media/mimyo_slide_6.9786d2e1.jpg": "/static/media/mimyo_slide_6.9786d2e1.jpg",
+    "static/media/mimyo_slide_7.4cc8391f.jpg": "/static/media/mimyo_slide_7.4cc8391f.jpg",
+    "static/media/mimyo_slide_8.1e24a1bd.jpg": "/static/media/mimyo_slide_8.1e24a1bd.jpg",
     "static/media/ppt_1.881b631f.jpg": "/static/media/ppt_1.881b631f.jpg",
     "static/media/ppt_10.baf6568a.jpg": "/static/media/ppt_10.baf6568a.jpg",
     "static/media/ppt_11.30c9fa99.jpg": "/static/media/ppt_11.30c9fa99.jpg",
@@ -131,6 +143,6 @@
     "static/css/2.19627560.chunk.css",
     "static/js/2.9e8ee2bf.chunk.js",
     "static/css/main.393809a8.chunk.css",
-    "static/js/main.a8d7da6d.chunk.js"
+    "static/js/main.bc535e5f.chunk.js"
   ]
 }
