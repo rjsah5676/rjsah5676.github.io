@@ -11,6 +11,7 @@ import unityImg from '../../img/Page/info/unity.png';
 import dbImg from '../../img/Page/info/dbproj.png';
 import artpartImg from '../../img/Page/info/artpart/artpart.jpg';
 import kickeatImg from '../../img/Page/info/kickeat/img_kickeat_0.jpg';
+import mimyoImg from '../../img/Page/info/mimyo/mimyo.jpg';
 
 function MyInfo(props) {
 
@@ -63,6 +64,13 @@ function MyInfo(props) {
                     <div id="pl-list">
                       <div className="info-class" id="info-team">
                         <ul>
+                        <li>
+                      <InfoBox imgLink={mimyoImg}
+                                gitLink={"https://github.com/rjsah5676/MIMYO"}
+                                title={"커머스 핸드메이드 쇼핑몰 [MIMYO]"}
+                                desc={"[실시간] [커뮤니케이션] [편의성]을 제공하는 핸드메이드 쇼핑몰"}
+                                tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>SpringBoot</div><div className='info-tech-box'>Redux</div><div className='info-tech-box'>WebSocket</div><div className='info-tech-box'>JPA</div></div>}
+                                idx={10}/></li>
                             <li>
                       <InfoBox imgLink={airBoardImg}
                                 gitLink={"https://github.com/rjsah5676/Capstone-Design-2021-1-"}
