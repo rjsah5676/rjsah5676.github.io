@@ -90,6 +90,9 @@ function MainPage() {
                             <li className="lists">
                                 <a href="https://www.acmicpc.net/user/rjsah5676"><div id="acm-img" src="../../img/page/mainPage/acmicpc.png"></div></a>
                             </li>
+                            <li className="lists">
+                                <a href="https://mimyo.my"><div id="mimyo-img" src="../../img/page/mimyo/mimyo_logo.jpg"></div></a>
+                            </li>
                         </ul>
                     </li>
                 </ul>
