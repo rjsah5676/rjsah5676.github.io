@@ -79,12 +79,14 @@ function MyInfo(props) {
                                 tech={<div className='info-tech'><div className='info-tech-box'>Javascript</div><div className='info-tech-box'>WebRTC</div><div className='info-tech-box'>OpenCV</div><div className='info-tech-box'>NodeJS</div><div className='info-tech-box'>MongoDB</div></div>}
                                 idx={1}/></li>
                      <li>
-                     <InfoBox imgLink={taxImg}
-                                gitLink={"https://github.com/rjsah5676/Tax-Investigation"}
-                                title={"[영천시 세무조사 홈페이지]"}
-                                desc={"세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."}
-                                tech={<div className='info-tech'><div className='info-tech-box'>JSP</div><div className='info-tech-box'>Spring</div><div className='info-tech-box'>Javascript</div><div className='info-tech-box'>MySQL</div></div>}
-                                idx={2}/></li>
+                     <li>
+                    <InfoBox imgLink={kickeatImg}
+                              gitLink={"https://github.com/rjsah5676/KickEat"}
+                              title={"당신을 위한 맛집 도우미 [KickEat]"}
+                              desc={"서울시 음식점 검색 및 추천 사이트입니다."}
+                              tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>Springboot</div><div className='info-tech-box'>JPA</div><div className='info-tech-box'>MySQL</div></div>}
+                              idx={9}/></li>
+                     </li>
                         <li>
                      <InfoBox imgLink={artpartImg}
                                 gitLink={"https://github.com/rjsah5676/ArtPart"}
@@ -93,12 +95,13 @@ function MyInfo(props) {
                                 tech={<div className='info-tech'><div className='info-tech-box'>JSP</div><div className='info-tech-box'>Spring</div><div className='info-tech-box'>MyBatis</div><div className='info-tech-box'>MySQL</div></div>}
                                 idx={8}/></li>
                         <li>
-                    <InfoBox imgLink={kickeatImg}
-                              gitLink={"https://github.com/rjsah5676/KickEat"}
-                              title={"당신을 위한 맛집 도우미 [KickEat]"}
-                              desc={"서울시 음식점 검색 및 추천 사이트입니다."}
-                              tech={<div className='info-tech'><div className='info-tech-box'>React</div><div className='info-tech-box'>Springboot</div><div className='info-tech-box'>JPA</div><div className='info-tech-box'>MySQL</div></div>}
-                              idx={9}/></li>
+                          <InfoBox imgLink={taxImg}
+                                gitLink={"https://github.com/rjsah5676/Tax-Investigation"}
+                                title={"[영천시 세무조사 홈페이지]"}
+                                desc={"세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."}
+                                tech={<div className='info-tech'><div className='info-tech-box'>JSP</div><div className='info-tech-box'>Spring</div><div className='info-tech-box'>Javascript</div><div className='info-tech-box'>MySQL</div></div>}
+                                idx={2}/>
+                        </li>
                         </ul>
                       </div>
                       <div className="info-class" id="info-personal">

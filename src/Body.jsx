@@ -75,7 +75,7 @@ class Body extends Component {
           <li><div id='dot'>●</div><div id='contents-date'>2016.03 ~ 2022.02</div><div id='contents-text'>아주대학교 소프트웨어학과 입학</div></li>
           <li><div id='dot'>●</div><div id='contents-date'>2017.03 ~ 2018.12</div><div id='contents-text'>육군 5사단 근무</div></li>
           <li><div id='dot'>●</div><div id='contents-date'>2021.06 ~ 2021.08</div><div id='contents-text'>(주) 트루피플 인턴 실습</div></li>
-          <li><div id='dot'>●</div><div id='contents-date'>2024.11 ~</div><div id='contents-text'>한국ICT인재개발원 교육</div></li>
+          <li><div id='dot'>●</div><div id='contents-date'>2025.03 ~ 2025.05</div><div id='contents-text'>미묘 핸드메이드 프로젝트 팀장</div></li>
       </ul>
       `
       ;

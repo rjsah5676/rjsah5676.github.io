@@ -44,3 +44,32 @@
 .about-cmd-detail b {
     font-weight: 600;
 }
+
+.about-desc {
+  color: #ccc;
+  margin-top: 1rem;
+  line-height: 1.6;
+}
+
+.about-qa {
+  margin-top: 3rem;
+  color: #ddd;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.about-qa b {
+  font-size: 1.1rem;
+  color: #8cc7a5;
+}
+
+.about-ending {
+  margin-top: 3.5rem;
+  text-align: left;
+  font-style: italic;
+  font-size: 1rem;
+}
+
+.about-ending i {
+    color:white;
+}
