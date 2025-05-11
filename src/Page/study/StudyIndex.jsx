@@ -3,10 +3,15 @@ import firebase from '../../firebase';
 import WriteButton from './WriteButton';
 import '../../css/Page/study.css';
 import DeleteButton from './DeleteButton';
+import { useHistory } from 'react-router-dom'; // ✅ 추가
+import EditButton from './EditButton';
+
 const db = firebase.firestore();
 const categories = ['Java', 'Network', 'Database', 'Frontend', 'etc'];
 
 function StudyIndex() {
+  const history = useHistory(); // ✅ 추가
+
   const [selectedCategory, setSelectedCategory] = useState('Java');
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -39,6 +44,19 @@ function StudyIndex() {
     }
   };
 
+  const handleEdit = () => {
+    if (!selectedPost) return;
+    history.push('/study/write', {
+      isEdit: true,
+      post: {
+        id: selectedPost.id,
+        title: selectedPost.title,
+        category: selectedPost.category,
+        content: selectedPost.content
+      }
+    });
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '80vh' }}>
       <nav style={{ width: '250px', borderRight: '1px solid #ccc', padding: '1rem' }}>
@@ -61,18 +79,19 @@ function StudyIndex() {
                 <ul style={{ marginTop: '0.5rem', paddingLeft: '1rem' }}>
                   {posts.map((post) => (
                     <li
-                      key={post.id}
-                      style={{
-                        color: '#aaa',
-                        fontSize: '0.9rem',
-                        marginBottom: '0.3rem',
+                        key={post.id}
+                        style={{
+                        color: selectedPost?.id === post.id ? '#fff' : '#aaa',
+                        fontWeight: selectedPost?.id === post.id ? 'bold' : 'normal',
+                        padding: '0.3rem 0.5rem',
+                        borderRadius: '4px',
                         cursor: 'pointer'
-                      }}
-                      onClick={() => handleClickPost(post.id)}
+                        }}
+                        onClick={() => handleClickPost(post.id)}
                     >
-                      - {post.title}
+                        - {post.title}
                     </li>
-                  ))}
+                    ))}
                 </ul>
               )}
             </li>
@@ -85,19 +104,22 @@ function StudyIndex() {
           <div>
             <h2>{selectedPost.title}</h2>
             <div
-            dangerouslySetInnerHTML={{ __html: selectedPost.content }}
-            style={{
+              dangerouslySetInnerHTML={{ __html: selectedPost.content }}
+              style={{
                 marginTop: '1rem',
                 wordBreak: 'break-word'
-            }}
-            className="quill-content"
+              }}
+              className="quill-content"
             />
-            <DeleteButton
-            postId={selectedPost.id}
-            onDeleteSuccess={() => {
-                setSelectedPost(null);
-            }}
-            />
+            <div style={{ marginTop: '1rem' }}>
+              <EditButton post={selectedPost} />
+              <DeleteButton
+                postId={selectedPost.id}
+                onDeleteSuccess={() => {
+                  setSelectedPost(null);
+                }}
+              />
+            </div>
           </div>
         ) : (
           <>
@@ -106,7 +128,7 @@ function StudyIndex() {
           </>
         )}
       </section>
-      <WriteButton/>
+      <WriteButton />
     </div>
   );
 }

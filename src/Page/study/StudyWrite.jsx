@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import firebase from '../../firebase';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
 const db = firebase.firestore();
-const today = new Date();
 
 function StudyWrite() {
   const history = useHistory();
+  const location = useLocation();
+
+  const isEdit = location.state?.isEdit || false;
+  const postData = location.state?.post || null;
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Java');
@@ -16,22 +19,44 @@ function StudyWrite() {
 
   const categories = ['Java', 'Network', 'Database', 'Frontend', 'etc'];
 
+  useEffect(() => {
+    if (isEdit && postData) {
+      setTitle(postData.title);
+      setCategory(postData.category);
+      setContent(postData.content);
+    }
+  }, [isEdit, postData]);
+
   const submitPost = async () => {
     if (title === '' || content === '') {
       alert('제목과 내용을 모두 입력해주세요.');
       return;
     }
 
-    const formattedDate = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} ${today.getHours()}:${today.getMinutes()}`;
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
 
     try {
-      await db.collection('studyPosts').add({
-        title,
-        content,
-        category,
-        date: formattedDate,
-      });
-      alert('글이 저장되었습니다!');
+      if (isEdit && postData.id) {
+        // 수정
+        await db.collection('studyPosts').doc(postData.id).update({
+          title,
+          content,
+          category,
+          date: formattedDate,
+        });
+        alert('글이 수정되었습니다!');
+      } else {
+        // 신규 작성
+        await db.collection('studyPosts').add({
+          title,
+          content,
+          category,
+          date: formattedDate,
+        });
+        alert('글이 저장되었습니다!');
+      }
+
       history.push('/study');
     } catch (err) {
       console.error(err);
@@ -41,7 +66,7 @@ function StudyWrite() {
 
   return (
     <div style={{ padding: '2rem' }}>
-      <h2 style={{ color: 'white' }}>✏️ 글쓰기</h2>
+      <h2 style={{ color: 'white' }}>{isEdit ? '✏️ 글 수정' : '✏️ 글쓰기'}</h2>
 
       <div style={{ marginBottom: '1rem' }}>
         <input
@@ -87,7 +112,7 @@ function StudyWrite() {
           border: 'none'
         }}
       >
-        저장하기
+        {isEdit ? '수정하기' : '저장하기'}
       </button>
     </div>
   );

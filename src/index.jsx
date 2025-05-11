@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {HashRouter} from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom'; // ✅ 변경
 import Header from './Header';
 import Nav from './Nav';
 import Body from './Body';
@@ -24,15 +24,13 @@ import './css/Page/melon.css';
 import './css/Page/sketch.css';
 
 ReactDOM.render(
-  <div>
-    <HashRouter>
-      <Top/>
-      <Header/>
-      <Nav/>
-      <Body />
-    <Footer/>
-    <Contact/>
-    </HashRouter>
-  </div>,
+  <BrowserRouter> {/* ✅ BrowserRouter로 변경 */}
+    <Top />
+    <Header />
+    <Nav />
+    <Body />
+    <Footer />
+    <Contact />
+  </BrowserRouter>,
   document.querySelector('#container')
 );
