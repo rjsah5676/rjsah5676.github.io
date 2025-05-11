@@ -27,26 +27,26 @@ class Nav extends Component {
 
         return(
            <ul id="test-nav">
-               <li><Link to={{pathname:'about'}}><div className='nav-text'>ABOUT</div></Link></li>
+               <li><Link to={{pathname:'/about'}}><div className='nav-text'>ABOUT</div></Link></li>
                <li>
-                    <Link to={{pathname:'project'}}><div className='nav-text'>PROJECT</div></Link>
+                    <Link to={{pathname:'/project'}}><div className='nav-text'>PROJECT</div></Link>
                     <ul className="test-sub-game">
-                        <li><Link to={{pathname:'project'}}>프로젝트</Link></li>
-                        <li><Link to={{pathname:'study'}}>개인공부</Link></li>
+                        <li><Link to={{pathname:'/project'}}>프로젝트</Link></li>
+                        <li><Link to={{pathname:'/study'}}>개인공부</Link></li>
                     </ul>
                 </li>
                <li>
-                   <Link className="test-menu" to={{pathname:'melongame'}}><div className='nav-text'>GAMES</div></Link>
+                   <Link className="test-menu" to={{pathname:'/melongame'}}><div className='nav-text'>GAMES</div></Link>
                     <ul className="test-sub-game">
-                        <li><Link to={{pathname:'melongame'}}>멜론 게임</Link></li>
-                        <li><Link to={{pathname:'rspeed'}}>반응속도 테스트</Link></li>
-                        <li><Link to={{pathname:'sketch'}}>스케치 퀴즈</Link></li>
+                        <li><Link to={{pathname:'/melongame'}}>멜론 게임</Link></li>
+                        <li><Link to={{pathname:'/rspeed'}}>반응속도 테스트</Link></li>
+                        <li><Link to={{pathname:'/sketch'}}>스케치 퀴즈</Link></li>
                     </ul>
                </li>
                <li>
-                    <Link to={{pathname:'guest'}}><div className='nav-text'>GUEST BOX</div></Link>
+                    <Link to={{pathname:'/guest'}}><div className='nav-text'>GUEST BOX</div></Link>
                </li>
-               <li><Link to={{pathname:'gallery'}}><div className='nav-text'>GALLERY</div></Link></li>
+               <li><Link to={{pathname:'/gallery'}}><div className='nav-text'>GALLERY</div></Link></li>
                <div id="tesst"></div>
            </ul>
         );

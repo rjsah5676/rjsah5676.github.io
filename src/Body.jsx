@@ -20,6 +20,8 @@ import Archive from "./Page/Archive/Archive";
 import Menu from './Menu';
 
 import Item from './Item';
+import StudyIndex from "./Page/study/StudyIndex";
+import StudyWrite from "./Page/study/StudyWrite";
 
 class Body extends Component {
   componentDidMount() {
@@ -121,6 +123,8 @@ class Body extends Component {
             <Route exact path="/archive" component={Archive}></Route>
             <Route exact path="/rspeed" component={rspeed}></Route>
             <Route exact path="/sketch" component={Sketch}></Route>
+            <Route exact path="/study" component={StudyIndex}></Route>
+            <Route exact path="/study/write" component={StudyWrite}></Route>
             </div>
     );
   }
