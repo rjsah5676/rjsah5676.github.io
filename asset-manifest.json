@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.css": "/static/css/main.01ba8e26.chunk.css",
-    "main.js": "/static/js/main.fb603f70.chunk.js",
-    "main.js.map": "/static/js/main.fb603f70.chunk.js.map",
+    "main.css": "/static/css/main.b56f3a00.chunk.css",
+    "main.js": "/static/js/main.9a436c41.chunk.js",
+    "main.js.map": "/static/js/main.9a436c41.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.b79ba8be.js",
     "runtime-main.js.map": "/static/js/runtime-main.b79ba8be.js.map",
     "static/css/2.afba174d.chunk.css": "/static/css/2.afba174d.chunk.css",
@@ -10,7 +10,7 @@
     "static/js/2.a0655031.chunk.js.map": "/static/js/2.a0655031.chunk.js.map",
     "index.html": "/index.html",
     "static/css/2.afba174d.chunk.css.map": "/static/css/2.afba174d.chunk.css.map",
-    "static/css/main.01ba8e26.chunk.css.map": "/static/css/main.01ba8e26.chunk.css.map",
+    "static/css/main.b56f3a00.chunk.css.map": "/static/css/main.b56f3a00.chunk.css.map",
     "static/js/2.a0655031.chunk.js.LICENSE.txt": "/static/js/2.a0655031.chunk.js.LICENSE.txt",
     "static/media/AirBoard.d2211473.png": "/static/media/AirBoard.d2211473.png",
     "static/media/YoriJori.4507951f.png": "/static/media/YoriJori.4507951f.png",
@@ -142,7 +142,7 @@
     "static/js/runtime-main.b79ba8be.js",
     "static/css/2.afba174d.chunk.css",
     "static/js/2.a0655031.chunk.js",
-    "static/css/main.01ba8e26.chunk.css",
-    "static/js/main.fb603f70.chunk.js"
+    "static/css/main.b56f3a00.chunk.css",
+    "static/js/main.9a436c41.chunk.js"
   ]
 }
