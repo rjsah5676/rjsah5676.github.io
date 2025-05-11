@@ -127,7 +127,7 @@
     width: 100%;
  
     transform: scaleY(1);
-    transition: all 0.5s;
+    transition: all 0.1s;
 }
 
 #test-nav ul li {
