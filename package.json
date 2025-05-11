@@ -56,5 +56,9 @@
       "last 1 safari version"
     ]
   },
-  "hompage": "https://rjsah5676.github.io/"
+  "hompage": "https://rjsah5676.github.io/",
+  "devDependencies": {
+    "@babel/core": "^7.21.0",
+    "babel-preset-react-app": "^10.0.1"
+  }
 }
