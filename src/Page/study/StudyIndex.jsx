@@ -7,7 +7,7 @@ import EditButton from './EditButton';
 import { useHistory } from 'react-router-dom';
 
 const db = firebase.firestore();
-const categories = ['Java', 'Network', 'Database', 'Frontend', 'etc'];
+const categories = ['Java', 'Network', 'Database', 'Frontend', 'Algorithm','etc'];
 
 function StudyIndex() {
   const history = useHistory();
@@ -15,7 +15,7 @@ function StudyIndex() {
   const [selectedCategory, setSelectedCategory] = useState('Java');
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // ✅ 햄버거 메뉴 상태
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -40,7 +40,7 @@ function StudyIndex() {
     const doc = await db.collection('studyPosts').doc(id).get();
     if (doc.exists) {
       setSelectedPost({ id: doc.id, ...doc.data() });
-      setIsMenuOpen(false); // ✅ 모바일에서 메뉴 닫기
+      setIsMenuOpen(false);
     } else {
       alert('해당 글을 찾을 수 없습니다.');
     }
@@ -48,7 +48,6 @@ function StudyIndex() {
 
   return (
     <div className="study-container" style={{ display: 'flex', minHeight: '80vh' }}>
-      {/* ✅ 햄버거 버튼 */}
       <button
         className="hamburger-btn"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -56,7 +55,6 @@ function StudyIndex() {
         📄
       </button>
 
-      {/* ✅ 사이드 메뉴 */}
       <nav className={isMenuOpen ? 'open' : ''}>
         <h3 style={{ color: 'white' }}>📚 분류</h3>
         <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
@@ -65,7 +63,7 @@ function StudyIndex() {
               <div
                 onClick={() => {
                   setSelectedCategory(cat);
-                  setIsMenuOpen(false); // ✅ 모바일 닫기
+                  setIsMenuOpen(false);
                 }}
                 style={{
                   cursor: 'pointer',
@@ -100,7 +98,6 @@ function StudyIndex() {
         </ul>
       </nav>
 
-      {/* ✅ 본문 */}
       <section style={{ flex: 1, padding: '1rem', color: 'white' }}>
         {selectedPost ? (
           <div>
