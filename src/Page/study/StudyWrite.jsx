@@ -17,7 +17,7 @@ function StudyWrite() {
   const [category, setCategory] = useState('Java');
   const [content, setContent] = useState('');
 
-  const categories = ['Java', 'Network', 'Database', 'Frontend', 'etc'];
+  const categories = ['Java', 'Network', 'Database', 'Frontend','Algorithm', 'etc'];
 
   useEffect(() => {
     if (isEdit && postData) {
