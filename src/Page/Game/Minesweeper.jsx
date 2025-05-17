@@ -15,12 +15,12 @@ const flagAudio = new Audio(flagSound);
 const endBgmAudio = new Audio(endBgm);
 endBgmAudio.volume = 0.6;
 
-function generateBoardSafe(safeR, safeC) {
-  const board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+function generateBoardSafe(safeR, safeC, rows, cols, mineCount) {
+  const board = Array.from({ length: rows }, () => Array(cols).fill(0));
   let minesPlaced = 0;
-  while (minesPlaced < MINES) {
-    const r = Math.floor(Math.random() * ROWS);
-    const c = Math.floor(Math.random() * COLS);
+  while (minesPlaced < mineCount) {
+    const r = Math.floor(Math.random() * rows);
+    const c = Math.floor(Math.random() * cols);
     if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
     if (board[r][c] === -1) continue;
     board[r][c] = -1;
@@ -28,7 +28,7 @@ function generateBoardSafe(safeR, safeC) {
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         const nr = r + dr, nc = c + dc;
-        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] !== -1) {
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc] !== -1) {
           board[nr][nc]++;
         }
       }
@@ -38,6 +38,20 @@ function generateBoardSafe(safeR, safeC) {
 }
 
 export default function Minesweeper() {
+  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const ROWS = isPortrait ? 24 : 20;
+  const COLS = isPortrait ? 20 : 24;
+  const MINES = 99;
+
   const [board, setBoard] = useState(Array.from({ length: ROWS }, () => Array(COLS).fill(0)));
   const [visible, setVisible] = useState(Array.from({ length: ROWS }, () => Array(COLS).fill(false)));
   const [flagged, setFlagged] = useState(Array.from({ length: ROWS }, () => Array(COLS).fill(false)));
@@ -122,7 +136,7 @@ export default function Minesweeper() {
     clickAudio.play();
 
     if (!initialized) {
-      const newBoard = generateBoardSafe(r, c);
+      const newBoard = generateBoardSafe(r, c, ROWS, COLS, MINES);
       setBoard(newBoard);
       setStartTime(Date.now());
 
@@ -299,7 +313,7 @@ export default function Minesweeper() {
             누르면 시작됩니다<br />
             총 지뢰는 {MINES}개입니다<br />
             클리어 시 랭킹 등록이 가능합니다.<br />
-            모바일도 지원합니다. 꾹 누르면 여러 기능 가능
+            모바일도 지원합니다. 꾹 누르면 여러 기능 가능<br/>
           </div>
         </div>
         <div className="status-row" style={{ marginTop: '30px' }}>
