@@ -1,0 +1,129 @@
+.minesweeper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 40px;
+  font-family: sans-serif;
+}
+
+.grid {
+  position: relative;
+  display: inline-block;
+  border: 3px solid #333;
+  background: #aaa;
+}
+
+.row {
+  display: flex;
+}
+
+.cell {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #666;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  background-color: #ccc;
+  transition: background-color 0.1s;
+}
+
+.cell.even {
+  background-color: #bbb;
+}
+
+.cell:not(.open):hover {
+  background-color: #ddd;
+}
+
+.cell.open {
+  background: #eee;
+  border: 1px solid #aaa;
+  cursor: default;
+}
+
+.cell.open:hover {
+  background-color: #eee;
+  cursor: default;
+}
+
+.cell.highlight:not(.open) {
+  background-color: #e0e0e0;
+}
+
+.message {
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #444;
+}
+
+.top-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+  width: 100%;
+  max-width: 700px;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 700px;
+  gap: 20px;
+}
+
+#mine-left, #mine-right {
+  width: 48%;
+  font-size: 14px;
+  background-color: #f4f4f4;
+  border: 1px solid #ccc;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 6px;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 200px;
+  gap:10px;
+  margin: 0 auto;
+}
+
+.status-box {
+  width: 48%;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+  background-color: #eee;
+  padding: 8px;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+}
+#mine-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+
+.message-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 20px 40px;
+  border-radius: 12px;
+  text-align: center;
+  z-index: 10;
+}

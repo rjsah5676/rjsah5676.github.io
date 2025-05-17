@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import firebase from '../../firebase';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useLocation, useHistory } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -10,22 +10,40 @@ function StudyWrite() {
   const history = useHistory();
   const location = useLocation();
 
-  const isEdit = location.state?.isEdit || false;
-  const postData = location.state?.post || null;
+  const queryParams = new URLSearchParams(location.search);
+  const postId = queryParams.get('id'); // ✅ 쿼리에서 postId 추출
+
+  const isEdit = !!postId;
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Java');
   const [content, setContent] = useState('');
 
-  const categories = ['Java', 'Network', 'Database', 'Frontend','Algorithm', 'etc'];
+  const categories = ['Java', 'Network', 'Database', 'Frontend', 'Backend', 'Algorithm', 'etc'];
+
 
   useEffect(() => {
-    if (isEdit && postData) {
-      setTitle(postData.title);
-      setCategory(postData.category);
-      setContent(postData.content);
-    }
-  }, [isEdit, postData]);
+    const fetchPost = async () => {
+      if (postId) {
+        try {
+          const doc = await db.collection('studyPosts').doc(postId).get();
+          if (doc.exists) {
+            const data = doc.data();
+            setTitle(data.title);
+            setCategory(data.category);
+            setContent(data.content);
+          } else {
+            alert('글을 찾을 수 없습니다.');
+            history.replace('/study');
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+
+    fetchPost();
+  }, [postId, history]);
 
   const submitPost = async () => {
     if (title === '' || content === '') {
@@ -37,22 +55,20 @@ function StudyWrite() {
     const formattedDate = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
 
     try {
-      if (isEdit && postData.id) {
-        // 수정
-        await db.collection('studyPosts').doc(postData.id).update({
+      if (isEdit) {
+        await db.collection('studyPosts').doc(postId).update({
           title,
           content,
           category,
-          date: formattedDate,
+          date: formattedDate
         });
         alert('글이 수정되었습니다!');
       } else {
-        // 신규 작성
         await db.collection('studyPosts').add({
           title,
           content,
           category,
-          date: formattedDate,
+          date: formattedDate
         });
         alert('글이 저장되었습니다!');
       }

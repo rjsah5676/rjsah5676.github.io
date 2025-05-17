@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { BrowserRouter } from 'react-router-dom'; // ✅ 변경
+import { HashRouter } from 'react-router-dom';
 import Header from './Header';
 import Nav from './Nav';
 import Body from './Body';
@@ -22,15 +22,15 @@ import './css/Page/info.css';
 import './css/archive.css';
 import './css/Page/melon.css';
 import './css/Page/sketch.css';
-
+import './css/minesweeper.css';
 ReactDOM.render(
-  <BrowserRouter> {/* ✅ BrowserRouter로 변경 */}
+  <HashRouter>
     <Top />
     <Header />
     <Nav />
     <Body />
     <Footer />
     <Contact />
-  </BrowserRouter>,
+  </HashRouter>,
   document.querySelector('#container')
 );
