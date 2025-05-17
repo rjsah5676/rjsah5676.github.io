@@ -115,7 +115,7 @@ export default function Minesweeper() {
         endBgmAudio.play();
     }
     }, [gameOver]);
-    
+
   const handleLeftClick = (r, c) => {
     if (gameOver || visible[r][c] || flagged[r][c]) return;
 
@@ -219,6 +219,70 @@ export default function Minesweeper() {
     setGameOver(true);
   };
 
+    const [touchTimer, setTouchTimer] = useState(null);
+    const handleTouchStart = (r, c) => {
+    const timer = setTimeout(() => {
+        if (!gameOver && !visible[r][c]) {
+        const newFlagged = flagged.map(row => [...row]);
+        newFlagged[r][c] = !newFlagged[r][c];
+        setFlagged(newFlagged);
+        flagAudio.play();
+        }
+    }, 600);
+    setTouchTimer(timer);
+    };
+
+    const handleTouchEnd = (r, c) => {
+    clearTimeout(touchTimer);
+    };
+
+    const handleNumberLongPress = (r, c) => {
+    if (!visible[r][c] || board[r][c] <= 0) return;
+    const target = board[r][c];
+
+    let flagCount = 0;
+    for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && flagged[nr][nc]) {
+            flagCount++;
+        }
+        }
+    }
+
+    if (flagCount === target) {
+        const newVisible = visible.map(row => [...row]);
+        for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
+            if (board[nr][nc] === -1) {
+                newVisible[nr][nc] = true;
+                setVisible(newVisible);
+                setGameOver(true);
+                return;
+            } else {
+                floodFill(nr, nc, newVisible);
+            }
+            }
+        }
+        }
+        setVisible(newVisible);
+        checkWin(newVisible);
+    }
+    };
+
+    const [numberTouchTimer, setNumberTouchTimer] = useState(null);
+
+    const handleNumberTouchStart = (r, c) => {
+    const timer = setTimeout(() => handleNumberLongPress(r, c), 500); // 0.5초 이상 눌렀을 때
+    setNumberTouchTimer(timer);
+    };
+
+    const handleNumberTouchEnd = () => {
+    clearTimeout(numberTouchTimer);
+    };
+
   return (
     <div className="minesweeper">
       <div className="top-info">
@@ -235,6 +299,7 @@ export default function Minesweeper() {
             누르면 시작됩니다<br />
             총 지뢰는 {MINES}개입니다<br />
             클리어 시 랭킹 등록이 가능합니다.<br />
+            모바일도 지원합니다. 꾹 누르면 여러 기능 가능
           </div>
         </div>
         <div className="status-row" style={{ marginTop: '30px' }}>
@@ -254,13 +319,30 @@ export default function Minesweeper() {
               const isOpen = visible[rIdx][cIdx];
               return (
                 <div
-                  key={cIdx}
-                  className={`cell ${isOpen ? "open" : ""} ${isEven ? "even" : ""} ${isHighlighted && !isOpen ? "highlight" : ""}`}
-                  onClick={() => handleLeftClick(rIdx, cIdx)}
-                  onContextMenu={(e) => handleRightClick(e, rIdx, cIdx)}
-                  onMouseDown={(e) => handleMouseDown(e, rIdx, cIdx)}
-                >
-                  {flagged[rIdx][cIdx] ? "🚩" : isOpen ? (cell === -1 ? "💣" : (cell || "")) : ""}
+                    key={cIdx}
+                    className={`cell ${isOpen ? "open" : ""} ${isEven ? "even" : ""} ${isHighlighted && !isOpen ? "highlight" : ""}`}
+                    onClick={() => handleLeftClick(rIdx, cIdx)}
+                    onContextMenu={(e) => handleRightClick(e, rIdx, cIdx)}
+                    onMouseDown={(e) => handleMouseDown(e, rIdx, cIdx)}
+                    onTouchStart={() => {
+                        if (visible[rIdx][cIdx] && board[rIdx][cIdx] > 0) {
+                        handleNumberTouchStart(rIdx, cIdx);
+                        } else {
+                        handleTouchStart(rIdx, cIdx);
+                        }
+                    }}
+                    onTouchEnd={() => {
+                        handleNumberTouchEnd();
+                        handleTouchEnd(rIdx, cIdx);
+                    }}
+                    >
+                  {flagged[rIdx][cIdx]
+                    ? "🚩"
+                    : isOpen
+                        ? (cell === -1
+                        ? "💣"
+                        : (cell ? <span style={{fontWeight:'bold'}} className={`number number-${cell}`}>{cell}</span> : ""))
+                        : ""}
                 </div>
               );
             })}
@@ -268,7 +350,7 @@ export default function Minesweeper() {
         ))}
         {gameOver && (
           <div className="message-overlay">
-            {win ? "🎉 You Win!" : "💥 Game Over"}
+            {win ? "🎉 클리어!" : "💥 펑 ㅋㅋ"}
             <button style={{cursor:'pointer', width:'100px', height:'40px', fontSize:'17px'}} onClick={resetGame}>🔁 새 게임</button>
           </div>
         )}
