@@ -7,7 +7,8 @@ import EditButton from './EditButton';
 import { useHistory } from 'react-router-dom';
 
 const db = firebase.firestore();
-const categories = ['Java', 'Network', 'Database', 'Frontend', 'Algorithm','etc'];
+
+const categories = ['Java', 'Network', 'Database', 'Frontend', 'Backend', 'Algorithm', 'etc'];
 
 function StudyIndex() {
   const history = useHistory();
@@ -17,24 +18,31 @@ function StudyIndex() {
   const [selectedPost, setSelectedPost] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const snapshot = await db
-        .collection('studyPosts')
-        .where('category', '==', selectedCategory)
-        .get();
+useEffect(() => {
+  const fetchPosts = async () => {
+    const snapshot = await db
+      .collection('studyPosts')
+      .where('category', '==', selectedCategory)
+      .get();
 
-      const newPosts = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        title: doc.data().title
-      }));
+    const newPosts = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      title: doc.data().title
+    }));
 
-      setPosts(newPosts);
+    setPosts(newPosts);
+
+    if (newPosts.length > 0) {
+      const firstDoc = await db.collection('studyPosts').doc(newPosts[0].id).get();
+      setSelectedPost({ id: firstDoc.id, ...firstDoc.data() });
+    } else {
       setSelectedPost(null);
-    };
+    }
+  };
 
-    fetchPosts();
-  }, [selectedCategory]);
+  fetchPosts();
+}, [selectedCategory]);
+
 
   const handleClickPost = async (id) => {
     const doc = await db.collection('studyPosts').doc(id).get();
@@ -55,7 +63,8 @@ function StudyIndex() {
         📄
       </button>
 
-      <nav className={isMenuOpen ? 'open' : ''}>
+      {/* ✅ 사이드 메뉴 */}
+      <nav style={{borderRight:'1px solid #ddd', minWidth:'250px'}} className={isMenuOpen ? 'open' : ''}>
         <h3 style={{ color: 'white' }}>📚 분류</h3>
         <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
           {categories.map((cat) => (

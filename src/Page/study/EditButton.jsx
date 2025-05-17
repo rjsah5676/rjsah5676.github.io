@@ -12,15 +12,7 @@ function EditButton({ post }) {
       return;
     }
 
-    history.push('/study/write', {
-      isEdit: true,
-      post: {
-        id: post.id,
-        title: post.title,
-        category: post.category,
-        content: post.content
-      }
-    });
+    history.push(`/study/write?id=${post.id}`);
   };
 
   return (

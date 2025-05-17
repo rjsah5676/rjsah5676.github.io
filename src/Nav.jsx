@@ -40,7 +40,8 @@ class Nav extends Component {
                     <ul className="test-sub-game">
                         <li><Link to={{pathname:'/melongame'}}>멜론 게임</Link></li>
                         <li><Link to={{pathname:'/rspeed'}}>반응속도 테스트</Link></li>
-                        <li><Link to={{pathname:'/sketch'}}>스케치 퀴즈</Link></li>
+                        <li><Link to={{pathname:'/mine'}}>지뢰찾기</Link></li>
+                        <li><Link to={{pathname:'/sketch'}}>스케치 퀴즈(미구현)</Link></li>
                     </ul>
                </li>
                <li>
