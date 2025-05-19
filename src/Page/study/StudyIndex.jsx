@@ -8,7 +8,7 @@ import { useHistory } from 'react-router-dom';
 
 const db = firebase.firestore();
 
-const categories = ['Java', 'Network', 'Database', 'Frontend', 'Backend', 'Algorithm', 'etc'];
+const categories = ['Java', 'Network', 'Database', 'Frontend', 'Backend', 'Algorithm','Next/Express','etc'];
 
 function StudyIndex() {
   const history = useHistory();

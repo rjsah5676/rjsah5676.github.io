@@ -11,7 +11,7 @@ function StudyWrite() {
   const location = useLocation();
 
   const queryParams = new URLSearchParams(location.search);
-  const postId = queryParams.get('id'); // ✅ 쿼리에서 postId 추출
+  const postId = queryParams.get('id');
 
   const isEdit = !!postId;
 
@@ -19,7 +19,7 @@ function StudyWrite() {
   const [category, setCategory] = useState('Java');
   const [content, setContent] = useState('');
 
-  const categories = ['Java', 'Network', 'Database', 'Frontend', 'Backend', 'Algorithm', 'etc'];
+  const categories = ['Java', 'Network', 'Database', 'Frontend', 'Backend', 'Algorithm','Next/Express', 'etc'];
 
 
   useEffect(() => {
