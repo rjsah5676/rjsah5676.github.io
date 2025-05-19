@@ -107,7 +107,7 @@ useEffect(() => {
         </ul>
       </nav>
 
-      <section style={{ flex: 1, padding: '1rem', color: 'white' }}>
+      <section className='study-content-main'>
         {selectedPost ? (
           <div>
             <h2>{selectedPost.title}</h2>

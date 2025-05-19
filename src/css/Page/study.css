@@ -7,6 +7,13 @@
   border-radius: 8px;
 }
 
+.study-content-main{
+  padding-left:10rem;
+  padding-top:5rem;
+  flex:1;
+  color:white;
+}
+
 /* 햄버거 버튼 (모바일 전용) */
 .hamburger-btn {
   display: none;
@@ -16,7 +23,9 @@
   .study-container {
     flex-direction: column;
   }
-
+ .study-content-main{
+  padding-left:1rem;
+ }
   nav {
     position: absolute;
     top: 50px;
