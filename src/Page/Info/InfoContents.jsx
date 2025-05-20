@@ -358,8 +358,6 @@ function InfoContents({idx}) {
                 <div className='info-contents-period'>{cImg} 2021.10 - 2022.01</div>
                 <div className='info-contents-tech'><div className='tech-box'>JSP</div><div className='tech-box'>Spring</div><div className='tech-box'>Javascript</div><div className='tech-box'>MySQL</div></div>
                 <InfoSlide slideImages={slideImages_yctest}/>
-                <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
-                <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
             </div>
         )
     if(idx===3)
@@ -498,9 +496,6 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
                 <div className='info-contents-title'>BAEKJOON Online Judge</div>
                 <div className='info-contents-period'>{cImg} 2016.06 ~ </div>
                 <div className='info-contents-tech'><div className='tech-box'>React</div><div className='tech-box'>Firebase</div><div className='tech-box'>NodeJS</div></div>
-                <InfoSlide slideImages={slideImages}/>
-                <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
-                <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
             </div>
         )
         if(idx===6)
@@ -509,9 +504,6 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
                     <div className='info-contents-title'>일단 뭔가 만든 Unity 게임</div>
                     <div className='info-contents-period'>{cImg} 2019.03 ~ 2019.04</div>
                     <div className='info-contents-tech'><div className='tech-box'>Unity</div><div className='tech-box'>C#</div></div>
-                    <InfoSlide slideImages={slideImages}/>
-                    <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
-                    <InfoContentsDetail title={'타이틀'} text={'텍스트'}/>
                 </div>
             )
         if(idx===7)

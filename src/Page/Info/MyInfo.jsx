@@ -12,7 +12,7 @@ import dbImg from '../../img/Page/info/dbproj.png';
 import artpartImg from '../../img/Page/info/artpart/artpart.jpg';
 import kickeatImg from '../../img/Page/info/kickeat/img_kickeat_0.jpg';
 import mimyoImg from '../../img/Page/info/mimyo/mimyo.jpg';
-
+import wooriboardImg from '../../img/Page/info/wooriboard.jpg';
 function MyInfo(props) {
 
     function clickPersonal(){
@@ -105,6 +105,12 @@ function MyInfo(props) {
                         </ul>
                       </div>
                       <div className="info-class" id="info-personal">
+                    <InfoBox imgLink={wooriboardImg}
+                            gitLink={"https://github.com/rjsah5676/WooriBoard"}
+                            title={"실시간 화상회의 커뮤니티 [우리보드]"}
+                            desc={`실시간 화상회의, 채팅, 칠판 등의 기능을 제공하는 커뮤니티 플랫폼 (개발중)`}
+                            tech={<div className='info-tech'><div className='info-tech-box'>NextJS</div><div className='info-tech-box'>Express</div><div className='info-tech-box'>WebRTC</div><div className='info-tech-box'>TailWind</div><div className='info-tech-box'>MongoDB</div></div>}
+                            idx={11}/>
                      <InfoBox imgLink={yoriJoriImg}
                                 gitLink={"https://github.com/rjsah5676/WebProject"}
                                 title={"음식 레시피 공유 사이트 [요리조리]"}
