@@ -26,3 +26,21 @@ body {
     opacity: 1;
   }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fadein-wrapper {
+    animation-name: fadein;
+    animation-fill-mode: backwards;
+  }
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    margin-left: 700px;
+  }
+  to {
+    opacity: 1;
+    margin-left: 0px;
+  }
+}
