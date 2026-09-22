@@ -1,0 +1,28 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #1e1e1e;
+  color: #ffffff;
+  font-family: "Nanum Gothic", sans-serif;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .faded-wrapper {
+    animation-name: faded;
+    animation-fill-mode: backwards;
+  }
+}
+
+@keyframes faded {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

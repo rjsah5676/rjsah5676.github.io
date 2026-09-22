@@ -1,31 +1,36 @@
-import React, { useEffect } from "react";
-import Faded from "../effect/Faded";
+"use client";
 
-function MainPage() {
+import { useEffect } from "react";
+import Faded from "@/components/Faded";
+import "@/css/Page/mainPage.css";
+
+export default function Home() {
   useEffect(() => {
-    window.scrollTo({ top: 400, left: 0, behavior: "smooth" });
-    handleMain(window.innerWidth);
-  }, []);
-  window.addEventListener("resize", function () {
-    handleMain(this.window.innerWidth);
-  });
-  function handleMain(winWidth) {
-    let mc = document.getElementById("main-page-box");
-    let bt = document.getElementById("plus-button");
-    if (mc !== null && bt !== null) {
-      if (winWidth < 1024) {
-        mc.style.display = "none";
-        bt.style.display = "block";
-      } else {
-        mc.style.display = "block";
-        bt.style.display = "none";
+    function handleMain(winWidth) {
+      const mc = document.getElementById("main-page-box");
+      const bt = document.getElementById("plus-button");
+      if (mc !== null && bt !== null) {
+        if (winWidth < 1024) {
+          mc.style.display = "none";
+          bt.style.display = "block";
+        } else {
+          mc.style.display = "block";
+          bt.style.display = "none";
+        }
       }
     }
-  }
+
+    window.scrollTo({ top: 400, left: 0, behavior: "smooth" });
+    handleMain(window.innerWidth);
+
+    const onResize = () => handleMain(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const openModal = () => {
-    var left = Math.ceil((window.screen.width - 1200) / 2);
-    var top = Math.ceil((window.screen.height - 660) / 2);
+    const left = Math.ceil((window.screen.width - 1200) / 2);
+    const top = Math.ceil((window.screen.height - 660) / 2);
     window.open(
       "/",
       "gunmo-lee",
@@ -40,15 +45,10 @@ function MainPage() {
         <h5>
           안녕하세요🖐
           <br />
-          풀스택 개발자를 목표하는 <b style={{ color: "white" }}>이건모</b>{" "}
-          입니다.🙂
+          풀스택 개발자를 목표하는 <b style={{ color: "white" }}>이건모</b> 입니다.🙂
         </h5>
         <div>
-          <button
-            id="plus-button"
-            style={{ display: "none" }}
-            onClick={openModal}
-          >
+          <button id="plus-button" style={{ display: "none" }} onClick={openModal}>
             +
           </button>
         </div>
@@ -74,9 +74,7 @@ function MainPage() {
                   </li>
                   <li className="lists">
                     <div className="left-msg">최종학력</div>
-                    <div className="right-msg">
-                      아주대학교 소프트웨어학과 졸업
-                    </div>
+                    <div className="right-msg">아주대학교 소프트웨어학과 졸업</div>
                   </li>
                 </ul>
               </li>
@@ -102,34 +100,22 @@ function MainPage() {
                 <ul id="sites">
                   <li className="lists">
                     <a href="https://github.com/rjsah5676">
-                      <div
-                        id="git-img"
-                        src="../../img/page/mainPage/github.png"
-                      ></div>
+                      <div id="git-img" />
                     </a>
                   </li>
                   <li className="lists">
                     <a href="https://www.acmicpc.net/user/rjsah5676">
-                      <div
-                        id="acm-img"
-                        src="../../img/page/mainPage/acmicpc.png"
-                      ></div>
+                      <div id="acm-img" />
                     </a>
                   </li>
                   <li className="lists">
                     <a href="https://ohsori.my/">
-                      <div
-                        id="gm-img"
-                        src="../../img/page/mimyo/ohsori.png"
-                      ></div>
+                      <div id="gm-img" />
                     </a>
                   </li>
                   <li className="lists">
                     <a href="https://mimyo.my">
-                      <div
-                        id="mimyo-img"
-                        src="../../img/page/mimyo/mimyo_logo.jpg"
-                      ></div>
+                      <div id="mimyo-img" />
                     </a>
                   </li>
                 </ul>
@@ -141,5 +127,3 @@ function MainPage() {
     </Faded>
   );
 }
-
-export default MainPage;
