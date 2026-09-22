@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import firebase from '../../firebase';
-
-const db = firebase.firestore();
+import { deleteStudyPost } from '../../firestore/studyPosts';
 
 function DeleteButton({ postId, onDeleteSuccess }) {
   const [password, setPassword] = useState('');
@@ -14,7 +12,7 @@ function DeleteButton({ postId, onDeleteSuccess }) {
     }
     console.log('삭제 대상 postId:', postId); 
     try {
-      await db.collection('studyPosts').doc(String(postId)).delete();
+      await deleteStudyPost(postId);
       alert('삭제 완료');
       onDeleteSuccess();
     } catch (err) {

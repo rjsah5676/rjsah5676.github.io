@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import firebase from '../../firebase';
+import { getStudyPostsByCategory, getStudyPost } from '../../firestore/studyPosts';
 import WriteButton from './WriteButton';
 import '../../css/Page/study.css';
 import DeleteButton from './DeleteButton';
 import EditButton from './EditButton';
 import { useHistory } from 'react-router-dom';
-
-const db = firebase.firestore();
 
 const categories = ['Java', 'Network', 'Database', 'Frontend', 'Backend', 'Algorithm','Next/Express','etc'];
 
@@ -20,21 +18,12 @@ function StudyIndex() {
 
 useEffect(() => {
   const fetchPosts = async () => {
-    const snapshot = await db
-      .collection('studyPosts')
-      .where('category', '==', selectedCategory)
-      .get();
-
-    const newPosts = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      title: doc.data().title
-    }));
-
+    const newPosts = await getStudyPostsByCategory(selectedCategory);
     setPosts(newPosts);
 
     if (newPosts.length > 0) {
-      const firstDoc = await db.collection('studyPosts').doc(newPosts[0].id).get();
-      setSelectedPost({ id: firstDoc.id, ...firstDoc.data() });
+      const firstPost = await getStudyPost(newPosts[0].id);
+      setSelectedPost(firstPost);
     } else {
       setSelectedPost(null);
     }
@@ -45,9 +34,9 @@ useEffect(() => {
 
 
   const handleClickPost = async (id) => {
-    const doc = await db.collection('studyPosts').doc(id).get();
-    if (doc.exists) {
-      setSelectedPost({ id: doc.id, ...doc.data() });
+    const post = await getStudyPost(id);
+    if (post) {
+      setSelectedPost(post);
       setIsMenuOpen(false);
     } else {
       alert('해당 글을 찾을 수 없습니다.');

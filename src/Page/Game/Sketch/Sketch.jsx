@@ -1,9 +1,14 @@
 import React, {useEffect, useState} from 'react';
 import Faded from "../../../effect/Faded";
 
-import firebase from "../../../firebase";
-
-const db = firebase.firestore();
+import {
+    getSketchUsers,
+    addSketchUser,
+    getSketchRooms,
+    addSketchRoom,
+    getSketchChats,
+    addSketchChat,
+} from "../../../firestore/sketchGame";
 
 
 function Sketch() {
@@ -31,17 +36,15 @@ function Sketch() {
     async function submitName(username) {
         var cnt=1;
         var isDup=false;
-        await db.collection("sketch_user").get()
-        .then(async (querySnapshot) => {
-          querySnapshot.forEach((doc) => {
-              if(doc.data().name === username) {
+        const users = await getSketchUsers();
+        users.forEach((data) => {
+            if(data.name === username) {
                 isDup=true;
-              }
-              cnt++;
-          });
+            }
+            cnt++;
         });
         if(name !== ""&& name.length<10&& !isDup) {
-            await db.collection("sketch_user").add({name:username, num:cnt});
+            await addSketchUser(username, cnt);
         }
         setIdx(1);
     }
@@ -59,49 +62,31 @@ function Sketch() {
     };
 
     async function createRoom(c_room,c_name) {
-        var cnt=1;
-        await db.collection("sketch_user_room").get()
-        .then(async (querySnapshot) => {
-          querySnapshot.forEach((doc) => {
-              cnt++;
-          });
-        });
+        const rooms = await getSketchRooms();
+        var cnt = rooms.length+1;
         if(c_room !== ""&& c_room.length<20) {
-            await db.collection("sketch_user_room").add({num:cnt,roomname:c_room,name:c_name});
+            await addSketchRoom(cnt, c_room, c_name);
         }
         renderList();
         setRoomnum(cnt);
     }
     async function renderList() {
-        await db.collection('sketch_user_room').orderBy('num','asc').get()
-            .then((querySnapshot) => {
-              querySnapshot.forEach((doc) => {
-                    list.push({num:doc.data().num, roomname:doc.data().roomname, name:doc.data().name});
-              });
-            });
+        const rooms = await getSketchRooms();
+        setList(rooms);
     }
     async function renderChat() {
-        var newList=[];
-        await db.collection('sketch_user_chat').orderBy('num','asc').get()
-            .then((querySnapshot) => {
-              querySnapshot.forEach((doc) => {
-                    if(doc.data().chatroom === roomnum)
-                        newList.push({num:doc.data().num, chatname:doc.data().chatname, text:doc.data().text});
-              });
-            });
+        const chats = await getSketchChats();
+        const newList = chats
+            .filter((data) => data.chatroom === roomnum)
+            .map((data) => ({num:data.num, chatname:data.chatname, text:data.text}));
         setChatList(newList);
         setJoin(1);
     }
     async function sendChat(s_room,s_name,s_text) {
-        var cnt=1;
-        await db.collection("sketch_user_chat").get()
-        .then(async (querySnapshot) => {
-          querySnapshot.forEach((doc) => {
-            if(s_room===doc.data().room) cnt++;
-          });
-        });
+        const chats = await getSketchChats();
+        var cnt = chats.length+1;
         if(s_text !== ""&& s_text.length<20) {
-            await db.collection("sketch_user_chat").add({num:cnt,chatname:s_name,text:s_text,chatroom:s_room,date:new Date()});
+            await addSketchChat({num:cnt, chatname:s_name, text:s_text, chatroom:s_room});
             setChat('');
             renderChat();
         }

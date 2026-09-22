@@ -1,8 +1,6 @@
 import React,{useState, useEffect} from 'react';
 import Faded from "../../effect/Faded";
-import firebase from "../../firebase";
-
-const db = firebase.firestore();
+import { getTopReactionScores, addReactionScore } from "../../firestore/reactionGame";
 
 var ct = 0;
 function RspeedGame()
@@ -19,15 +17,13 @@ function RspeedGame()
 
     const [name, setName] = useState('');
 
-    useEffect(async()=>{
-        await db.collection("reaction").orderBy("score",'asc').limit(10).get()
-            .then(async (querySnapshot) => {
-              await querySnapshot.forEach((doc) => {
-                  list.push({name:doc.data().name, score:doc.data().score});
-                  ct++;
-              });
-            });
+    useEffect(()=>{
+        (async () => {
+            const top = await getTopReactionScores(10);
+            setList(top);
+            ct = top.length;
             setRen(1);
+        })();
         },[]);
 
     const buttonRedStyle = {
@@ -99,7 +95,7 @@ function RspeedGame()
     async function submitScore(sc) {
         if(name !== ""&& name.length<20 && x===0) {
             x=1;
-            await db.collection("reaction").add({name:name, score: sc});
+            await addReactionScore(name, sc);
             window.location.reload();
         }
     };

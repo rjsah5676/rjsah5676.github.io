@@ -1,7 +1,6 @@
-//firebase.js
-import firebase from "firebase/app";
-import "firebase/firestore";
-import "firebase/storage";
+// firebase.js
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
     apiKey: "AIzaSyC-833NLKJyKbNAuIj07ZqO9lt2GYHD5UM",
@@ -13,5 +12,8 @@ const firebaseConfig = {
     measurementId: "G-E2V0469JW7"
 };
 
-// 필요한 곳에서 사용할 수 있도록 내보내기
-export default firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+
+export const db = getFirestore(app);
+
+export default app;
