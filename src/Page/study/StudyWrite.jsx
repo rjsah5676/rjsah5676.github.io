@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import firebase from '../../firebase';
+import { getStudyPost, addStudyPost, updateStudyPost } from '../../firestore/studyPosts';
 import { useLocation, useHistory } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-
-const db = firebase.firestore();
 
 function StudyWrite() {
   const history = useHistory();
@@ -26,12 +24,11 @@ function StudyWrite() {
     const fetchPost = async () => {
       if (postId) {
         try {
-          const doc = await db.collection('studyPosts').doc(postId).get();
-          if (doc.exists) {
-            const data = doc.data();
-            setTitle(data.title);
-            setCategory(data.category);
-            setContent(data.content);
+          const post = await getStudyPost(postId);
+          if (post) {
+            setTitle(post.title);
+            setCategory(post.category);
+            setContent(post.content);
           } else {
             alert('글을 찾을 수 없습니다.');
             history.replace('/study');
@@ -56,20 +53,10 @@ function StudyWrite() {
 
     try {
       if (isEdit) {
-        await db.collection('studyPosts').doc(postId).update({
-          title,
-          content,
-          category,
-          date: formattedDate
-        });
+        await updateStudyPost(postId, { title, content, category, date: formattedDate });
         alert('글이 수정되었습니다!');
       } else {
-        await db.collection('studyPosts').add({
-          title,
-          content,
-          category,
-          date: formattedDate
-        });
+        await addStudyPost({ title, content, category, date: formattedDate });
         alert('글이 저장되었습니다!');
       }
 

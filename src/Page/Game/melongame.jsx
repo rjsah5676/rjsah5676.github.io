@@ -15,7 +15,7 @@ import tmMain from '../../img/melongame/mainMelon.png';
 import bbyong_sound from '../../sounds/melongame/bbyong.mp3';
 import bsbgm from '../../sounds/melongame/bgm.mp3';
 import endbgm from '../../sounds/melongame/endbgm.mp3';
-import firebase from "../../firebase";
+import { getTopMelonScores, addMelonScore } from "../../firestore/melonGame";
 import Faded from "../../effect/Faded";
 
 var gameFlag = false;
@@ -102,8 +102,6 @@ var backContext;
 
 var rankBox;
 
-const db = firebase.firestore();
-//db.collection("myName").add({name:"이석호"}); 
 class melongame extends Component {
   componentDidMount() {
     startButton=document.getElementById('startButton');
@@ -155,11 +153,10 @@ class melongame extends Component {
     }
     rankBox = document.getElementById('rankBox');
     ct = 1;
-    db.collection("score").orderBy("score",'desc').limit(10).get()
-    .then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        rankBox.innerHTML += "<div id='rank-info'>"+ct+"위: "+doc.data().name+" "+doc.data().score+"점</div>";
-        if(ct===10) tenth_rank=doc.data().score; 
+    getTopMelonScores(10).then((scores) => {
+      scores.forEach((data) => {
+        rankBox.innerHTML += "<div id='rank-info'>"+ct+"위: "+data.name+" "+data.score+"점</div>";
+        if(ct===10) tenth_rank=data.score;
         ct+=1;
       });
     });
@@ -319,17 +316,16 @@ class melongame extends Component {
           while(userName >= 10 || userName < 1) {
             userName = window.prompt("1글자 이상 9글자 이하로 이름을 입력해주세요.");
           }
-          db.collection("score").add({name:userName, score: cnt});
+          addMelonScore(userName, cnt);
           userName = "익명";
           rankBox.innerText = "랭킹\n";
           ct=1;
-          db.collection("score").orderBy("score",'desc').limit(10).get()
-          .then((querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-              rankBox.innerText += ct+"위: "+doc.data().name+" "+doc.data().score+"점\n";
-              if(ct===10) tenth_rank=doc.data().score; 
+          getTopMelonScores(10).then((scores) => {
+            scores.forEach((data) => {
+              rankBox.innerText += ct+"위: "+data.name+" "+data.score+"점\n";
+              if(ct===10) tenth_rank=data.score;
               ct+=1;
-            });                          // "testcol" 컬렉션내 도큐먼트 조회 후 출력
+            });
           });
         }
       }

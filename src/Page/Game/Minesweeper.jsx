@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
-import firebase from "../../firebase";
+import { getTopRankings, addRanking } from "../../firestore/minesweeperRankings";
 import clickSound from "../../sounds/melongame/bbyong.mp3";
 import flagSound from "../../sounds/melongame/bbyong.mp3";
 import endBgm from "../../sounds/melongame/endbgm.mp3";
-
-const db = firebase.firestore();
 
 const ROWS = 20;
 const COLS = 24;
@@ -78,20 +76,13 @@ export default function Minesweeper() {
       const clearTime = ((Date.now() - startTime) / 1000).toFixed(2);
       const name = prompt(`🎉 ${clearTime}s 클리어! 이름을 입력하세요:`);
       if (name) {
-        db.collection("minesweeper_rankings").add({ name, time: parseFloat(clearTime) });
+        addRanking(name, parseFloat(clearTime));
       }
     }
   }, [win]);
 
   useEffect(() => {
-    db.collection("minesweeper_rankings")
-      .orderBy("time", "asc")
-      .limit(10)
-      .get()
-      .then((snapshot) => {
-        const list = snapshot.docs.map(doc => doc.data());
-        setRankings(list);
-      });
+    getTopRankings(10).then(setRankings);
   }, [win]);
 
   useEffect(() => {

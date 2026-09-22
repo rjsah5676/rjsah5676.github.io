@@ -1,8 +1,7 @@
 import React, { useState,useEffect } from "react";
 import Faded from "../effect/Faded";
-import firebase from "../firebase";
+import { getGuestEntries, addGuestEntry } from "../firestore/guestbook";
 
-const db = firebase.firestore();
 const today = new Date();
 
 function GuestBox() {
@@ -12,15 +11,12 @@ function GuestBox() {
     const [page, setPage] = useState(0);
     const [cnt, setCnt] = useState(0);
 
-    useEffect(async()=>{
-        var j = 1;
-        await db.collection('guest').orderBy('id','desc').get()
-            .then(async (querySnapshot) => {
-              await querySnapshot.forEach((doc) => {
-                      list.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
-              });
-            });
-            setCnt(j);
+    useEffect(()=>{
+        (async () => {
+            const entries = await getGuestEntries();
+            setList(entries);
+            setCnt(entries.length);
+        })();
         },[]);
 
     const onChangeName = (event) => {
@@ -36,19 +32,13 @@ function GuestBox() {
     async function submitGuest(){
         if(name!=="" && contents!=="" && contents.length <50) {
             var date = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일  ${today.getHours()}:${today.getMinutes()}`;
-            await db.collection("guest").add({name:name, contents:contents, id:today.getTime(), date:date});
-            setCnt(cnt+1);
+            await addGuestEntry({name, contents, date});
             setName("");
             setContents("");
             setPage(0);
-            var newList=[];
-            await db.collection('guest').orderBy('id','desc').get()
-                .then( (querySnapshot) => {
-                  querySnapshot.forEach((doc) => {
-                    newList.push({name:doc.data().name, contents:doc.data().contents, date:doc.data().date});
-                  });
-                });
+            const newList = await getGuestEntries();
             setList(newList);
+            setCnt(newList.length);
             document.getElementsByClassName('guest-body')[0].scrollTo({top:0,left:0,behavior:'smooth'});
         }
     }
