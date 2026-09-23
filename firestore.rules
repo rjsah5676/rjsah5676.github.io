@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 사이트 관리자(본인) 여부 - Firebase Auth 이메일로 판별.
+    // 콘솔에서 이 이메일로 계정을 만들어야 글쓰기/수정/삭제가 동작함.
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'rjsah5676@gmail.com';
+    }
+
+    // 방명록: 누구나 읽고 쓸 수 있되, 형식은 제한 (스팸/도배 최소화용 기본 방어)
+    match /guest/{entryId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.name.size() <= 20
+                    && request.resource.data.contents is string
+                    && request.resource.data.contents.size() <= 50;
+      allow update, delete: if isAdmin();
+    }
+
+    // 공부 게시글: 읽기는 공개, 쓰기/수정/삭제는 관리자만
+    match /studyPosts/{postId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 지뢰찾기 랭킹
+    match /minesweeper_rankings/{entryId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.name.size() <= 20
+                    && request.resource.data.time is number;
+      allow update, delete: if isAdmin();
+    }
+
+    // 반응속도 게임 랭킹
+    match /reaction/{entryId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.name.size() <= 20
+                    && request.resource.data.score is number;
+      allow update, delete: if isAdmin();
+    }
+
+    // 멜론게임 랭킹
+    match /score/{entryId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.name.size() <= 20
+                    && request.resource.data.score is number;
+      allow update, delete: if isAdmin();
+    }
+
+    // 스케치 게임 (유저/방/채팅) - 게임 특성상 익명 참여가 기본
+    match /sketch_user/{entryId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.name.size() <= 10;
+      allow update, delete: if isAdmin();
+    }
+
+    match /sketch_user_room/{entryId} {
+      allow read: if true;
+      allow create: if request.resource.data.roomname is string
+                    && request.resource.data.roomname.size() <= 20;
+      allow update, delete: if isAdmin();
+    }
+
+    match /sketch_user_chat/{entryId} {
+      allow read: if true;
+      allow create: if request.resource.data.text is string
+                    && request.resource.data.text.size() <= 20;
+      allow update, delete: if isAdmin();
+    }
+
+    // 그 외 컬렉션은 기본적으로 전부 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

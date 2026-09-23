@@ -12,6 +12,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
 import QuickMenu from "@/components/QuickMenu";
+import { AuthProvider } from "@/lib/AuthContext";
 
 export const metadata: Metadata = {
   title: "Gunmo Lee",
@@ -48,13 +49,15 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <Top />
-        <Header />
-        <Nav />
-        {children}
-        <Footer />
-        <Contact />
-        <QuickMenu />
+        <AuthProvider>
+          <Top />
+          <Header />
+          <Nav />
+          {children}
+          <Footer />
+          <Contact />
+          <QuickMenu />
+        </AuthProvider>
       </body>
     </html>
   );
