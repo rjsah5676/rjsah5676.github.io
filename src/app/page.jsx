@@ -31,11 +31,7 @@ export default function Home() {
   const openModal = () => {
     const left = Math.ceil((window.screen.width - 1200) / 2);
     const top = Math.ceil((window.screen.height - 660) / 2);
-    window.open(
-      "/",
-      "gunmo-lee",
-      "location=no,width=1200,height=660,left=" + left + ",top=" + top
-    );
+    window.open("/", "gunmo-lee", "location=no,width=1200,height=660,left=" + left + ",top=" + top);
   };
 
   return (

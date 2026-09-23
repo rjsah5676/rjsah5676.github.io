@@ -210,7 +210,14 @@ export default function Minesweeper() {
         for (let dc = -1; dc <= 1; dc++) {
           const nr = r + dr,
             nc = c + dc;
-          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
+          if (
+            nr >= 0 &&
+            nr < ROWS &&
+            nc >= 0 &&
+            nc < COLS &&
+            !visible[nr][nc] &&
+            !flagged[nr][nc]
+          ) {
             if (board[nr][nc] === -1) {
               newVisible[nr][nc] = true;
               setVisible(newVisible);
@@ -275,7 +282,14 @@ export default function Minesweeper() {
         for (let dc = -1; dc <= 1; dc++) {
           const nr = r + dr,
             nc = c + dc;
-          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
+          if (
+            nr >= 0 &&
+            nr < ROWS &&
+            nc >= 0 &&
+            nc < COLS &&
+            !visible[nr][nc] &&
+            !flagged[nr][nc]
+          ) {
             if (board[nr][nc] === -1) {
               newVisible[nr][nc] = true;
               setVisible(newVisible);
@@ -319,8 +333,7 @@ export default function Minesweeper() {
           </div>
           <div id="mine-right">
             누르면 시작됩니다
-            <br />
-            총 지뢰는 {MINES}개입니다
+            <br />총 지뢰는 {MINES}개입니다
             <br />
             클리어 시 랭킹 등록이 가능합니다.
             <br />
@@ -364,19 +377,21 @@ export default function Minesweeper() {
                     handleTouchEnd(rIdx, cIdx);
                   }}
                 >
-                  {flagged[rIdx][cIdx]
-                    ? "🚩"
-                    : isOpen
-                      ? cell === -1
-                        ? "💣"
-                        : cell
-                          ? (
-                              <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
-                                {cell}
-                              </span>
-                            )
-                          : ""
-                      : ""}
+                  {flagged[rIdx][cIdx] ? (
+                    "🚩"
+                  ) : isOpen ? (
+                    cell === -1 ? (
+                      "💣"
+                    ) : cell ? (
+                      <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
+                        {cell}
+                      </span>
+                    ) : (
+                      ""
+                    )
+                  ) : (
+                    ""
+                  )}
                 </div>
               );
             })}

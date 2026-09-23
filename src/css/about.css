@@ -1,48 +1,48 @@
 .about-wrap {
-    display:grid;
-    margin: 20px 20px 100px 20px;
-    border-radius: 15px;
+  display: grid;
+  margin: 20px 20px 100px 20px;
+  border-radius: 15px;
 }
 .about-container {
-    margin-top:50px;
-    margin-left:25%;
+  margin-top: 50px;
+  margin-left: 25%;
 }
 
 .about-title {
-    color:white;
-    font-size:40px;
+  color: white;
+  font-size: 40px;
 }
 
 .about-info {
-    color:#DDDDDD;
-    font-size: 18px;
-    margin-top:20px;
+  color: #dddddd;
+  font-size: 18px;
+  margin-top: 20px;
 }
 .about-cmd {
-    margin-top:10px;
-    margin-bottom:60px;
-    background-image: url('../img/About/cmd.png');
-    height:425px;
-    width:564px;
+  margin-top: 10px;
+  margin-bottom: 60px;
+  background-image: url("../img/About/cmd.png");
+  height: 425px;
+  width: 564px;
 }
 .about-who {
-    font-weight: 100;
-    font-style: normal;
-    color:white;
-    margin-top:40px;
-    font-size:20px;
+  font-weight: 100;
+  font-style: normal;
+  color: white;
+  margin-top: 40px;
+  font-size: 20px;
 }
 .about-cmd-detail {
-    color:#CCCCCC;
-    font-family: "Prompt", sans-serif;
-    font-weight: 200;
-    font-style: normal;
-    font-size:14px;
-    padding:36px 20px 20px 13px;
+  color: #cccccc;
+  font-family: "Prompt", sans-serif;
+  font-weight: 200;
+  font-style: normal;
+  font-size: 14px;
+  padding: 36px 20px 20px 13px;
 }
 
 .about-cmd-detail b {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 .about-desc {
@@ -71,5 +71,5 @@
 }
 
 .about-ending i {
-    color:white;
+  color: white;
 }

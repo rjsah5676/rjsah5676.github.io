@@ -49,109 +49,112 @@
 */
 /* 위에는 이전 코드 */
 
-#test-nav, #test-nav ul {
-    list-style: none outside none;
-    margin: 0;
-    padding: 0;
+#test-nav,
+#test-nav ul {
+  list-style: none outside none;
+  margin: 0;
+  padding: 0;
 }
 #test-nav {
-    font-family: "Roboto Condensed", serif;
-    display:flex;
-    flex-direction: row;
-    list-style-type: none;
-    justify-content: space-between;
-    clear: both;
-    font-size: 12px;
-    height: 58px;
-    padding: 0 0 0 0;
-    position: relative;
-    width:100%;
-    z-index: 3;
+  font-family: "Roboto Condensed", serif;
+  display: flex;
+  flex-direction: row;
+  list-style-type: none;
+  justify-content: space-between;
+  clear: both;
+  font-size: 12px;
+  height: 58px;
+  padding: 0 0 0 0;
+  position: relative;
+  width: 100%;
+  z-index: 3;
 }
 #test-nav li {
-    position: relative;
-    width:100%;
-    background-color: #121212;
-    transition:all 0.5s;
+  position: relative;
+  width: 100%;
+  background-color: #121212;
+  transition: all 0.5s;
 }
 #test-nav li:hover {
-    background:rgba(19, 19, 19, 1.0);
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 5px rgba(0,0,0,.3);
-    border-radius: 10px 10px 0px 0px;
+  background: rgba(19, 19, 19, 1);
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.5),
+    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
+    4px 4px 5px 5px rgba(0, 0, 0, 0.3);
+  border-radius: 10px 10px 0px 0px;
 }
 #test-nav li:hover > a {
-    color: #FFFFFF;
+  color: #ffffff;
 }
 
 #test-nav li a {
-    font-family: sans-serif;
-    top:25%;
-    text-align: center;
-    color: #121212;
-    font-size: 20px;
-    display: block;
-    font-weight: bold;
-    position: relative;
-    text-decoration: none;
-     
-    transition:all 0.5s;
+  font-family: sans-serif;
+  top: 25%;
+  text-align: center;
+  color: #121212;
+  font-size: 20px;
+  display: block;
+  font-weight: bold;
+  position: relative;
+  text-decoration: none;
+
+  transition: all 0.5s;
 }
 
 #test-nav ul {
-    left: 0px;
-    top: 58px;
+  left: 0px;
+  top: 58px;
 
-    width: 100%;
-    background:rgba(51, 51, 51, 0.9);
-    box-shadow:inset 2px 2px 2px 0px rgba(252, 252, 252, 0.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 5px rgba(0,0,0,.3);
-    border-radius: 0px 0px 10px 10px;
+  width: 100%;
+  background: rgba(51, 51, 51, 0.9);
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(252, 252, 252, 0.5),
+    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
+    4px 4px 5px 5px rgba(0, 0, 0, 0.3);
+  border-radius: 0px 0px 10px 10px;
 
-    overflow: hidden;
-    position: absolute;
+  overflow: hidden;
+  position: absolute;
 
-    z-index: 3;
+  z-index: 3;
 
-    transform: scaleY(0);
+  transform: scaleY(0);
 
-    transition: all 0.2s;
+  transition: all 0.2s;
 }
 
 #test-nav li:hover ul {
-    left: 0px;
-    top: 58px;
+  left: 0px;
+  top: 58px;
 
-    width: 100%;
- 
-    transform: scaleY(1);
-    transition: all 0.1s;
+  width: 100%;
+
+  transform: scaleY(1);
+  transition: all 0.1s;
 }
 
 #test-nav ul li {
-    background: none;
-    width: 100%;
+  background: none;
+  width: 100%;
 }
 #test-nav ul li a {
-    float: none;
-    font-size: 15px;
-    color:#FFFFFF;
-    padding: 5px 0 5px 0;
+  float: none;
+  font-size: 15px;
+  color: #ffffff;
+  padding: 5px 0 5px 0;
 }
 
 .nav-text {
-    color:white;
-    font-size:20px;
-    transition: all 0.5s;
+  color: white;
+  font-size: 20px;
+  transition: all 0.5s;
 }
 
-@media (max-width:800px){
-    .nav-text{
-        font-size:16px;
-        line-height: 30px;
-    }
+@media (max-width: 800px) {
+  .nav-text {
+    font-size: 16px;
+    line-height: 30px;
+  }
 }
 /*
 #tesst {
@@ -184,4 +187,3 @@
     left: 170px;
 }
 */
-
