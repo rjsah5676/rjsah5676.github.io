@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,37292,t=>{"use strict";var a=t.i(43476);t.s(["default",0,function({duration:t=1200,delay:e=0,children:i,style:n,...s}){return(0,a.jsx)("div",{className:"faded-wrapper",style:{...n,animationDuration:t+"ms",animationDelay:e+"ms"},...s,children:i})}])}]);

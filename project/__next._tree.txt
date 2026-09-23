@@ -1,0 +1,8 @@
+:HL["/_next/static/chunks/2y2-tkb-qduog.css","style"]
+:HL["/_next/static/chunks/15ocm7i7bbosl.css","style"]
+:HL["https://fonts.googleapis.com/css2?family=Yomogi&display=swap","style"]
+:HL["https://fonts.googleapis.com/css2?family=Jua&display=swap","style"]
+:HL["https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap","style"]
+:HL["https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap","style"]
+:HL["/_next/static/media/github.416pdeob057z9.png","image"]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"project","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"riN43RcmnsvPn0Leo2M4h"}
