@@ -1,25 +1,26 @@
-html,body{
-    margin: 0px;
-    padding: 0px;
+html,
+body {
+  margin: 0px;
+  padding: 0px;
 }
 .header {
-    position: relative;
-    width:100%;
-    overflow: hidden;
-    height: 100%;
-    background:url(/src/img/header/header-title.png);
-    background-repeat : no-repeat;
-    background-size : cover;
-    z-index: 1;
-    text-align: center;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  height: 100%;
+  background: url(/src/img/header/header-title.png);
+  background-repeat: no-repeat;
+  background-size: cover;
+  z-index: 1;
+  text-align: center;
 }
-.header-title{
-    margin: 0px;
-    padding: 0px;
-    line-height: 450px;
-    color: white;
-    font-size: 80px;
-    font-family: 'Yomogi', cursive;
-    text-decoration: none;
-    white-space: nowrap;
+.header-title {
+  margin: 0px;
+  padding: 0px;
+  line-height: 450px;
+  color: white;
+  font-size: 80px;
+  font-family: "Yomogi", cursive;
+  text-decoration: none;
+  white-space: nowrap;
 }

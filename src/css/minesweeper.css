@@ -78,7 +78,8 @@
   gap: 20px;
 }
 
-#mine-left, #mine-right {
+#mine-left,
+#mine-right {
   width: 48%;
   font-size: 14px;
   background-color: #f4f4f4;
@@ -93,7 +94,7 @@
   justify-content: space-between;
   width: 100%;
   max-width: 200px;
-  gap:10px;
+  gap: 10px;
   margin: 0 auto;
 }
 
@@ -112,7 +113,6 @@
   margin-bottom: 5px;
 }
 
-
 .message-overlay {
   position: absolute;
   top: 50%;
@@ -128,13 +128,27 @@
   z-index: 10;
 }
 
-.number-1 { color: #1e90ff; }
-.number-2 { color: #228b22; }
-.number-3 { color: #dc143c; }
-.number-4 { color: #00008b; }
-.number-5 { color: #8b0000; } 
-.number-6 { color: #20b2aa; }
-.number-7 { color: #000000; }
+.number-1 {
+  color: #1e90ff;
+}
+.number-2 {
+  color: #228b22;
+}
+.number-3 {
+  color: #dc143c;
+}
+.number-4 {
+  color: #00008b;
+}
+.number-5 {
+  color: #8b0000;
+}
+.number-6 {
+  color: #20b2aa;
+}
+.number-7 {
+  color: #000000;
+}
 
 @media (max-width: 768px) {
   .cell {

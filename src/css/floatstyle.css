@@ -1,18 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap");
 
 .center {
-  z-index:100;
+  z-index: 100;
   position: fixed;
   margin: auto;
-  top:85%;
+  top: 85%;
   right: 5%;
 }
 
 .menu {
-  z-index:99999;
+  z-index: 99999;
   width: 70px;
   height: 70px;
-  color:white;
+  color: white;
 }
 
 .item {
@@ -29,7 +29,7 @@
   cursor: pointer;
   text-align: center;
   line-height: 40px;
-  border:none;
+  border: none;
 }
 
 i {
@@ -61,69 +61,73 @@ i {
 */
 
 #list {
-    background-image:url(../img/float/list.png);
-    background-position: center;
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 0px rgba(0,0,0,.3);
+  background-image: url(../img/float/list.png);
+  background-position: center;
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.5),
+    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
+    4px 4px 5px 0px rgba(0, 0, 0, 0.3);
 }
 
 #home {
-    background-image:url(../img/float/home.jpg);
-    background-position: center;
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 0px rgba(0,0,0,.3);
+  background-image: url(../img/float/home.jpg);
+  background-position: center;
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.5),
+    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
+    4px 4px 5px 0px rgba(0, 0, 0, 0.3);
 }
 
 #up {
-    background-image:url(../img/float/up.png);
-    background-position: center;
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 0px rgba(0,0,0,.3);
+  background-image: url(../img/float/up.png);
+  background-position: center;
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.5),
+    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
+    4px 4px 5px 0px rgba(0, 0, 0, 0.3);
 }
 
 #my-info {
-    background-image:url(../img/float/canvas.png);
-    background-position: center;
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 0px rgba(0,0,0,.3);
+  background-image: url(../img/float/canvas.png);
+  background-position: center;
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.5),
+    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
+    4px 4px 5px 0px rgba(0, 0, 0, 0.3);
 }
 
-
-.item span{
-  display:none;
+.item span {
+  display: none;
 }
 
-#info-contents{
-  opacity:0;
-  background:rgba(68, 68, 68, 0.9);
-  box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-  7px 7px 20px 0px rgba(0,0,0,.3),
-  4px 4px 5px 0px rgba(0,0,0,.3);
+#info-contents {
+  opacity: 0;
+  background: rgba(68, 68, 68, 0.9);
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.5),
+    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
+    4px 4px 5px 0px rgba(0, 0, 0, 0.3);
   transition: all 0.3s;
-  width:450px;
+  width: 450px;
   height: 200px;
   border-radius: 20px;
 }
 
-#info-contents >ul {
-  margin:0;
-  padding:0;
+#info-contents > ul {
+  margin: 0;
+  padding: 0;
 
-  padding-top:0px;
+  padding-top: 0px;
 }
 
 #info-contents ul > li {
   font-family: "Noto Sans KR", serif;
-  font-size:15px;
+  font-size: 15px;
   line-height: 28px;
-  padding:0;
-  margin:0;
+  padding: 0;
+  margin: 0;
   text-align: left;
-  color:white;
+  color: white;
   display: flex;
 }
 
@@ -131,23 +135,23 @@ i {
   cursor: default;
 }
 
-#contents-date{
-  margin-left:10px;
-  width:45%;
+#contents-date {
+  margin-left: 10px;
+  width: 45%;
 }
 
 #contents-text {
-  width:55%;
+  width: 55%;
 }
 
 #dot {
   line-height: 28px;
-  font-size:20px;
+  font-size: 20px;
 }
 
 #contents-line {
-  position:absolute;
-  border-left:3px solid white;
-  left:14px;
+  position: absolute;
+  border-left: 3px solid white;
+  left: 14px;
   height: 170px;
 }

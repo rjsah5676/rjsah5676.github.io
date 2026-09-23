@@ -1,50 +1,50 @@
 .sketch-box {
-    color:white;
-    width:800px;
-    margin: auto;
+  color: white;
+  width: 800px;
+  margin: auto;
 }
-.sketch-box >ul {
-    display: flex;
+.sketch-box > ul {
+  display: flex;
 }
-.sketch-box>ul>li:nth-child(1) {
-    width:20%;
+.sketch-box > ul > li:nth-child(1) {
+  width: 20%;
 }
-.sketch-box>ul>li:nth-child(2) {
-    width:60%;
+.sketch-box > ul > li:nth-child(2) {
+  width: 60%;
 }
-.sketch-box>ul>li:nth-child(3) {
-    width:20%;
+.sketch-box > ul > li:nth-child(3) {
+  width: 20%;
 }
 .sketch-box > button {
-    float:right;
+  float: right;
 }
 .sketch-box > input {
-    float:right;
+  float: right;
 }
 
 .room-container {
-    width:1240px;
-    height:600px;
-    background-color: rgb(73, 61, 95);
-    margin:auto;
-    margin-top: 50px;
-    display: flex;
-    border-radius: 15px;
+  width: 1240px;
+  height: 600px;
+  background-color: rgb(73, 61, 95);
+  margin: auto;
+  margin-top: 50px;
+  display: flex;
+  border-radius: 15px;
 }
 
 .room-canvas {
-    background-color: white;
-    float:left;
-    width:75%;
+  background-color: white;
+  float: left;
+  width: 75%;
 }
 
 .room-chat-box {
-    width:25%;
+  width: 25%;
 }
 
 #room-chat {
-    margin:0;
-    padding:0;
-    height:80%;
-    background-color: rgb(148, 148, 185);
+  margin: 0;
+  padding: 0;
+  height: 80%;
+  background-color: rgb(148, 148, 185);
 }

@@ -319,7 +319,8 @@ function test() {
         for (let t = t_sx; t <= t_ex; t++) {
           for (let s = t_sy; s <= t_ey; s++) {
             if (t >= 0 && s >= 0 && t <= 20 && s <= 11)
-              if (melon_info[t][s] !== 0) context.drawImage(t_img, 140 + (t - 1) * 40, 100 + s * 40, 40, 40);
+              if (melon_info[t][s] !== 0)
+                context.drawImage(t_img, 140 + (t - 1) * 40, 100 + s * 40, 40, 40);
           }
         }
         context.strokeRect(startX, startY, currentX - startX, currentY - startY);
@@ -368,7 +369,12 @@ function test() {
           backContext.font = "bold 20px Arial, sans-serif";
           backContext.textAlign = "center";
           backContext.fillText(cnt, 999, 100, 30);
-          context.clearRect(140 + (ss_x - 1) * 40, 100 + ss_y * 40, (ee_x - ss_x + 1) * 40, (ee_y - ss_y + 1) * 40);
+          context.clearRect(
+            140 + (ss_x - 1) * 40,
+            100 + ss_y * 40,
+            (ee_x - ss_x + 1) * 40,
+            (ee_y - ss_y + 1) * 40
+          );
           hiddenContext.clearRect(0, 0, hiddenContext.canvas.width, hiddenContext.canvas.height);
           hiddenContext.drawImage(canvas, 0, 0);
         }
@@ -452,7 +458,8 @@ export default function MelonGamePage() {
     ct = 1;
     getTopMelonScores(10).then((scores) => {
       scores.forEach((data) => {
-        rankBox.innerHTML += "<div id='rank-info'>" + ct + "위: " + data.name + " " + data.score + "점</div>";
+        rankBox.innerHTML +=
+          "<div id='rank-info'>" + ct + "위: " + data.name + " " + data.score + "점</div>";
         if (ct === 10) tenth_rank = data.score;
         ct += 1;
       });

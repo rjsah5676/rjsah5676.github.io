@@ -36,7 +36,10 @@ export default function Top() {
             <tbody>
               <tr>
                 <td>
-                  <div className="top-left-img" style={{ backgroundImage: `url(${logoImg.src})` }} />
+                  <div
+                    className="top-left-img"
+                    style={{ backgroundImage: `url(${logoImg.src})` }}
+                  />
                 </td>
                 <td>
                   <div className="top-left-title">

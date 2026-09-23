@@ -146,7 +146,9 @@ export default function ProjectPage() {
                       imgLink={taxImg}
                       gitLink={"https://github.com/rjsah5676/Tax-Investigation"}
                       title={"[영천시 세무조사 홈페이지]"}
-                      desc={"세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."}
+                      desc={
+                        "세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."
+                      }
                       tech={
                         <div className="info-tech">
                           <div className="info-tech-box">JSP</div>
