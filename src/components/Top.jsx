@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDraggableContactModal, openContactModal } from "../hooks/useDraggableContactModal";
+import logoImg from "@/img/top/logo.png";
 
 const baseStyle = {
   color: "#444444",
@@ -35,7 +36,7 @@ export default function Top() {
             <tbody>
               <tr>
                 <td>
-                  <div className="top-left-img" />
+                  <div className="top-left-img" style={{ backgroundImage: `url(${logoImg.src})` }} />
                 </td>
                 <td>
                   <div className="top-left-title">

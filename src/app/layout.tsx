@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
+import QuickMenu from "@/components/QuickMenu";
 
 export const metadata: Metadata = {
   title: "Gunmo Lee",
@@ -53,6 +54,7 @@ export default function RootLayout({
         {children}
         <Footer />
         <Contact />
+        <QuickMenu />
       </body>
     </html>
   );

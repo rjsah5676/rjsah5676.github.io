@@ -1,28 +1,29 @@
-import { useState } from 'react';
-import { deleteStudyPost } from '../../firestore/studyPosts';
+"use client";
 
-function DeleteButton({ postId, onDeleteSuccess }) {
-  const [password, setPassword] = useState('');
+import { useState } from "react";
+import { deleteStudyPost } from "@/firestore/studyPosts";
+
+export default function DeleteButton({ postId, onDeleteSuccess }) {
+  const [password, setPassword] = useState("");
   const [showInput, setShowInput] = useState(false);
 
   const handleDelete = async () => {
-    if (password !== 'rjsah7') {
-      alert('비밀번호가 틀렸습니다.');
+    if (password !== "rjsah7") {
+      alert("비밀번호가 틀렸습니다.");
       return;
     }
-    console.log('삭제 대상 postId:', postId); 
     try {
       await deleteStudyPost(postId);
-      alert('삭제 완료');
+      alert("삭제 완료");
       onDeleteSuccess();
     } catch (err) {
       console.error(err);
-      alert('삭제 중 오류 발생');
+      alert("삭제 중 오류 발생");
     }
   };
 
   return (
-    <div style={{ marginTop: '2rem' }}>
+    <div style={{ marginTop: "2rem" }}>
       {showInput ? (
         <div>
           <input
@@ -30,17 +31,13 @@ function DeleteButton({ postId, onDeleteSuccess }) {
             placeholder="비밀번호 입력"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ marginRight: '0.5rem' }}
+            style={{ marginRight: "0.5rem" }}
           />
           <button onClick={handleDelete}>삭제</button>
         </div>
       ) : (
         <button
-          style={{
-            backgroundColor: 'red',
-            color: 'white',
-            cursor: 'pointer'
-          }}
+          style={{ backgroundColor: "red", color: "white", cursor: "pointer" }}
           onClick={() => setShowInput(true)}
         >
           🗑 글삭제
@@ -49,5 +46,3 @@ function DeleteButton({ postId, onDeleteSuccess }) {
     </div>
   );
 }
-
-export default DeleteButton;
