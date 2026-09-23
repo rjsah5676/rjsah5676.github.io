@@ -1,122 +1,80 @@
-"use client";
-
-import { useEffect } from "react";
 import Faded from "@/components/Faded";
-import "@/css/Page/mainPage.css";
+import githubIcon from "@/img/Page/info/github.png";
+import ohsoriIcon from "@/img/Page/info/mimyo/ohsori.png";
+import acmicpcIcon from "@/img/Page/info/acmicpc_small.png";
+import mimyoIcon from "@/img/Page/info/mimyo/mimyo_logo.jpg";
+import meImg from "@/img/Page/info/me.png";
+
+const profile = [
+  { label: "이름", value: "이건모" },
+  { label: "생년월일", value: "1997.12.10" },
+  { label: "거주지", value: "경기도 성남시 수정구" },
+  { label: "최종학력", value: "아주대학교 소프트웨어학과 졸업" },
+];
+
+const tech = [
+  { label: "Frontend", value: "React, Next, TS" },
+  { label: "Backend", value: "NodeJS, Spring Boot" },
+  { label: "Database", value: "MySQL, MongoDB, FireStore" },
+];
+
+const sites = [
+  { icon: githubIcon, label: "GitHub", href: "https://github.com/rjsah5676" },
+  { icon: acmicpcIcon, label: "BAEKJOON", href: "https://www.acmicpc.net/user/rjsah5676" },
+  { icon: ohsoriIcon, label: "Oh! Sori", href: "https://ohsori.my/" },
+  { icon: mimyoIcon, label: "MIMYO", href: "https://drive.google.com/file/d/1ZVTpuval2WbT_x1n-3tOS7dhkpnCJQ8C/view" },
+];
+
+function InfoList({ title, rows }) {
+  return (
+    <div>
+      <h3 className="mb-4 font-mono text-sm text-[#8B84FF]">{title}</h3>
+      <dl className="flex flex-col gap-3">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-baseline justify-between gap-6 border-b border-white/5 pb-3">
+            <dt className="font-mono text-sm text-white/40">{row.label}</dt>
+            <dd className="text-right font-['Nanum_Gothic',sans-serif] text-white/90">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
 
 export default function Home() {
-  useEffect(() => {
-    function handleMain(winWidth) {
-      const mc = document.getElementById("main-page-box");
-      const bt = document.getElementById("plus-button");
-      if (mc !== null && bt !== null) {
-        if (winWidth < 1024) {
-          mc.style.display = "none";
-          bt.style.display = "block";
-        } else {
-          mc.style.display = "block";
-          bt.style.display = "none";
-        }
-      }
-    }
-
-    window.scrollTo({ top: 400, left: 0, behavior: "smooth" });
-    handleMain(window.innerWidth);
-
-    const onResize = () => handleMain(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  const openModal = () => {
-    const left = Math.ceil((window.screen.width - 1200) / 2);
-    const top = Math.ceil((window.screen.height - 660) / 2);
-    window.open("/", "gunmo-lee", "location=no,width=1200,height=660,left=" + left + ",top=" + top);
-  };
-
   return (
     <Faded>
-      <div className="main-page-container">
-        <h3>ABOUT ME</h3>
-        <h5>
-          안녕하세요🖐
-          <br />
-          풀스택 개발자를 목표하는 <b style={{ color: "white" }}>이건모</b> 입니다.🙂
-        </h5>
-        <div>
-          <button id="plus-button" style={{ display: "none" }} onClick={openModal}>
-            +
-          </button>
+      <div className="mx-auto max-w-3xl px-6 pt-20 pb-16">
+        <img
+          src={meImg.src}
+          alt=""
+          className="mb-10 h-56 w-full rounded-2xl border border-white/10 object-cover sm:h-72"
+        />
+
+        <p className="mb-16 text-center font-['Nanum_Gothic',sans-serif] text-lg leading-relaxed text-white/80">
+          안녕하세요🖐 풀스택 개발자를 목표하는{" "}
+          <span className="font-medium text-white">이건모</span> 입니다.🙂
+        </p>
+
+        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2">
+          <InfoList title="profile" rows={profile} />
+          <InfoList title="tech" rows={tech} />
         </div>
 
-        <div id="main-page-box">
-          <div id="main-page-left-box"></div>
-          <div id="main-page-right-box">
-            <ul>
-              <li>
-                <h4 className="yy">PROFILE</h4>
-                <ul>
-                  <li className="lists">
-                    <div className="left-msg">이름</div>
-                    <div className="right-msg">이건모</div>
-                  </li>
-                  <li className="lists">
-                    <div className="left-msg">생년월일</div>
-                    <div className="right-msg">1997.12.10</div>
-                  </li>
-                  <li className="lists">
-                    <div className="left-msg">거주지</div>
-                    <div className="right-msg">경기도 성남시 수정구</div>
-                  </li>
-                  <li className="lists">
-                    <div className="left-msg">최종학력</div>
-                    <div className="right-msg">아주대학교 소프트웨어학과 졸업</div>
-                  </li>
-                </ul>
-              </li>
-              <li>
-                <h4 className="xx">TECH</h4>
-                <ul>
-                  <li className="lists">
-                    <div className="left-msg">Frontend</div>
-                    <div className="right-msg">React, JSP, JS</div>
-                  </li>
-                  <li className="lists">
-                    <div className="left-msg">Backend</div>
-                    <div className="right-msg">NodeJS, Flask, Spring</div>
-                  </li>
-                  <li className="lists">
-                    <div className="left-msg">Database</div>
-                    <div className="right-msg">MySQL, MongoDB, FireStore</div>
-                  </li>
-                </ul>
-              </li>
-              <li>
-                <h4 className="xx">SITE</h4>
-                <ul id="sites">
-                  <li className="lists">
-                    <a href="https://github.com/rjsah5676">
-                      <div id="git-img" />
-                    </a>
-                  </li>
-                  <li className="lists">
-                    <a href="https://www.acmicpc.net/user/rjsah5676">
-                      <div id="acm-img" />
-                    </a>
-                  </li>
-                  <li className="lists">
-                    <a href="https://ohsori.my/">
-                      <div id="gm-img" />
-                    </a>
-                  </li>
-                  <li className="lists">
-                    <a href="https://mimyo.my">
-                      <div id="mimyo-img" />
-                    </a>
-                  </li>
-                </ul>
-              </li>
-            </ul>
+        <div className="mt-16">
+          <h3 className="mb-4 font-mono text-sm text-[#8B84FF]">site</h3>
+          <div className="flex flex-wrap gap-3">
+            {sites.map((site) => (
+              <a
+                key={site.label}
+                href={site.href}
+                target="_blank"
+                className="flex items-center gap-2 rounded-full border border-white/10 py-2 pr-4 pl-2 font-mono text-sm text-white/70 transition-colors hover:border-[#6C63FF]/50 hover:text-white"
+              >
+                <img src={site.icon.src} alt="" className="h-5 w-5 rounded-full object-cover" />
+                {site.label}
+              </a>
+            ))}
           </div>
         </div>
       </div>

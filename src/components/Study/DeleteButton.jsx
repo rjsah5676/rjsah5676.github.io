@@ -12,7 +12,6 @@ export default function DeleteButton({ postId, onDeleteSuccess }) {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
     try {
       await deleteStudyPost(postId);
-      alert("삭제 완료");
       onDeleteSuccess();
     } catch (err) {
       console.error(err);
@@ -21,13 +20,12 @@ export default function DeleteButton({ postId, onDeleteSuccess }) {
   };
 
   return (
-    <div style={{ marginTop: "2rem" }}>
-      <button
-        style={{ backgroundColor: "red", color: "white", cursor: "pointer" }}
-        onClick={handleDelete}
-      >
-        🗑 글삭제
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={handleDelete}
+      className="cursor-pointer rounded-full border border-red-500/30 px-4 py-2 font-mono text-sm text-red-400 transition-colors hover:border-red-500/60 hover:text-red-300"
+    >
+      🗑 글삭제
+    </button>
   );
 }

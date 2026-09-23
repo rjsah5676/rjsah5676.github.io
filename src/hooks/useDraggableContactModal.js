@@ -12,54 +12,39 @@ function getNumberFromPixel(px) {
 }
 
 // 상단바(Top)의 Contact 모달을 마우스로 드래그해서 옮길 수 있게 해주는 훅.
-// 기존 TopHome/TopNone/TopArchive에 3번 복붙되어 있던 로직을 하나로 합침.
 export function useDraggableContactModal() {
   useEffect(() => {
     const modal = document.getElementById("contact-container");
     if (!modal) return;
 
-    let clicked = false;
-    let f_x = 0;
-    let f_y = 0;
-    let m_x = 0;
-    let m_y = 0;
-    let c_x = 0;
-    let c_y = 0;
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let originLeft = 0;
+    let originTop = 0;
 
-    const onMouseDown = () => {
-      if (!clicked) {
-        c_x = getNumberFromPixel(modal.style.left);
-        c_y = getNumberFromPixel(modal.style.top);
-        modal.style.cursor = "grabbing";
-        clicked = true;
-      }
+    const onMouseMove = (e) => {
+      if (!dragging) return;
+      modal.style.left = originLeft + (e.clientX - startX) + "px";
+      modal.style.top = originTop + (e.clientY - startY) + "px";
+    };
 
-      const moveModal = () => {
-        modal.style.left = c_x + m_x - f_x + "px";
-        modal.style.top = c_y + m_y - f_y + "px";
-        c_x = getNumberFromPixel(modal.style.left);
-        c_y = getNumberFromPixel(modal.style.top);
-        f_x = m_x;
-        f_y = m_y;
-        timeoutId = setTimeout(moveModal, 10);
-      };
-      let timeoutId = setTimeout(moveModal, 10);
+    const onMouseUp = () => {
+      dragging = false;
+      modal.style.cursor = "grab";
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
 
-      const onMouseUp = () => {
-        clicked = false;
-        modal.style.cursor = "grab";
-        clearTimeout(timeoutId);
-        window.removeEventListener("mouseup", onMouseUp);
-        window.removeEventListener("mousemove", onMouseMove);
-      };
-      const onMouseMove = (e) => {
-        if (clicked) {
-          m_x = e.clientX;
-          m_y = e.clientY;
-        }
-      };
-      window.addEventListener("mouseup", onMouseUp);
+    const onMouseDown = (e) => {
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      originLeft = getNumberFromPixel(modal.style.left);
+      originTop = getNumberFromPixel(modal.style.top);
+      modal.style.cursor = "grabbing";
       window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
     };
 
     modal.addEventListener("mousedown", onMouseDown);
@@ -73,5 +58,6 @@ export function openContactModal(open) {
   ct.style.left = (window.innerWidth - ct.offsetWidth) / 2 + "px";
   ct.style.top = window.innerHeight / 4 + "px";
   ct.style.opacity = open;
-  ct.style.zIndex = open === 1 ? 10 : -1;
+  // Top(z-50)/Nav(z-30)보다 위에 떠야 함
+  ct.style.zIndex = open === 1 ? 60 : -1;
 }

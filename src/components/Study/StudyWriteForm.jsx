@@ -87,58 +87,56 @@ export default function StudyWriteForm() {
   };
 
   if (loading || !user) {
-    return <div style={{ padding: "2rem", color: "white" }}>확인 중...</div>;
+    return <div className="px-6 py-16 text-center text-white/50">확인 중...</div>;
   }
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2 style={{ color: "white" }}>{isEdit ? "✏️ 글 수정" : "✏️ 글쓰기"}</h2>
+    <div className="mx-auto max-w-2xl px-6 pt-16 pb-24">
+      <h2 className="mb-8 font-mono text-xl font-bold text-white sm:text-2xl">
+        {isEdit ? "✏️ 글 수정" : "✏️ 글쓰기"}
+      </h2>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <input
-          type="text"
-          placeholder="제목을 입력하세요"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={{ width: "100%", padding: "0.5rem" }}
+      <input
+        type="text"
+        placeholder="제목을 입력하세요"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="mb-4 w-full rounded-lg border border-white/10 bg-[#1C1E24] px-4 py-2.5 text-white placeholder:text-white/30 focus:border-[#6C63FF]/50 focus:outline-none"
+      />
+
+      <select
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
+        className="mb-4 rounded-lg border border-white/10 bg-[#1C1E24] px-4 py-2.5 font-mono text-sm text-white focus:border-[#6C63FF]/50 focus:outline-none"
+      >
+        {categories.map((cat) => (
+          <option key={cat} value={cat}>
+            {cat}
+          </option>
+        ))}
+      </select>
+
+      <div className="quill-dark mb-4 overflow-hidden rounded-lg border border-white/10">
+        <ReactQuill
+          value={content}
+          onChange={setContent}
+          placeholder="내용을 입력하세요..."
+          modules={{
+            toolbar: [
+              [{ header: [1, 2, false] }],
+              ["bold", "italic", "underline", "strike"],
+              ["link", "image"],
+              [{ list: "ordered" }, { list: "bullet" }],
+              ["clean"],
+            ],
+          }}
         />
       </div>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <ReactQuill
-        value={content}
-        onChange={setContent}
-        placeholder="내용을 입력하세요..."
-        style={{ minHeight: "300px", marginBottom: "1rem", background: "white" }}
-        modules={{
-          toolbar: [
-            [{ header: [1, 2, false] }],
-            ["bold", "italic", "underline", "strike"],
-            ["link", "image"],
-            [{ list: "ordered" }, { list: "bullet" }],
-            ["clean"],
-          ],
-        }}
-      />
-
       <button
+        type="button"
         onClick={submitPost}
-        style={{
-          marginTop: "1rem",
-          padding: "0.5rem 1rem",
-          backgroundColor: "#4a7b63",
-          color: "white",
-          border: "none",
-        }}
+        className="cursor-pointer rounded-full bg-[#6C63FF] px-6 py-2.5 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0]"
       >
         {isEdit ? "수정하기" : "저장하기"}
       </button>

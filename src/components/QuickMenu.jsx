@@ -100,7 +100,7 @@ export default function QuickMenu() {
   }, [router]);
 
   return (
-    <div className="center menu">
+    <div className="fixed top-[85%] right-[5%] z-[99999] m-auto h-[70px] w-[70px] text-white">
       <div id="myMenu"></div>
     </div>
   );

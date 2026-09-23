@@ -3,21 +3,31 @@
 import { useState, useEffect, useRef } from "react";
 import Faded from "@/components/Faded";
 import { getTopReactionScores, addReactionScore } from "@/firestore/reactionGame";
-import "@/css/Page/rspeed.css";
 
 let ct = 0;
+
+function RankBox({ list }) {
+  return (
+    <div className="mb-10 flex flex-col gap-1">
+      {list.map((item, i) => (
+        <div key={i} className="font-mono text-sm text-white/50">
+          {i + 1}위: <span className="text-white/80">{item.name}</span> / {item.score}ms
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function RspeedPage() {
   const NUM = 5;
   const [start, setStart] = useState(0);
   const [count, setCount] = useState(1);
-  const [color, setColor] = useState(0); // 0 : red, 1 : green
+  const [color, setColor] = useState(0); // 0 : red, 1 : blue
   const [startTime, setStartTime] = useState(0);
   const [rTime, setRTime] = useState(0);
   const [res, setRes] = useState([]);
   const [list, setList] = useState([]);
   const [, setRen] = useState(0);
-
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -29,24 +39,6 @@ export default function RspeedPage() {
     })();
   }, []);
 
-  const buttonRedStyle = {
-    backgroundColor: "red",
-    width: "300px",
-    height: "300px",
-    borderRadius: "150px",
-    margin: "auto",
-    marginTop: "60px",
-    cursor: "pointer",
-  };
-  const buttonBlueStyle = {
-    backgroundColor: "blue",
-    width: "300px",
-    height: "300px",
-    borderRadius: "150px",
-    margin: "auto",
-    marginTop: "60px",
-    cursor: "pointer",
-  };
   function clickStart() {
     setStart(1);
     changeColor(getRandom() * 10000);
@@ -72,27 +64,8 @@ export default function RspeedPage() {
     setColor(0);
     clickStart();
   }
-  const onChangeName = (event) => {
-    setName(event.target.value);
-  };
-  function endGame() {
-    const score = (res[0] + res[1] + res[2] + res[3] + res[4]) / 5;
-    const output = (
-      <div>
-        <div className="reaction-submit-alert">
-          {score}점으로 10위안에 랭크되셨습니다. 이름을 입력해주세요.
-        </div>
-        <div className="reaction-submit-box">
-          <input onChange={onChangeName} className="reaction-submit-input"></input>
-          <div onClick={() => submitScore(score)} className="reaction-submit-button">
-            제출
-          </div>
-        </div>
-      </div>
-    );
-    if (score < list[ct - 1].score) return output;
-    return output;
-  }
+  const onChangeName = (event) => setName(event.target.value);
+
   const submittedRef = useRef(false);
   async function submitScore(sc) {
     if (name !== "" && name.length < 20 && !submittedRef.current) {
@@ -101,59 +74,81 @@ export default function RspeedPage() {
       window.location.reload();
     }
   }
-  function makeBox() {
-    let rank = 1;
-    return list.map((item, i) => (
-      <div key={i} style={{ color: "white", marginLeft: "20px", fontSize: "20px" }}>
-        {rank++}위: {item.name} / {item.score}ms
-      </div>
-    ));
-  }
+
+  const avgScore = (res[0] + res[1] + res[2] + res[3] + res[4]) / 5;
+  const isRanked = list.length < 10 || avgScore < list[ct - 1]?.score;
 
   if (start === 0) {
     return (
       <Faded>
-        <div className="rspeed-container">
-          <div style={{ position: "absolute", marginTop: "20px" }}> {makeBox()} </div>
-          <p>반응속도 테스트</p>
-          <div onClick={clickStart} className="rspeed-start-button">
+        <div className="mx-auto max-w-md px-6 pt-16 pb-24 text-center">
+          <div className="mb-8 font-mono text-sm text-[#8B84FF]">반응속도 테스트</div>
+          <RankBox list={list} />
+          <button
+            type="button"
+            onClick={clickStart}
+            className="cursor-pointer rounded-full bg-[#6C63FF] px-8 py-3 font-mono text-white transition-colors hover:bg-[#5b52f0]"
+          >
             시작
-          </div>
+          </button>
         </div>
       </Faded>
     );
   } else if (count === 6) {
     return (
       <Faded>
-        <div className="rspeed-container">
-          <p>반응속도 테스트</p>
-          <div style={{ color: "white", textAlign: "center", marginTop: "20px", fontSize: "30px" }}>
-            결과
-          </div>
-          <div style={{ color: "white", textAlign: "center", marginTop: "20px", fontSize: "30px" }}>
-            {(res[0] + res[1] + res[2] + res[3] + res[4]) / 5} ms
-          </div>
-          {endGame()}
+        <div className="mx-auto max-w-md px-6 pt-16 pb-24 text-center">
+          <div className="mb-8 font-mono text-sm text-[#8B84FF]">반응속도 테스트</div>
+          <div className="mb-2 font-mono text-lg text-white/60">결과</div>
+          <div className="mb-8 font-mono text-4xl font-bold text-white">{avgScore} ms</div>
+
+          {isRanked ? (
+            <div>
+              <p className="mb-4 font-['Nanum_Gothic',sans-serif] text-white/70">
+                {avgScore}점으로 10위안에 랭크되셨습니다. 이름을 입력해주세요.
+              </p>
+              <div className="flex justify-center gap-2">
+                <input
+                  onChange={onChangeName}
+                  className="w-32 rounded-full border border-white/10 bg-[#1C1E24] px-4 py-2 text-center text-white focus:border-[#6C63FF]/50 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => submitScore(avgScore)}
+                  className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0]"
+                >
+                  제출
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="cursor-pointer rounded-full border border-white/10 px-6 py-2 font-mono text-sm text-white/70 transition-colors hover:text-white"
+            >
+              다시하기
+            </button>
+          )}
         </div>
       </Faded>
     );
   } else {
     return (
       <Faded>
-        <div className="rspeed-container">
-          <p>반응속도 테스트</p>
-          <div style={{ color: "white", textAlign: "center" }}>
+        <div className="mx-auto max-w-md px-6 pt-16 pb-24 text-center">
+          <div className="mb-8 font-mono text-sm text-[#8B84FF]">반응속도 테스트</div>
+          <p className="mb-6 font-['Nanum_Gothic',sans-serif] text-white/60">
             버튼이 파란색이 되고 클릭하면 됩니다. 총 {NUM}번 실행됩니다.
-          </div>
-          <div style={{ color: "white", textAlign: "center", marginTop: "20px", fontSize: "30px" }}>
-            {count}
-          </div>
-          <div style={{ color: "white", textAlign: "center", marginTop: "20px", fontSize: "30px" }}>
-            {rTime} ms
-          </div>
-          <div
+          </p>
+          <div className="mb-1 font-mono text-2xl text-white">{count} / {NUM}</div>
+          <div className="mb-10 font-mono text-lg text-white/40">{rTime} ms</div>
+          <button
+            type="button"
             onClick={color === 0 ? clickRed : clickBlue}
-            style={color === 0 ? buttonRedStyle : buttonBlueStyle}
+            className={`aspect-square w-[min(60vw,260px)] cursor-pointer rounded-full transition-colors ${
+              color === 0 ? "bg-red-500" : "bg-blue-500"
+            }`}
           />
         </div>
       </Faded>
