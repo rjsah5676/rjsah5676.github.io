@@ -1,17 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { deleteStudyPost } from "@/firestore/studyPosts";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function DeleteButton({ postId, onDeleteSuccess }) {
-  const [password, setPassword] = useState("");
-  const [showInput, setShowInput] = useState(false);
+  const { user } = useAuth();
+
+  if (!user) return null;
 
   const handleDelete = async () => {
-    if (password !== "rjsah7") {
-      alert("비밀번호가 틀렸습니다.");
-      return;
-    }
+    if (!window.confirm("정말 삭제하시겠습니까?")) return;
     try {
       await deleteStudyPost(postId);
       alert("삭제 완료");
@@ -24,25 +22,12 @@ export default function DeleteButton({ postId, onDeleteSuccess }) {
 
   return (
     <div style={{ marginTop: "2rem" }}>
-      {showInput ? (
-        <div>
-          <input
-            type="password"
-            placeholder="비밀번호 입력"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ marginRight: "0.5rem" }}
-          />
-          <button onClick={handleDelete}>삭제</button>
-        </div>
-      ) : (
-        <button
-          style={{ backgroundColor: "red", color: "white", cursor: "pointer" }}
-          onClick={() => setShowInput(true)}
-        >
-          🗑 글삭제
-        </button>
-      )}
+      <button
+        style={{ backgroundColor: "red", color: "white", cursor: "pointer" }}
+        onClick={handleDelete}
+      >
+        🗑 글삭제
+      </button>
     </div>
   );
 }

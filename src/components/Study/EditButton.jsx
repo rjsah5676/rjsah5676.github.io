@@ -1,50 +1,28 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function EditButton({ post }) {
-  const [password, setPassword] = useState("");
-  const [showInput, setShowInput] = useState(false);
   const router = useRouter();
+  const { user } = useAuth();
 
-  const handleEdit = () => {
-    if (password !== "rjsah7") {
-      alert("비밀번호가 틀렸습니다.");
-      return;
-    }
-    router.push(`/study/write?id=${post.id}`);
-  };
+  if (!user) return null;
 
   return (
     <div style={{ marginTop: "1rem" }}>
-      {showInput ? (
-        <div>
-          <input
-            type="password"
-            placeholder="비밀번호 입력"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ marginRight: "0.5rem" }}
-          />
-          <button type="button" onClick={handleEdit}>
-            수정
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          style={{
-            backgroundColor: "#4a7b63",
-            color: "white",
-            cursor: "pointer",
-            marginRight: "1rem",
-          }}
-          onClick={() => setShowInput(true)}
-        >
-          ✏️ 글수정
-        </button>
-      )}
+      <button
+        type="button"
+        style={{
+          backgroundColor: "#4a7b63",
+          color: "white",
+          cursor: "pointer",
+          marginRight: "1rem",
+        }}
+        onClick={() => router.push(`/study/write?id=${post.id}`)}
+      >
+        ✏️ 글수정
+      </button>
     </div>
   );
 }

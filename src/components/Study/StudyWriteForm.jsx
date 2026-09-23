@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getStudyPost, addStudyPost, updateStudyPost } from "@/firestore/studyPosts";
+import { useAuth } from "@/lib/AuthContext";
 import "react-quill-new/dist/quill.snow.css";
 
 // react-quill(-new)은 내부적으로 document를 직접 참조해서 SSR/정적 export 빌드 중에
@@ -23,6 +24,7 @@ const categories = [
 
 export default function StudyWriteForm() {
   const router = useRouter();
+  const { user, loading } = useAuth();
   const searchParams = useSearchParams();
   const postId = searchParams.get("id");
   const isEdit = !!postId;
@@ -30,6 +32,12 @@ export default function StudyWriteForm() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Java");
   const [content, setContent] = useState("");
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/admin/login");
+    }
+  }, [loading, user, router]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -77,6 +85,10 @@ export default function StudyWriteForm() {
       alert("저장 중 오류 발생");
     }
   };
+
+  if (loading || !user) {
+    return <div style={{ padding: "2rem", color: "white" }}>확인 중...</div>;
+  }
 
   return (
     <div style={{ padding: "2rem" }}>
