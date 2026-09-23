@@ -18,4 +18,4 @@
 :HL["/_next/static/media/ppt_8.1jah21f_trozb.jpg","image"]
 :HL["/_next/static/media/ppt_9.0887-mip4sdu1.jpg","image"]
 :HL["/_next/static/media/ppt_10.3umwiuf8c7vou.jpg","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"infoPage","param":null,"prefetchHints":4192,"slots":{"children":{"name":"idx","param":{"type":"d","key":"8","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"riN43RcmnsvPn0Leo2M4h"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"infoPage","param":null,"prefetchHints":4192,"slots":{"children":{"name":"idx","param":{"type":"d","key":"8","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"2Isn6I1gunI9CIzleTpcg"}
