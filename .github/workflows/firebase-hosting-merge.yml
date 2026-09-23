@@ -22,3 +22,8 @@ jobs:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNMO_PORTFOLIO }}'
           channelId: live
           projectId: gunmo-portfolio
+      # rjsah5676.github.io(GitHub Pages)도 계속 쓰기 위해 gh-pages 브랜치에도 같이 배포
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: '${{ secrets.GITHUB_TOKEN }}'
+          publish_dir: ./build
