@@ -1,4 +1,4 @@
-import $ from "jquery";
+import $ from "./jqueryGlobal";
 import anime from "animejs";
 
 var timeOut;

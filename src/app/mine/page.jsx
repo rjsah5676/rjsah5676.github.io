@@ -1,17 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { getTopRankings, addRanking } from "../../firestore/minesweeperRankings";
-import clickSound from "../../sounds/melongame/bbyong.mp3";
-import flagSound from "../../sounds/melongame/bbyong.mp3";
-import endBgm from "../../sounds/melongame/endbgm.mp3";
+"use client";
 
-const ROWS = 20;
-const COLS = 24;
-const MINES = 99;
-
-const clickAudio = new Audio(clickSound);
-const flagAudio = new Audio(flagSound);
-const endBgmAudio = new Audio(endBgm);
-endBgmAudio.volume = 0.6;
+import { useState, useEffect, useRef } from "react";
+import { getTopRankings, addRanking } from "@/firestore/minesweeperRankings";
+import clickSoundSrc from "@/sounds/melongame/bbyong.mp3";
+import flagSoundSrc from "@/sounds/melongame/bbyong.mp3";
+import endBgmSrc from "@/sounds/melongame/endbgm.mp3";
+import "@/css/minesweeper.css";
 
 function generateBoardSafe(safeR, safeC, rows, cols, mineCount) {
   const board = Array.from({ length: rows }, () => Array(cols).fill(0));
@@ -25,7 +19,8 @@ function generateBoardSafe(safeR, safeC, rows, cols, mineCount) {
     minesPlaced++;
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
-        const nr = r + dr, nc = c + dc;
+        const nr = r + dr,
+          nc = c + dc;
         if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc] !== -1) {
           board[nr][nc]++;
         }
@@ -36,9 +31,13 @@ function generateBoardSafe(safeR, safeC, rows, cols, mineCount) {
 }
 
 export default function Minesweeper() {
-  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+  // window.innerHeight/innerWidth를 useState 초기값으로 직접 넣으면 정적 export
+  // 빌드(Node, window 없음) 중에 그대로 크래시남 -> 안전한 기본값으로 시작하고
+  // 마운트 후 useEffect에서 실제 값으로 갱신.
+  const [isPortrait, setIsPortrait] = useState(false);
 
   useEffect(() => {
+    setIsPortrait(window.innerHeight > window.innerWidth);
     const handleResize = () => {
       setIsPortrait(window.innerHeight > window.innerWidth);
     };
@@ -50,9 +49,24 @@ export default function Minesweeper() {
   const COLS = isPortrait ? 20 : 24;
   const MINES = 99;
 
+  // new Audio(...)도 브라우저 API라 렌더 중이 아니라 ref에 지연 생성해서 사용.
+  const clickAudioRef = useRef(null);
+  const flagAudioRef = useRef(null);
+  const endBgmAudioRef = useRef(null);
+  useEffect(() => {
+    clickAudioRef.current = new Audio(clickSoundSrc);
+    flagAudioRef.current = new Audio(flagSoundSrc);
+    endBgmAudioRef.current = new Audio(endBgmSrc);
+    endBgmAudioRef.current.volume = 0.6;
+  }, []);
+
   const [board, setBoard] = useState(Array.from({ length: ROWS }, () => Array(COLS).fill(0)));
-  const [visible, setVisible] = useState(Array.from({ length: ROWS }, () => Array(COLS).fill(false)));
-  const [flagged, setFlagged] = useState(Array.from({ length: ROWS }, () => Array(COLS).fill(false)));
+  const [visible, setVisible] = useState(
+    Array.from({ length: ROWS }, () => Array(COLS).fill(false))
+  );
+  const [flagged, setFlagged] = useState(
+    Array.from({ length: ROWS }, () => Array(COLS).fill(false))
+  );
   const [gameOver, setGameOver] = useState(false);
   const [win, setWin] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -60,7 +74,7 @@ export default function Minesweeper() {
   const [startTime, setStartTime] = useState(null);
   const [timer, setTimer] = useState(0);
   const [rankings, setRankings] = useState([]);
-  const flaggedCount = flagged.flat().filter(v => v).length;
+  const flaggedCount = flagged.flat().filter((v) => v).length;
   const remainingMines = MINES - flaggedCount;
 
   useEffect(() => {
@@ -114,24 +128,24 @@ export default function Minesweeper() {
     }
   };
 
-    useEffect(() => {
-    if (gameOver) {
-        endBgmAudio.currentTime = 0;
-        endBgmAudio.play();
+  useEffect(() => {
+    if (gameOver && endBgmAudioRef.current) {
+      endBgmAudioRef.current.currentTime = 0;
+      endBgmAudioRef.current.play();
     }
-    }, [gameOver]);
+  }, [gameOver]);
 
   const handleLeftClick = (r, c) => {
     if (gameOver || visible[r][c] || flagged[r][c]) return;
 
-    clickAudio.play();
+    clickAudioRef.current?.play();
 
     if (!initialized) {
       const newBoard = generateBoardSafe(r, c, ROWS, COLS, MINES);
       setBoard(newBoard);
       setStartTime(Date.now());
 
-      const newVisible = visible.map(row => [...row]);
+      const newVisible = visible.map((row) => [...row]);
       const tempBoard = newBoard;
       const flood = (r, c) => {
         if (r < 0 || r >= ROWS || c < 0 || c >= COLS || newVisible[r][c]) return;
@@ -151,7 +165,7 @@ export default function Minesweeper() {
       return;
     }
 
-    const newVisible = visible.map(row => [...row]);
+    const newVisible = visible.map((row) => [...row]);
     if (board[r][c] === -1) {
       setGameOver(true);
       newVisible[r][c] = true;
@@ -165,8 +179,8 @@ export default function Minesweeper() {
   const handleRightClick = (e, r, c) => {
     e.preventDefault();
     if (gameOver || visible[r][c]) return;
-    flagAudio.play();
-    const newFlagged = flagged.map(row => [...row]);
+    flagAudioRef.current?.play();
+    const newFlagged = flagged.map((row) => [...row]);
     newFlagged[r][c] = !newFlagged[r][c];
     setFlagged(newFlagged);
   };
@@ -182,7 +196,8 @@ export default function Minesweeper() {
     let flagCount = 0;
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
-        const nr = r + dr, nc = c + dc;
+        const nr = r + dr,
+          nc = c + dc;
         if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
           if (flagged[nr][nc]) flagCount++;
         }
@@ -190,14 +205,12 @@ export default function Minesweeper() {
     }
 
     if (flagCount === target) {
-      const newVisible = visible.map(row => [...row]);
+      const newVisible = visible.map((row) => [...row]);
       for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
-          const nr = r + dr, nc = c + dc;
-          if (
-            nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS &&
-            !visible[nr][nc] && !flagged[nr][nc]
-          ) {
+          const nr = r + dr,
+            nc = c + dc;
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
             if (board[nr][nc] === -1) {
               newVisible[nr][nc] = true;
               setVisible(newVisible);
@@ -224,92 +237,100 @@ export default function Minesweeper() {
     setGameOver(true);
   };
 
-    const [touchTimer, setTouchTimer] = useState(null);
-    const handleTouchStart = (r, c) => {
+  const [touchTimer, setTouchTimer] = useState(null);
+  const handleTouchStart = (r, c) => {
     const timer = setTimeout(() => {
-        if (!gameOver && !visible[r][c]) {
-        const newFlagged = flagged.map(row => [...row]);
+      if (!gameOver && !visible[r][c]) {
+        const newFlagged = flagged.map((row) => [...row]);
         newFlagged[r][c] = !newFlagged[r][c];
         setFlagged(newFlagged);
-        flagAudio.play();
-        }
+        flagAudioRef.current?.play();
+      }
     }, 600);
     setTouchTimer(timer);
-    };
+  };
 
-    const handleTouchEnd = (r, c) => {
+  const handleTouchEnd = () => {
     clearTimeout(touchTimer);
-    };
+  };
 
-    const handleNumberLongPress = (r, c) => {
+  const handleNumberLongPress = (r, c) => {
     if (!visible[r][c] || board[r][c] <= 0) return;
     const target = board[r][c];
 
     let flagCount = 0;
     for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-        const nr = r + dr, nc = c + dc;
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr,
+          nc = c + dc;
         if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && flagged[nr][nc]) {
-            flagCount++;
+          flagCount++;
         }
-        }
+      }
     }
 
     if (flagCount === target) {
-        const newVisible = visible.map(row => [...row]);
-        for (let dr = -1; dr <= 1; dr++) {
+      const newVisible = visible.map((row) => [...row]);
+      for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
-            const nr = r + dr, nc = c + dc;
-            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
+          const nr = r + dr,
+            nc = c + dc;
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
             if (board[nr][nc] === -1) {
-                newVisible[nr][nc] = true;
-                setVisible(newVisible);
-                setGameOver(true);
-                return;
+              newVisible[nr][nc] = true;
+              setVisible(newVisible);
+              setGameOver(true);
+              return;
             } else {
-                floodFill(nr, nc, newVisible);
+              floodFill(nr, nc, newVisible);
             }
-            }
+          }
         }
-        }
-        setVisible(newVisible);
-        checkWin(newVisible);
+      }
+      setVisible(newVisible);
+      checkWin(newVisible);
     }
-    };
+  };
 
-    const [numberTouchTimer, setNumberTouchTimer] = useState(null);
+  const [numberTouchTimer, setNumberTouchTimer] = useState(null);
 
-    const handleNumberTouchStart = (r, c) => {
-    const timer = setTimeout(() => handleNumberLongPress(r, c), 500); // 0.5초 이상 눌렀을 때
+  const handleNumberTouchStart = (r, c) => {
+    const timer = setTimeout(() => handleNumberLongPress(r, c), 500);
     setNumberTouchTimer(timer);
-    };
+  };
 
-    const handleNumberTouchEnd = () => {
+  const handleNumberTouchEnd = () => {
     clearTimeout(numberTouchTimer);
-    };
+  };
 
   return (
     <div className="minesweeper">
       <div className="top-info">
         <div className="top-row">
           <div id="mine-left">
-            <div id='mine-title'>랭킹</div>
+            <div id="mine-title">랭킹</div>
             <ol>
               {rankings.map((r, idx) => (
-                <li key={idx}>{r.name} - {r.time}s</li>
+                <li key={idx}>
+                  {r.name} - {r.time}s
+                </li>
               ))}
             </ol>
           </div>
           <div id="mine-right">
-            누르면 시작됩니다<br />
-            총 지뢰는 {MINES}개입니다<br />
-            클리어 시 랭킹 등록이 가능합니다.<br />
-            모바일도 지원합니다. 꾹 누르면 여러 기능 가능<br/>
+            누르면 시작됩니다
+            <br />
+            총 지뢰는 {MINES}개입니다
+            <br />
+            클리어 시 랭킹 등록이 가능합니다.
+            <br />
+            모바일도 지원합니다. 꾹 누르면 여러 기능 가능
+            <br />
           </div>
         </div>
-        <div className="status-row" style={{ marginTop: '30px' }}>
-          <div className="status-box">⏱  {timer}s</div>
-          <div className="status-box">🚩  {remainingMines}</div>
+        <div className="status-row" style={{ marginTop: "30px" }}>
+          <div className="status-box">⏱ {timer}s</div>
+          <div className="status-box">🚩 {remainingMines}</div>
         </div>
       </div>
       <div className="grid">
@@ -324,30 +345,38 @@ export default function Minesweeper() {
               const isOpen = visible[rIdx][cIdx];
               return (
                 <div
-                    key={cIdx}
-                    className={`cell ${isOpen ? "open" : ""} ${isEven ? "even" : ""} ${isHighlighted && !isOpen ? "highlight" : ""}`}
-                    onClick={() => handleLeftClick(rIdx, cIdx)}
-                    onContextMenu={(e) => handleRightClick(e, rIdx, cIdx)}
-                    onMouseDown={(e) => handleMouseDown(e, rIdx, cIdx)}
-                    onTouchStart={() => {
-                        if (visible[rIdx][cIdx] && board[rIdx][cIdx] > 0) {
-                        handleNumberTouchStart(rIdx, cIdx);
-                        } else {
-                        handleTouchStart(rIdx, cIdx);
-                        }
-                    }}
-                    onTouchEnd={() => {
-                        handleNumberTouchEnd();
-                        handleTouchEnd(rIdx, cIdx);
-                    }}
-                    >
+                  key={cIdx}
+                  className={`cell ${isOpen ? "open" : ""} ${isEven ? "even" : ""} ${
+                    isHighlighted && !isOpen ? "highlight" : ""
+                  }`}
+                  onClick={() => handleLeftClick(rIdx, cIdx)}
+                  onContextMenu={(e) => handleRightClick(e, rIdx, cIdx)}
+                  onMouseDown={(e) => handleMouseDown(e, rIdx, cIdx)}
+                  onTouchStart={() => {
+                    if (visible[rIdx][cIdx] && board[rIdx][cIdx] > 0) {
+                      handleNumberTouchStart(rIdx, cIdx);
+                    } else {
+                      handleTouchStart(rIdx, cIdx);
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    handleNumberTouchEnd();
+                    handleTouchEnd(rIdx, cIdx);
+                  }}
+                >
                   {flagged[rIdx][cIdx]
                     ? "🚩"
                     : isOpen
-                        ? (cell === -1
+                      ? cell === -1
                         ? "💣"
-                        : (cell ? <span style={{fontWeight:'bold'}} className={`number number-${cell}`}>{cell}</span> : ""))
-                        : ""}
+                        : cell
+                          ? (
+                              <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
+                                {cell}
+                              </span>
+                            )
+                          : ""
+                      : ""}
                 </div>
               );
             })}
@@ -356,7 +385,12 @@ export default function Minesweeper() {
         {gameOver && (
           <div className="message-overlay">
             {win ? "🎉 클리어!" : "💥 펑 ㅋㅋ"}
-            <button style={{cursor:'pointer', width:'100px', height:'40px', fontSize:'17px'}} onClick={resetGame}>🔁 새 게임</button>
+            <button
+              style={{ cursor: "pointer", width: "100px", height: "40px", fontSize: "17px" }}
+              onClick={resetGame}
+            >
+              🔁 새 게임
+            </button>
           </div>
         )}
       </div>

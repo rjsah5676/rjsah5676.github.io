@@ -9,10 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "animejs": "^3.2.2",
     "firebase": "^12.19.0",
+    "jquery": "^4.0.0",
+    "jquery-ui-dist": "^1.13.3",
     "next": "^16.3.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-quill-new": "^3.8.3",
     "react-slick": "^0.31.0",
     "slick-carousel": "^1.8.1"
   },

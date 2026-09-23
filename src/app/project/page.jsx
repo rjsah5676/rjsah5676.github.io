@@ -1,56 +1,58 @@
-import React from "react";
-import Faded from "../../effect/Faded";
-import InfoBox from "./InfoBox";
+"use client";
 
-import airBoardImg from "../../img/Page/info/AirBoard.png";
-import yoriJoriImg from "../../img/Page/info/YoriJori.png";
-import logoImg from "../../img/Page/info/logo.PNG";
-import taxImg from "../../img/Page/info/yctest/slide_1.jpg";
-import acmicpcImg from "../../img/Page/info/acmicpc.png";
-import unityImg from "../../img/Page/info/unity.png";
-import dbImg from "../../img/Page/info/dbproj.png";
-import artpartImg from "../../img/Page/info/artpart/artpart.jpg";
-import kickeatImg from "../../img/Page/info/kickeat/img_kickeat_0.jpg";
-import mimyoImg from "../../img/Page/info/mimyo/mimyo.jpg";
-import wooriboardImg from "../../img/Page/info/wooriboard.jpg";
-function MyInfo(props) {
-  function clickPersonal() {
-    let pbutton = document.getElementById("personal-button");
-    let tbutton = document.getElementById("team-button");
+import Faded from "@/components/Faded";
+import InfoBox from "@/components/Info/InfoBox";
+import "@/css/Page/info.css";
 
-    let pb = document.getElementById("info-personal");
-    let tb = document.getElementById("info-team");
+import airBoardImg from "@/img/Page/info/AirBoard.png";
+import yoriJoriImg from "@/img/Page/info/YoriJori.png";
+import logoImg from "@/img/Page/info/logo.png";
+import taxImg from "@/img/Page/info/yctest/slide_1.jpg";
+import acmicpcImg from "@/img/Page/info/acmicpc.png";
+import unityImg from "@/img/Page/info/unity.png";
+import dbImg from "@/img/Page/info/dbproj.png";
+import artpartImg from "@/img/Page/info/artpart/artpart.jpg";
+import kickeatImg from "@/img/Page/info/kickeat/img_kickeat_0.jpg";
+import mimyoImg from "@/img/Page/info/mimyo/mimyo.jpg";
+import wooriboardImg from "@/img/Page/info/wooriboard.jpg";
 
-    pb.style.transform = "translateX(-960px)";
-    tb.style.transform = "translateX(-960px)";
+function clickPersonal() {
+  const pbutton = document.getElementById("personal-button");
+  const tbutton = document.getElementById("team-button");
+  const pb = document.getElementById("info-personal");
+  const tb = document.getElementById("info-team");
 
-    tbutton.style.backgroundColor = "#121212";
-    tbutton.style.color = "white";
-    tbutton.style.fontWeight = 400;
+  pb.style.transform = "translateX(-960px)";
+  tb.style.transform = "translateX(-960px)";
 
-    pbutton.style.backgroundColor = "white";
-    pbutton.style.color = "#121212";
-    pbutton.style.fontWeight = 600;
-  }
+  tbutton.style.backgroundColor = "#121212";
+  tbutton.style.color = "white";
+  tbutton.style.fontWeight = 400;
 
-  function clickTeam() {
-    let pbutton = document.getElementById("personal-button");
-    let tbutton = document.getElementById("team-button");
+  pbutton.style.backgroundColor = "white";
+  pbutton.style.color = "#121212";
+  pbutton.style.fontWeight = 600;
+}
 
-    let pb = document.getElementById("info-personal");
-    let tb = document.getElementById("info-team");
+function clickTeam() {
+  const pbutton = document.getElementById("personal-button");
+  const tbutton = document.getElementById("team-button");
+  const pb = document.getElementById("info-personal");
+  const tb = document.getElementById("info-team");
 
-    pb.style.transform = "translateX(0px)";
-    tb.style.transform = "translateX(0px)";
+  pb.style.transform = "translateX(0px)";
+  tb.style.transform = "translateX(0px)";
 
-    pbutton.style.backgroundColor = "#121212";
-    pbutton.style.color = "white";
-    pbutton.style.fontWeight = 400;
+  pbutton.style.backgroundColor = "#121212";
+  pbutton.style.color = "white";
+  pbutton.style.fontWeight = 400;
 
-    tbutton.style.backgroundColor = "white";
-    tbutton.style.color = "#121212";
-    tbutton.style.fontWeight = 600;
-  }
+  tbutton.style.backgroundColor = "white";
+  tbutton.style.color = "#121212";
+  tbutton.style.fontWeight = 600;
+}
+
+export default function ProjectPage() {
   return (
     <Faded>
       <div className="info-wrap">
@@ -72,9 +74,7 @@ function MyInfo(props) {
                       imgLink={mimyoImg}
                       gitLink={"https://github.com/rjsah5676/MIMYO"}
                       title={"커머스 핸드메이드 쇼핑몰 [MIMYO]"}
-                      desc={
-                        "[실시간] [커뮤니케이션] [편의성]을 제공하는 핸드메이드 쇼핑몰"
-                      }
+                      desc={"[실시간] [커뮤니케이션] [편의성]을 제공하는 핸드메이드 쇼핑몰"}
                       tech={
                         <div className="info-tech">
                           <div className="info-tech-box">React</div>
@@ -85,18 +85,15 @@ function MyInfo(props) {
                         </div>
                       }
                       idx={10}
+                      secondLink="https://mimyo.my"
                     />
                   </li>
                   <li>
                     <InfoBox
                       imgLink={airBoardImg}
-                      gitLink={
-                        "https://github.com/rjsah5676/Capstone-Design-2021-1-"
-                      }
+                      gitLink={"https://github.com/rjsah5676/Capstone-Design-2021-1-"}
                       title={"캠 필기 웹 화상 회의 서비스 [AirBoard]"}
-                      desc={
-                        "웹 캠을 통한 필기 기능을 제공하는 화상 회의 플랫폼입니다."
-                      }
+                      desc={"웹 캠을 통한 필기 기능을 제공하는 화상 회의 플랫폼입니다."}
                       tech={
                         <div className="info-tech">
                           <div className="info-tech-box">Javascript</div>
@@ -107,26 +104,25 @@ function MyInfo(props) {
                         </div>
                       }
                       idx={1}
+                      secondLink="https://softcon.ajou.ac.kr/works/works_prev.asp?uid=421&wTerm=2021-1"
                     />
                   </li>
                   <li>
-                    <li>
-                      <InfoBox
-                        imgLink={kickeatImg}
-                        gitLink={"https://github.com/rjsah5676/KickEat"}
-                        title={"당신을 위한 맛집 도우미 [KickEat]"}
-                        desc={"서울시 음식점 검색 및 추천 사이트입니다."}
-                        tech={
-                          <div className="info-tech">
-                            <div className="info-tech-box">React</div>
-                            <div className="info-tech-box">Springboot</div>
-                            <div className="info-tech-box">JPA</div>
-                            <div className="info-tech-box">MySQL</div>
-                          </div>
-                        }
-                        idx={9}
-                      />
-                    </li>
+                    <InfoBox
+                      imgLink={kickeatImg}
+                      gitLink={"https://github.com/rjsah5676/KickEat"}
+                      title={"당신을 위한 맛집 도우미 [KickEat]"}
+                      desc={"서울시 음식점 검색 및 추천 사이트입니다."}
+                      tech={
+                        <div className="info-tech">
+                          <div className="info-tech-box">React</div>
+                          <div className="info-tech-box">Springboot</div>
+                          <div className="info-tech-box">JPA</div>
+                          <div className="info-tech-box">MySQL</div>
+                        </div>
+                      }
+                      idx={9}
+                    />
                   </li>
                   <li>
                     <InfoBox
@@ -150,9 +146,7 @@ function MyInfo(props) {
                       imgLink={taxImg}
                       gitLink={"https://github.com/rjsah5676/Tax-Investigation"}
                       title={"[영천시 세무조사 홈페이지]"}
-                      desc={
-                        "세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."
-                      }
+                      desc={"세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다."}
                       tech={
                         <div className="info-tech">
                           <div className="info-tech-box">JSP</div>
@@ -182,6 +176,7 @@ function MyInfo(props) {
                     </div>
                   }
                   idx={11}
+                  secondLink="https://ohsori.my/"
                 />
                 <InfoBox
                   imgLink={yoriJoriImg}
@@ -212,6 +207,7 @@ function MyInfo(props) {
                     </div>
                   }
                   idx={4}
+                  secondLink="https://rjsah5676.github.io/"
                 />
                 <InfoBox
                   imgLink={acmicpcImg}
@@ -226,6 +222,7 @@ function MyInfo(props) {
                     </div>
                   }
                   idx={5}
+                  secondLink="https://solved.ac/profile/rjsah5676"
                 />
                 <InfoBox
                   imgLink={dbImg}
@@ -266,5 +263,3 @@ function MyInfo(props) {
     </Faded>
   );
 }
-
-export default MyInfo;

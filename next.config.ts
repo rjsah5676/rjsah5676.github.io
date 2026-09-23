@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // Turbopack은 이미지/폰트 등만 기본으로 asset 처리하고 mp3 같은 오디오는
+  // 모르기 때문에, melongame/minesweeper 등에서 쓰는 효과음 import를 위해 등록.
+  turbopack: {
+    rules: {
+      "*.mp3": {
+        type: "asset",
+      },
+    },
+  },
 };
 
 export default nextConfig;

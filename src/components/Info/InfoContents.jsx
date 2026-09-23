@@ -2,96 +2,96 @@ import React from "react";
 import InfoContentsDetail from "./InfoContentsDetail";
 import InfoSlide from "./InfoSlide";
 
-import calendarImg from "../../img/Page/info/info_calendar.png";
+import calendarImg from "@/img/Page/info/info_calendar.png";
 
-import airBoardImg from "../../img/Page/info/AirBoard.png";
+import airBoardImg from "@/img/Page/info/AirBoard.png";
 
-import img_airboard_1 from "../../img/Page/info/airboard/img_1.png";
-import img_airboard_2 from "../../img/Page/info/airboard/img_2.png";
-import img_airboard_3 from "../../img/Page/info/airboard/img_3.png";
-import img_airboard_4 from "../../img/Page/info/airboard/img_4.png";
-import img_airboard_5 from "../../img/Page/info/airboard/img_5.png";
-import img_airboard_6 from "../../img/Page/info/airboard/img_6.png";
+import img_airboard_1 from "@/img/Page/info/airboard/img_1.png";
+import img_airboard_2 from "@/img/Page/info/airboard/img_2.png";
+import img_airboard_3 from "@/img/Page/info/airboard/img_3.png";
+import img_airboard_4 from "@/img/Page/info/airboard/img_4.png";
+import img_airboard_5 from "@/img/Page/info/airboard/img_5.png";
+import img_airboard_6 from "@/img/Page/info/airboard/img_6.png";
 
-import img_yorijori_1 from "../../img/Page/info/yorijori/img_signup.png";
-import img_yorijori_2 from "../../img/Page/info/yorijori/img_main.png";
-import img_yorijori_3 from "../../img/Page/info/yorijori/img_write.png";
-import img_yorijori_4 from "../../img/Page/info/yorijori/img_writen.png";
-import img_yorijori_5 from "../../img/Page/info/yorijori/img_board.png";
-import img_yorijori_6 from "../../img/Page/info/yorijori/img_mine.png";
+import img_yorijori_1 from "@/img/Page/info/yorijori/img_signup.png";
+import img_yorijori_2 from "@/img/Page/info/yorijori/img_main.png";
+import img_yorijori_3 from "@/img/Page/info/yorijori/img_write.png";
+import img_yorijori_4 from "@/img/Page/info/yorijori/img_writen.png";
+import img_yorijori_5 from "@/img/Page/info/yorijori/img_board.png";
+import img_yorijori_6 from "@/img/Page/info/yorijori/img_mine.png";
 
-import img_yc_1 from "../../img/Page/info/yctest/slide_1.jpg";
+import img_yc_1 from "@/img/Page/info/yctest/slide_1.jpg";
 
-import img_db_1 from "../../img/Page/info/dbproject/img_1.png";
-import img_db_2 from "../../img/Page/info/dbproject/img_diagram.png";
-import img_db_3 from "../../img/Page/info/dbproject/img_create_1.png";
-import img_db_4 from "../../img/Page/info/dbproject/img_read.png";
-import img_db_5 from "../../img/Page/info/dbproject/img_update.png";
+import img_db_1 from "@/img/Page/info/dbproject/img_1.png";
+import img_db_2 from "@/img/Page/info/dbproject/img_diagram.png";
+import img_db_3 from "@/img/Page/info/dbproject/img_create_1.png";
+import img_db_4 from "@/img/Page/info/dbproject/img_read.png";
+import img_db_5 from "@/img/Page/info/dbproject/img_update.png";
 
-import img_slide_4 from "../../img/Page/info/yorijori/img_slide_4.png";
-import img_slide_5 from "../../img/Page/info/yorijori/img_slide_5.png";
+import img_slide_4 from "@/img/Page/info/yorijori/img_slide_4.png";
+import img_slide_5 from "@/img/Page/info/yorijori/img_slide_5.png";
 
-import img_gm_1 from "../../img/Page/info/gmlee/img01.jpg";
-import img_gm_2 from "../../img/Page/info/gmlee/img02.jpg";
-import img_gm_3 from "../../img/Page/info/gmlee/img03.jpg";
-import img_gm_4 from "../../img/Page/info/gmlee/img04.jpg";
-import img_gm_5 from "../../img/Page/info/gmlee/img05.jpg";
-import img_gm_6 from "../../img/Page/info/gmlee/img06.jpg";
-import img_gm_7 from "../../img/Page/info/gmlee/img07.jpg";
-import img_gm_8 from "../../img/Page/info/gmlee/img08.jpg";
-import img_gm_9 from "../../img/Page/info/gmlee/img09.jpg";
+import img_gm_1 from "@/img/Page/info/gmlee/img01.jpg";
+import img_gm_2 from "@/img/Page/info/gmlee/img02.jpg";
+import img_gm_3 from "@/img/Page/info/gmlee/img03.jpg";
+import img_gm_4 from "@/img/Page/info/gmlee/img04.jpg";
+import img_gm_5 from "@/img/Page/info/gmlee/img05.jpg";
+import img_gm_6 from "@/img/Page/info/gmlee/img06.jpg";
+import img_gm_7 from "@/img/Page/info/gmlee/img07.jpg";
+import img_gm_8 from "@/img/Page/info/gmlee/img08.jpg";
+import img_gm_9 from "@/img/Page/info/gmlee/img09.jpg";
 
-import img_artpart_1 from "../../img/Page/info/artpart/slide_1.jpg";
-import img_artpart_2 from "../../img/Page/info/artpart/slide_2.jpg";
-import img_artpart_3 from "../../img/Page/info/artpart/slide_3.jpg";
-import img_artpart_4 from "../../img/Page/info/artpart/slide_4.jpg";
-import img_artpart_5 from "../../img/Page/info/artpart/slide_5.jpg";
-import img_artpart_6 from "../../img/Page/info/artpart/slide_6.jpg";
+import img_artpart_1 from "@/img/Page/info/artpart/slide_1.jpg";
+import img_artpart_2 from "@/img/Page/info/artpart/slide_2.jpg";
+import img_artpart_3 from "@/img/Page/info/artpart/slide_3.jpg";
+import img_artpart_4 from "@/img/Page/info/artpart/slide_4.jpg";
+import img_artpart_5 from "@/img/Page/info/artpart/slide_5.jpg";
+import img_artpart_6 from "@/img/Page/info/artpart/slide_6.jpg";
 
-import img_artpart_ppt_1 from "../../img/Page/info/artpart/ppt_1.jpg";
-import img_artpart_ppt_2 from "../../img/Page/info/artpart/ppt_2.jpg";
-import img_artpart_ppt_3 from "../../img/Page/info/artpart/ppt_3.jpg";
-import img_artpart_ppt_4 from "../../img/Page/info/artpart/ppt_4.jpg";
-import img_artpart_ppt_5 from "../../img/Page/info/artpart/ppt_5.jpg";
-import img_artpart_ppt_6 from "../../img/Page/info/artpart/ppt_6.jpg";
-import img_artpart_ppt_7 from "../../img/Page/info/artpart/ppt_7.jpg";
-import img_artpart_ppt_8 from "../../img/Page/info/artpart/ppt_8.jpg";
-import img_artpart_ppt_9 from "../../img/Page/info/artpart/ppt_9.jpg";
-import img_artpart_ppt_10 from "../../img/Page/info/artpart/ppt_10.jpg";
-import img_artpart_ppt_11 from "../../img/Page/info/artpart/ppt_11.jpg";
-import img_artpart_ppt_12 from "../../img/Page/info/artpart/ppt_12.jpg";
+import img_artpart_ppt_1 from "@/img/Page/info/artpart/ppt_1.jpg";
+import img_artpart_ppt_2 from "@/img/Page/info/artpart/ppt_2.jpg";
+import img_artpart_ppt_3 from "@/img/Page/info/artpart/ppt_3.jpg";
+import img_artpart_ppt_4 from "@/img/Page/info/artpart/ppt_4.jpg";
+import img_artpart_ppt_5 from "@/img/Page/info/artpart/ppt_5.jpg";
+import img_artpart_ppt_6 from "@/img/Page/info/artpart/ppt_6.jpg";
+import img_artpart_ppt_7 from "@/img/Page/info/artpart/ppt_7.jpg";
+import img_artpart_ppt_8 from "@/img/Page/info/artpart/ppt_8.jpg";
+import img_artpart_ppt_9 from "@/img/Page/info/artpart/ppt_9.jpg";
+import img_artpart_ppt_10 from "@/img/Page/info/artpart/ppt_10.jpg";
+import img_artpart_ppt_11 from "@/img/Page/info/artpart/ppt_11.jpg";
+import img_artpart_ppt_12 from "@/img/Page/info/artpart/ppt_12.jpg";
 
-import img_kickeat_1 from "../../img/Page/info/kickeat/img_kickeat_1.jpg";
-import img_kickeat_2 from "../../img/Page/info/kickeat/img_kickeat_2.jpg";
-import img_kickeat_3 from "../../img/Page/info/kickeat/img_kickeat_3.jpg";
-import img_kickeat_4 from "../../img/Page/info/kickeat/img_kickeat_4.jpg";
-import img_kickeat_5 from "../../img/Page/info/kickeat/img_kickeat_5.jpg";
-import img_kickeat_6 from "../../img/Page/info/kickeat/img_kickeat_6.jpg";
-import img_kickeat_7 from "../../img/Page/info/kickeat/img_kickeat_7.jpg";
-import img_kickeat_8 from "../../img/Page/info/kickeat/img_kickeat_8.jpg";
-import img_kickeat_9 from "../../img/Page/info/kickeat/img_kickeat_9.jpg";
-import img_kickeat_10 from "../../img/Page/info/kickeat/img_kickeat_10.jpg";
-import img_kickeat_11 from "../../img/Page/info/kickeat/img_kickeat_11.jpg";
-import img_kickeat_12 from "../../img/Page/info/kickeat/img_kickeat_12.jpg";
-import img_kickeat_13 from "../../img/Page/info/kickeat/img_kickeat_13.jpg";
-import img_kickeat_dv from "../../img/Page/info/kickeat/img_kickeat_dv.jpg";
-import img_kickeat_db from "../../img/Page/info/kickeat/img_kickeat_db.jpg";
-import img_kickeat_tc from "../../img/Page/info/kickeat/img_kickeat_tc.jpg";
+import img_kickeat_1 from "@/img/Page/info/kickeat/img_kickeat_1.jpg";
+import img_kickeat_2 from "@/img/Page/info/kickeat/img_kickeat_2.jpg";
+import img_kickeat_3 from "@/img/Page/info/kickeat/img_kickeat_3.jpg";
+import img_kickeat_4 from "@/img/Page/info/kickeat/img_kickeat_4.jpg";
+import img_kickeat_5 from "@/img/Page/info/kickeat/img_kickeat_5.jpg";
+import img_kickeat_6 from "@/img/Page/info/kickeat/img_kickeat_6.jpg";
+import img_kickeat_7 from "@/img/Page/info/kickeat/img_kickeat_7.jpg";
+import img_kickeat_8 from "@/img/Page/info/kickeat/img_kickeat_8.jpg";
+import img_kickeat_9 from "@/img/Page/info/kickeat/img_kickeat_9.jpg";
+import img_kickeat_10 from "@/img/Page/info/kickeat/img_kickeat_10.jpg";
+import img_kickeat_11 from "@/img/Page/info/kickeat/img_kickeat_11.jpg";
+import img_kickeat_12 from "@/img/Page/info/kickeat/img_kickeat_12.jpg";
+import img_kickeat_13 from "@/img/Page/info/kickeat/img_kickeat_13.jpg";
+import img_kickeat_dv from "@/img/Page/info/kickeat/img_kickeat_dv.jpg";
+import img_kickeat_db from "@/img/Page/info/kickeat/img_kickeat_db.jpg";
+import img_kickeat_tc from "@/img/Page/info/kickeat/img_kickeat_tc.jpg";
 
-import img_mimyo_1 from "../../img/Page/info/mimyo/mimyo_slide_1.jpg";
-import img_mimyo_2 from "../../img/Page/info/mimyo/mimyo_slide_2.jpg";
-import img_mimyo_3 from "../../img/Page/info/mimyo/mimyo_slide_3.jpg";
-import img_mimyo_4 from "../../img/Page/info/mimyo/mimyo_slide_4.jpg";
-import img_mimyo_5 from "../../img/Page/info/mimyo/mimyo_slide_5.jpg";
-import img_mimyo_6 from "../../img/Page/info/mimyo/mimyo_slide_6.jpg";
-import img_mimyo_7 from "../../img/Page/info/mimyo/mimyo_slide_7.jpg";
-import img_mimyo_8 from "../../img/Page/info/mimyo/mimyo_slide_8.jpg";
-import img_mimyo_develop_1 from "../../img/Page/info/mimyo/mimyo_develop_1.jpg";
-import img_mimyo_develop_2 from "../../img/Page/info/mimyo/mimyo_develop_2.jpg";
-import img_mimyo_db from "../../img/Page/info/mimyo/mimyo_db.jpg";
+import img_mimyo_1 from "@/img/Page/info/mimyo/mimyo_slide_1.jpg";
+import img_mimyo_2 from "@/img/Page/info/mimyo/mimyo_slide_2.jpg";
+import img_mimyo_3 from "@/img/Page/info/mimyo/mimyo_slide_3.jpg";
+import img_mimyo_4 from "@/img/Page/info/mimyo/mimyo_slide_4.jpg";
+import img_mimyo_5 from "@/img/Page/info/mimyo/mimyo_slide_5.jpg";
+import img_mimyo_6 from "@/img/Page/info/mimyo/mimyo_slide_6.jpg";
+import img_mimyo_7 from "@/img/Page/info/mimyo/mimyo_slide_7.jpg";
+import img_mimyo_8 from "@/img/Page/info/mimyo/mimyo_slide_8.jpg";
+import img_mimyo_develop_1 from "@/img/Page/info/mimyo/mimyo_develop_1.jpg";
+import img_mimyo_develop_2 from "@/img/Page/info/mimyo/mimyo_develop_2.jpg";
+import img_mimyo_db from "@/img/Page/info/mimyo/mimyo_db.jpg";
 
 function InfoContents({ idx }) {
-  const cImg = <img alt="" src={calendarImg} style={{ width: "30px" }} />;
+  const cImg = <img alt="" src={calendarImg.src} style={{ width: "30px" }} />;
   const slideImages = [
     {
       id: 0,
@@ -325,7 +325,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_airboard_1} style={{ width: "1000px" }} alt="" />
+          <img src={img_airboard_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 전에는 3가지 메뉴가 있고, 각 메뉴의 기능은 다음과 같다.
 
@@ -338,7 +338,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_airboard_2} style={{ width: "1000px" }} alt="" />
+          <img src={img_airboard_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 후에는 4가지 메뉴가 있고, 각 메뉴의 기능은 다음과 같다.
 
@@ -352,7 +352,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_airboard_3} style={{ width: "1000px" }} alt="" />
+          <img src={img_airboard_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의를 생성한 후 화상회의 방의 모습이다. 화상회의 방은 크게 4부분으로 나눌 수 있다.
 
@@ -389,7 +389,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_airboard_6} style={{ width: "1000px" }} alt="" />
+          <img src={img_airboard_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의실 내에서 웹캠을 이용한 캔버스 필기가 가능하다.
 
@@ -403,7 +403,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_airboard_5} style={{ width: "1000px" }} alt="" />
+          <img src={img_airboard_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의실 내에서 제스처 인식 기능 사용이 가능하다.
 
@@ -460,7 +460,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_yorijori_1} style={{ width: "1000px" }} alt="" />
+          <img src={img_yorijori_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`비 회원은 글 읽기 까지만 가능하며, 회원 가입 진행 후 커뮤니티 이용이 가능하다.
 
@@ -473,7 +473,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_yorijori_2} style={{ width: "1000px" }} alt="" />
+          <img src={img_yorijori_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 후 확인할 수 있는 메인 페이지이다.
 
@@ -486,7 +486,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_yorijori_3} style={{ width: "1000px" }} alt="" />
+          <img src={img_yorijori_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원은 자유롭게 글쓰기가 가능하다.
 
@@ -499,7 +499,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_yorijori_4} style={{ width: "1000px" }} alt="" />
+          <img src={img_yorijori_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원은 글을 확인하고 댓글과 평점을 남길 수 있다.
 
@@ -514,7 +514,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_yorijori_5} style={{ width: "1000px" }} alt="" />
+          <img src={img_yorijori_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`게시판에서 정렬된 글 목록들을 확인 가능하다.
 
@@ -530,7 +530,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_yorijori_6} style={{ width: "1000px" }} alt="" />
+          <img src={img_yorijori_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`본인이 쓴 글을 확인 가능하고, 글의 삭제 및 수정이 용이하게 하였다.
 `}
@@ -566,7 +566,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_1} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`사이트에 접속시 처음으로 볼 수 있는 페이지이다.
 나에 대한 전반적인 정보를 담고있다. 최대한 화면 크기에 맞게 반응하도록 페이지를 설계하였다.`}
@@ -578,7 +578,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_2} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'ABOUT' 버튼을 클릭시 렌더링 되는 페이지이다.
 나에 대한 세부적인 정보를 담고있다.`}
@@ -590,7 +590,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_3} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'PROJECT' 버튼을 클릭시 렌더링 되는 페이지이다.
 내가 진행했던 개인/팀프로젝트에 대한 내용을 확인해볼 수 있다.`}
@@ -602,7 +602,7 @@ function InfoContents({ idx }) {
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_4} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'GAMES'의 멜론 게임을 클릭시 렌더링 되는 페이지이다.
 HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든 게임이라 애정이 있는 게임이다.
@@ -615,7 +615,7 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_5} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'GAMES'의 반응속도 테스트를를 클릭시 렌더링 되는 페이지이다.
 가끔 심심할 때 마다 반응속도 테스트를 타 사이트에서 해보았는데 나도 만들어볼 수 있을 것 같아서 만든 게임이다.
@@ -628,7 +628,7 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_6} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'GUEST BOX'를 클릭시 렌더링 되는 페이지이다.
 방명록 하나 쯤 있으면 좋을 것 같아서 만들어 봤다. 실제 있는 패드를 CSS를 이용해 디자인 해보았다.`}
@@ -640,7 +640,7 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_7} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_7.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'GALLERY'를 클릭시 렌더링 되는 페이지이다.
 내가 찍은 사진들을 넣어보았다. 생각보다 사진이 많지는 않지만 나름 추가해 보았다.
@@ -653,7 +653,7 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_8} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_8.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`헤더 메뉴 중 'Archive'를 클릭시 렌더링 되는 페이지이다.
 주저리 주저리 그 날 생각나는 것들을 적어보았다.`}
@@ -665,7 +665,7 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_gm_9} style={{ width: "1000px" }} alt="" />
+          <img src={img_gm_9.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`기타 추가적인 기능들이다.
 헤더 메뉴 중 Contact를 누르면 내 연락처가 화면에 보이게 하였고, Floating 버튼을 화면에 추가하여
@@ -720,7 +720,7 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_db_3} style={{ width: "1000px" }} alt="" />
+          <img src={img_db_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`각 요소들의 특성에 따라 제약 조건을 설정하여 테이블을 생성하였다.
 추가적으로 ACTORS, MOVIES, ORDERS, MOVIEQUEUE, APPEARED_IN 테이블이 있다.
@@ -733,7 +733,7 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_db_4} style={{ width: "1000px" }} alt="" />
+          <img src={img_db_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`구현하려는 기능들을 위해 필요한 READ 쿼리문이다.
 `}
@@ -745,14 +745,14 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_db_5} style={{ width: "1000px" }} alt="" />
+          <img src={img_db_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`구현하려는 기능들을 위해 필요한 UPDATE 쿼리문이다.
 `}
           />
         </div>
         <InfoContentsDetail title={"3. DB 모델링"} />
-        <img src={img_db_2} style={{ width: "1000px" }} alt="" />
+        <img src={img_db_2.src} style={{ width: "1000px" }} alt="" />
       </div>
     );
   if (idx === 8)
@@ -792,7 +792,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_1} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지에서는 같은 헤더와 페이지마다 다른 타이틀 이미지를 가지고 있다.
       
@@ -806,7 +806,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_2} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지 우측 하단에는 떠다니는 버튼이 활성화 되어있다.
       
@@ -819,7 +819,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_3} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지 최하단에는 하단 메뉴가 있다.
       
@@ -832,7 +832,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_4} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메인 페이지는 스크롤이 내려가는 효과보다 부드럽게 화면이 변화하는 효과를 줌
       
@@ -844,7 +844,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_5} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인/회원가입은 비동기로 사용자가 입력 정보의 유효성을 바로 확인할 수 있도록 함.
 마이페이지는 호텔 예약에 필요한 정보를 확인할 수 있도록 함.      
@@ -859,7 +859,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_6} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`호텔의 객실은 4가지의 종류가 있으며 각 페이지에서 해당 객실 정보를 확인 가능
       
@@ -874,7 +874,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_7} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_7.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`호텔의 각 객실은 2박 3일까지의 예약이 가능하다.
       
@@ -888,7 +888,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_8} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_8.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`호텔 내 식사와 부대 시설들을 확인할 수 있는 페이지이다.
       
@@ -900,7 +900,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_9} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_9.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`예약을 한 기록이 있는 이용자가 남길 수 있는 후기 게시판이다.
       
@@ -915,7 +915,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_artpart_ppt_10} style={{ width: "1000px" }} alt="" />
+          <img src={img_artpart_ppt_10.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`관리자로 로그인 시 진입하게 되는 페이지이다.
       
@@ -929,7 +929,7 @@ Art+Apartment
           <br />
         </div>
         <InfoContentsDetail title={"3. 개발 환경"} />
-        <img src={img_artpart_ppt_11} style={{ width: "1000px" }} alt="" />
+        <img src={img_artpart_ppt_11.src} style={{ width: "1000px" }} alt="" />
         <br />
         <br />
         <br />
@@ -937,7 +937,7 @@ Art+Apartment
         <br />
         <br />
         <InfoContentsDetail title={"4. DB 모델링"} />
-        <img src={img_artpart_ppt_12} style={{ width: "1000px" }} alt="" />
+        <img src={img_artpart_ppt_12.src} style={{ width: "1000px" }} alt="" />
         <br />
         <br />
         <br />
@@ -996,7 +996,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_13} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_13.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지에서 이용 가능한 기능이다.
         
@@ -1009,7 +1009,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_1} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메인 페이지에서는 진행중인 이벤트와 인기 리뷰/맛집/게시글을 한눈에 확인할 수 있다.
         
@@ -1021,7 +1021,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_2} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`마우스를 따라 음식들이 이동하는 효과를 준 소개페이지이다.   
 아래 버튼을 클릭시 소개 문구가 나오게 된다.
@@ -1032,7 +1032,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_3} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원가입은 실시간으로 아이디 중복체크 및 유효성 검사를 해준다.
 선호 음식을 카테고리별로 선택이 가능하다.`}
@@ -1042,7 +1042,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_4} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`마이 페이지에서는 유저의 선호음식/찜목록/글목록 등을 확인 가능하다.
         
@@ -1057,7 +1057,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_5} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`사용자의 정보에 따라 음식점을 추천해주는 맛집 추천 페이지이다.
         
@@ -1071,8 +1071,8 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_8} style={{ width: "1000px" }} alt="" />
-          <img src={img_kickeat_9} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_8.src} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_9.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`사용자는 상세 카테고리를 선택하여 상세 검색이 가능하다.
         
@@ -1085,8 +1085,8 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_6} style={{ width: "1000px" }} alt="" />
-          <img src={img_kickeat_7} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_6.src} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_7.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`검색 후 해당 음식점을 클릭시 상세 정보를 확인할 수 있다.
         
@@ -1099,7 +1099,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_10} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_10.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`유저들이 소통이 가능한 자유 게시판 페이지이다.
         
@@ -1112,7 +1112,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_11} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_11.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`관리자가 등록 가능한 이벤트 페이지이다.
         
@@ -1125,7 +1125,7 @@ Art+Apartment
             titleFont={"30px"}
             titleMargin={"20px"}
           />
-          <img src={img_kickeat_12} style={{ width: "1000px" }} alt="" />
+          <img src={img_kickeat_12.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`1:1 문의 게시판 페이지이다.
         
@@ -1141,7 +1141,7 @@ Art+Apartment
         <br />
         <br />
         <InfoContentsDetail title={"3. 개발 환경"} />
-        <img src={img_kickeat_dv} style={{ width: "1000px" }} alt="" />
+        <img src={img_kickeat_dv.src} style={{ width: "1000px" }} alt="" />
         <br />
         <br />
         <br />
@@ -1149,7 +1149,7 @@ Art+Apartment
         <br />
         <br />
         <InfoContentsDetail title={"4. DB 모델링"} />
-        <img src={img_kickeat_db} style={{ width: "1000px" }} alt="" />
+        <img src={img_kickeat_db.src} style={{ width: "1000px" }} alt="" />
         <br />
         <br />
         <br />
@@ -1157,7 +1157,7 @@ Art+Apartment
         <br />
         <br />
         <InfoContentsDetail title={"5. 핵심 기술"} />
-        <img src={img_kickeat_tc} style={{ width: "1000px" }} alt="" />
+        <img src={img_kickeat_tc.src} style={{ width: "1000px" }} alt="" />
         <InfoContentsDetail
           text={`프로젝트 진행시 서울시 공공데이터 포탈에서 찾은 api에는 12만개의 많은 정보가 있었다.
 데이터가 많다는 장점은 있었지만 사용 가능한 정보는 위치/카테고리/음식점명 정도가 있었다.
@@ -1234,8 +1234,8 @@ MIMYO는 단순한 쇼핑몰이 아닙니다.
         <br />
         <br />
         <InfoContentsDetail title={"3. 개발 환경"} />
-        <img src={img_mimyo_develop_1} style={{ width: "1000px" }} alt="" />
-        <img src={img_mimyo_develop_2} style={{ width: "1000px" }} alt="" />
+        <img src={img_mimyo_develop_1.src} style={{ width: "1000px" }} alt="" />
+        <img src={img_mimyo_develop_2.src} style={{ width: "1000px" }} alt="" />
         <br />
         <br />
         <br />
@@ -1243,7 +1243,7 @@ MIMYO는 단순한 쇼핑몰이 아닙니다.
         <br />
         <br />
         <InfoContentsDetail title={"4. DB 모델링"} />
-        <img src={img_mimyo_db} style={{ width: "1000px" }} alt="" />
+        <img src={img_mimyo_db.src} style={{ width: "1000px" }} alt="" />
         <br />
         <br />
         <br />
