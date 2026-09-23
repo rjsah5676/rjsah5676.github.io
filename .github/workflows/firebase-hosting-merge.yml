@@ -2,7 +2,7 @@
 # https://github.com/firebase/firebase-tools
 
 name: Deploy to Firebase Hosting on merge
-"on":
+'on':
   push:
     branches:
       - main
@@ -13,17 +13,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
+          node-version-file: '.nvmrc'
       - run: npm ci
       - run: npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNMO_PORTFOLIO }}"
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNMO_PORTFOLIO }}'
           channelId: live
           projectId: gunmo-portfolio
       # rjsah5676.github.io(GitHub Pages)도 계속 쓰기 위해 gh-pages 브랜치에도 같이 배포
       - uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: "${{ secrets.GITHUB_TOKEN }}"
+          github_token: '${{ secrets.GITHUB_TOKEN }}'
           publish_dir: ./build

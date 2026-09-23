@@ -1,6 +1,7 @@
 import React from "react";
 import InfoContentsDetail from "./InfoContentsDetail";
 import InfoSlide from "./InfoSlide";
+import ProjectHeader from "./ProjectHeader";
 
 import calendarImg from "@/img/Page/info/info_calendar.png";
 
@@ -298,16 +299,13 @@ function InfoContents({ idx }) {
   ];
   if (idx === 1)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">AIR BOARD</div>
-        <div className="info-contents-period">{cImg} 2021.03 - 2021.06</div>
-        <div className="info-contents-tech">
-          <div className="tech-box">Javascript</div>
-          <div className="tech-box">WebRTC</div>
-          <div className="tech-box">OpenCV</div>
-          <div className="tech-box">NodeJS</div>
-          <div className="tech-box">MongoDB</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="AIR BOARD"
+          periodIcon={cImg}
+          periodText="2021.03 - 2021.06"
+          tech={["Javascript", "WebRTC", "OpenCV", "NodeJS", "MongoDB"]}
+        />
         <InfoSlide slideImages={slideImages} />
         <InfoContentsDetail
           title={"1. 개요"}
@@ -320,7 +318,11 @@ function InfoContents({ idx }) {
         />
         <InfoContentsDetail title={"2. 기능 설명"} />
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-1. 로그인 이전"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-1. 로그인 이전"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_airboard_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 전에는 3가지 메뉴가 있고, 각 메뉴의 기능은 다음과 같다.
@@ -329,7 +331,11 @@ function InfoContents({ idx }) {
       2. 로그인 : 로그인 기능을 제공한다.
       3. 회원가입 : 회원가입 기능을 제공한다. 회원가입은 이메일을 이용해 실시한다.`}
           />
-          <InfoContentsDetail title={"2-2. 로그인 이후"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-2. 로그인 이후"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_airboard_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 후에는 4가지 메뉴가 있고, 각 메뉴의 기능은 다음과 같다.
@@ -339,7 +345,11 @@ function InfoContents({ idx }) {
       3. 계정 정보 : 로그인 한 계정의 정보를 확인할 수 있다. 자신의 이름을 바꿀 수 있다.
       4. 제스처 추가 : 자신이 설정하는 커스텀 제스처를 만들 수 있다.`}
           />
-          <InfoContentsDetail title={"2-3. 회의 생성"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-3. 회의 생성"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_airboard_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의를 생성한 후 화상회의 방의 모습이다. 화상회의 방은 크게 4부분으로 나눌 수 있다.
@@ -372,7 +382,11 @@ function InfoContents({ idx }) {
                                             아래쪽에는 캔버스에서 이용할 수 있는 다양한 기능 버튼들이 있다.
           ○채팅 영역 : 다른 사용자들과 채팅을 나눌 수 있는 영역이다.`}
           />
-          <InfoContentsDetail title={"2-4. 캠 필기"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-4. 캠 필기"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_airboard_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의실 내에서 웹캠을 이용한 캔버스 필기가 가능하다.
@@ -382,7 +396,11 @@ function InfoContents({ idx }) {
              (화면에서 유일하고, 빛에 영향을 적게 받는 물체를 사용하는 것이 좋다.)
          3. 키보드의 \`키를 입력하여 필기 또는 캔버스 기능에 접근할 수 있다.`}
           />
-          <InfoContentsDetail title={"2-5. 제스처 인식"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-5. 제스처 인식"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_airboard_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의실 내에서 제스처 인식 기능 사용이 가능하다.
@@ -397,30 +415,25 @@ function InfoContents({ idx }) {
     );
   if (idx === 2)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">영천시 세무조사 홈페이지</div>
-        <div className="info-contents-period">{cImg} 2021.10 - 2022.01</div>
-        <div className="info-contents-tech">
-          <div className="tech-box">JSP</div>
-          <div className="tech-box">Spring</div>
-          <div className="tech-box">Javascript</div>
-          <div className="tech-box">MySQL</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="영천시 세무조사 홈페이지"
+          periodIcon={cImg}
+          periodText="2021.10 - 2022.01"
+          tech={["JSP", "Spring", "Javascript", "MySQL"]}
+        />
         <InfoSlide slideImages={slideImages_yctest} />
       </div>
     );
   if (idx === 3)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">요리조리</div>
-        <div className="info-contents-period">{cImg} 2019.10 - 2019.12</div>
-        <div className="info-contents-tech">
-          <div className="tech-box">React</div>
-          <div className="tech-box">NodeJS</div>
-          <div className="tech-box">Ajax</div>
-          <div className="tech-box">JQuery</div>
-          <div className="tech-box">MongoDB</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="요리조리"
+          periodIcon={cImg}
+          periodText="2019.10 - 2019.12"
+          tech={["React", "NodeJS", "Ajax", "JQuery", "MongoDB"]}
+        />
         <InfoSlide slideImages={slideImages_yorijori} />
         <InfoContentsDetail
           title={"1. 개요"}
@@ -435,7 +448,11 @@ function InfoContents({ idx }) {
         />
         <InfoContentsDetail title={"2. 기능 설명"} />
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-1. 회원 가입"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-1. 회원 가입"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_yorijori_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`비 회원은 글 읽기 까지만 가능하며, 회원 가입 진행 후 커뮤니티 이용이 가능하다.
@@ -444,7 +461,11 @@ function InfoContents({ idx }) {
     2. 별명은 중복되지 않도록 처리하며, 중복된 별명 제출시 재 입력을 받는다.
     3. 비밀번호는 숫자,문자,특수문자가 포함되어야 하며 제출시 암호화 처리를 한다.`}
           />
-          <InfoContentsDetail title={"2-2. 메인 화면"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-2. 메인 화면"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_yorijori_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 후 확인할 수 있는 메인 페이지이다.
@@ -453,7 +474,11 @@ function InfoContents({ idx }) {
     2. 평점이 높은 순으로 나열된 HOT 레시피 목록을 확인할 수 있다.
 `}
           />
-          <InfoContentsDetail title={"2-3. 글쓰기"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-3. 글쓰기"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_yorijori_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원은 자유롭게 글쓰기가 가능하다.
@@ -462,7 +487,11 @@ function InfoContents({ idx }) {
     2. 본문에는 이미지를 첨부할 수 있으며 내용을 자유롭게 작성할 수 있다.
 `}
           />
-          <InfoContentsDetail title={"2-4. 작성글"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-4. 작성글"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_yorijori_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원은 글을 확인하고 댓글과 평점을 남길 수 있다.
@@ -473,7 +502,11 @@ function InfoContents({ idx }) {
     4. 작성한 댓글을 확인할 수 있고, 본인이 작성한 댓글이라면 삭제가 가능하다.
 `}
           />
-          <InfoContentsDetail title={"2-5. 게시판"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-5. 게시판"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_yorijori_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`게시판에서 정렬된 글 목록들을 확인 가능하다.
@@ -485,7 +518,11 @@ function InfoContents({ idx }) {
     5. 회원은 글 작성이 가능하다. (비 회원은 불가능)
 `}
           />
-          <InfoContentsDetail title={"2-6. 내가 쓴 글"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-6. 내가 쓴 글"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_yorijori_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`본인이 쓴 글을 확인 가능하고, 글의 삭제 및 수정이 용이하게 하였다.
@@ -497,14 +534,13 @@ function InfoContents({ idx }) {
     );
   if (idx === 4)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">Gunmo's Dev Life</div>
-        <div className="info-contents-period">{cImg} 2021.12 ~ </div>
-        <div className="info-contents-tech">
-          <div className="tech-box">React</div>
-          <div className="tech-box">Firebase</div>
-          <div className="tech-box">NodeJS</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="Gunmo's Dev Life"
+          periodIcon={cImg}
+          periodText="2021.12 ~"
+          tech={["React", "Firebase", "NodeJS"]}
+        />
         <InfoSlide slideImages={slideImages_gmlee} />
         <InfoContentsDetail
           title={"1. 개요"}
@@ -517,7 +553,11 @@ function InfoContents({ idx }) {
         />
         <InfoContentsDetail title={"2. 페이지 설명"} />
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-1. MAIN"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-1. MAIN"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_gm_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`사이트에 접속시 처음으로 볼 수 있는 페이지이다.
@@ -525,7 +565,11 @@ function InfoContents({ idx }) {
           />
         </div>
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-2. ABOUT"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-2. ABOUT"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_gm_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'ABOUT' 버튼을 클릭시 렌더링 되는 페이지이다.
@@ -533,7 +577,11 @@ function InfoContents({ idx }) {
           />
         </div>
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-3. PROJECT"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-3. PROJECT"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_gm_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'PROJECT' 버튼을 클릭시 렌더링 되는 페이지이다.
@@ -567,7 +615,11 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
           />
         </div>
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-6. GUEST BOX"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-6. GUEST BOX"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_gm_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'GUEST BOX'를 클릭시 렌더링 되는 페이지이다.
@@ -575,7 +627,11 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
           />
         </div>
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-7. GALLERY"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-7. GALLERY"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_gm_7.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메뉴 중 'GALLERY'를 클릭시 렌더링 되는 페이지이다.
@@ -584,7 +640,11 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
           />
         </div>
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-8. Archive"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-8. Archive"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_gm_8.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`헤더 메뉴 중 'Archive'를 클릭시 렌더링 되는 페이지이다.
@@ -592,7 +652,11 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
           />
         </div>
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-9. Etc"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-9. Etc"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_gm_9.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`기타 추가적인 기능들이다.
@@ -604,37 +668,35 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
     );
   if (idx === 5)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">BAEKJOON Online Judge</div>
-        <div className="info-contents-period">{cImg} 2016.06 ~ </div>
-        <div className="info-contents-tech">
-          <div className="tech-box">React</div>
-          <div className="tech-box">Firebase</div>
-          <div className="tech-box">NodeJS</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="BAEKJOON Online Judge"
+          periodIcon={cImg}
+          periodText="2016.06 ~"
+          tech={["C++", "Java", "Python"]}
+        />
       </div>
     );
   if (idx === 6)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">일단 뭔가 만든 Unity 게임</div>
-        <div className="info-contents-period">{cImg} 2019.03 ~ 2019.04</div>
-        <div className="info-contents-tech">
-          <div className="tech-box">Unity</div>
-          <div className="tech-box">C#</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="일단 뭔가 만든 Unity 게임"
+          periodIcon={cImg}
+          periodText="2019.03 ~ 2019.04"
+          tech={["Unity", "C#"]}
+        />
       </div>
     );
   if (idx === 7)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">GM Movie</div>
-        <div className="info-contents-period">{cImg} 2020.09 ~ 2020.12</div>
-        <div className="info-contents-tech">
-          <div className="tech-box">Python</div>
-          <div className="tech-box">Flask</div>
-          <div className="tech-box">MySQL</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="GM Movie"
+          periodIcon={cImg}
+          periodText="2020.09 ~ 2020.12"
+          tech={["Python", "Flask", "MySQL"]}
+        />
         <InfoSlide slideImages={slideImages_db} />
         <InfoContentsDetail
           title={"1. 개요"}
@@ -643,7 +705,11 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
         />
         <InfoContentsDetail title={"2. 기능 설명"} />
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-1. CREATE"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-1. CREATE"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_db_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`각 요소들의 특성에 따라 제약 조건을 설정하여 테이블을 생성하였다.
@@ -652,7 +718,11 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
           />
         </div>
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-2. READ"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-2. READ"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_db_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`구현하려는 기능들을 위해 필요한 READ 쿼리문이다.
@@ -660,7 +730,11 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
           />
         </div>
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-3. UPDATE"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-3. UPDATE"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_db_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`구현하려는 기능들을 위해 필요한 UPDATE 쿼리문이다.
@@ -673,15 +747,13 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
     );
   if (idx === 8)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">ArtPart</div>
-        <div className="info-contents-period">{cImg} 2025.02 - 2025.02</div>
-        <div className="info-contents-tech">
-          <div className="tech-box">JSP</div>
-          <div className="tech-box">Spring</div>
-          <div className="tech-box">MyBatis</div>
-          <div className="tech-box">MySQL</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="ArtPart"
+          periodIcon={cImg}
+          periodText="2025.02 - 2025.02"
+          tech={["JSP", "Spring", "MyBatis", "MySQL"]}
+        />
         <InfoSlide slideImages={slideImages_artpart} />
         <InfoContentsDetail
           title={"1. 개요"}
@@ -717,7 +789,11 @@ Art+Apartment
             3. 네비게이션 바를 통해 이동시 바로 이동하는 것이 아닌 화면 최상단 이동 후 페이지가 변경된다.
             4. 각 동작은 부드럽게 실행된다.`}
           />
-          <InfoContentsDetail title={"2-2. 플로팅 버튼"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-2. 플로팅 버튼"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_artpart_ppt_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지 우측 하단에는 떠다니는 버튼이 활성화 되어있다.
@@ -726,7 +802,11 @@ Art+Apartment
             2. 화살표 버튼: 페이지 최상단으로 이동
             3. 돋보기 버튼: 각 페이지마다 설명 or 기능 제공`}
           />
-          <InfoContentsDetail title={"2-3. 하단 메뉴"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-3. 하단 메뉴"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_artpart_ppt_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지 최하단에는 하단 메뉴가 있다.
@@ -762,7 +842,11 @@ Art+Apartment
                3. 마이페이지: 찜 목록/예약 목록/내 정보들을 확인할 수 있다.
       `}
           />
-          <InfoContentsDetail title={"2-6. 객실 페이지"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-6. 객실 페이지"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_artpart_ppt_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`호텔의 객실은 4가지의 종류가 있으며 각 페이지에서 해당 객실 정보를 확인 가능
@@ -773,7 +857,11 @@ Art+Apartment
                4. 객실 클릭시 객실에 대한 상세 정보가 나타난다.
                5. 화면의 너비가 작아지면 그에 맞게 반응형으로 컨텐츠의 크기가 조절 된다.`}
           />
-          <InfoContentsDetail title={"2-7. 예약 페이지"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-7. 예약 페이지"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_artpart_ppt_7.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`호텔의 각 객실은 2박 3일까지의 예약이 가능하다.
@@ -795,7 +883,11 @@ Art+Apartment
                1. 식당 메뉴 클릭 시 해당 메뉴 정보를 띄워준다.
                2. 각 부대시설 클릭시 부대시설의 운영 시간 등의 정보들을 확인할 수 있다.`}
           />
-          <InfoContentsDetail title={"2-9. 후기 페이지"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-9. 후기 페이지"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_artpart_ppt_9.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`예약을 한 기록이 있는 이용자가 남길 수 있는 후기 게시판이다.
@@ -863,15 +955,13 @@ Art+Apartment
     );
   if (idx === 9)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">KickEat</div>
-        <div className="info-contents-period">{cImg} 2025.02 - 2025.02</div>
-        <div className="info-contents-tech">
-          <div className="tech-box">React</div>
-          <div className="tech-box">SpringBoot</div>
-          <div className="tech-box">JPA</div>
-          <div className="tech-box">MySQL</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="KickEat"
+          periodIcon={cImg}
+          periodText="2025.02 - 2025.02"
+          tech={["React", "SpringBoot", "JPA", "MySQL"]}
+        />
         <InfoSlide slideImages={slideImages_kickeat} />
         <InfoContentsDetail
           title={"1. 개요"}
@@ -887,7 +977,11 @@ Art+Apartment
         />
         <InfoContentsDetail title={"2. 기능 설명"} />
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail title={"2-1. 공용 기능"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-1. 공용 기능"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_kickeat_13.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지에서 이용 가능한 기능이다.
@@ -896,7 +990,11 @@ Art+Apartment
               2. 사용자의 이름을 클릭시 정보보기/쪽지보내기/신고하기가 가능하다.
               3. 사이드 바를 통해 헤더와 동일한 기능을 이용 가능하다.`}
           />
-          <InfoContentsDetail title={"2-4. 메인 페이지"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-4. 메인 페이지"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_kickeat_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메인 페이지에서는 진행중인 이벤트와 인기 리뷰/맛집/게시글을 한눈에 확인할 수 있다.
@@ -904,20 +1002,32 @@ Art+Apartment
                  1. 이벤트 배너에는 관리자가 작성한 이벤트 글의 썸네일이 걸리게 된다. 
                  2. 이벤트 배너를 클릭 시 해당 이벤트 페이지로 이동하며, 이벤트의 남은 기간도 확인할 수 있다.`}
           />
-          <InfoContentsDetail title={"2-5. 소개페이지"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-5. 소개페이지"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_kickeat_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`마우스를 따라 음식들이 이동하는 효과를 준 소개페이지이다.   
 아래 버튼을 클릭시 소개 문구가 나오게 된다.
         `}
           />
-          <InfoContentsDetail title={"2-6. 회원가입"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-6. 회원가입"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_kickeat_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원가입은 실시간으로 아이디 중복체크 및 유효성 검사를 해준다.
 선호 음식을 카테고리별로 선택이 가능하다.`}
           />
-          <InfoContentsDetail title={"2-7. 마이 페이지"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-7. 마이 페이지"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_kickeat_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`마이 페이지에서는 유저의 선호음식/찜목록/글목록 등을 확인 가능하다.
@@ -928,7 +1038,11 @@ Art+Apartment
                  4. 본인의 마이페이지에서는 해당 목록들을 삭제 가능하다.
                  5. 최하단의 개인정보 수정에서 회원 정보 수정이 가능하다.`}
           />
-          <InfoContentsDetail title={"2-8. 맛집 추천"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-8. 맛집 추천"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_kickeat_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`사용자의 정보에 따라 음식점을 추천해주는 맛집 추천 페이지이다.
@@ -938,7 +1052,11 @@ Art+Apartment
                  3. 갱신 버튼을 통해 추천 음식점을 갱신 가능하다.
                  4. 주소 검색버튼을 통해 다른 주소에서도 추천을 받을 수 있다.`}
           />
-          <InfoContentsDetail title={"2-9. 음식점 찾기"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-9. 음식점 찾기"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_kickeat_8.src} style={{ width: "1000px" }} alt="" />
           <img src={img_kickeat_9.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
@@ -962,7 +1080,11 @@ Art+Apartment
                  2. 음식점과 사용자가 등록한 주소와의 거리를 보여준다.
                  3. 음식점 사진들을 확인할 수 있고 리뷰작성 및 리뷰 보기가 가능하다.`}
           />
-          <InfoContentsDetail title={"2-11. 자유게시판"} titleFont={"30px"} titleMargin={"20px"} />
+          <InfoContentsDetail
+            title={"2-11. 자유게시판"}
+            titleFont={"30px"}
+            titleMargin={"20px"}
+          />
           <img src={img_kickeat_10.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`유저들이 소통이 가능한 자유 게시판 페이지이다.
@@ -1036,16 +1158,13 @@ Art+Apartment
     );
   if (idx === 10)
     return (
-      <div className="info-contents">
-        <div className="info-contents-title">MIMYO</div>
-        <div className="info-contents-period">{cImg} 2025.03.31 - 2025.05.08</div>
-        <div className="info-contents-tech">
-          <div className="tech-box">React</div>
-          <div className="tech-box">SpringBoot</div>
-          <div className="tech-box">WebSocket</div>
-          <div className="tech-box">Redux</div>
-          <div className="tech-box">JPA</div>
-        </div>
+      <div className="mx-auto w-full max-w-2xl">
+        <ProjectHeader
+          title="MIMYO"
+          periodIcon={cImg}
+          periodText="2025.03.31 - 2025.05.08"
+          tech={["React", "SpringBoot", "WebSocket", "Redux", "JPA"]}
+        />
         <InfoSlide slideImages={slideImages_mimyo} />
         <InfoContentsDetail
           title={"1. 개요"}
@@ -1082,7 +1201,10 @@ MIMYO는 단순한 쇼핑몰이 아닙니다.
             미묘 PDF
           </a>
           <br />
-          <a style={{ fontSize: "25px", color: "white" }} href="https://mimyo.my">
+          <a
+            style={{ fontSize: "25px", color: "white" }}
+            href="https://mimyo.my"
+          >
             미묘 사이트
           </a>
         </div>

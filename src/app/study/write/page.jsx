@@ -3,7 +3,7 @@ import StudyWriteForm from "@/components/Study/StudyWriteForm";
 
 export default function StudyWritePage() {
   return (
-    <Suspense fallback={<div style={{ padding: "2rem" }}>로딩중...</div>}>
+    <Suspense fallback={<div className="px-6 py-16 text-center text-white/50">로딩중...</div>}>
       <StudyWriteForm />
     </Suspense>
   );

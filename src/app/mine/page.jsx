@@ -210,14 +210,7 @@ export default function Minesweeper() {
         for (let dc = -1; dc <= 1; dc++) {
           const nr = r + dr,
             nc = c + dc;
-          if (
-            nr >= 0 &&
-            nr < ROWS &&
-            nc >= 0 &&
-            nc < COLS &&
-            !visible[nr][nc] &&
-            !flagged[nr][nc]
-          ) {
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
             if (board[nr][nc] === -1) {
               newVisible[nr][nc] = true;
               setVisible(newVisible);
@@ -282,14 +275,7 @@ export default function Minesweeper() {
         for (let dc = -1; dc <= 1; dc++) {
           const nr = r + dr,
             nc = c + dc;
-          if (
-            nr >= 0 &&
-            nr < ROWS &&
-            nc >= 0 &&
-            nc < COLS &&
-            !visible[nr][nc] &&
-            !flagged[nr][nc]
-          ) {
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
             if (board[nr][nc] === -1) {
               newVisible[nr][nc] = true;
               setVisible(newVisible);
@@ -333,7 +319,8 @@ export default function Minesweeper() {
           </div>
           <div id="mine-right">
             누르면 시작됩니다
-            <br />총 지뢰는 {MINES}개입니다
+            <br />
+            총 지뢰는 {MINES}개입니다
             <br />
             클리어 시 랭킹 등록이 가능합니다.
             <br />
@@ -377,21 +364,19 @@ export default function Minesweeper() {
                     handleTouchEnd(rIdx, cIdx);
                   }}
                 >
-                  {flagged[rIdx][cIdx] ? (
-                    "🚩"
-                  ) : isOpen ? (
-                    cell === -1 ? (
-                      "💣"
-                    ) : cell ? (
-                      <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
-                        {cell}
-                      </span>
-                    ) : (
-                      ""
-                    )
-                  ) : (
-                    ""
-                  )}
+                  {flagged[rIdx][cIdx]
+                    ? "🚩"
+                    : isOpen
+                      ? cell === -1
+                        ? "💣"
+                        : cell
+                          ? (
+                              <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
+                                {cell}
+                              </span>
+                            )
+                          : ""
+                      : ""}
                 </div>
               );
             })}
@@ -401,7 +386,7 @@ export default function Minesweeper() {
           <div className="message-overlay">
             {win ? "🎉 클리어!" : "💥 펑 ㅋㅋ"}
             <button
-              style={{ cursor: "pointer", width: "100px", height: "40px", fontSize: "17px" }}
+              className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0]"
               onClick={resetGame}
             >
               🔁 새 게임

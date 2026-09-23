@@ -1,11 +1,11 @@
-#blocking {
-  height: 1050px;
-}
-
+/* melon-wrap: 원래 position:absolute; top:600px 같은 방식으로 페이지 레이아웃에
+   맞춰 수동으로 위치를 잡던 걸 정상 문서 흐름(relative)으로 바꿈 -
+   레이아웃(헤더/네브 높이)이 바뀔 때마다 깨지던 문제를 구조적으로 해결.
+   캔버스/버튼들은 이 안에서 여전히 절대좌표로 정확히 쌓이므로 내부 로직은 그대로 둠. */
 #melon-wrap {
-  position: absolute;
-  left: 20%;
-  top: 600px;
+  position: relative;
+  width: 1030px;
+  margin: 40px auto 0;
 }
 
 #melon-container {
@@ -18,17 +18,15 @@
 #rankBox {
   padding: 10px;
   color: white;
-  background: rgba(156, 227, 255, 0.068);
-  box-shadow:
-    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.2),
-    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
-    4px 4px 5px 0px rgba(0, 0, 0, 0.3);
+  background: #1c1e24;
+  border: 1px solid rgba(108, 99, 255, 0.2);
   width: 40%;
-  border-radius: 7px;
+  border-radius: 8px;
 }
 
 #rank-title {
   font-size: 25px;
+  color: #8b84ff;
   padding-left: 20px;
 }
 #rank-info {
@@ -41,13 +39,10 @@
   color: white;
   padding: 10px;
   margin-left: 5%;
-  background: rgba(156, 227, 255, 0.068);
-  box-shadow:
-    inset 2px 2px 2px 0px rgba(255, 255, 255, 0.2),
-    7px 7px 20px 0px rgba(0, 0, 0, 0.3),
-    4px 4px 5px 0px rgba(0, 0, 0, 0.3);
+  background: #1c1e24;
+  border: 1px solid rgba(108, 99, 255, 0.2);
   width: 55%;
-  border-radius: 7px;
+  border-radius: 8px;
 }
 
 #melon-title {
@@ -55,8 +50,9 @@
   padding-left: 20px;
 }
 #melon-text {
-  font-size: 20px;
-  padding-top: 40px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  padding-top: 30px;
   padding-left: 40px;
   padding-bottom: 5px;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Faded from "@/components/Faded";
 import tmImg1 from "@/img/melongame/tm1.png";
 import tmImg2 from "@/img/melongame/tm2.png";
@@ -54,6 +54,12 @@ let backCanvas;
 let backContext;
 
 let rankBox;
+
+// 화면이 1030px보다 좁을 때 zoom으로 시각적으로 줄여서 보여주는 배율.
+// 마우스 좌표(offsetX 등)는 zoom에 맞춰 그대로 잘 들어오지만, getBoundingClientRect()
+// 기반으로 직접 계산하는 곳(아래 down_mouse_x/up_mouse_x)은 이 배율로 나눠서 보정해야
+// 원래 1030 기준 좌표계와 맞음.
+let melonScale = 1;
 
 function drawMainMenuMelons() {
   let dx = 500;
@@ -258,14 +264,14 @@ function test() {
       if (!drag) {
         return;
       }
-      const nowX = me.offsetX;
-      const nowY = me.offsetY;
+      const nowX = me.offsetX / melonScale;
+      const nowY = me.offsetY / melonScale;
       canvasDraw(nowX, nowY);
       stX = nowX;
       stY = nowY;
       const rect = canvas.getBoundingClientRect();
-      up_mouse_x = me.clientX - rect.left - 100;
-      up_mouse_y = me.clientY - rect.top - 100;
+      up_mouse_x = (me.clientX - rect.left) / melonScale - 100;
+      up_mouse_y = (me.clientY - rect.top) / melonScale - 100;
       e_x = Math.max(up_mouse_x, down_mouse_x);
       s_x = Math.min(up_mouse_x, down_mouse_x);
       e_y = Math.max(up_mouse_y, down_mouse_y);
@@ -291,17 +297,17 @@ function test() {
 
     function mDown(me) {
       if (time < 0) return;
-      startX = me.offsetX;
-      startY = me.offsetY;
-      stX = me.offsetX;
-      stY = me.offsetY;
+      startX = me.offsetX / melonScale;
+      startY = me.offsetY / melonScale;
+      stX = me.offsetX / melonScale;
+      stY = me.offsetY / melonScale;
       drag = true;
     }
 
     function mUp(me) {
       if (time < 0) return;
-      endX = me.offsetX;
-      endY = me.offsetY;
+      endX = me.offsetX / melonScale;
+      endY = me.offsetY / melonScale;
       drag = false;
       context.clearRect(0, 0, context.canvas.width, context.canvas.height);
       context.drawImage(hiddenCanvas, 0, 0);
@@ -319,8 +325,7 @@ function test() {
         for (let t = t_sx; t <= t_ex; t++) {
           for (let s = t_sy; s <= t_ey; s++) {
             if (t >= 0 && s >= 0 && t <= 20 && s <= 11)
-              if (melon_info[t][s] !== 0)
-                context.drawImage(t_img, 140 + (t - 1) * 40, 100 + s * 40, 40, 40);
+              if (melon_info[t][s] !== 0) context.drawImage(t_img, 140 + (t - 1) * 40, 100 + s * 40, 40, 40);
           }
         }
         context.strokeRect(startX, startY, currentX - startX, currentY - startY);
@@ -335,8 +340,8 @@ function test() {
       else {
         mDown(e);
         const rect = canvas.getBoundingClientRect();
-        down_mouse_x = e.clientX - rect.left - 100;
-        down_mouse_y = e.clientY - rect.top - 100;
+        down_mouse_x = (e.clientX - rect.left) / melonScale - 100;
+        down_mouse_y = (e.clientY - rect.top) / melonScale - 100;
       }
     };
     canvas.onmouseup = (e) => {
@@ -369,12 +374,7 @@ function test() {
           backContext.font = "bold 20px Arial, sans-serif";
           backContext.textAlign = "center";
           backContext.fillText(cnt, 999, 100, 30);
-          context.clearRect(
-            140 + (ss_x - 1) * 40,
-            100 + ss_y * 40,
-            (ee_x - ss_x + 1) * 40,
-            (ee_y - ss_y + 1) * 40
-          );
+          context.clearRect(140 + (ss_x - 1) * 40, 100 + ss_y * 40, (ee_x - ss_x + 1) * 40, (ee_y - ss_y + 1) * 40);
           hiddenContext.clearRect(0, 0, hiddenContext.canvas.width, hiddenContext.canvas.height);
           hiddenContext.drawImage(canvas, 0, 0);
         }
@@ -385,6 +385,19 @@ function test() {
 
 export default function MelonGamePage() {
   const initialized = useRef(false);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      // 좌우 여백 32px 정도 남기고, 1030px보다 넓으면 그냥 100%
+      const next = Math.min(1, Math.max(0.32, (window.innerWidth - 32) / c_width));
+      melonScale = next;
+      setScale(next);
+    };
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, []);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -458,8 +471,7 @@ export default function MelonGamePage() {
     ct = 1;
     getTopMelonScores(10).then((scores) => {
       scores.forEach((data) => {
-        rankBox.innerHTML +=
-          "<div id='rank-info'>" + ct + "위: " + data.name + " " + data.score + "점</div>";
+        rankBox.innerHTML += "<div id='rank-info'>" + ct + "위: " + data.name + " " + data.score + "점</div>";
         if (ct === 10) tenth_rank = data.score;
         ct += 1;
       });
@@ -542,46 +554,48 @@ export default function MelonGamePage() {
 
   return (
     <Faded>
-      <div id="blocking"></div>
-      <div id="melon-wrap">
-        <div id="melon-container">
-          <div id="rankBox">
-            <div id="rank-title">랭킹</div>
-          </div>
-          <div id="melon-box">
-            <div id="melon-title">
-              드래그하여 합이 10또는 20이 되도록 하면됩니다.
-              <br />
-            </div>
-            <div id="melon-text">
-              개발: lee gm / 디자인: tae hb / 음악: lee sh
-              <br />
-              게임실행에 문제가 있는경우 새로고침 후 시작을 눌러주세요
-              <br />
-              시간은 2분이 주어지며 종료시 스코어가 나옵니다.
-              <br />
-              랭킹 10위 안에드는 점수를 받을 시 랭킹 등록 창이 나옵니다.
-              <br />
-            </div>
-            <br />
-            <div id="exit" style={{ display: "none" }}>
-              go
-            </div>
-          </div>
-        </div>
-        <canvas style={canvasStyle} id="melonCanvas"></canvas>
-        <canvas style={hiddenCanvasStyle} id="hiddenCanvas"></canvas>
-        <canvas style={backCanvasStyle} id="backCanvas"></canvas>
-        <button style={startButtonStyle} id="startButton" onClick={test}>
-          시작하기
-        </button>
-        <button id="exitButton" style={exitButtonStyle} onClick={test2}>
-          홈으로
-        </button>
-        <button id="exitButton2" style={exitButtonStyle2} onClick={goHome}>
-          홈으로
-        </button>
+      <div className="mb-4 px-4 pt-4 text-center font-mono text-xs text-white/30">
+        화면 크기에 맞춰 게임 화면이 자동으로 축소됩니다
       </div>
+      <div id="melon-wrap" style={{ zoom: scale, marginBottom:'800px' }}>
+          <div id="melon-container">
+            <div id="rankBox">
+              <div id="rank-title">랭킹</div>
+            </div>
+            <div id="melon-box">
+              <div id="melon-title">
+                드래그하여 합이 10또는 20이 되도록 하면됩니다.
+                <br />
+              </div>
+              <div id="melon-text">
+                개발: lee gm / 디자인: tae hb / 음악: lee sh
+                <br />
+                게임실행에 문제가 있는경우 새로고침 후 시작을 눌러주세요
+                <br />
+                시간은 2분이 주어지며 종료시 스코어가 나옵니다.
+                <br />
+                랭킹 10위 안에드는 점수를 받을 시 랭킹 등록 창이 나옵니다.
+                <br />
+              </div>
+              <br />
+              <div id="exit" style={{ display: "none" }}>
+                go
+              </div>
+            </div>
+          </div>
+          <canvas style={canvasStyle} id="melonCanvas"></canvas>
+          <canvas style={hiddenCanvasStyle} id="hiddenCanvas"></canvas>
+          <canvas style={backCanvasStyle} id="backCanvas"></canvas>
+          <button style={startButtonStyle} id="startButton" onClick={test}>
+            시작하기
+          </button>
+          <button id="exitButton" style={exitButtonStyle} onClick={test2}>
+            홈으로
+          </button>
+          <button id="exitButton2" style={exitButtonStyle2} onClick={goHome}>
+            홈으로
+          </button>
+        </div>
     </Faded>
   );
 }

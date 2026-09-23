@@ -10,16 +10,12 @@ export default function WriteButton() {
   if (loading) return null;
 
   return (
-    <div style={{ position: "fixed", bottom: "20px", left: "20px" }}>
-      {user ? (
-        <button style={{ cursor: "pointer" }} onClick={() => router.push("/study/write")}>
-          ✏️ 글쓰기
-        </button>
-      ) : (
-        <button style={{ cursor: "pointer" }} onClick={() => router.push("/admin/login")}>
-          🔒 로그인
-        </button>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={() => router.push(user ? "/study/write" : "/admin/login")}
+      className="fixed right-6 bottom-6 z-40 cursor-pointer rounded-full bg-[#6C63FF] px-5 py-3 font-mono text-sm text-white shadow-lg transition-colors hover:bg-[#5b52f0]"
+    >
+      {user ? "✏️ 글쓰기" : "🔒 로그인"}
+    </button>
   );
 }

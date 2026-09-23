@@ -10,19 +10,12 @@ export default function EditButton({ post }) {
   if (!user) return null;
 
   return (
-    <div style={{ marginTop: "1rem" }}>
-      <button
-        type="button"
-        style={{
-          backgroundColor: "#4a7b63",
-          color: "white",
-          cursor: "pointer",
-          marginRight: "1rem",
-        }}
-        onClick={() => router.push(`/study/write?id=${post.id}`)}
-      >
-        ✏️ 글수정
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => router.push(`/study/write?id=${post.id}`)}
+      className="cursor-pointer rounded-full border border-white/10 px-4 py-2 font-mono text-sm text-white/70 transition-colors hover:border-[#6C63FF]/50 hover:text-white"
+    >
+      ✏️ 글수정
+    </button>
   );
 }
