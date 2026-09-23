@@ -16,7 +16,7 @@
   "firestore": {
     "rules": "firestore.rules"
   },
-   "storage": {
+  "storage": {
     "rules": "storage.rules"
   }
 }
