@@ -52,12 +52,34 @@ export function useDraggableContactModal() {
   }, []);
 }
 
+let hideTimer: ReturnType<typeof setTimeout> | null = null;
+// Contact의 transition-opacity duration-500과 맞춤
+const FADE_MS = 500;
+
 export function openContactModal(open: 0 | 1) {
   const ct = document.getElementById("contact-container");
   if (!ct) return;
-  ct.style.left = (window.innerWidth - ct.offsetWidth) / 2 + "px";
-  ct.style.top = window.innerHeight / 4 + "px";
-  ct.style.opacity = String(open);
-  // Top(z-50)/Nav(z-30)보다 위에 떠야 함
-  ct.style.zIndex = open === 1 ? "60" : "-1";
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+
+  if (open === 1) {
+    ct.style.left = (window.innerWidth - ct.offsetWidth) / 2 + "px";
+    ct.style.top = window.innerHeight / 4 + "px";
+    // Top(z-50)/Nav(z-30)보다 위에 떠야 함
+    ct.style.zIndex = "60";
+    ct.style.pointerEvents = "auto";
+    ct.style.opacity = "1";
+    return;
+  }
+
+  // 닫을 때 z-index를 바로 내리면 페이드아웃 도중 헤더/Nav 뒤로 들어가 보임
+  // -> 투명해지는 동안은 위에 두고, 다 사라진 뒤에 내림
+  ct.style.opacity = "0";
+  ct.style.pointerEvents = "none";
+  hideTimer = setTimeout(() => {
+    ct.style.zIndex = "-1";
+    hideTimer = null;
+  }, FADE_MS);
 }

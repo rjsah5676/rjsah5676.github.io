@@ -2,16 +2,29 @@
   "hosting": {
     "public": "build",
     "redirects": [
-      { "source": "/melongame{,/**}", "destination": "/games/melongame/", "type": 301 },
-      { "source": "/rspeed{,/**}", "destination": "/games/rspeed/", "type": 301 },
-      { "source": "/mine{,/**}", "destination": "/games/mine/", "type": 301 },
-      { "source": "/sketch{,/**}", "destination": "/games/sketch/", "type": 301 }
+      {
+        "source": "/melongame{,/**}",
+        "destination": "https://rjsah5676.github.io/games/melongame/",
+        "type": 301
+      },
+      {
+        "source": "/rspeed{,/**}",
+        "destination": "https://rjsah5676.github.io/games/rspeed/",
+        "type": 301
+      },
+      {
+        "source": "/mine{,/**}",
+        "destination": "https://rjsah5676.github.io/games/mine/",
+        "type": 301
+      },
+      {
+        "source": "/sketch{,/**}",
+        "destination": "https://rjsah5676.github.io/games/sketch/",
+        "type": 301
+      },
+      { "source": "/:path*", "destination": "https://rjsah5676.github.io/:path*", "type": 301 }
     ],
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
@@ -22,7 +35,7 @@
   "firestore": {
     "rules": "firestore.rules"
   },
-   "storage": {
+  "storage": {
     "rules": "storage.rules"
   }
 }

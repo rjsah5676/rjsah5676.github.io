@@ -1,11 +1,14 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { allProjects } from "@/data/projects";
+import { getAllStudyPosts, parseStudyDate } from "@/firestore/studyPosts";
 
 // output: "export"에서는 빌드 시 정적 파일(sitemap.xml)로 생성돼야 함
 export const dynamic = "force-static";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const studyPosts = await getAllStudyPosts();
+
   const pages: { path: string; priority: number; changeFrequency: "weekly" | "monthly" }[] = [
     { path: "/", priority: 1, changeFrequency: "monthly" },
     { path: "/about/", priority: 0.9, changeFrequency: "monthly" },
@@ -19,11 +22,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   return [
-    ...pages.map((p) => ({ url: `${SITE_URL}${p.path}`, changeFrequency: p.changeFrequency, priority: p.priority })),
+    ...pages.map((p) => ({
+      url: `${SITE_URL}${p.path}`,
+      changeFrequency: p.changeFrequency,
+      priority: p.priority,
+    })),
     ...allProjects.map((p) => ({
       url: `${SITE_URL}/infoPage/${p.idx}/`,
       changeFrequency: "monthly" as const,
       priority: 0.8,
+    })),
+    ...studyPosts.map((p) => ({
+      url: `${SITE_URL}/study/${p.id}/`,
+      lastModified: parseStudyDate(p.date) ?? undefined,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
     })),
   ];
 }

@@ -9,8 +9,10 @@ export default function Top() {
   const pathname = usePathname();
   useDraggableContactModal();
 
-  const isHome = pathname === "/";
-  const isArchive = pathname === "/archive";
+  // trailingSlash: true라 "/archive/"로 들어오므로 끝 슬래시 제거 후 비교
+  const path = pathname.replace(/\/+$/, "") || "/";
+  const isHome = path === "/";
+  const isArchive = path === "/archive";
 
   const linkClass = (active: boolean) =>
     `transition-colors ${active ? "text-[#8B84FF]" : "text-white/60 hover:text-white"}`;

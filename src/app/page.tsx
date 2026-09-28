@@ -3,7 +3,7 @@ import githubIcon from "@/img/Page/info/github.png";
 import ohsoriIcon from "@/img/Page/info/mimyo/ohsori.png";
 import acmicpcIcon from "@/img/Page/info/acmicpc_small.png";
 import mimyoIcon from "@/img/Page/info/mimyo/mimyo_logo.jpg";
-import meImg from "@/img/Page/info/me.png";
+import meImg from "@/img/Page/info/me.webp";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
 // 검색엔진용 구조화 데이터 (사람/웹사이트 정보)
@@ -50,7 +50,11 @@ const sites = [
   { icon: githubIcon, label: "GitHub", href: "https://github.com/rjsah5676" },
   { icon: acmicpcIcon, label: "BAEKJOON", href: "https://www.acmicpc.net/user/rjsah5676" },
   { icon: ohsoriIcon, label: "Oh! Sori", href: "https://ohsori.my/" },
-  { icon: mimyoIcon, label: "MIMYO", href: "https://drive.google.com/file/d/1ZVTpuval2WbT_x1n-3tOS7dhkpnCJQ8C/view" },
+  {
+    icon: mimyoIcon,
+    label: "MIMYO",
+    href: "https://drive.google.com/file/d/1ZVTpuval2WbT_x1n-3tOS7dhkpnCJQ8C/view",
+  },
 ];
 
 interface InfoRow {
@@ -64,9 +68,14 @@ function InfoList({ title, rows }: { title: string; rows: InfoRow[] }) {
       <h3 className="mb-4 font-mono text-sm text-[#8B84FF]">{title}</h3>
       <dl className="flex flex-col gap-3">
         {rows.map((row) => (
-          <div key={row.label} className="flex items-baseline justify-between gap-6 border-b border-white/5 pb-3">
+          <div
+            key={row.label}
+            className="flex items-baseline justify-between gap-6 border-b border-white/5 pb-3"
+          >
             <dt className="font-mono text-sm text-white/40">{row.label}</dt>
-            <dd className="text-right font-['Nanum_Gothic',sans-serif] text-white/90">{row.value}</dd>
+            <dd className="text-right font-['Nanum_Gothic',sans-serif] text-white/90">
+              {row.value}
+            </dd>
           </div>
         ))}
       </dl>
@@ -77,7 +86,10 @@ function InfoList({ title, rows }: { title: string; rows: InfoRow[] }) {
 export default function Home() {
   return (
     <Faded>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mx-auto max-w-3xl px-6 pt-20 pb-16">
         <img
           src={meImg.src}

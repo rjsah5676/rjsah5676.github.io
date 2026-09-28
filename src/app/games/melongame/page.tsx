@@ -352,7 +352,8 @@ function test() {
         for (let t = t_sx; t <= t_ex; t++) {
           for (let s = t_sy; s <= t_ey; s++) {
             if (t >= 0 && s >= 0 && t <= 20 && s <= 11)
-              if (melon_info[t][s] !== 0) context.drawImage(t_img, 140 + (t - 1) * 40, 100 + s * 40, 40, 40);
+              if (melon_info[t][s] !== 0)
+                context.drawImage(t_img, 140 + (t - 1) * 40, 100 + s * 40, 40, 40);
           }
         }
         context.strokeRect(startX, startY, currentX - startX, currentY - startY);
@@ -401,7 +402,12 @@ function test() {
           backContext.font = "bold 20px Arial, sans-serif";
           backContext.textAlign = "center";
           backContext.fillText(String(cnt), 999, 100, 30);
-          context.clearRect(140 + (ss_x - 1) * 40, 100 + ss_y * 40, (ee_x - ss_x + 1) * 40, (ee_y - ss_y + 1) * 40);
+          context.clearRect(
+            140 + (ss_x - 1) * 40,
+            100 + ss_y * 40,
+            (ee_x - ss_x + 1) * 40,
+            (ee_y - ss_y + 1) * 40
+          );
           hiddenContext.clearRect(0, 0, hiddenContext.canvas.width, hiddenContext.canvas.height);
           hiddenContext.drawImage(canvas, 0, 0);
         }
@@ -502,7 +508,11 @@ export default function MelonGamePage() {
     ct = 1;
     getTopMelonScores(10).then((scores) => {
       scores.forEach((data) => {
-        rankBox.innerHTML += "<div id='rank-info'>" + ct + "위: " + data.name + " " + data.score + "점</div>";
+        // 이름은 사용자 입력이라 innerHTML로 넣으면 저장형 XSS -> textContent로 삽입
+        const row = document.createElement("div");
+        row.id = "rank-info";
+        row.textContent = ct + "위: " + data.name + " " + data.score + "점";
+        rankBox.appendChild(row);
         if (ct === 10) tenth_rank = data.score;
         ct += 1;
       });
@@ -588,45 +598,45 @@ export default function MelonGamePage() {
       <div className="mb-4 px-4 pt-4 text-center font-mono text-xs text-white/30">
         화면 크기에 맞춰 게임 화면이 자동으로 축소됩니다
       </div>
-      <div id="melon-wrap" style={{ zoom: scale, marginBottom:'800px' }}>
-          <div id="melon-container">
-            <div id="rankBox">
-              <div id="rank-title">랭킹</div>
-            </div>
-            <div id="melon-box">
-              <div id="melon-title">
-                드래그하여 합이 10또는 20이 되도록 하면됩니다.
-                <br />
-              </div>
-              <div id="melon-text">
-                개발: lee gm / 디자인: tae hb / 음악: lee sh
-                <br />
-                게임실행에 문제가 있는경우 새로고침 후 시작을 눌러주세요
-                <br />
-                시간은 2분이 주어지며 종료시 스코어가 나옵니다.
-                <br />
-                랭킹 10위 안에드는 점수를 받을 시 랭킹 등록 창이 나옵니다.
-                <br />
-              </div>
+      <div id="melon-wrap" style={{ zoom: scale, marginBottom: "800px" }}>
+        <div id="melon-container">
+          <div id="rankBox">
+            <div id="rank-title">랭킹</div>
+          </div>
+          <div id="melon-box">
+            <div id="melon-title">
+              드래그하여 합이 10또는 20이 되도록 하면됩니다.
               <br />
-              <div id="exit" style={{ display: "none" }}>
-                go
-              </div>
+            </div>
+            <div id="melon-text">
+              개발: lee gm / 디자인: tae hb / 음악: lee sh
+              <br />
+              게임실행에 문제가 있는경우 새로고침 후 시작을 눌러주세요
+              <br />
+              시간은 2분이 주어지며 종료시 스코어가 나옵니다.
+              <br />
+              랭킹 10위 안에드는 점수를 받을 시 랭킹 등록 창이 나옵니다.
+              <br />
+            </div>
+            <br />
+            <div id="exit" style={{ display: "none" }}>
+              go
             </div>
           </div>
-          <canvas style={canvasStyle} id="melonCanvas"></canvas>
-          <canvas style={hiddenCanvasStyle} id="hiddenCanvas"></canvas>
-          <canvas style={backCanvasStyle} id="backCanvas"></canvas>
-          <button style={startButtonStyle} id="startButton" onClick={test}>
-            시작하기
-          </button>
-          <button id="exitButton" style={exitButtonStyle} onClick={test2}>
-            홈으로
-          </button>
-          <button id="exitButton2" style={exitButtonStyle2} onClick={goHome}>
-            홈으로
-          </button>
         </div>
+        <canvas style={canvasStyle} id="melonCanvas"></canvas>
+        <canvas style={hiddenCanvasStyle} id="hiddenCanvas"></canvas>
+        <canvas style={backCanvasStyle} id="backCanvas"></canvas>
+        <button style={startButtonStyle} id="startButton" onClick={test}>
+          시작하기
+        </button>
+        <button id="exitButton" style={exitButtonStyle} onClick={test2}>
+          홈으로
+        </button>
+        <button id="exitButton2" style={exitButtonStyle2} onClick={goHome}>
+          홈으로
+        </button>
+      </div>
     </Faded>
   );
 }

@@ -3,7 +3,12 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getStudyPost, addStudyPost, updateStudyPost } from "@/firestore/studyPosts";
+import {
+  getStudyPost,
+  addStudyPost,
+  updateStudyPost,
+  STUDY_CATEGORIES,
+} from "@/firestore/studyPosts";
 import { useAuth } from "@/lib/AuthContext";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -11,16 +16,7 @@ import "react-quill-new/dist/quill.snow.css";
 // 실행되면 안 됨 -> ssr:false로 클라이언트에서만 로드
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
-const categories = [
-  "Java",
-  "Network",
-  "Database",
-  "Frontend",
-  "Backend",
-  "Algorithm",
-  "Next/Express",
-  "etc",
-];
+const categories = STUDY_CATEGORIES;
 
 export default function StudyWriteForm() {
   const router = useRouter();
@@ -73,13 +69,13 @@ export default function StudyWriteForm() {
     try {
       if (isEdit) {
         await updateStudyPost(postId!, { title, content, category, date: formattedDate });
-        alert("글이 수정되었습니다!");
+        alert("글이 수정되었습니다! 사이트 반영은 재배포 후 적용됩니다.");
       } else {
         await addStudyPost({ title, content, category, date: formattedDate });
-        alert("글이 저장되었습니다!");
+        alert("글이 저장되었습니다! 사이트 반영은 재배포 후 적용됩니다.");
       }
 
-      router.push("/study");
+      router.push("/study/");
     } catch (err) {
       console.error(err);
       alert("저장 중 오류 발생");
