@@ -9,4 +9,4 @@
 :HL["/_next/static/media/acmicpc_small.2940v5fydzarp.png","image"]
 :HL["/_next/static/media/ohsori.2wmiiiw0w8y8s.png","image"]
 :HL["/_next/static/media/mimyo_logo.0_jvtmx5pxthj.jpg","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"fNyFn6ydVevdFjrdITFn3"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"ieZiQCtljrMfBi3eA4KKr"}
