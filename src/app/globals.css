@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-mono: "JetBrains Mono", "Nanum Gothic Coding", "Nanum Gothic", ui-monospace, monospace;
   --font-jua: "Jua", sans-serif;
   --font-nanum: "Nanum Gothic", sans-serif;
 }
@@ -30,5 +30,18 @@ body {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* 공통 모달 애니메이션 */
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
   }
 }

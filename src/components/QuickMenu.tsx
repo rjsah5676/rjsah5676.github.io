@@ -2,11 +2,38 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { getNumberFromPixel } from "@/hooks/useDraggableContactModal";
+import { useModal } from "@/components/Modal/ModalProvider";
+
+// 플로팅 버튼 아이콘 (색은 CSS의 color를 따라감)
+const svg = (body: string, extra = "") =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${body}</svg>`;
+
+const ICONS = {
+  // 펼치면 CSS로 X 모양으로 바뀜 (floatstyle.css #list.open)
+  list: svg(
+    '<line class="line-top" x1="5" y1="7" x2="19" y2="7"/>' +
+      '<line class="line-mid" x1="5" y1="12" x2="19" y2="12"/>' +
+      '<line class="line-bottom" x1="5" y1="17" x2="19" y2="17"/>'
+  ),
+  home: svg('<path d="M4 10.5 12 4l8 6.5"/><path d="M6 9v10.5h4.5V14h3v5.5H18V9"/>'),
+  up: svg('<path d="M12 19V5"/><path d="m5.5 11.5 6.5-6.5 6.5 6.5"/>'),
+  inquiry: svg(
+    '<path d="M12 4C7 4 3 7.4 3 11.6c0 2.3 1.2 4.3 3.1 5.7L5.5 20.5l3.9-2c.8.2 1.7.3 2.6.3 5 0 9-3.4 9-7.6S17 4 12 4Z" fill="currentColor" stroke="none"/>'
+  ),
+};
 
 export default function QuickMenu() {
   const router = useRouter();
+  const modal = useModal();
   const initialized = useRef(false);
+
+  // jQuery 이벤트 핸들러가 최신 값을 쓰도록 ref로 전달
+  const routerRef = useRef(router);
+  const modalRef = useRef(modal);
+  useEffect(() => {
+    routerRef.current = router;
+    modalRef.current = modal;
+  }, [router, modal]);
 
   useEffect(() => {
     // React 19 StrictMode(dev)는 effect를 두 번 실행하는데, jQuery로 만든 버튼들이
@@ -25,74 +52,52 @@ export default function QuickMenu() {
       ]);
 
       const menu = new Menu("#myMenu");
-      const item1 = new Item("list", "fas fa-bars", "");
-      const item2 = new Item("home", "fas fa-sign-out-alt", "", "");
-      const item3 = new Item("up", "fas fa-id-card", "", "");
-      const item4 = new Item("my-info", "fas fa-exchange-alt", "", ``);
-      const item5 = new Item("info-contents", "fas fa-exchange-alt", "", "");
+      menu.add(new Item("list", "", ""));
+      menu.add(new Item("home", "", "", "홈"));
+      menu.add(new Item("up", "", "", "맨 위로"));
+      menu.add(new Item("inquiry", "", "", "문의"));
 
-      menu.add(item1);
-      menu.add(item2);
-      menu.add(item3);
-      menu.add(item4);
-      menu.add(item5);
-
-      const menuList = document.getElementById("list")!;
       const homeButton = document.getElementById("home")!;
       const upButton = document.getElementById("up")!;
-      const myInfoButton = document.getElementById("my-info")!;
-      const contents = document.getElementById("info-contents")!;
+      const inquiryButton = document.getElementById("inquiry")!;
 
-      contents.innerHTML = `
-        <div id='contents-line'></div>
-        <ul>
-            <li><div id='dot'>●</div><div id='contents-date'>1997.12 ~ </div><div id='contents-text'>출생</div></li>
-            <li><div id='dot'>●</div><div id='contents-date'>2013.03 ~ 2016.02</div><div id='contents-text'>풍생고등학교 입학</div></li>
-            <li><div id='dot'>●</div><div id='contents-date'>2016.03 ~ 2022.02</div><div id='contents-text'>아주대학교 소프트웨어학과 입학</div></li>
-            <li><div id='dot'>●</div><div id='contents-date'>2017.03 ~ 2018.12</div><div id='contents-text'>육군 5사단 근무</div></li>
-            <li><div id='dot'>●</div><div id='contents-date'>2021.06 ~ 2021.08</div><div id='contents-text'>(주) 트루피플 인턴 실습</div></li>
-            <li><div id='dot'>●</div><div id='contents-date'>2025.03 ~ 2025.05</div><div id='contents-text'>미묘 핸드메이드 프로젝트 팀장</div></li>
-        </ul>
-      `;
-
-      const onHome = () => router.push("/");
-      const onUp = () => window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-      let clicked = false;
-      const onMenuMouseDown = () => {
-        if (clicked) {
-          contents.style.opacity = "0";
-          clicked = !clicked;
-        }
+      const labels: Record<keyof typeof ICONS, string> = {
+        list: "메뉴",
+        home: "홈으로",
+        up: "맨 위로",
+        inquiry: "문의하기",
       };
-      const onMyInfoClick = () => {
-        if (!clicked) {
-          contents.style.left = getNumberFromPixel(myInfoButton.style.left) - 470 + "px";
-          contents.style.top = getNumberFromPixel(myInfoButton.style.top) - 220 + "px";
-          contents.style.opacity = "1";
-        } else {
-          contents.style.opacity = "0";
-        }
-        clicked = !clicked;
+      (Object.keys(ICONS) as (keyof typeof ICONS)[]).forEach((id) => {
+        const el = document.getElementById(id)!;
+        el.innerHTML = ICONS[id];
+        el.setAttribute("aria-label", labels[id]);
+      });
+
+      const onHome = () => routerRef.current.push("/");
+      const onUp = () => window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      const onInquiry = () => {
+        modalRef.current.alert({
+          title: "문의하기",
+          message: "문의 기능은 아직 준비 중입니다. 조금만 기다려주세요!",
+        });
       };
 
       homeButton.addEventListener("click", onHome);
       upButton.addEventListener("click", onUp);
-      menuList.addEventListener("mousedown", onMenuMouseDown);
-      myInfoButton.addEventListener("click", onMyInfoClick);
+      inquiryButton.addEventListener("click", onInquiry);
 
       cleanupFns.push(() => {
         homeButton.removeEventListener("click", onHome);
         upButton.removeEventListener("click", onUp);
-        menuList.removeEventListener("mousedown", onMenuMouseDown);
-        myInfoButton.removeEventListener("click", onMyInfoClick);
+        inquiryButton.removeEventListener("click", onInquiry);
       });
     })();
 
     return () => cleanupFns.forEach((fn) => fn());
-  }, [router]);
+  }, []);
 
   return (
-    <div className="fixed top-[85%] right-[5%] z-[99999] m-auto h-[70px] w-[70px] text-white">
+    <div className="fixed top-[85%] right-[5%] z-[99999] m-auto h-[52px] w-[52px] text-white sm:h-[70px] sm:w-[70px]">
       <div id="myMenu"></div>
     </div>
   );

@@ -56,14 +56,17 @@ class Menu {
   open() {
     if (!this.first) return;
     this.status = "open";
+    this.first.$element.addClass("open");
     let current = this.first.next;
     let iterator = 1;
     const head = this.first;
     const sens = parseInt(head.$element.css("left"), 10) + 500 < 0 ? 1 : -1;
+    // 모바일에서 버튼이 작아지므로 간격도 버튼 크기에 비례 (70px -> 50px)
+    const step = Math.round((head.$element.outerWidth() ?? 70) * (50 / 70));
     while (current != null) {
       anime({
         targets: current.$element[0],
-        left: parseInt(head.$element.css("left"), 10) + sens * (iterator * 50),
+        left: parseInt(head.$element.css("left"), 10) + sens * (iterator * step),
         top: head.$element.css("top"),
         duration: 500,
       });
@@ -75,6 +78,7 @@ class Menu {
   close() {
     if (!this.first) return;
     this.status = "closed";
+    this.first.$element.removeClass("open");
     let current = this.first.next;
     const head = this.first;
     while (current != null) {

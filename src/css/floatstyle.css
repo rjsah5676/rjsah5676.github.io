@@ -1,29 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap");
 
 .center {
-  z-index:100;
+  z-index: 100;
   position: fixed;
   margin: auto;
-  top:85%;
+  top: 85%;
   right: 5%;
 }
 
 .menu {
-  z-index:99999;
+  z-index: 99999;
   width: 70px;
   height: 70px;
-  color:white;
+  color: white;
 }
 
 .item {
-  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.4);
+  box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.4);
   position: absolute;
   left: 0px;
   top: 0px;
   width: 70px;
   height: 70px;
-  background-color: #1C1E24;
-  border: 1px solid rgba(108,99,255,0.35);
+  background-color: #1c1e24;
+  border: 1px solid rgba(108, 99, 255, 0.35);
   -moz-border-radius: 50%;
   -webkit-border-radius: 50%;
   border-radius: 50%;
@@ -60,95 +60,69 @@ i {
 }
 */
 
-#list {
-    background-image:url(../img/float/list.png);
-    background-position: center;
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 0px rgba(0,0,0,.3);
+.item span {
+  display: none;
 }
 
-#home {
-    background-image:url(../img/float/home.jpg);
-    background-position: center;
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 0px rgba(0,0,0,.3);
-}
-
-#up {
-    background-image:url(../img/float/up.png);
-    background-position: center;
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 0px rgba(0,0,0,.3);
-}
-
-#my-info {
-    background-image:url(../img/float/canvas.png);
-    background-position: center;
-    box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.3),
-    4px 4px 5px 0px rgba(0,0,0,.3);
-}
-
-
-.item span{
-  display:none;
-}
-
-#info-contents{
-  opacity:0;
-  background:rgba(28, 30, 36, 0.95);
-  border: 1px solid rgba(108,99,255,0.25);
-  box-shadow:inset 2px 2px 2px 0px rgba(255,255,255,.05),
-  7px 7px 20px 0px rgba(0,0,0,.4),
-  4px 4px 5px 0px rgba(0,0,0,.3);
-  transition: all 0.3s;
-  width:450px;
-  height: 200px;
-  border-radius: 20px;
-}
-
-#info-contents >ul {
-  margin:0;
-  padding:0;
-
-  padding-top:0px;
-}
-
-#info-contents ul > li {
-  font-family: "Noto Sans KR", serif;
-  font-size:15px;
-  line-height: 28px;
-  padding:0;
-  margin:0;
-  text-align: left;
-  color:white;
+/* 아이콘은 QuickMenu에서 SVG로 주입 */
+.item {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b84ff;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    0 2px 5px rgba(0, 0, 0, 0.3);
+  transition:
+    border-color 0.2s,
+    color 0.2s;
 }
 
-#info-contents:hover {
-  cursor: default;
+.item:hover {
+  border-color: rgba(139, 132, 255, 0.8);
+  color: #fff;
 }
 
-#contents-date{
-  margin-left:10px;
-  width:45%;
+.item svg {
+  width: 44%;
+  height: 44%;
+  pointer-events: none;
 }
 
-#contents-text {
-  width:55%;
+/* 메뉴 토글 버튼은 강조색, 펼치면 햄버거 -> X */
+#list {
+  background-color: #6c63ff;
+  border-color: #6c63ff;
+  color: #fff;
 }
 
-#dot {
-  line-height: 28px;
-  font-size:20px;
+#list:hover {
+  background-color: #5b52f0;
 }
 
-#contents-line {
-  position:absolute;
-  border-left:3px solid #6C63FF;
-  left:14px;
-  height: 170px;
+#list svg line {
+  transform-origin: 12px 12px;
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
+}
+
+#list.open .line-top {
+  transform: rotate(45deg) translateY(5px);
+}
+
+#list.open .line-mid {
+  opacity: 0;
+}
+
+#list.open .line-bottom {
+  transform: rotate(-45deg) translateY(-5px);
+}
+
+/* 모바일에선 플로팅 버튼 축소 (QuickMenu 래퍼 크기와 맞춤) */
+@media (max-width: 639px) {
+  .item {
+    width: 52px;
+    height: 52px;
+  }
 }

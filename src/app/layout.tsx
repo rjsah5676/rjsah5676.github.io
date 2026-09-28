@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
 import QuickMenu from "@/components/QuickMenu";
 import { AuthProvider } from "@/lib/AuthContext";
+import { ModalProvider } from "@/components/Modal/ModalProvider";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, OG_IMAGE } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -21,7 +22,16 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   authors: [{ name: "이건모 (Gunmo Lee)", url: "https://github.com/rjsah5676" }],
   creator: "이건모",
-  keywords: ["이건모", "Gunmo Lee", "풀스택 개발자", "포트폴리오", "Next.js", "React", "Spring Boot", "TypeScript"],
+  keywords: [
+    "이건모",
+    "Gunmo Lee",
+    "풀스택 개발자",
+    "포트폴리오",
+    "Next.js",
+    "React",
+    "Spring Boot",
+    "TypeScript",
+  ],
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
@@ -58,24 +68,27 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Jua&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap"
           rel="stylesheet"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap"
           rel="stylesheet"
         />
       </head>
       <body>
         <AuthProvider>
-          <Top />
-          <Header />
-          <Nav />
-          {children}
-          <Footer />
-          <Contact />
-          <QuickMenu />
+          <ModalProvider>
+            <Top />
+            <Header />
+            <Nav />
+            {children}
+            <Footer />
+            <Contact />
+            <QuickMenu />
+          </ModalProvider>
         </AuthProvider>
       </body>
     </html>
