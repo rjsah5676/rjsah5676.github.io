@@ -1,6 +1,12 @@
 {
   "hosting": {
     "public": "build",
+    "redirects": [
+      { "source": "/melongame{,/**}", "destination": "/games/melongame/", "type": 301 },
+      { "source": "/rspeed{,/**}", "destination": "/games/rspeed/", "type": 301 },
+      { "source": "/mine{,/**}", "destination": "/games/mine/", "type": 301 },
+      { "source": "/sketch{,/**}", "destination": "/games/sketch/", "type": 301 }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",

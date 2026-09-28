@@ -10,7 +10,12 @@ const dropdownClass =
 const dropdownLinkClass =
   "rounded px-3 py-2 font-mono text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white";
 
-function ChevronIcon({ open }) {
+interface NavLinkItem {
+  href: string;
+  label: string;
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg
       viewBox="0 0 12 12"
@@ -25,14 +30,14 @@ function ChevronIcon({ open }) {
 }
 
 // 마우스 hover가 없는 터치 기기에서도 서브메뉴를 열 수 있게 클릭/탭 토글 방식으로 구현.
-function DropdownNavItem({ href, label, items }) {
+function DropdownNavItem({ href, label, items }: { href: string; label: string; items: NavLinkItem[] }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const onOutside = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    const onOutside = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", onOutside);
     return () => document.removeEventListener("mousedown", onOutside);
@@ -99,9 +104,6 @@ export default function Nav() {
 
         <Link href="/guest" className={navItemClass}>
           guest box
-        </Link>
-        <Link href="/gallery" className={navItemClass}>
-          gallery
         </Link>
       </div>
     </nav>
