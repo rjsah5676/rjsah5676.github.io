@@ -6,6 +6,7 @@ import {
   ActiveRoomError,
   createRoom,
   findMyActiveRoom,
+  isPauseExpired,
   subscribeRooms,
   colorOf,
   serverNow,
@@ -136,6 +137,7 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
     const mine: ChessRoom[] = [];
     const open: ChessRoom[] = [];
     rooms.forEach((r) => {
+      if (isPauseExpired(r, now)) return; // 2시간 넘게 멈춘 대국은 종료 취급
       if (colorOf(r, uid) && (r.status === "playing" || r.status === "waiting")) mine.push(r);
       else if (isVisible(r, now)) open.push(r);
     });
@@ -222,7 +224,13 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
                           : "bg-white/10 text-white/40"
                     }`}
                   >
-                    {r.status === "waiting" ? "대기" : r.status === "playing" ? "대국중" : "종료"}
+                    {r.status === "waiting"
+                      ? "대기"
+                      : r.status === "playing"
+                        ? r.pausedAt
+                          ? "일시정지"
+                          : "대국중"
+                        : "종료"}
                   </span>
                   <span className="truncate text-white/85">{r.name}</span>
                 </span>

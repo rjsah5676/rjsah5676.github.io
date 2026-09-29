@@ -43,7 +43,8 @@ export type EndReason =
   | "insufficient"
   | "threefold"
   | "fifty"
-  | "agreement";
+  | "agreement"
+  | "paused";
 
 export interface ChessRoom {
   id: string;
@@ -64,6 +65,8 @@ export interface ChessRoom {
   whiteMs: number;
   blackMs: number;
   turnStartedAt: Timestamp | null;
+  /** 방장이 일시정지한 시각 (null이면 진행중). 멈춘 동안은 시계가 흐르지 않음 */
+  pausedAt: Timestamp | null;
   result: GameResult;
   reason: EndReason;
   /** ply = 요청 당시 moves.length (그 사이 수가 진행되면 무효) */
@@ -87,6 +90,10 @@ export const OFFLINE_AFTER_MS = 60_000;
 export const ABANDON_AFTER_MS = 180_000;
 /** 대기방 방장이 이 시간 이상 안 보이면 로비에서 숨김 */
 export const WAITING_STALE_MS = 3 * 60_000;
+/** 일시정지가 이 시간 넘게 이어지면 대국 종료(무승부) 처리 */
+export const PAUSE_LIMIT_MS = 2 * 60 * 60_000;
+/** 방장 시간 추가 단위 */
+export const ADD_TIME_MS = 30_000;
 
 const ROOMS = "chess_rooms";
 const roomRef = (id: string) => doc(db, ROOMS, id);
@@ -125,7 +132,8 @@ export function replay(moves: string[]): Chess {
 /** 지금 이 순간 기준 양쪽 남은 시간 (진행중인 쪽은 경과시간 차감) */
 export function liveClock(room: ChessRoom, now = serverNow()): { w: number; b: number } {
   const clock = { w: room.whiteMs, b: room.blackMs };
-  if (room.timeMin > 0 && room.status === "playing" && room.turnStartedAt) {
+  // 일시정지 중에는 멈춘 시점에 이미 정산해뒀으므로 차감하지 않음
+  if (room.timeMin > 0 && room.status === "playing" && room.turnStartedAt && !room.pausedAt) {
     const t = turnOf(room);
     clock[t] = Math.max(0, clock[t] - Math.max(0, now - room.turnStartedAt.toMillis()));
   }
@@ -181,6 +189,7 @@ function normalize(id: string, data: Record<string, unknown>): ChessRoom {
     reason: d.reason ?? "",
     undoReq: d.undoReq ?? null,
     drawOffer: d.drawOffer ?? "",
+    pausedAt: d.pausedAt ?? null,
     spectators: d.spectators ?? {},
     createdAt: d.createdAt ?? null,
     updatedAt: d.updatedAt ?? null,
@@ -265,7 +274,13 @@ export async function findMyActiveRoom(uid: string): Promise<ChessRoom | null> {
   );
   const rooms = snaps
     .flatMap((s) => s.docs.map((d) => normalize(d.id, d.data())))
-    .filter((r) => r.status === "waiting" || r.status === "playing")
+    .filter((r) => {
+      if (isPauseExpired(r)) {
+        expirePausedGame(r.id).catch(() => {});
+        return false;
+      }
+      return r.status === "waiting" || r.status === "playing";
+    })
     .sort((a, b) => (b.updatedAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? 0));
   return rooms[0] ?? null;
 }
@@ -303,6 +318,7 @@ export async function createRoom({
     whiteMs: ms,
     blackMs: ms,
     turnStartedAt: null,
+    pausedAt: null,
     result: "",
     reason: "",
     undoReq: null,
@@ -398,6 +414,7 @@ export async function makeMove(roomId: string, uid: string, uci: string) {
     const room = await readRoom(tx, roomId);
     const me = colorOf(room, uid);
     if (room.status !== "playing" || !me) throw new Error("대국 중이 아닙니다.");
+    if (room.pausedAt) throw new Error("일시정지 중입니다.");
     if (turnOf(room) !== me) throw new Error("내 차례가 아닙니다.");
 
     const game = replay(room.moves);
@@ -438,7 +455,7 @@ export async function makeMove(roomId: string, uid: string, uci: string) {
 export async function claimTimeout(roomId: string) {
   await runTransaction(db, async (tx) => {
     const room = await readRoom(tx, roomId);
-    if (room.status !== "playing" || room.timeMin <= 0) return;
+    if (room.status !== "playing" || room.timeMin <= 0 || room.pausedAt) return;
     const clock = liveClock(room);
     const t = turnOf(room);
     if (clock[t] > 0) return;
@@ -458,6 +475,7 @@ export async function claimAbandon(roomId: string, uid: string) {
     const room = await readRoom(tx, roomId);
     const me = colorOf(room, uid);
     if (room.status !== "playing" || !me) return;
+    if (room.pausedAt) throw new Error("일시정지 중에는 승리 선언을 할 수 없습니다.");
     const oppUid = me === "w" ? room.blackUid : room.whiteUid;
     const p = await tx.get(presenceRef(roomId, oppUid));
     const ts = p.exists() ? (p.data().lastSeen as Timestamp | null) : null;
@@ -547,6 +565,7 @@ export async function respondUndo(roomId: string, uid: string, accept: boolean) 
     const room = await readRoom(tx, roomId);
     const req = room.undoReq;
     if (room.status !== "playing" || !req || req.uid === uid) return;
+    if (room.pausedAt) throw new Error("일시정지 중입니다.");
     const reqColor = colorOf(room, req.uid);
     if (!accept || !reqColor || req.ply !== room.moves.length) {
       tx.update(roomRef(roomId), { undoReq: null });
@@ -568,6 +587,79 @@ export async function respondUndo(roomId: string, uid: string, accept: boolean) 
       turnStartedAt: serverTimestamp(),
       undoReq: null,
       drawOffer: "",
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+// ───────────────────── 방장 전용: 일시정지 / 시간 추가 ─────────────────────
+export function isPauseExpired(room: ChessRoom, now = serverNow()): boolean {
+  return (
+    room.status === "playing" && !!room.pausedAt && now - room.pausedAt.toMillis() > PAUSE_LIMIT_MS
+  );
+}
+
+async function hostTx(roomId: string, uid: string, fn: (room: ChessRoom, tx: Transaction) => void) {
+  await runTransaction(db, async (tx) => {
+    const room = await readRoom(tx, roomId);
+    if (room.hostUid !== uid) throw new Error("방장만 할 수 있습니다.");
+    if (room.status !== "playing") throw new Error("대국 중이 아닙니다.");
+    fn(room, tx);
+  });
+}
+
+export async function pauseGame(roomId: string, uid: string) {
+  await hostTx(roomId, uid, (room, tx) => {
+    if (room.pausedAt) return;
+    const clock = liveClock(room); // 지금까지 흐른 시간 정산 후 멈춤
+    tx.update(roomRef(roomId), {
+      whiteMs: clock.w,
+      blackMs: clock.b,
+      pausedAt: serverTimestamp(),
+      undoReq: null,
+      drawOffer: "",
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+export async function resumeGame(roomId: string, uid: string) {
+  await hostTx(roomId, uid, (room, tx) => {
+    if (!room.pausedAt) return;
+    if (isPauseExpired(room)) throw new Error("일시정지가 2시간을 넘어 대국이 종료되었습니다.");
+    tx.update(roomRef(roomId), {
+      pausedAt: null,
+      turnStartedAt: serverTimestamp(), // 재개 시점부터 다시 계산
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+/** 방장이 자신 또는 상대 시계에 시간 추가 */
+export async function addTime(roomId: string, uid: string, color: Color, ms = ADD_TIME_MS) {
+  await hostTx(roomId, uid, (room, tx) => {
+    if (room.timeMin <= 0) throw new Error("무제한 대국입니다.");
+    const clock = liveClock(room);
+    clock[color] += ms;
+    tx.update(roomRef(roomId), {
+      whiteMs: clock.w,
+      blackMs: clock.b,
+      // 진행중이면 정산한 시점부터 다시 흐르게
+      ...(room.pausedAt ? {} : { turnStartedAt: serverTimestamp() }),
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+/** 2시간 넘게 멈춘 대국 종료 (대국자 누구든 호출, 조건은 트랜잭션에서 재확인) */
+export async function expirePausedGame(roomId: string) {
+  await runTransaction(db, async (tx) => {
+    const room = await readRoom(tx, roomId);
+    if (!isPauseExpired(room)) return;
+    tx.update(roomRef(roomId), {
+      status: "ended",
+      result: "1/2-1/2",
+      reason: "paused",
       updatedAt: serverTimestamp(),
     });
   });
