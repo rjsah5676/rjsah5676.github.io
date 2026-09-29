@@ -17,7 +17,7 @@ export default function LadderPage() {
           <div className="font-mono text-sm text-[#8B84FF]">tools</div>
           <h1 className="mt-1 font-mono text-2xl font-bold text-white">사다리타기</h1>
           <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/45">
-            한 명 뽑기, 순서 정하기, 벌칙 정하기까지. 결과는 공정한 난수로 정해집니다.
+            한 명 뽑기, 순서 정하기, 벌칙 정하기까지.
           </p>
         </div>
         <Ladder />

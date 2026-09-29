@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { rand, randInt, splitItems } from "@/lib/random";
+import { rand, randInt } from "@/lib/random";
 import "@/css/tools.css";
+
+interface Item {
+  name: string;
+  /** 칸 크기·당첨 확률 비율 (1 이상 정수) */
+  weight: number;
+}
 
 const MIN = 2;
 const MAX = 30;
+const MAX_WEIGHT = 1_000_000;
 const SPIN_MS = 5200;
-const STORAGE_KEY = "tools_roulette";
-const DEFAULT_ITEMS = ["참가자 1", "참가자 2", "참가자 3", "참가자 4"];
+const STORAGE_KEY = "tools_roulette_v2";
+const DEFAULT_ITEMS: Item[] = [1, 2, 3, 4].map((i) => ({ name: `참가자 ${i}`, weight: 1 }));
 
 // 칸 색 (밝은 색은 글자를 어둡게)
 const SLICE = [
@@ -34,14 +41,15 @@ const polar = (deg: number, r: number) => {
   return [100 + r * Math.cos(rad), 100 + r * Math.sin(rad)] as const;
 };
 
-function slicePath(i: number, n: number) {
-  const seg = 360 / n;
-  const [x1, y1] = polar(i * seg, R);
-  const [x2, y2] = polar((i + 1) * seg, R);
-  return `M100 100 L${x1} ${y1} A${R} ${R} 0 ${seg > 180 ? 1 : 0} 1 ${x2} ${y2} Z`;
+function slicePath(a0: number, a1: number) {
+  if (a1 - a0 >= 359.999) return `M100 ${100 - R} A${R} ${R} 0 1 1 99.99 ${100 - R} Z`;
+  const [x1, y1] = polar(a0, R);
+  const [x2, y2] = polar(a1, R);
+  return `M100 100 L${x1} ${y1} A${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x2} ${y2} Z`;
 }
 
 const short = (s: string, max: number) => (s.length > max ? s.slice(0, max - 1) + "…" : s);
+const clampWeight = (v: number) => Math.min(MAX_WEIGHT, Math.max(1, Math.round(v) || 1));
 
 // 칸 색: 이웃·첫칸과 같은 색이 붙지 않게
 const colorOf = (i: number, n: number) => {
@@ -49,9 +57,31 @@ const colorOf = (i: number, n: number) => {
   return i === n - 1 && k === 0 && n > 1 ? SLICE[3] : SLICE[k];
 };
 
+/** "이름", "이름:300", "이름*300" 형식을 쉼표·줄바꿈으로 여러 개 */
+function parseItems(text: string, defaultWeight: number): Item[] {
+  return text
+    .split(/[\n,]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const m = /^(.*?)\s*[:*]\s*(\d+)$/.exec(s);
+      return m && m[1]
+        ? { name: m[1].trim(), weight: clampWeight(Number(m[2])) }
+        : { name: s, weight: defaultWeight };
+    });
+}
+
+const pct = (w: number, total: number) => {
+  const p = (w / total) * 100;
+  return p >= 10 ? p.toFixed(0) : p >= 1 ? p.toFixed(1) : p.toFixed(2);
+};
+
 export default function Roulette() {
-  const [items, setItems] = useState<string[]>(DEFAULT_ITEMS);
+  const [items, setItems] = useState<Item[]>(DEFAULT_ITEMS);
   const [text, setText] = useState("");
+  const [newWeight, setNewWeight] = useState("1");
+  // 가중치 입력 중인 값 (지우고 새로 칠 때 바로 1로 바뀌지 않게, 입력칸 벗어날 때 확정)
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [winner, setWinner] = useState<number | null>(null);
@@ -63,7 +93,11 @@ export default function Roulette() {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
       if (Array.isArray(saved) && saved.length >= MIN)
         // eslint-disable-next-line react-hooks/set-state-in-effect -- 저장된 항목 복원(마운트 1회)
-        setItems(saved.slice(0, MAX).map(String));
+        setItems(
+          saved
+            .slice(0, MAX)
+            .map((it: Item) => ({ name: String(it.name), weight: clampWeight(Number(it.weight)) }))
+        );
     } catch {}
   }, []);
   useEffect(() => {
@@ -73,28 +107,44 @@ export default function Roulette() {
   }, [items]);
 
   const n = items.length;
-  const seg = 360 / n;
+  const total = items.reduce((s, it) => s + it.weight, 0);
+  // 각 칸의 시작·끝 각도 (가중치 비율)
+  const bounds: [number, number][] = [];
+  items.reduce((acc, it) => {
+    const next = acc + (it.weight / total) * 360;
+    bounds.push([acc, next]);
+    return next;
+  }, 0);
   const canSpin = n >= MIN && !spinning;
+  const equal = items.every((it) => it.weight === items[0].weight);
 
   const add = () => {
-    const list = splitItems(text);
+    const list = parseItems(text, clampWeight(Number(newWeight)));
     if (!list.length) return;
     setItems((prev) => [...prev, ...list].slice(0, MAX));
     setText("");
     setWinner(null);
   };
   const remove = (i: number) => {
+    setDrafts({});
     setItems((prev) => prev.filter((_, k) => k !== i));
+    setWinner(null);
+  };
+  const setWeight = (i: number, w: number) => {
+    setItems((prev) => prev.map((it, k) => (k === i ? { ...it, weight: clampWeight(w) } : it)));
     setWinner(null);
   };
 
   const spin = () => {
     if (!canSpin) return;
-    // 결과를 먼저 공정하게 뽑고, 그 칸 안의 임의 지점이 12시에 오도록 회전량 계산
-    const w = randInt(n);
-    const target = (w + 0.15 + rand() * 0.7) * seg; // 칸 경계에 걸리지 않게 가운데 70% 안
+    // 가중치 비율대로 당첨을 먼저 뽑고, 그 칸 안의 임의 지점이 12시에 오도록 회전량 계산
+    let r = randInt(total);
+    let w = 0;
+    while (r >= items[w].weight) r -= items[w++].weight;
+    const [a0, a1] = bounds[w];
+    const target = a0 + (a1 - a0) * (0.15 + rand() * 0.7); // 칸 경계에 걸리지 않게 가운데 70% 안
     const current = ((rotation % 360) + 360) % 360;
-    const delta = (360 - target - current + 720) % 360;
+    const delta = (((360 - target - current) % 360) + 360) % 360;
     pendingWinner.current = w;
     setWinner(null);
     setSpinning(true);
@@ -107,19 +157,13 @@ export default function Roulette() {
     const w = pendingWinner.current;
     if (w === null) return;
     setWinner(w);
-    setHistory((h) => [items[w], ...h].slice(0, 10));
+    setHistory((h) => [items[w].name, ...h].slice(0, 10));
   };
 
-  const removeWinnerAndReset = () => {
-    if (winner === null) return;
-    remove(winner);
-  };
-
-  const fontSize = n <= 6 ? 10 : n <= 10 ? 8.5 : n <= 16 ? 7 : 5.5;
   const maxChars = n <= 6 ? 8 : n <= 12 ? 7 : 6;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_320px] lg:items-start">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
       {/* 룰렛 */}
       <div className="flex flex-col items-center">
         <div className="relative w-full max-w-[440px]">
@@ -145,32 +189,38 @@ export default function Roulette() {
             >
               {items.map((item, i) => {
                 const c = colorOf(i, n);
-                const mid = (i + 0.5) * seg;
+                const [a0, a1] = bounds[i];
+                const size = a1 - a0;
+                const mid = (a0 + a1) / 2;
                 const [tx, ty] = polar(mid, R * 0.6);
                 const hit = winner === i;
+                // 칸이 좁을수록 글자를 작게, 너무 좁으면 생략 (목록에서 확인 가능)
+                const fontSize = Math.min(10, Math.max(4.5, size * 0.28));
                 return (
                   <g key={i}>
                     <path
-                      d={n === 1 ? "" : slicePath(i, n)}
+                      d={slicePath(a0, a1)}
                       fill={c.bg}
                       stroke="#15171c"
-                      strokeWidth={0.8}
+                      strokeWidth={n > 1 ? 0.8 : 0}
                       opacity={winner === null || hit ? 1 : 0.35}
                       style={{ transition: "opacity .3s" }}
                     />
-                    <text
-                      x={tx}
-                      y={ty}
-                      fill={c.fg}
-                      fontSize={fontSize}
-                      fontWeight={700}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      transform={`rotate(${mid} ${tx} ${ty})`}
-                      style={{ fontFamily: "'Nanum Gothic', sans-serif" }}
-                    >
-                      {short(item, maxChars)}
-                    </text>
+                    {size >= 7 && (
+                      <text
+                        x={tx}
+                        y={ty}
+                        fill={c.fg}
+                        fontSize={fontSize}
+                        fontWeight={700}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        transform={`rotate(${mid} ${tx} ${ty})`}
+                        style={{ fontFamily: "'Nanum Gothic', sans-serif" }}
+                      >
+                        {short(item.name, maxChars)}
+                      </text>
+                    )}
                   </g>
                 );
               })}
@@ -201,7 +251,7 @@ export default function Roulette() {
             <div className="roulette-pop">
               <div className="font-mono text-xs text-[#8B84FF]">당첨</div>
               <div className="mt-1 font-['Nanum_Gothic',sans-serif] text-3xl font-bold break-all text-white">
-                {items[winner]}
+                {items[winner].name}
               </div>
             </div>
           ) : (
@@ -223,7 +273,7 @@ export default function Roulette() {
             <button
               type="button"
               className={btn}
-              onClick={removeWinnerAndReset}
+              onClick={() => remove(winner)}
               disabled={spinning || n <= MIN}
             >
               당첨 항목 빼고 다시
@@ -239,26 +289,54 @@ export default function Roulette() {
             <span>
               항목 {n}/{MAX}
             </span>
-            <button
-              type="button"
-              disabled={spinning}
-              onClick={() => {
-                setItems(DEFAULT_ITEMS);
-                setWinner(null);
-              }}
-              className="cursor-pointer text-white/35 hover:text-white disabled:opacity-30"
-            >
-              초기화
-            </button>
+            <span className="flex gap-3">
+              {!equal && (
+                <button
+                  type="button"
+                  disabled={spinning}
+                  onClick={() => {
+                    setItems((prev) => prev.map((it) => ({ ...it, weight: 1 })));
+                    setWinner(null);
+                  }}
+                  className="cursor-pointer text-white/35 hover:text-white disabled:opacity-30"
+                >
+                  가중치 균등
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={spinning}
+                onClick={() => {
+                  setItems(DEFAULT_ITEMS);
+                  setWinner(null);
+                }}
+                className="cursor-pointer text-white/35 hover:text-white disabled:opacity-30"
+              >
+                초기화
+              </button>
+            </span>
           </div>
+
           <div className="flex gap-2">
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && add()}
               disabled={spinning || n >= MAX}
-              placeholder="이름 입력 (쉼표로 여러 개)"
+              placeholder="이름 (쉼표로 여러 개)"
               className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#15171c] px-3 py-2 font-['Nanum_Gothic',sans-serif] text-sm text-white placeholder:text-white/25 focus:border-[#6C63FF]/60 focus:outline-none"
+            />
+            <input
+              type="number"
+              min={1}
+              max={MAX_WEIGHT}
+              value={newWeight}
+              onChange={(e) => setNewWeight(e.target.value)}
+              onBlur={() => setNewWeight(String(clampWeight(Number(newWeight))))}
+              disabled={spinning}
+              aria-label="추가할 항목의 가중치"
+              title="가중치"
+              className="w-20 rounded-lg border border-white/10 bg-[#15171c] px-2 py-2 text-right font-mono text-sm text-white focus:border-[#6C63FF]/60 focus:outline-none"
             />
             <button
               type="button"
@@ -269,20 +347,53 @@ export default function Roulette() {
               추가
             </button>
           </div>
-          <ul className="mt-3 flex flex-wrap gap-1.5">
+          <p className="mt-1.5 font-mono text-[10px] text-white/30">
+            오른쪽 숫자가 가중치 · &quot;이름:300&quot;처럼 한 번에 넣어도 돼요
+          </p>
+
+          <ul className="mt-3 flex flex-col gap-1">
             {items.map((item, i) => (
               <li
-                key={`${item}-${i}`}
-                className="flex items-center gap-1 rounded-full py-1 pr-1 pl-3 font-['Nanum_Gothic',sans-serif] text-xs"
-                style={{ background: colorOf(i, n).bg, color: colorOf(i, n).fg }}
+                key={`${item.name}-${i}`}
+                className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${winner === i ? "bg-white/10" : ""}`}
               >
-                <span className="max-w-[9rem] truncate">{item}</span>
+                <span
+                  className="h-3 w-3 shrink-0 rounded-sm"
+                  style={{ background: colorOf(i, n).bg }}
+                />
+                <span className="min-w-0 flex-1 truncate font-['Nanum_Gothic',sans-serif] text-sm text-white/85">
+                  {item.name}
+                </span>
+                <span className="w-12 shrink-0 text-right font-mono text-[11px] text-white/35">
+                  {pct(item.weight, total)}%
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_WEIGHT}
+                  value={drafts[i] ?? item.weight}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setDrafts((d) => ({ ...d, [i]: v }));
+                    if (Number(v) >= 1) setWeight(i, Number(v));
+                  }}
+                  onBlur={() =>
+                    setDrafts((d) => {
+                      const rest = { ...d };
+                      delete rest[i];
+                      return rest;
+                    })
+                  }
+                  disabled={spinning}
+                  aria-label={`${item.name} 가중치`}
+                  className="w-20 shrink-0 rounded-md border border-white/10 bg-[#15171c] px-2 py-1 text-right font-mono text-xs text-white focus:border-[#6C63FF]/60 focus:outline-none"
+                />
                 <button
                   type="button"
                   onClick={() => remove(i)}
                   disabled={spinning}
-                  aria-label={`${item} 삭제`}
-                  className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full opacity-60 hover:bg-black/15 hover:opacity-100 disabled:cursor-not-allowed"
+                  aria-label={`${item.name} 삭제`}
+                  className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-xs text-white/40 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed"
                 >
                   ✕
                 </button>
