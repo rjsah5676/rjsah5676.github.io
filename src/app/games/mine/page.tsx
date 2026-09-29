@@ -342,9 +342,9 @@ export default function Minesweeper() {
           <div className="status-box">🚩 {remainingMines}</div>
         </div>
       </div>
-      <div className="grid">
+      <div className="mine-grid">
         {board.map((row, rIdx) => (
-          <div className="row" key={rIdx}>
+          <div className="mine-row" key={rIdx}>
             {row.map((cell, cIdx) => {
               const isHighlighted =
                 pressingCell &&
