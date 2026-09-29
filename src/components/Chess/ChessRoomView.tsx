@@ -15,6 +15,7 @@ import {
   claimTimeout,
   colorOf,
   joinAsPlayer,
+  startGame,
   joinAsSpectator,
   leaveRoom,
   liveClock,
@@ -338,7 +339,7 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Pro
 
   let status: React.ReactNode;
   if (room.status === "waiting") {
-    status = "상대를 기다리는 중…";
+    status = seatOpen ? "상대를 기다리는 중…" : "시작 대기 중";
   } else if (room.status === "ended") {
     const winner: Color | null = room.result === "1-0" ? "w" : room.result === "0-1" ? "b" : null;
     const head = winner ? `${COLOR_KO[winner]} 승리` : "무승부";
@@ -368,7 +369,7 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Pro
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <button type="button" onClick={exit} className={btn}>
-            ← {hostWaiting ? "방 닫기" : "로비"}
+            ← {hostWaiting ? "방 닫기" : me && room.status === "waiting" ? "나가기" : "로비"}
           </button>
           <span className="truncate font-['Nanum_Gothic',sans-serif] text-white/90">
             {room.name}
@@ -411,9 +412,30 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Pro
             />
             {room.status === "waiting" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-black/55 p-4 text-center">
-                <p className="font-['Nanum_Gothic',sans-serif] text-white">상대를 기다리는 중…</p>
-                {me ? (
+                {!seatOpen ? (
+                  room.hostUid === uid ? (
+                    <>
+                      <p className="font-['Nanum_Gothic',sans-serif] text-white">
+                        상대가 입장했습니다
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => run(startGame(roomId, uid))}
+                        className={primaryBtn}
+                      >
+                        ▶ 게임 시작
+                      </button>
+                    </>
+                  ) : (
+                    <p className="font-['Nanum_Gothic',sans-serif] text-white">
+                      방장이 시작하기를 기다리는 중…
+                    </p>
+                  )
+                ) : me ? (
                   <>
+                    <p className="font-['Nanum_Gothic',sans-serif] text-white">
+                      상대를 기다리는 중…
+                    </p>
                     <p className="font-mono text-xs text-white/60">
                       초대 링크를 보내거나 로비에서 참여를 기다리세요
                     </p>
@@ -422,7 +444,10 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Pro
                     </button>
                   </>
                 ) : (
-                  seatOpen && (
+                  <>
+                    <p className="font-['Nanum_Gothic',sans-serif] text-white">
+                      상대를 기다리는 중…
+                    </p>
                     <button
                       type="button"
                       onClick={() => run(joinAsPlayer(roomId, uid, nick))}
@@ -430,7 +455,7 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Pro
                     >
                       대국 참여하기
                     </button>
-                  )
+                  </>
                 )}
               </div>
             )}

@@ -169,7 +169,9 @@ export default function ChessBoard({ fen, orientation, canMove, lastMove, onMove
   return (
     <div
       ref={boardRef}
-      className="relative aspect-square w-full touch-none overflow-hidden rounded-lg shadow-[0_8px_30px_rgba(0,0,0,.45)] select-none [container-type:inline-size]"
+      className={`relative aspect-square w-full touch-none overflow-hidden rounded-lg shadow-[0_8px_30px_rgba(0,0,0,.45)] select-none [container-type:inline-size] ${
+        drag?.moved ? "cursor-grabbing [&_*]:cursor-grabbing" : ""
+      }`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -187,7 +189,13 @@ export default function ChessBoard({ fen, orientation, canMove, lastMove, onMove
             return (
               <div
                 key={sq}
-                className={`relative flex items-center justify-center ${light ? "bg-[#E9E6F7]" : "bg-[#8279C9]"}`}
+                className={`relative flex items-center justify-center ${light ? "bg-[#E9E6F7]" : "bg-[#8279C9]"} ${
+                  canMove && p && p.color === turn
+                    ? "cursor-grab"
+                    : isTarget
+                      ? "cursor-pointer"
+                      : ""
+                }`}
               >
                 {last.includes(sq) && <div className="absolute inset-0 bg-[#F5D94A]/45" />}
                 {selected === sq && <div className="absolute inset-0 bg-[#F5D94A]/65" />}

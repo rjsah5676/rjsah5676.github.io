@@ -301,8 +301,21 @@ export async function joinAsPlayer(roomId: string, uid: string, nick: string) {
     delete spectators[uid];
     tx.update(roomRef(roomId), {
       ...(seat === "w" ? { whiteUid: uid, whiteName: nick } : { blackUid: uid, blackName: nick }),
-      status: "playing",
       spectators,
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+/** 방장만 시작 가능. 두 자리가 다 찼을 때 백 시계부터 돌아감 */
+export async function startGame(roomId: string, uid: string) {
+  await runTransaction(db, async (tx) => {
+    const room = await readRoom(tx, roomId);
+    if (room.hostUid !== uid) throw new Error("방장만 시작할 수 있습니다.");
+    if (room.status !== "waiting") return;
+    if (!room.whiteUid || !room.blackUid) throw new Error("상대가 아직 입장하지 않았습니다.");
+    tx.update(roomRef(roomId), {
+      status: "playing",
       turnStartedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -339,7 +352,16 @@ export async function leaveRoom(room: ChessRoom, uid: string) {
     return;
   }
   if (room.status === "waiting") {
-    await updateDoc(roomRef(room.id), { status: "closed", updatedAt: serverTimestamp() });
+    // 방장이 나가면 방 닫힘, 참가자가 나가면 자리만 비움
+    await updateDoc(
+      roomRef(room.id),
+      room.hostUid === uid
+        ? { status: "closed", updatedAt: serverTimestamp() }
+        : {
+            ...(color === "w" ? { whiteUid: "", whiteName: "" } : { blackUid: "", blackName: "" }),
+            updatedAt: serverTimestamp(),
+          }
+    );
     await deleteDoc(presenceRef(room.id, uid)).catch(() => {});
   }
 }

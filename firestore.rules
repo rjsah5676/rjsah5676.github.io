@@ -101,14 +101,25 @@ service cloud.firestore {
       allow update: if signedIn() && specOk() && (
                       // 대국자: 좌석/방장 정보는 변경 불가
                       (isPlayerOf(resource.data)
-                        && !changed().hasAny(['hostUid', 'whiteUid', 'blackUid', 'createdAt']))
-                      // 대기방 빈 자리 착석 (본인 uid로만)
+                        && !changed().hasAny(['hostUid', 'whiteUid', 'blackUid', 'createdAt'])
+                        && !(resource.data.status == 'waiting' && request.resource.data.status == 'playing'
+                             && resource.data.hostUid != request.auth.uid))
+                      // 대기방 빈 자리 착석 (본인 uid로만, 시작은 방장이)
                       || (resource.data.status == 'waiting'
-                        && request.resource.data.status == 'playing'
-                        && changed().hasOnly(['whiteUid', 'whiteName', 'blackUid', 'blackName', 'status', 'turnStartedAt', 'updatedAt', 'spectators'])
+                        && request.resource.data.status == 'waiting'
+                        && changed().hasOnly(['whiteUid', 'whiteName', 'blackUid', 'blackName', 'updatedAt', 'spectators'])
                         && ((resource.data.whiteUid == '' && request.resource.data.whiteUid == request.auth.uid
                               && request.resource.data.blackUid == resource.data.blackUid)
                           || (resource.data.blackUid == '' && request.resource.data.blackUid == request.auth.uid
+                              && request.resource.data.whiteUid == resource.data.whiteUid)))
+                      // 대기방에서 참가자(방장 제외)가 자기 자리 비우고 나가기
+                      || (resource.data.status == 'waiting'
+                        && request.resource.data.status == 'waiting'
+                        && resource.data.hostUid != request.auth.uid
+                        && changed().hasOnly(['whiteUid', 'whiteName', 'blackUid', 'blackName', 'updatedAt'])
+                        && ((resource.data.whiteUid == request.auth.uid && request.resource.data.whiteUid == ''
+                              && request.resource.data.blackUid == resource.data.blackUid)
+                          || (resource.data.blackUid == request.auth.uid && request.resource.data.blackUid == ''
                               && request.resource.data.whiteUid == resource.data.whiteUid)))
                       // 관전자 입장/퇴장 (최대 2명)
                       || changed().hasOnly(['spectators'])
