@@ -60,7 +60,7 @@ export const teamProjects: Project[] = [
     gitLink: "https://github.com/rjsah5676/Tax-Investigation",
     title: "[영천시 세무조사 홈페이지]",
     desc: "세무 신고서 작성 및 조회기능을 제공하는 영천시 세무조사 웹 사이트 입니다.",
-    tech: ["JSP", "Spring", "Javascript", "MySQL"],
+    tech: ["JSP", "JDBC", "JavaScript", "MySQL"],
   },
 ];
 
@@ -73,14 +73,6 @@ export const personalProjects: Project[] = [
     desc: "실시간 채팅 음성채팅 제공 커뮤니티 사이트",
     tech: ["NextJS", "Express", "WebRTC", "TailWind", "MongoDB"],
     secondLink: "https://ohsori.my/",
-  },
-  {
-    idx: 3,
-    imgLink: yoriJoriImg,
-    gitLink: "https://github.com/rjsah5676/WebProject",
-    title: "음식 레시피 공유 사이트 [요리조리]",
-    desc: "음식 레시피를 공유하는 커뮤니티 웹 사이트입니다.",
-    tech: ["React", "NodeJS", "Ajax", "JQuery", "MongoDB"],
   },
   {
     idx: 4,
@@ -99,6 +91,14 @@ export const personalProjects: Project[] = [
     desc: "알고리즘을 배우기 위해 문제를 푼 사이트 입니다.",
     tech: ["C++", "Java", "Python"],
     secondLink: "https://solved.ac/profile/rjsah5676",
+  },
+  {
+    idx: 3,
+    imgLink: yoriJoriImg,
+    gitLink: "https://github.com/rjsah5676/WebProject",
+    title: "음식 레시피 공유 사이트 [요리조리]",
+    desc: "음식 레시피를 공유하는 커뮤니티 웹 사이트입니다.",
+    tech: ["React", "NodeJS", "Ajax", "JQuery", "MongoDB"],
   },
 ];
 

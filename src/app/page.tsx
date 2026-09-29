@@ -5,6 +5,7 @@ import acmicpcIcon from "@/img/Page/info/acmicpc_small.png";
 import mimyoIcon from "@/img/Page/info/mimyo/mimyo_logo.jpg";
 import meImg from "@/img/Page/info/me.webp";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
+import SiteLinks, { type SiteLink } from "@/components/SiteLinks";
 
 // 검색엔진용 구조화 데이터 (사람/웹사이트 정보)
 const jsonLd = {
@@ -46,10 +47,10 @@ const tech = [
   { label: "Database", value: "MySQL, MongoDB, FireStore" },
 ];
 
-const sites = [
+const sites: SiteLink[] = [
   { icon: githubIcon, label: "GitHub", href: "https://github.com/rjsah5676" },
   { icon: acmicpcIcon, label: "BAEKJOON", href: "https://www.acmicpc.net/user/rjsah5676" },
-  { icon: ohsoriIcon, label: "Oh! Sori", href: "https://ohsori.my/" },
+  { icon: ohsoriIcon, label: "Oh! Sori", href: "https://ohsori.my/", unavailable: true },
   {
     icon: mimyoIcon,
     label: "MIMYO",
@@ -109,19 +110,7 @@ export default function Home() {
 
         <div className="mt-16">
           <h3 className="mb-4 font-mono text-sm text-[#8B84FF]">site</h3>
-          <div className="flex flex-wrap gap-3">
-            {sites.map((site) => (
-              <a
-                key={site.label}
-                href={site.href}
-                target="_blank"
-                className="flex items-center gap-2 rounded-full border border-white/10 py-2 pr-4 pl-2 font-mono text-sm text-white/70 transition-colors hover:border-[#6C63FF]/50 hover:text-white"
-              >
-                <img src={site.icon.src} alt="" className="h-5 w-5 rounded-full object-cover" />
-                {site.label}
-              </a>
-            ))}
-          </div>
+          <SiteLinks sites={sites} />
         </div>
       </div>
     </Faded>
