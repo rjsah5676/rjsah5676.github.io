@@ -131,18 +131,18 @@ export default function Nav() {
         />
 
         <DropdownNavItem
-          href="/random/ladder"
-          label="random"
+          href="/tools/ladder"
+          label="tools"
           items={[
-            { href: "/random/ladder", label: "사다리타기" },
-            { href: "/random/roulette", label: "룰렛" },
+            { href: "/tools/ladder", label: "사다리타기" },
+            { href: "/tools/roulette", label: "룰렛" },
           ]}
         />
 
         <DropdownNavItem
           href="/devtools/json"
           label="devtools"
-          items={[{ href: "/devtools/json", label: "JSON 포매터" }]}
+          items={[{ href: "/devtools/json", label: "JSON Formatter" }]}
         />
       </div>
     </nav>

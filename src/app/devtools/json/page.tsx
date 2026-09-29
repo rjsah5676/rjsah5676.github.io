@@ -197,7 +197,7 @@ export default function JsonFormatterPage() {
       <div className="mx-auto max-w-6xl px-4 pt-12 pb-24 sm:px-6">
         <div className="mb-6">
           <div className="font-mono text-sm text-[#8B84FF]">devtools</div>
-          <h1 className="mt-1 font-mono text-2xl font-bold text-white">JSON 포매터</h1>
+          <h1 className="mt-1 font-mono text-2xl font-bold text-white">JSON Formatter</h1>
           <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/45">
             붙여넣으면 바로 정렬·검사합니다. 모든 처리는 브라우저 안에서만 이뤄져요.
           </p>
