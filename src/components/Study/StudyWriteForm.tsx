@@ -120,7 +120,8 @@ export default function StudyWriteForm() {
           modules={{
             toolbar: [
               [{ header: [1, 2, false] }],
-              ["bold", "italic", "underline", "strike"],
+              ["bold", "italic", "underline", "strike", "code"],
+              ["blockquote", "code-block"],
               ["link", "image"],
               [{ list: "ordered" }, { list: "bullet" }],
               ["clean"],

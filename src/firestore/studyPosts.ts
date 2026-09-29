@@ -92,6 +92,12 @@ export function getAllStudyPosts(): Promise<StudyPost[]> {
   return allPostsPromise;
 }
 
+// 캐시(메모) 없이 항상 서버에서 새로 조회 — 관리자 일괄 작업용
+export async function fetchStudyPostsLive(): Promise<StudyPost[]> {
+  const snapshot = await getDocsFromServer(collection(db, COLLECTION));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as StudyPost);
+}
+
 export async function getStudyPost(id: string): Promise<StudyPost | null> {
   const snapshot = await getDoc(doc(db, COLLECTION, id));
   return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as StudyPost) : null;

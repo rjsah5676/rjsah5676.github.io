@@ -16,6 +16,104 @@
   margin-bottom: 1rem;
 }
 
+/* 글 본문 타이포그래피 — Tailwind preflight가 제목·목록 스타일을 지워서 Quill 출력에 맞춰 다시 지정.
+   Quill 2는 목록을 <ol><li data-list="bullet|ordered"><span class="ql-ui"/>…로,
+   코드 블록을 .ql-code-block-container로 저장함 (예전 <ul>/<pre> 글도 같이 대응) */
+.quill-content h1,
+.quill-content h2 {
+  margin: 2.4rem 0 0.9rem;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.quill-content h1 {
+  font-size: 1.5rem;
+}
+.quill-content h2 {
+  font-size: 1.2rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.quill-content > :first-child {
+  margin-top: 0;
+}
+.quill-content strong {
+  color: #fff;
+}
+.quill-content a {
+  color: #8b84ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.quill-content blockquote {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid #6c63ff;
+  color: rgba(255, 255, 255, 0.6);
+}
+.quill-content code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: rgba(108, 99, 255, 0.14);
+  color: #c9c5ff;
+  font-family: "JetBrains Mono", "Nanum Gothic Coding", ui-monospace, monospace;
+  font-size: 0.88em;
+}
+.quill-content pre,
+.quill-content .ql-code-block-container {
+  margin: 1.2rem 0;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: #16171c;
+  color: #e7e7ea;
+  font-family: "JetBrains Mono", "Nanum Gothic Coding", ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre;
+}
+.quill-content .ql-code-block {
+  white-space: pre;
+}
+.quill-content ol,
+.quill-content ul {
+  margin: 0.4rem 0 1.1rem;
+  padding-left: 1.4rem;
+  counter-reset: ql-list;
+}
+.quill-content li {
+  margin: 0.3rem 0;
+}
+.quill-content ul > li {
+  list-style: disc;
+}
+.quill-content ol > li:not([data-list]) {
+  list-style: decimal;
+}
+.quill-content li[data-list] {
+  position: relative;
+  list-style: none;
+}
+.quill-content li[data-list="ordered"] {
+  counter-increment: ql-list;
+}
+.quill-content li[data-list] > .ql-ui {
+  position: absolute;
+  left: -1.4rem;
+  width: 1.1rem;
+  text-align: right;
+  color: #8b84ff;
+}
+.quill-content li[data-list="bullet"] > .ql-ui::before {
+  content: "•";
+}
+.quill-content li[data-list="ordered"] > .ql-ui::before {
+  content: counter(ql-list) ".";
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.85em;
+}
+
 /* react-quill의 기본 snow 테마가 흰 배경이라 다크 사이트랑 안 맞아서 오버라이드.
    Quill 내부 클래스라 Tailwind로 못 건드림. */
 .quill-dark .ql-toolbar {
