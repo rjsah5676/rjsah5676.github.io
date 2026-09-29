@@ -1,12 +1,8 @@
-:HL["/_next/static/chunks/02uj8nzdg27ik.css","style"]
+:HL["/_next/static/chunks/3podce4c7mg3k.css","style"]
 :HL["https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap","style"]
 :HL["https://fonts.googleapis.com/css2?family=Jua&display=swap","style"]
 :HL["https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap","style"]
 :HL["https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap","style"]
 :HL["/_next/static/media/github.416pdeob057z9.png","image"]
 :HL["/_next/static/media/me.3lmixl4ubo2tj.webp","image"]
-:HL["/_next/static/media/github.3l_f4wa3ye5e_.png","image"]
-:HL["/_next/static/media/acmicpc_small.2940v5fydzarp.png","image"]
-:HL["/_next/static/media/ohsori.2wmiiiw0w8y8s.png","image"]
-:HL["/_next/static/media/mimyo_logo.0_jvtmx5pxthj.jpg","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"xy94cC5cGMYMAMI25ZWU6"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"BNWIPZvV5vvsEfr3bLuBr"}
