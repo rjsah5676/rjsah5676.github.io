@@ -197,7 +197,9 @@ export default function Ladder() {
     });
   }, [width, rungs, names, n, height]);
 
-  const endOf = (i: number) => paths[i]?.end ?? -1;
+  // 도착 칸은 화면 폭과 무관하게 사다리 구조만으로 계산 (폭이 잠깐 0이 돼도 결과가 사라지지 않게)
+  const ends = useMemo(() => names.map((_, i) => trace(i, rungs).end), [names, rungs]);
+  const endOf = (i: number) => (rungs.length ? ends[i] : -1);
   // 도착 칸 → 그 칸에 도착한 출발 번호 (공개된 것만)
   const arrivedBy = new Map<number, number>();
   revealed.forEach((i) => arrivedBy.set(endOf(i), i));

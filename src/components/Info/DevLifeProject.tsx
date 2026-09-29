@@ -20,6 +20,8 @@ import archiveImg from "@/img/Page/info/devlife/archive.webp";
 import melonImg from "@/img/Page/info/devlife/melon.webp";
 import mineImg from "@/img/Page/info/devlife/mine.webp";
 import chessImg from "@/img/Page/info/devlife/chess.webp";
+import ladderImg from "@/img/Page/info/devlife/ladder.webp";
+import rouletteImg from "@/img/Page/info/devlife/roulette.webp";
 import mobileImg from "@/img/Page/info/devlife/mobile.webp";
 
 // ───────────────────────── 데이터 ─────────────────────────
@@ -28,7 +30,7 @@ const STATS = [
   { value: "2021", label: "운영 시작" },
   { value: "140+", label: "커밋" },
   { value: "65", label: "TS 파일" },
-  { value: "5", label: "미니게임" },
+  { value: "7", label: "게임 · 도구" },
 ];
 
 const STACK: { group: string; items: string[] }[] = [
@@ -70,7 +72,7 @@ const FEATURES: Feature[] = [
       "멜론 게임: Canvas 기반 드래그 퍼즐(합 10·20), 2분 타임어택, BGM·효과음, 랭킹",
       "지뢰찾기: 지뢰 99개 고급 난이도, 첫 클릭 주변 안전 보장, 모바일 길게 누르기 지원",
       "반응속도 테스트: 5회 평균 측정 및 랭킹",
-      "스케치 퀴즈: 닉네임·방·채팅까지 구현 (그림판 미완성)",
+      "모바일 대응: 멜론 게임은 진입 시 화면 폭으로 배율 고정 + 터치 드래그",
       "온라인 체스: 방을 만들어 실시간 대국 (아래에서 따로 소개)",
     ],
     images: [
@@ -90,18 +92,41 @@ const FEATURES: Feature[] = [
     images: [{ img: chessImg, alt: "온라인 체스" }],
   },
   {
+    title: "도구 (tools · devtools)",
+    items: [
+      "사다리타기: 당첨 1명·순서 정하기·직접 입력, 결과 가리기, 이름 눌러 타기·전체 결과 보기",
+      "사다리는 가까운 칸으로 내려올 확률이 높아서, 결과 칸 위치를 매번 섞어 누구든 확률 1/n로 맞춤",
+      "룰렛: 항목별 가중치(칸 크기·당첨 확률 비례), 결과를 먼저 뽑고 그 칸에 멈추도록 회전량 계산",
+      "JSON Formatter: 정렬·압축·키 정렬, 오류 위치(줄·칸) 표시, 16자리 이상 정수 정밀도 경고",
+      "난수는 crypto.getRandomValues 기반으로 모듈로 편향 없이 추출",
+    ],
+    images: [
+      { img: ladderImg, alt: "사다리타기" },
+      { img: rouletteImg, alt: "룰렛" },
+    ],
+  },
+  {
     title: "개인공부 · 아카이브",
     items: [
       "관리자 로그인(Firebase Auth) 후 React Quill 에디터로 글 작성·수정·삭제",
-      "개인공부 글은 빌드 시 글마다 정적 페이지로 생성해 검색엔진에 노출",
+      "개인공부 글은 빌드 시 글마다 정적 페이지로 생성해 검색엔진에 노출, 제목·본문 검색",
       "아카이브: 사이트 변경 이력·프로젝트·실무를 타임라인으로 기록, 분류 필터·정렬·더보기",
     ],
     images: [{ img: archiveImg, alt: "아카이브" }],
   },
   {
+    title: "관리자 대시보드 · 문의",
+    items: [
+      "문의함: 실시간 목록, 읽음·안 읽음 관리, 메일 답장(원문 인용), 삭제",
+      "개인공부 글 관리(작성·수정·삭제), 방명록·일괄 등록·Firebase 콘솔 바로가기",
+      "문의는 보안 규칙으로 필드·길이·이메일 형식·서버 시각을 검증하고 조회는 관리자만 허용",
+    ],
+  },
+  {
     title: "방명록 · 방문자 · 공통 UI",
     items: [
-      "Firestore 방명록, 푸터 방문자 수(Today/Total)·달력·시계 위젯",
+      "방명록: 포스트잇 보드(손글씨 폰트·색 선택·기울어진 카드), 실시간 반영, 관리자 삭제",
+      "푸터 방문자 수(Today/Total)·달력·시계 위젯",
       "방문자 수는 브라우저당 하루 1회 집계, 보안 규칙으로 +1 증가만 허용",
       "플로팅 퀵메뉴(문의하기 → 관리자 대시보드 문의함), 드래그 가능한 명함(Contact) 모달, 공통 모달(ESC·뒤로가기로 닫기)",
       "모바일 반응형 대응",
@@ -155,6 +180,29 @@ const RENEWAL: { title: string; items: string[] }[] = [
 
 const TROUBLES: Trouble[] = [
   {
+    title: "모바일에서 지뢰찾기 첫 탭에 페이지가 죽음",
+    problem: "세로 화면에서 칸을 누르는 순간 'This page couldn't load'가 뜸",
+    cause:
+      "정적 빌드 때문에 첫 렌더는 가로(20x24) 기준으로 상태 배열을 만들고, 마운트 후 세로(24x20) 크기로 지뢰를 깔아 존재하지 않는 행을 읽음",
+    solution:
+      "판 크기를 상태로 관리하고 게임 시작 전에만 화면 방향에 맞춰 빈 판과 함께 다시 만들도록 변경",
+  },
+  {
+    title: "모바일에서 멜론 게임이 거의 원본 크기로 보임",
+    problem: "화면 폭에 맞춰 축소하도록 했는데 폰에서는 게임판이 화면 밖으로 넘침",
+    cause:
+      "1030px 캔버스가 먼저 그려지면서 모바일 브라우저가 레이아웃 폭을 넓혀버려, window.innerWidth가 실제 화면보다 큰 값으로 나옴",
+    solution:
+      "overflow:hidden 컨테이너의 폭으로 최초 1회 배율을 정해 transform으로 축소하고, 좌표는 캔버스 표시 크기 기준으로 환산해 포인터(터치) 이벤트로 처리",
+  },
+  {
+    title: "룰렛을 두 번째 돌리면 회전이 순식간에 끝남",
+    problem: "두 번째 판부터 회전이 확 빨라지고 최근 결과가 한 번에 여러 개 쌓임",
+    cause:
+      "당첨 강조를 풀 때 각 칸의 opacity 전환이 끝나며 발생한 transitionend가 휠까지 버블링돼 '회전 끝'으로 처리됨",
+    solution: "이벤트 대상이 휠 자신이고 속성이 transform일 때만 회전 종료로 처리",
+  },
+  {
     title: "체스 대국 중 남은 시간이 오히려 늘어남",
     problem: "3분+2초 대국에서 3수만 뒀는데 남은 시간이 3:29로 표시됨",
     cause:
@@ -205,7 +253,10 @@ const HISTORY = [
   { date: "2024.12", text: "프로젝트 상세·소개·방명록·아카이브 페이지 구성" },
   { date: "2025.01", text: "사이트 전면 리디자인, 퀵메뉴·Contact 모달 추가" },
   { date: "2025.05", text: "개인공부 게시판, 지뢰찾기 추가" },
-  { date: "2026.09", text: "Next.js · TypeScript 전면 리뉴얼, SEO·배포 자동화, 온라인 체스 추가" },
+  {
+    date: "2026.09",
+    text: "Next.js · TypeScript 전면 리뉴얼, SEO·배포 자동화, 온라인 체스·도구·관리자 대시보드 추가",
+  },
 ];
 
 // ───────────────────────── 페이지 ─────────────────────────
@@ -277,7 +328,7 @@ export default function DevLifeProject() {
             <FlowBox title="정적 페이지" sub="HTML · JS · 이미지" />
             <Arrow />
             <div className="grid grid-cols-2 gap-2">
-              <FlowBox title="Firestore" sub="방명록 · 랭킹 · 방문자 · 글 저장 · 체스 대국" />
+              <FlowBox title="Firestore" sub="방명록 · 랭킹 · 방문자 · 글 · 체스 대국 · 문의" />
               <FlowBox title="Auth" sub="관리자 로그인 · 체스 익명 로그인" />
             </div>
           </div>

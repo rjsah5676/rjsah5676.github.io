@@ -34,6 +34,10 @@ const btn =
 const primaryBtn =
   "cursor-pointer rounded-full bg-[#6C63FF] px-6 py-2.5 font-mono text-sm whitespace-nowrap text-white transition-colors hover:bg-[#5b52f0] disabled:cursor-not-allowed disabled:opacity-40";
 
+// 숫자 입력칸의 위아래 화살표(스피너) 숨김
+const noSpin =
+  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
 const R = 96; // viewBox 200 기준 반지름
 const polar = (deg: number, r: number) => {
   // 0도 = 12시 방향, 시계방향
@@ -151,7 +155,10 @@ export default function Roulette() {
     setRotation(rotation + 360 * 7 + delta);
   };
 
-  const onSpinEnd = () => {
+  const onSpinEnd = (e: React.TransitionEvent<SVGSVGElement>) => {
+    // 칸들의 opacity 전환(당첨 강조 해제) 이벤트도 여기까지 올라오므로 휠 자체 회전 끝만 처리.
+    // (안 거르면 두 번째 판부터 0.3초 만에 "멈춤" 처리돼 회전이 확 빨라 보였음)
+    if (e.target !== e.currentTarget || e.propertyName !== "transform") return;
     if (!spinning) return;
     setSpinning(false);
     const w = pendingWinner.current;
@@ -328,6 +335,7 @@ export default function Roulette() {
             />
             <input
               type="number"
+              inputMode="numeric"
               min={1}
               max={MAX_WEIGHT}
               value={newWeight}
@@ -336,7 +344,7 @@ export default function Roulette() {
               disabled={spinning}
               aria-label="추가할 항목의 가중치"
               title="가중치"
-              className="w-20 rounded-lg border border-white/10 bg-[#15171c] px-2 py-2 text-right font-mono text-sm text-white focus:border-[#6C63FF]/60 focus:outline-none"
+              className={`w-20 rounded-lg border border-white/10 bg-[#15171c] px-2 py-2 text-center font-mono text-sm text-white focus:border-[#6C63FF]/60 focus:outline-none ${noSpin}`}
             />
             <button
               type="button"
@@ -369,6 +377,7 @@ export default function Roulette() {
                 </span>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min={1}
                   max={MAX_WEIGHT}
                   value={drafts[i] ?? item.weight}
@@ -386,7 +395,7 @@ export default function Roulette() {
                   }
                   disabled={spinning}
                   aria-label={`${item.name} 가중치`}
-                  className="w-20 shrink-0 rounded-md border border-white/10 bg-[#15171c] px-2 py-1 text-right font-mono text-xs text-white focus:border-[#6C63FF]/60 focus:outline-none"
+                  className={`w-20 shrink-0 rounded-md border border-white/10 bg-[#15171c] px-2 py-1 text-center font-mono text-xs text-white focus:border-[#6C63FF]/60 focus:outline-none ${noSpin}`}
                 />
                 <button
                   type="button"
