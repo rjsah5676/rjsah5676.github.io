@@ -37,6 +37,7 @@ export function useDraggableContactModal() {
     };
 
     const onMouseDown = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
       dragging = true;
       startX = e.clientX;
       startY = e.clientY;

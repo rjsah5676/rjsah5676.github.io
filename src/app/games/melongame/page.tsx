@@ -598,7 +598,7 @@ export default function MelonGamePage() {
       <div className="mb-4 px-4 pt-4 text-center font-mono text-xs text-white/30">
         화면 크기에 맞춰 게임 화면이 자동으로 축소됩니다
       </div>
-      <div id="melon-wrap" style={{ zoom: scale, marginBottom: "800px" }}>
+      <div id="melon-wrap" className="select-none" style={{ zoom: scale, marginBottom: "800px" }}>
         <div id="melon-container">
           <div id="rankBox">
             <div id="rank-title">랭킹</div>
