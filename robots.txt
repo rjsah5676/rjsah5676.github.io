@@ -2,5 +2,6 @@ User-Agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /study/write/
+Disallow: /study/import/
 
 Sitemap: https://rjsah5676.github.io/sitemap.xml
