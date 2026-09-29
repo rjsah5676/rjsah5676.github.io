@@ -54,41 +54,45 @@ function Note({
   onDelete?: () => void;
 }) {
   return (
-    <article
-      style={
-        {
-          "--r": `${tiltOf(entry.id)}deg`,
-          background: NOTE_BG[colorOf(entry)],
-        } as React.CSSProperties
-      }
-      className={`group relative mb-6 break-inside-avoid rounded-[3px] px-5 pt-7 pb-4 text-[#2b2833] shadow-[0_12px_24px_-8px_rgba(0,0,0,.6)] transition-transform duration-300 [transform:rotate(var(--r))] hover:z-10 hover:[transform:rotate(0deg)_translateY(-4px)_scale(1.02)] ${
-        isNew ? "note-drop" : ""
-      }`}
-    >
-      {/* 마스킹 테이프 */}
-      <span className="absolute -top-2.5 left-1/2 h-5 w-16 -translate-x-1/2 -rotate-3 bg-white/40 shadow-[0_1px_2px_rgba(0,0,0,.15)]" />
-      {/* 접힌 모서리 */}
-      <span className="absolute right-0 bottom-0 h-5 w-5 bg-[linear-gradient(135deg,transparent_50%,rgba(0,0,0,.12)_50%)]" />
+    // 테이프·그림자가 메모 밖으로 삐져나와서, 다단(columns) 경계에서 잘린 조각이
+    // 이전 열 맨 아래에 남지 않도록 여백까지 포함한 래퍼 단위로 열을 나눔
+    <div className="inline-block w-full break-inside-avoid pt-3 pb-7">
+      <article
+        style={
+          {
+            "--r": `${tiltOf(entry.id)}deg`,
+            background: NOTE_BG[colorOf(entry)],
+          } as React.CSSProperties
+        }
+        className={`group relative rounded-[3px] px-5 pt-7 pb-4 text-[#2b2833] shadow-[0_12px_24px_-8px_rgba(0,0,0,.6)] transition-transform duration-300 [transform:rotate(var(--r))] hover:z-10 hover:[transform:rotate(0deg)_translateY(-4px)_scale(1.02)] ${
+          isNew ? "note-drop" : ""
+        }`}
+      >
+        {/* 마스킹 테이프 */}
+        <span className="absolute -top-2.5 left-1/2 h-5 w-16 -translate-x-1/2 -rotate-3 bg-white/40 shadow-[0_1px_2px_rgba(0,0,0,.15)]" />
+        {/* 접힌 모서리 */}
+        <span className="absolute right-0 bottom-0 h-5 w-5 bg-[linear-gradient(135deg,transparent_50%,rgba(0,0,0,.12)_50%)]" />
 
-      {onDelete && (
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="메모 삭제"
-          className="absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/10 font-mono text-xs text-black/50 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-500 hover:text-white [@media(hover:none)]:opacity-100"
-        >
-          ✕
-        </button>
-      )}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="메모 삭제"
+            className="absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/10 font-mono text-xs text-black/50 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-500 hover:text-white [@media(hover:none)]:opacity-100"
+          >
+            ✕
+          </button>
+        )}
 
-      <p className={`${hand} text-[22px] leading-snug break-words whitespace-pre-wrap`}>
-        {entry.contents}
-      </p>
-      <div className="mt-3 flex items-end justify-between gap-3">
-        <span className={`${hand} truncate text-lg font-bold text-black/60`}>— {entry.name}</span>
-        <span className="shrink-0 font-mono text-[10px] text-black/35">{dateLabel(entry)}</span>
-      </div>
-    </article>
+        <p className={`${hand} text-[22px] leading-snug break-words whitespace-pre-wrap`}>
+          {entry.contents}
+        </p>
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <span className={`${hand} truncate text-lg font-bold text-black/60`}>— {entry.name}</span>
+          <span className="shrink-0 font-mono text-[10px] text-black/35">{dateLabel(entry)}</span>
+        </div>
+      </article>
+    </div>
   );
 }
 
