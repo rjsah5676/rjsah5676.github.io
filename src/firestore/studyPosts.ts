@@ -120,6 +120,11 @@ export async function updateStudyPost(
   await updateDoc(doc(db, COLLECTION, id), { title, content, category, date });
 }
 
+// 일괄 등록 페이지에서 기존 글(문서 id = URL 유지)의 작성일만 맞출 때
+export async function updateStudyPostDate(id: string, date: string): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), { date });
+}
+
 export async function deleteStudyPost(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
 }

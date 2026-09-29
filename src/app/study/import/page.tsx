@@ -9,19 +9,17 @@ import {
   addStudyPost,
   deleteStudyPost,
   fetchStudyPostsLive,
+  updateStudyPostDate,
   type StudyPost,
 } from "@/firestore/studyPosts";
-
-// 에디터(StudyWriteForm)와 같은 날짜 포맷
-const formatDate = (d: Date) =>
-  `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
 
 export default function StudyImportPage() {
   const { user, loading } = useAuth();
   const modal = useModal();
 
   const [existing, setExisting] = useState<StudyPost[] | null>(null);
-  const [replaceAll, setReplaceAll] = useState(true);
+  // 기본은 "동기화": 같은 제목은 작성일만 맞추고(문서 id·URL 유지), 없는 글만 추가
+  const [replaceAll, setReplaceAll] = useState(false);
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<string[]>([]);
 
@@ -39,15 +37,22 @@ export default function StudyImportPage() {
     if (user) refresh();
   }, [user, refresh]);
 
-  const existingTitles = new Set((existing ?? []).map((p) => p.title));
+  const existingByTitle = new Map((existing ?? []).map((p) => [p.title, p]));
+  const existingTitles = new Set(existingByTitle.keys());
   const toAdd = replaceAll ? STUDY_SEED : STUDY_SEED.filter((s) => !existingTitles.has(s.title));
+  const toRedate = replaceAll
+    ? []
+    : STUDY_SEED.flatMap((s) => {
+        const cur = existingByTitle.get(s.title);
+        return cur && cur.date !== s.date ? [{ id: cur.id, title: s.title, date: s.date }] : [];
+      });
 
   const run = async () => {
     const ok = await modal.confirm({
       title: "일괄 등록",
       message: replaceAll
         ? `기존 글 ${existing?.length ?? 0}개를 모두 삭제하고 ${STUDY_SEED.length}개를 새로 등록합니다. 삭제한 글은 복구할 수 없습니다.`
-        : `같은 제목이 없는 ${toAdd.length}개를 등록합니다.`,
+        : `새 글 ${toAdd.length}개를 등록하고, 기존 글 ${toRedate.length}개의 작성일을 맞춥니다. (기존 글 주소는 그대로 유지)`,
       confirmText: replaceAll ? "삭제 후 등록" : "등록",
     });
     if (!ok) return;
@@ -61,12 +66,13 @@ export default function StudyImportPage() {
           write(`삭제  ${p.title}`);
         }
       }
-      // 목록 첫 번째 글이 가장 최신으로 보이도록 1분씩 차이를 둠
-      const base = Date.now();
-      for (let i = 0; i < toAdd.length; i++) {
-        const s = toAdd[i];
-        await addStudyPost({ ...s, date: formatDate(new Date(base - i * 60_000)) });
-        write(`등록  [${s.category}] ${s.title}`);
+      for (const r of toRedate) {
+        await updateStudyPostDate(r.id, r.date);
+        write(`날짜  ${r.date}  ${r.title}`);
+      }
+      for (const s of toAdd) {
+        await addStudyPost(s);
+        write(`등록  ${s.date}  [${s.category}] ${s.title}`);
       }
       write("완료");
       await refresh();
@@ -117,6 +123,9 @@ export default function StudyImportPage() {
               <span className="flex-1 truncate font-['Nanum_Gothic',sans-serif] text-white/80">
                 {s.title}
               </span>
+              <span className="hidden flex-shrink-0 font-mono text-[11px] text-white/35 sm:inline">
+                {s.date.split(" ")[0]}
+              </span>
               {dup && <span className="font-mono text-[11px] text-amber-300/70">이미 있음</span>}
             </li>
           );
@@ -130,16 +139,21 @@ export default function StudyImportPage() {
           onChange={(e) => setReplaceAll(e.target.checked)}
           className="h-4 w-4 accent-[#6C63FF]"
         />
-        기존 글을 모두 삭제하고 등록 (해제하면 같은 제목은 건너뜀)
+        기존 글을 모두 삭제하고 새로 등록 (글 주소가 바뀌니 주의, 해제하면 같은 제목은 작성일만
+        맞춤)
       </label>
 
       <button
         type="button"
-        disabled={running || existing === null || toAdd.length === 0}
+        disabled={running || existing === null || (toAdd.length === 0 && toRedate.length === 0)}
         onClick={run}
         className="cursor-pointer rounded-full bg-[#6C63FF] px-6 py-2.5 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0] disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {running ? "진행 중…" : replaceAll ? "삭제 후 등록" : `${toAdd.length}개 등록`}
+        {running
+          ? "진행 중…"
+          : replaceAll
+            ? "삭제 후 등록"
+            : `${toAdd.length}개 등록 · ${toRedate.length}개 날짜 맞춤`}
       </button>
 
       {log.length > 0 && (
