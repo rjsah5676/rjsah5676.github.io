@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { STUDY_CATEGORIES, type StudyPostListItem } from "@/firestore/studyPosts";
-import WriteButton from "@/components/Study/WriteButton";
 
 const isCategory = (v: string | null): v is string =>
   !!v && (STUDY_CATEGORIES as readonly string[]).includes(v);
@@ -177,8 +176,6 @@ export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) 
           );
         })}
       </section>
-
-      <WriteButton />
     </div>
   );
 }

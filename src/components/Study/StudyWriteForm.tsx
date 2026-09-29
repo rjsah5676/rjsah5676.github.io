@@ -31,7 +31,7 @@ export default function StudyWriteForm() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/admin/login");
+      router.replace("/admin/login/");
     }
   }, [loading, user, router]);
 
@@ -46,7 +46,7 @@ export default function StudyWriteForm() {
             setContent(post.content);
           } else {
             alert("글을 찾을 수 없습니다.");
-            router.replace("/study");
+            router.replace("/admin/?tab=posts");
           }
         } catch (err) {
           console.error(err);
@@ -75,7 +75,7 @@ export default function StudyWriteForm() {
         alert("글이 저장되었습니다! 사이트 반영은 재배포 후 적용됩니다.");
       }
 
-      router.push("/study/");
+      router.push("/admin/?tab=posts");
     } catch (err) {
       console.error(err);
       alert("저장 중 오류 발생");

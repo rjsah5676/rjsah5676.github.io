@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useModal } from "@/components/Modal/ModalProvider";
+import InquiryModal from "@/components/InquiryModal";
 
 // 플로팅 버튼 아이콘 (색은 CSS의 color를 따라감)
 const svg = (body: string, extra = "") =>
@@ -24,16 +24,14 @@ const ICONS = {
 
 export default function QuickMenu() {
   const router = useRouter();
-  const modal = useModal();
   const initialized = useRef(false);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
 
   // jQuery 이벤트 핸들러가 최신 값을 쓰도록 ref로 전달
   const routerRef = useRef(router);
-  const modalRef = useRef(modal);
   useEffect(() => {
     routerRef.current = router;
-    modalRef.current = modal;
-  }, [router, modal]);
+  }, [router]);
 
   useEffect(() => {
     // React 19 StrictMode(dev)는 effect를 두 번 실행하는데, jQuery로 만든 버튼들이
@@ -75,12 +73,7 @@ export default function QuickMenu() {
 
       const onHome = () => routerRef.current.push("/");
       const onUp = () => window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-      const onInquiry = () => {
-        modalRef.current.alert({
-          title: "문의하기",
-          message: "문의 기능은 아직 준비 중입니다. 조금만 기다려주세요!",
-        });
-      };
+      const onInquiry = () => setInquiryOpen(true);
 
       homeButton.addEventListener("click", onHome);
       upButton.addEventListener("click", onUp);
@@ -99,6 +92,7 @@ export default function QuickMenu() {
   return (
     <div className="fixed top-[85%] right-[5%] z-[99999] m-auto h-[52px] w-[52px] text-white sm:h-[70px] sm:w-[70px]">
       <div id="myMenu"></div>
+      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
     </div>
   );
 }
