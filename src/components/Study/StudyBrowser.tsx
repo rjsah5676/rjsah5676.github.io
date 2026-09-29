@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { STUDY_CATEGORIES, type StudyPostListItem } from "@/firestore/studyPosts";
@@ -9,6 +9,28 @@ import WriteButton from "@/components/Study/WriteButton";
 const isCategory = (v: string | null): v is string =>
   !!v && (STUDY_CATEGORIES as readonly string[]).includes(v);
 
+function PostCard({ post, showCategory }: { post: StudyPostListItem; showCategory?: boolean }) {
+  return (
+    <Link
+      href={`/study/${post.id}/`}
+      className="block rounded-xl border border-white/10 bg-[#1C1E24] p-5 transition-colors hover:border-[#6C63FF]/50"
+    >
+      <div className="mb-1 flex items-baseline justify-between gap-4">
+        <h2 className="truncate font-mono font-medium text-white">{post.title}</h2>
+        <span className="flex-shrink-0 font-mono text-xs text-white/30">
+          {showCategory && <span className="mr-2 text-[#8B84FF]/70">{post.category}</span>}
+          {post.date?.split(" ")[0]}
+        </span>
+      </div>
+      {post.excerpt && (
+        <p className="line-clamp-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/50">
+          {post.excerpt}
+        </p>
+      )}
+    </Link>
+  );
+}
+
 // 목록 데이터는 빌드 시점에 받아온 것(정적) — 새 글은 재배포 후 반영됨.
 // useSearchParams를 쓰면 정적 export에서 이 컴포넌트 전체가 클라이언트 렌더링으로 빠져서
 // HTML에 글 링크가 안 남음(SEO 손해) -> ?category는 마운트 후 location에서 읽음
@@ -16,6 +38,16 @@ export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) 
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string>(STUDY_CATEGORIES[0]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [q, setQ] = useState("");
+
+  // 공백으로 나눈 단어가 모두 들어있는 글 (제목·분류·본문)
+  const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const results = useMemo(
+    () => (terms.length ? posts.filter((p) => terms.every((t) => p.searchText.includes(t))) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- terms는 q에서 파생
+    [posts, q]
+  );
+  const searching = terms.length > 0;
 
   useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("category");
@@ -77,11 +109,56 @@ export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) 
       </nav>
 
       <section className="min-w-0 flex-1">
+        <div className="relative mb-8">
+          <input
+            type="text"
+            inputMode="search"
+            enterKeyHint="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setQ("")}
+            placeholder="글 검색 (제목·본문)"
+            aria-label="개인공부 글 검색"
+            className="w-full rounded-full border border-white/10 bg-[#1C1E24] py-2.5 pr-10 pl-5 font-['Nanum_Gothic',sans-serif] text-sm text-white placeholder:text-white/30 focus:border-[#6C63FF]/50 focus:outline-none"
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              aria-label="검색어 지우기"
+              className="absolute top-1/2 right-3 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full font-mono text-xs text-white/40 hover:bg-white/10 hover:text-white"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {searching && (
+          <div>
+            <h1 className="mb-6 font-mono text-xl font-bold text-white sm:text-2xl">
+              검색 결과 <span className="text-base text-white/40">{results.length}</span>
+            </h1>
+            {results.length === 0 ? (
+              <p className="font-['Nanum_Gothic',sans-serif] text-white/50">
+                &apos;{q.trim()}&apos;에 해당하는 글이 없습니다.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {results.map((post) => (
+                  <li key={post.id}>
+                    <PostCard post={post} showCategory />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* 크롤러가 모든 글 링크를 볼 수 있게 카테고리별 목록을 전부 렌더하고 선택된 것만 보여줌 */}
         {STUDY_CATEGORIES.map((cat) => {
           const categoryPosts = posts.filter((p) => p.category === cat);
           return (
-            <div key={cat} hidden={cat !== selectedCategory}>
+            <div key={cat} hidden={searching || cat !== selectedCategory}>
               <h1 className="mb-6 font-mono text-xl font-bold text-white sm:text-2xl">{cat}</h1>
               {categoryPosts.length === 0 ? (
                 <p className="font-['Nanum_Gothic',sans-serif] text-white/50">
@@ -91,24 +168,7 @@ export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) 
                 <ul className="flex flex-col gap-3">
                   {categoryPosts.map((post) => (
                     <li key={post.id}>
-                      <Link
-                        href={`/study/${post.id}/`}
-                        className="block rounded-xl border border-white/10 bg-[#1C1E24] p-5 transition-colors hover:border-[#6C63FF]/50"
-                      >
-                        <div className="mb-1 flex items-baseline justify-between gap-4">
-                          <h2 className="truncate font-mono font-medium text-white">
-                            {post.title}
-                          </h2>
-                          <span className="flex-shrink-0 font-mono text-xs text-white/30">
-                            {post.date?.split(" ")[0]}
-                          </span>
-                        </div>
-                        {post.excerpt && (
-                          <p className="line-clamp-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/50">
-                            {post.excerpt}
-                          </p>
-                        )}
-                      </Link>
+                      <PostCard post={post} />
                     </li>
                   ))}
                 </ul>

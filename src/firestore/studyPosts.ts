@@ -40,6 +40,8 @@ export interface StudyPostListItem {
   category: string;
   date: string;
   excerpt: string;
+  /** 목록 검색용 본문 평문 (제목·분류 포함, 소문자) */
+  searchText: string;
 }
 
 // 저장 포맷이 "2025-1-3 9:5" 같은 비정형 문자열이라 정렬/ISO 변환용으로 파싱 (KST 기준)
@@ -73,6 +75,7 @@ export function toListItem(post: StudyPost): StudyPostListItem {
     category: post.category,
     date: post.date,
     excerpt: toPlainText(post.content, 120),
+    searchText: `${post.title} ${post.category} ${toPlainText(post.content, 4000)}`.toLowerCase(),
   };
 }
 

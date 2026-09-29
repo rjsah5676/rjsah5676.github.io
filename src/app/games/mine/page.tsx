@@ -54,8 +54,12 @@ export default function Minesweeper() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const ROWS = isPortrait ? 24 : 20;
-  const COLS = isPortrait ? 20 : 24;
+  // 판 크기는 state로 들고, 게임 시작 전일 때만 화면 방향에 맞춰 바꾼다.
+  // (예전엔 isPortrait에서 바로 계산해서, 첫 렌더의 20x24 배열로 만든 state와
+  //  세로 화면의 24x20 크기가 어긋나 모바일에서 첫 탭에 크래시났음)
+  const [dims, setDims] = useState({ rows: 20, cols: 24 });
+  const ROWS = dims.rows;
+  const COLS = dims.cols;
   const MINES = 99;
 
   // new Audio(...)도 브라우저 API라 렌더 중이 아니라 ref에 지연 생성해서 사용.
@@ -79,6 +83,18 @@ export default function Minesweeper() {
   const [gameOver, setGameOver] = useState(false);
   const [win, setWin] = useState(false);
   const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (initialized) return; // 진행 중에는 회전해도 판 크기 유지
+    const next = isPortrait ? { rows: 24, cols: 20 } : { rows: 20, cols: 24 };
+    if (next.rows === dims.rows && next.cols === dims.cols) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- 화면 방향에 맞춰 빈 판을 다시 만듦 */
+    setDims(next);
+    setBoard(Array.from({ length: next.rows }, () => Array(next.cols).fill(0)));
+    setVisible(Array.from({ length: next.rows }, () => Array(next.cols).fill(false)));
+    setFlagged(Array.from({ length: next.rows }, () => Array(next.cols).fill(false)));
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [isPortrait, initialized, dims]);
   const [pressingCell, setPressingCell] = useState<{ row: number; col: number } | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timer, setTimer] = useState<number | string>(0);

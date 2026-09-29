@@ -28,53 +28,58 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // 지뢰찾기 랭킹
+    // 랭킹 공통: 이름 1~20자
+    function validRankName() {
+      return request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 20;
+    }
+
+    // 지뢰찾기 랭킹 (클리어 시간, 초) - 비정상적으로 빠른/느린 기록 차단
     match /minesweeper_rankings/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.name is string
-                    && request.resource.data.name.size() <= 20
-                    && request.resource.data.time is number;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'time'])
+                    && validRankName()
+                    && request.resource.data.time is number
+                    && request.resource.data.time >= 10
+                    && request.resource.data.time <= 86400;
       allow update, delete: if isAdmin();
     }
 
-    // 반응속도 게임 랭킹
+    // 반응속도 게임 랭킹 (5회 평균, ms) - 사람이 낼 수 없는 기록 차단
     match /reaction/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.name is string
-                    && request.resource.data.name.size() <= 20
-                    && request.resource.data.score is number;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'score'])
+                    && validRankName()
+                    && request.resource.data.score is number
+                    && request.resource.data.score >= 80
+                    && request.resource.data.score <= 10000;
       allow update, delete: if isAdmin();
     }
 
-    // 멜론게임 랭킹
+    // 멜론게임 랭킹 (지운 멜론 수, 판 전체가 21x12=252개)
     match /score/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.name is string
-                    && request.resource.data.name.size() <= 20
-                    && request.resource.data.score is number;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'score'])
+                    && validRankName()
+                    && request.resource.data.score is int
+                    && request.resource.data.score >= 0
+                    && request.resource.data.score <= 252;
       allow update, delete: if isAdmin();
     }
 
-    // 스케치 게임 (유저/방/채팅) - 게임 특성상 익명 참여가 기본
+    // 스케치 퀴즈 (메뉴에서 내림) - 기존 데이터 읽기만 허용, 새 쓰기는 차단
     match /sketch_user/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.name is string
-                    && request.resource.data.name.size() <= 10;
-      allow update, delete: if isAdmin();
+      allow write: if isAdmin();
     }
-
     match /sketch_user_room/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.roomname is string
-                    && request.resource.data.roomname.size() <= 20;
-      allow update, delete: if isAdmin();
+      allow write: if isAdmin();
     }
-
     match /sketch_user_chat/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.text is string
-                    && request.resource.data.text.size() <= 20;
-      allow update, delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
     // 온라인 체스 - 익명 Auth uid로 좌석 식별

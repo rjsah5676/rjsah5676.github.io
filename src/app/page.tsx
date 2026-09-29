@@ -98,10 +98,16 @@ export default function Home() {
           className="mb-10 h-56 w-full rounded-2xl border border-white/10 object-cover sm:h-72"
         />
 
-        <p className="mb-16 text-center font-['Nanum_Gothic',sans-serif] text-lg leading-relaxed text-white/80">
-          안녕하세요🖐 풀스택 개발자를 목표하는{" "}
-          <span className="font-medium text-white">이건모</span> 입니다.🙂
-        </p>
+        <div className="mb-16 text-center">
+          <p className="font-['Nanum_Gothic',sans-serif] text-lg leading-relaxed break-keep text-white/85 sm:text-xl">
+            화면부터 서버, 데이터베이스까지 직접 이어서 만드는
+            <br className="hidden sm:block" /> 풀스택 개발자{" "}
+            <span className="font-bold text-white">이건모</span>입니다.
+          </p>
+          <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed break-keep text-white/45">
+            문제는 원인까지 따라가서 고치고, 배운 것은 기록으로 남깁니다.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2">
           <InfoList title="profile" rows={profile} />

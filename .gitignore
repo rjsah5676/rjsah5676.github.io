@@ -26,3 +26,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# firebase cli 배포 캐시 / IDE 설정
+.firebase/
+.idea/

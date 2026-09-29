@@ -5,12 +5,12 @@
 #melon-wrap {
   position: relative;
   width: 1030px;
-  margin: 40px auto 0;
+  height: 700px;
 }
 
 #melon-container {
   display: flex;
-  width: 1030px;
+  width: 100%;
   margin-bottom: 30px;
   font-family: "Jua", serif;
 }
@@ -55,4 +55,27 @@
   padding-top: 30px;
   padding-left: 40px;
   padding-bottom: 5px;
+}
+
+/* 모바일: 랭킹/설명 박스는 축소 영역 밖이라 세로로 쌓아서 읽을 수 있게 */
+@media (max-width: 1062px) {
+  #melon-container {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  #rankBox,
+  #melon-box {
+    width: 100%;
+    margin-left: 0;
+  }
+  #rank-title,
+  #melon-title {
+    font-size: 19px;
+    padding-left: 8px;
+  }
+  #melon-text {
+    font-size: 13px;
+    padding: 12px 8px 4px;
+  }
 }

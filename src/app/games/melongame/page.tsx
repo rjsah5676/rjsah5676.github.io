@@ -75,11 +75,14 @@ function stopMelonGame() {
   });
 }
 
-// 화면이 1030px보다 좁을 때 zoom으로 시각적으로 줄여서 보여주는 배율.
-// 마우스 좌표(offsetX 등)는 zoom에 맞춰 그대로 잘 들어오지만, getBoundingClientRect()
-// 기반으로 직접 계산하는 곳(아래 down_mouse_x/up_mouse_x)은 이 배율로 나눠서 보정해야
-// 원래 1030 기준 좌표계와 맞음.
-let melonScale = 1;
+// 화면이 1030px보다 좁으면 게임 영역을 transform: scale로 줄여서 보여줌.
+// 포인터 좌표는 offsetX 대신 캔버스의 실제 표시 크기(getBoundingClientRect) 기준으로
+// 1030 좌표계로 환산 -> 축소 배율과 무관하게 항상 정확함.
+function toCanvasPoint(cv: HTMLCanvasElement, e: MouseEvent) {
+  const rect = cv.getBoundingClientRect();
+  const k = c_width / rect.width;
+  return { x: (e.clientX - rect.left) * k, y: (e.clientY - rect.top) * k };
+}
 
 function drawMainMenuMelons() {
   let dx = 500;
@@ -268,20 +271,9 @@ function test() {
       startY = 0;
     context.lineWidth = 2;
     context.strokeStyle = "#006cb7";
-    canvas.addEventListener(
-      "mousemove",
-      function (me: MouseEvent) {
-        mMove(me);
-      },
-      false
-    );
-    canvas.addEventListener(
-      "mouseout",
-      function () {
-        mOut();
-      },
-      false
-    );
+    // 마우스·터치 공통으로 포인터 이벤트 사용 (모바일 드래그 지원)
+    canvas.addEventListener("pointermove", (me: PointerEvent) => mMove(me), false);
+    canvas.addEventListener("pointercancel", () => mOut(), false);
 
     let e_x = NaN;
     let s_x = NaN;
@@ -291,14 +283,12 @@ function test() {
       if (!drag) {
         return;
       }
-      const nowX = me.offsetX / melonScale;
-      const nowY = me.offsetY / melonScale;
-      canvasDraw(nowX, nowY);
-      stX = nowX;
-      stY = nowY;
-      const rect = canvas.getBoundingClientRect();
-      up_mouse_x = (me.clientX - rect.left) / melonScale - 100;
-      up_mouse_y = (me.clientY - rect.top) / melonScale - 100;
+      const p = toCanvasPoint(canvas, me);
+      canvasDraw(p.x, p.y);
+      stX = p.x;
+      stY = p.y;
+      up_mouse_x = p.x - 100;
+      up_mouse_y = p.y - 100;
       e_x = Math.max(up_mouse_x, down_mouse_x);
       s_x = Math.min(up_mouse_x, down_mouse_x);
       e_y = Math.max(up_mouse_y, down_mouse_y);
@@ -324,17 +314,19 @@ function test() {
 
     function mDown(me: MouseEvent) {
       if (time < 0) return;
-      startX = me.offsetX / melonScale;
-      startY = me.offsetY / melonScale;
-      stX = me.offsetX / melonScale;
-      stY = me.offsetY / melonScale;
+      const p = toCanvasPoint(canvas, me);
+      startX = p.x;
+      startY = p.y;
+      stX = p.x;
+      stY = p.y;
       drag = true;
     }
 
     function mUp(me: MouseEvent) {
       if (time < 0) return;
-      endX = me.offsetX / melonScale;
-      endY = me.offsetY / melonScale;
+      const p = toCanvasPoint(canvas, me);
+      endX = p.x;
+      endY = p.y;
       drag = false;
       context.clearRect(0, 0, context.canvas.width, context.canvas.height);
       context.drawImage(hiddenCanvas, 0, 0);
@@ -363,16 +355,18 @@ function test() {
         context.globalAlpha = 1;
       }
     }
-    canvas.onmousedown = (e) => {
+    canvas.onpointerdown = (e) => {
       if (time < 0) return;
       else {
+        // 손가락이 캔버스 밖으로 나가도 move/up을 계속 받도록
+        canvas.setPointerCapture(e.pointerId);
         mDown(e);
-        const rect = canvas.getBoundingClientRect();
-        down_mouse_x = (e.clientX - rect.left) / melonScale - 100;
-        down_mouse_y = (e.clientY - rect.top) / melonScale - 100;
+        const p = toCanvasPoint(canvas, e);
+        down_mouse_x = p.x - 100;
+        down_mouse_y = p.y - 100;
       }
     };
-    canvas.onmouseup = (e) => {
+    canvas.onpointerup = (e) => {
       if (time < 0) return;
       else {
         mUp(e);
@@ -418,19 +412,21 @@ function test() {
 
 export default function MelonGamePage() {
   const initialized = useRef(false);
-  const [scale, setScale] = useState(1);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState<number | null>(null);
 
+  // 최초 진입 때 한 번만 게임 영역 배율을 정하고 유지 (회전·리사이즈에도 그대로).
+  // window.innerWidth는 1030px 캔버스가 먼저 그려지면 모바일에서 레이아웃 폭이 같이
+  // 넓어져 버려서(→ 거의 원본 크기로 보이던 원인) overflow:hidden 컨테이너의 폭을 잰다.
   useEffect(() => {
-    const updateScale = () => {
-      // 좌우 여백 32px 정도 남기고, 1030px보다 넓으면 그냥 100%
-      const next = Math.min(1, Math.max(0.32, (window.innerWidth - 32) / c_width));
-      melonScale = next;
-      setScale(next);
-    };
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
+    const el = stageRef.current;
+    if (!el) return;
+    const cs = getComputedStyle(el);
+    const w = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 시 1회 측정
+    setScale(Math.min(1, w / c_width));
   }, []);
+  const s = scale ?? 1;
 
   // 가드(initialized) 있는 init effect에 cleanup을 달면 StrictMode 두 번째 마운트에서
   // early return 되면서 cleanup이 등록 안 됨 -> 별도 effect로 분리
@@ -526,6 +522,7 @@ export default function MelonGamePage() {
     position: "absolute",
     zIndex: "2",
     backgroundColor: "transparent",
+    touchAction: "none", // 캔버스 위 드래그 중 페이지 스크롤 방지
   };
   const hiddenCanvasStyle: CSSProperties = {
     width: "1030px",
@@ -595,10 +592,7 @@ export default function MelonGamePage() {
 
   return (
     <Faded>
-      <div className="mb-4 px-4 pt-4 text-center font-mono text-xs text-white/30">
-        화면 크기에 맞춰 게임 화면이 자동으로 축소됩니다
-      </div>
-      <div id="melon-wrap" className="select-none" style={{ zoom: scale, marginBottom: "800px" }}>
+      <div className="mx-auto mt-10 w-full max-w-[1030px] px-4 lg:px-0">
         <div id="melon-container">
           <div id="rankBox">
             <div id="rank-title">랭킹</div>
@@ -624,18 +618,38 @@ export default function MelonGamePage() {
             </div>
           </div>
         </div>
-        <canvas style={canvasStyle} id="melonCanvas"></canvas>
-        <canvas style={hiddenCanvasStyle} id="hiddenCanvas"></canvas>
-        <canvas style={backCanvasStyle} id="backCanvas"></canvas>
-        <button style={startButtonStyle} id="startButton" onClick={test}>
-          시작하기
-        </button>
-        <button id="exitButton" style={exitButtonStyle} onClick={test2}>
-          홈으로
-        </button>
-        <button id="exitButton2" style={exitButtonStyle2} onClick={goHome}>
-          홈으로
-        </button>
+        <p className="mb-3 text-center font-mono text-xs text-white/30 lg:hidden">
+          화면 폭에 맞춰 게임 화면이 축소됩니다 · 손가락으로 드래그해서 플레이
+        </p>
+      </div>
+      {/* 게임 영역: 1030x700 원본 좌표계를 그대로 두고 통째로 축소 */}
+      <div
+        ref={stageRef}
+        className="mx-auto mb-24 w-full max-w-[1030px] overflow-hidden px-4 lg:px-0"
+        style={{ height: `${700 * s}px` }}
+      >
+        <div
+          id="melon-wrap"
+          className="select-none"
+          style={{
+            transform: `scale(${s})`,
+            transformOrigin: "top left",
+            visibility: scale === null ? "hidden" : "visible",
+          }}
+        >
+          <canvas style={canvasStyle} id="melonCanvas"></canvas>
+          <canvas style={hiddenCanvasStyle} id="hiddenCanvas"></canvas>
+          <canvas style={backCanvasStyle} id="backCanvas"></canvas>
+          <button style={startButtonStyle} id="startButton" onClick={test}>
+            시작하기
+          </button>
+          <button id="exitButton" style={exitButtonStyle} onClick={test2}>
+            홈으로
+          </button>
+          <button id="exitButton2" style={exitButtonStyle2} onClick={goHome}>
+            홈으로
+          </button>
+        </div>
       </div>
     </Faded>
   );

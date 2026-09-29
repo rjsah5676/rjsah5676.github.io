@@ -3,12 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+// 모바일(좁은 폭)에서도 한 줄에 들어가도록 여백·글자 크기를 줄임
 const navItemClass =
-  "block px-3 py-3 font-mono text-sm text-white/60 transition-colors hover:text-white whitespace-nowrap";
+  "block px-2 py-3 font-mono text-[13px] text-white/60 transition-colors hover:text-white whitespace-nowrap min-[400px]:px-2.5 sm:px-3 sm:text-sm";
+// 모바일: 메뉴 바 전체 폭 아래로 펼쳐지는 카드(2열) → 오른쪽 항목이 화면 밖으로 잘리지 않음
+// 데스크톱: 기존처럼 해당 항목 아래에 붙는 드롭다운
 const dropdownClass =
-  "absolute left-0 top-full z-40 flex min-w-[180px] flex-col gap-0.5 rounded-md border border-white/10 bg-[#1C1E24] p-1.5 shadow-xl";
+  "absolute inset-x-3 top-full z-40 mt-1 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-[#1C1E24] p-2 shadow-xl sm:inset-x-auto sm:left-0 sm:mt-0 sm:flex sm:min-w-[180px] sm:flex-col sm:gap-0.5 sm:rounded-md sm:p-1.5";
 const dropdownLinkClass =
-  "rounded px-3 py-2 font-mono text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white";
+  "rounded px-3 py-2.5 text-center font-mono text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white sm:py-2 sm:text-left";
 
 interface NavLinkItem {
   href: string;
@@ -30,7 +33,15 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 // 마우스 hover가 없는 터치 기기에서도 서브메뉴를 열 수 있게 클릭/탭 토글 방식으로 구현.
-function DropdownNavItem({ href, label, items }: { href: string; label: string; items: NavLinkItem[] }) {
+function DropdownNavItem({
+  href,
+  label,
+  items,
+}: {
+  href: string;
+  label: string;
+  items: NavLinkItem[];
+}) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +55,8 @@ function DropdownNavItem({ href, label, items }: { href: string; label: string; 
   }, [open]);
 
   return (
-    <div ref={wrapRef} className="relative flex items-center">
+    // 모바일에선 드롭다운이 nav(sticky) 기준으로 펼쳐지도록 relative를 sm 이상에서만
+    <div ref={wrapRef} className="flex items-center sm:relative">
       <Link href={href} className={navItemClass}>
         {label}
       </Link>
@@ -52,7 +64,8 @@ function DropdownNavItem({ href, label, items }: { href: string; label: string; 
         type="button"
         aria-label={`${label} submenu`}
         onClick={() => setOpen((o) => !o)}
-        className="px-1 py-3 text-white/40 transition-colors hover:text-white"
+        aria-expanded={open}
+        className="cursor-pointer py-3 pr-1 text-white/40 transition-colors hover:text-white sm:px-1"
       >
         <ChevronIcon open={open} />
       </button>
@@ -77,7 +90,7 @@ function DropdownNavItem({ href, label, items }: { href: string; label: string; 
 export default function Nav() {
   return (
     <nav className="sticky top-14 z-30 border-b border-white/10 bg-[#121212]">
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-1 gap-y-0 px-2 sm:px-6">
+      <div className="mx-auto flex max-w-4xl flex-nowrap items-center justify-center gap-x-0 px-1 sm:gap-x-1 sm:px-6">
         <Link href="/about" className={navItemClass}>
           about
         </Link>
