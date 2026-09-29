@@ -98,6 +98,7 @@ export default function Nav() {
             { href: "/games/melongame", label: "멜론 게임" },
             { href: "/games/rspeed", label: "반응속도 테스트" },
             { href: "/games/mine", label: "지뢰찾기" },
+            { href: "/games/chess", label: "온라인 체스" },
             { href: "/games/sketch", label: "스케치 퀴즈(미구현)" },
           ]}
         />

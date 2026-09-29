@@ -74,6 +74,53 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // 온라인 체스 - 익명 Auth uid로 좌석 식별
+    match /chess_rooms/{roomId} {
+      function signedIn() {
+        return request.auth != null;
+      }
+      function isPlayerOf(d) {
+        return signedIn() && (d.whiteUid == request.auth.uid || d.blackUid == request.auth.uid);
+      }
+      function changed() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+      function specOk() {
+        return request.resource.data.spectators.size() <= 2;
+      }
+
+      allow read: if true;
+      allow create: if signedIn()
+                    && request.resource.data.hostUid == request.auth.uid
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 20
+                    && request.resource.data.status == 'waiting'
+                    && isPlayerOf(request.resource.data)
+                    && request.resource.data.spectators.size() == 0;
+      allow update: if signedIn() && specOk() && (
+                      // 대국자: 좌석/방장 정보는 변경 불가
+                      (isPlayerOf(resource.data)
+                        && !changed().hasAny(['hostUid', 'whiteUid', 'blackUid', 'createdAt']))
+                      // 대기방 빈 자리 착석 (본인 uid로만)
+                      || (resource.data.status == 'waiting'
+                        && request.resource.data.status == 'playing'
+                        && changed().hasOnly(['whiteUid', 'whiteName', 'blackUid', 'blackName', 'status', 'turnStartedAt', 'updatedAt', 'spectators'])
+                        && ((resource.data.whiteUid == '' && request.resource.data.whiteUid == request.auth.uid
+                              && request.resource.data.blackUid == resource.data.blackUid)
+                          || (resource.data.blackUid == '' && request.resource.data.blackUid == request.auth.uid
+                              && request.resource.data.whiteUid == resource.data.whiteUid)))
+                      // 관전자 입장/퇴장 (최대 2명)
+                      || changed().hasOnly(['spectators'])
+                    );
+      allow delete: if isAdmin();
+
+      match /presence/{uid} {
+        allow read: if true;
+        allow write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
     // 방문자 카운터 (footer today/total) - 누구나 읽기, 쓰기는 count를 정확히 +1 하는 것만 허용
     match /siteStats/{docId} {
       allow read: if true;

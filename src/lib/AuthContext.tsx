@@ -17,7 +17,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+      // 체스 등 게임용 익명 로그인은 관리자 UI(글쓰기 버튼 등)에 노출되지 않게 제외
+      setUser(u && !u.isAnonymous ? u : null);
       setLoading(false);
     });
     return () => unsubscribe();

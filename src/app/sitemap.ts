@@ -19,6 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/games/melongame/", priority: 0.5, changeFrequency: "monthly" },
     { path: "/games/rspeed/", priority: 0.5, changeFrequency: "monthly" },
     { path: "/games/mine/", priority: 0.5, changeFrequency: "monthly" },
+    { path: "/games/chess/", priority: 0.5, changeFrequency: "monthly" },
   ];
 
   return [
