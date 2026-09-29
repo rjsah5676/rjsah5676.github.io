@@ -383,14 +383,6 @@ const entries: ArchiveEntry[] = [
     href: "/infoPage/1/",
   },
   {
-    sort: "2020-09-01",
-    date: "2020.09 – 12",
-    tag: "프로젝트",
-    title: "GM Movie — 영화 정보 검색 사이트",
-    items: ["데이터베이스 수업 개인 프로젝트, CRUD 및 DDL/DML 학습", "Python Flask, MySQL 사용"],
-    href: "/infoPage/7/",
-  },
-  {
     sort: "2019-10-01",
     date: "2019.10 – 12",
     tag: "프로젝트",
@@ -400,14 +392,6 @@ const entries: ArchiveEntry[] = [
       "React, Node.js, Ajax, jQuery, MongoDB 사용",
     ],
     href: "/infoPage/3/",
-  },
-  {
-    sort: "2019-03-01",
-    date: "2019.03 – 04",
-    tag: "프로젝트",
-    title: "Unity 게임 제작",
-    items: ["Unity, C#으로 간단한 게임 제작"],
-    href: "/infoPage/6/",
   },
   {
     sort: "2017-03-01",

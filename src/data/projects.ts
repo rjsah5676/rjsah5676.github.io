@@ -4,8 +4,6 @@ import yoriJoriImg from "@/img/Page/info/YoriJori.png";
 import logoImg from "@/img/Page/info/logo.png";
 import taxImg from "@/img/Page/info/yctest/slide_1.jpg";
 import acmicpcImg from "@/img/Page/info/acmicpc.png";
-import unityImg from "@/img/Page/info/unity.png";
-import dbImg from "@/img/Page/info/dbproj.png";
 import artpartImg from "@/img/Page/info/artpart/artpart.jpg";
 import kickeatImg from "@/img/Page/info/kickeat/img_kickeat_0.jpg";
 import mimyoImg from "@/img/Page/info/mimyo/mimyo.jpg";
@@ -89,7 +87,7 @@ export const personalProjects: Project[] = [
     imgLink: logoImg,
     gitLink: "https://github.com/rjsah5676/rjsah5676.github.io",
     title: "[Gunmo's Dev Life]",
-    desc: "React를 사용하여 만든 나를 소개하는 사이트입니다.",
+    desc: "2021년부터 운영 중인 개인 포트폴리오 사이트. Next.js·TypeScript로 전면 리뉴얼",
     tech: ["Next.js", "TypeScript", "Tailwind", "Firebase"],
     secondLink: "https://rjsah5676.github.io/",
   },
@@ -101,22 +99,6 @@ export const personalProjects: Project[] = [
     desc: "알고리즘을 배우기 위해 문제를 푼 사이트 입니다.",
     tech: ["C++", "Java", "Python"],
     secondLink: "https://solved.ac/profile/rjsah5676",
-  },
-  {
-    idx: 7,
-    imgLink: dbImg,
-    gitLink: "https://github.com/rjsah5676/DBProject",
-    title: "[GM Movie]",
-    desc: "MySQL 학습을 위한 영화 정보 검색 사이트",
-    tech: ["Python", "Flask", "MySQL"],
-  },
-  {
-    idx: 6,
-    imgLink: unityImg,
-    gitLink: "https://github.com/rjsah5676/Unity-Programming",
-    title: "[일단 뭔가 만든 Unity 게임]",
-    desc: "Unity를 사용하여 만든 간단한 게임입니다.",
-    tech: ["Unity", "C#"],
   },
 ];
 

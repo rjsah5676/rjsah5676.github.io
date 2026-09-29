@@ -1,8 +1,8 @@
 import InfoContentsDetail from "./InfoContentsDetail";
 import InfoSlide from "./InfoSlide";
+import DevLifeProject from "./DevLifeProject";
+import MimyoProject from "./MimyoProject";
 import ProjectHeader from "./ProjectHeader";
-
-import calendarImg from "@/img/Page/info/info_calendar.png";
 
 import airBoardImg from "@/img/Page/info/AirBoard.png";
 
@@ -22,24 +22,8 @@ import img_yorijori_6 from "@/img/Page/info/yorijori/img_mine.png";
 
 import img_yc_1 from "@/img/Page/info/yctest/slide_1.jpg";
 
-import img_db_1 from "@/img/Page/info/dbproject/img_1.png";
-import img_db_2 from "@/img/Page/info/dbproject/img_diagram.png";
-import img_db_3 from "@/img/Page/info/dbproject/img_create_1.png";
-import img_db_4 from "@/img/Page/info/dbproject/img_read.png";
-import img_db_5 from "@/img/Page/info/dbproject/img_update.png";
-
 import img_slide_4 from "@/img/Page/info/yorijori/img_slide_4.png";
 import img_slide_5 from "@/img/Page/info/yorijori/img_slide_5.png";
-
-import img_gm_1 from "@/img/Page/info/gmlee/img01.jpg";
-import img_gm_2 from "@/img/Page/info/gmlee/img02.jpg";
-import img_gm_3 from "@/img/Page/info/gmlee/img03.jpg";
-import img_gm_4 from "@/img/Page/info/gmlee/img04.jpg";
-import img_gm_5 from "@/img/Page/info/gmlee/img05.jpg";
-import img_gm_6 from "@/img/Page/info/gmlee/img06.jpg";
-import img_gm_7 from "@/img/Page/info/gmlee/img07.jpg";
-import img_gm_8 from "@/img/Page/info/gmlee/img08.jpg";
-import img_gm_9 from "@/img/Page/info/gmlee/img09.jpg";
 
 import img_artpart_1 from "@/img/Page/info/artpart/slide_1.jpg";
 import img_artpart_2 from "@/img/Page/info/artpart/slide_2.jpg";
@@ -78,20 +62,24 @@ import img_kickeat_dv from "@/img/Page/info/kickeat/img_kickeat_dv.jpg";
 import img_kickeat_db from "@/img/Page/info/kickeat/img_kickeat_db.jpg";
 import img_kickeat_tc from "@/img/Page/info/kickeat/img_kickeat_tc.jpg";
 
-import img_mimyo_1 from "@/img/Page/info/mimyo/mimyo_slide_1.jpg";
-import img_mimyo_2 from "@/img/Page/info/mimyo/mimyo_slide_2.jpg";
-import img_mimyo_3 from "@/img/Page/info/mimyo/mimyo_slide_3.jpg";
-import img_mimyo_4 from "@/img/Page/info/mimyo/mimyo_slide_4.jpg";
-import img_mimyo_5 from "@/img/Page/info/mimyo/mimyo_slide_5.jpg";
-import img_mimyo_6 from "@/img/Page/info/mimyo/mimyo_slide_6.jpg";
-import img_mimyo_7 from "@/img/Page/info/mimyo/mimyo_slide_7.jpg";
-import img_mimyo_8 from "@/img/Page/info/mimyo/mimyo_slide_8.jpg";
-import img_mimyo_develop_1 from "@/img/Page/info/mimyo/mimyo_develop_1.jpg";
-import img_mimyo_develop_2 from "@/img/Page/info/mimyo/mimyo_develop_2.jpg";
-import img_mimyo_db from "@/img/Page/info/mimyo/mimyo_db.jpg";
-
 function InfoContents({ idx }: { idx: number }) {
-  const cImg = <img alt="" src={calendarImg.src} style={{ width: "30px" }} />;
+  // 기간 표시용 달력 아이콘
+  const cImg = (
+    <svg
+      viewBox="0 0 24 24"
+      width="13"
+      height="13"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </svg>
+  );
   const slideImages = [
     {
       id: 0,
@@ -144,50 +132,6 @@ function InfoContents({ idx }: { idx: number }) {
     {
       id: 0,
       img: img_yc_1,
-    },
-  ];
-  const slideImages_db = [
-    {
-      id: 0,
-      img: img_db_1,
-    },
-    {
-      id: 1,
-      img: img_db_2,
-    },
-  ];
-  const slideImages_gmlee = [
-    {
-      id: 0,
-      img: img_gm_1,
-    },
-    {
-      id: 1,
-      img: img_gm_2,
-    },
-    {
-      id: 2,
-      img: img_gm_3,
-    },
-    {
-      id: 3,
-      img: img_gm_4,
-    },
-    {
-      id: 4,
-      img: img_gm_5,
-    },
-    {
-      id: 5,
-      img: img_gm_6,
-    },
-    {
-      id: 6,
-      img: img_gm_7,
-    },
-    {
-      id: 7,
-      img: img_gm_8,
     },
   ];
   const slideImages_artpart = [
@@ -262,40 +206,6 @@ function InfoContents({ idx }: { idx: number }) {
       img: img_kickeat_13,
     },
   ];
-  const slideImages_mimyo = [
-    {
-      id: 0,
-      img: img_mimyo_1,
-    },
-    {
-      id: 1,
-      img: img_mimyo_2,
-    },
-    {
-      id: 2,
-      img: img_mimyo_3,
-    },
-    {
-      id: 3,
-      img: img_mimyo_4,
-    },
-    {
-      id: 4,
-      img: img_mimyo_5,
-    },
-    {
-      id: 5,
-      img: img_mimyo_6,
-    },
-    {
-      id: 6,
-      img: img_mimyo_7,
-    },
-    {
-      id: 7,
-      img: img_mimyo_8,
-    },
-  ];
   if (idx === 1)
     return (
       <div className="mx-auto w-full max-w-2xl">
@@ -317,11 +227,7 @@ function InfoContents({ idx }: { idx: number }) {
         />
         <InfoContentsDetail title={"2. 기능 설명"} />
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-1. 로그인 이전"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-1. 로그인 이전"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_airboard_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 전에는 3가지 메뉴가 있고, 각 메뉴의 기능은 다음과 같다.
@@ -330,11 +236,7 @@ function InfoContents({ idx }: { idx: number }) {
       2. 로그인 : 로그인 기능을 제공한다.
       3. 회원가입 : 회원가입 기능을 제공한다. 회원가입은 이메일을 이용해 실시한다.`}
           />
-          <InfoContentsDetail
-            title={"2-2. 로그인 이후"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-2. 로그인 이후"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_airboard_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 후에는 4가지 메뉴가 있고, 각 메뉴의 기능은 다음과 같다.
@@ -344,11 +246,7 @@ function InfoContents({ idx }: { idx: number }) {
       3. 계정 정보 : 로그인 한 계정의 정보를 확인할 수 있다. 자신의 이름을 바꿀 수 있다.
       4. 제스처 추가 : 자신이 설정하는 커스텀 제스처를 만들 수 있다.`}
           />
-          <InfoContentsDetail
-            title={"2-3. 회의 생성"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-3. 회의 생성"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_airboard_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의를 생성한 후 화상회의 방의 모습이다. 화상회의 방은 크게 4부분으로 나눌 수 있다.
@@ -381,11 +279,7 @@ function InfoContents({ idx }: { idx: number }) {
                                             아래쪽에는 캔버스에서 이용할 수 있는 다양한 기능 버튼들이 있다.
           ○채팅 영역 : 다른 사용자들과 채팅을 나눌 수 있는 영역이다.`}
           />
-          <InfoContentsDetail
-            title={"2-4. 캠 필기"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-4. 캠 필기"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_airboard_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의실 내에서 웹캠을 이용한 캔버스 필기가 가능하다.
@@ -395,11 +289,7 @@ function InfoContents({ idx }: { idx: number }) {
              (화면에서 유일하고, 빛에 영향을 적게 받는 물체를 사용하는 것이 좋다.)
          3. 키보드의 \`키를 입력하여 필기 또는 캔버스 기능에 접근할 수 있다.`}
           />
-          <InfoContentsDetail
-            title={"2-5. 제스처 인식"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-5. 제스처 인식"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_airboard_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회의실 내에서 제스처 인식 기능 사용이 가능하다.
@@ -447,11 +337,7 @@ function InfoContents({ idx }: { idx: number }) {
         />
         <InfoContentsDetail title={"2. 기능 설명"} />
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-1. 회원 가입"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-1. 회원 가입"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_yorijori_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`비 회원은 글 읽기 까지만 가능하며, 회원 가입 진행 후 커뮤니티 이용이 가능하다.
@@ -460,11 +346,7 @@ function InfoContents({ idx }: { idx: number }) {
     2. 별명은 중복되지 않도록 처리하며, 중복된 별명 제출시 재 입력을 받는다.
     3. 비밀번호는 숫자,문자,특수문자가 포함되어야 하며 제출시 암호화 처리를 한다.`}
           />
-          <InfoContentsDetail
-            title={"2-2. 메인 화면"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-2. 메인 화면"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_yorijori_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`로그인 후 확인할 수 있는 메인 페이지이다.
@@ -473,11 +355,7 @@ function InfoContents({ idx }: { idx: number }) {
     2. 평점이 높은 순으로 나열된 HOT 레시피 목록을 확인할 수 있다.
 `}
           />
-          <InfoContentsDetail
-            title={"2-3. 글쓰기"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-3. 글쓰기"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_yorijori_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원은 자유롭게 글쓰기가 가능하다.
@@ -486,11 +364,7 @@ function InfoContents({ idx }: { idx: number }) {
     2. 본문에는 이미지를 첨부할 수 있으며 내용을 자유롭게 작성할 수 있다.
 `}
           />
-          <InfoContentsDetail
-            title={"2-4. 작성글"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-4. 작성글"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_yorijori_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원은 글을 확인하고 댓글과 평점을 남길 수 있다.
@@ -501,11 +375,7 @@ function InfoContents({ idx }: { idx: number }) {
     4. 작성한 댓글을 확인할 수 있고, 본인이 작성한 댓글이라면 삭제가 가능하다.
 `}
           />
-          <InfoContentsDetail
-            title={"2-5. 게시판"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-5. 게시판"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_yorijori_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`게시판에서 정렬된 글 목록들을 확인 가능하다.
@@ -517,11 +387,7 @@ function InfoContents({ idx }: { idx: number }) {
     5. 회원은 글 작성이 가능하다. (비 회원은 불가능)
 `}
           />
-          <InfoContentsDetail
-            title={"2-6. 내가 쓴 글"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-6. 내가 쓴 글"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_yorijori_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`본인이 쓴 글을 확인 가능하고, 글의 삭제 및 수정이 용이하게 하였다.
@@ -531,140 +397,8 @@ function InfoContents({ idx }: { idx: number }) {
         <InfoContentsDetail title={"3. -----"} />
       </div>
     );
-  if (idx === 4)
-    return (
-      <div className="mx-auto w-full max-w-2xl">
-        <ProjectHeader
-          title="Gunmo's Dev Life"
-          periodIcon={cImg}
-          periodText="2021.12 ~"
-          tech={["React", "Firebase", "NodeJS"]}
-        />
-        <InfoSlide slideImages={slideImages_gmlee} />
-        <InfoContentsDetail
-          title={"1. 개요"}
-          text={`웹 프로젝트들을 진행해보며 나도 실제로 내 관련 이야기들을 담을 수 있는 사이트를 
-하나 남길 수 있었으면 좋겠다고 생각하였다. 그렇지만 개인용 사이트를 만든다 하면 서버 비용 등 생각할 것이 많아서
-고민하던 찰나에 깃허브 페이지라는 서비스를 알게 되었고 이것을 통해 내 사이트를 한번 만들어 보자 하고 시작하였다.
-대부분의 프론트 기반 움직임은 리액트를 통하여 구현하였고, 데이터 베이스가 필요한 작업들은 작게나마 파이어베이스의
-파이어 스토어를 통하여 구현하였다.
-`}
-        />
-        <InfoContentsDetail title={"2. 페이지 설명"} />
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-1. MAIN"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_1.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`사이트에 접속시 처음으로 볼 수 있는 페이지이다.
-나에 대한 전반적인 정보를 담고있다. 최대한 화면 크기에 맞게 반응하도록 페이지를 설계하였다.`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-2. ABOUT"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_2.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`메뉴 중 'ABOUT' 버튼을 클릭시 렌더링 되는 페이지이다.
-나에 대한 세부적인 정보를 담고있다.`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-3. PROJECT"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_3.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`메뉴 중 'PROJECT' 버튼을 클릭시 렌더링 되는 페이지이다.
-내가 진행했던 개인/팀프로젝트에 대한 내용을 확인해볼 수 있다.`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-4. GAMES-멜론게임"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_4.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`메뉴 중 'GAMES'의 멜론 게임을 클릭시 렌더링 되는 페이지이다.
-HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든 게임이라 애정이 있는 게임이다.
-나름 재밌으므로 한번쯤 해보는 것을 추천한다.`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-5. GAMES-반응속도 테스트"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_5.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`메뉴 중 'GAMES'의 반응속도 테스트를를 클릭시 렌더링 되는 페이지이다.
-가끔 심심할 때 마다 반응속도 테스트를 타 사이트에서 해보았는데 나도 만들어볼 수 있을 것 같아서 만든 게임이다.
-`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-6. GUEST BOX"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_6.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`메뉴 중 'GUEST BOX'를 클릭시 렌더링 되는 페이지이다.
-방명록 하나 쯤 있으면 좋을 것 같아서 만들어 봤다. 실제 있는 패드를 CSS를 이용해 디자인 해보았다.`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-7. GALLERY"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_7.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`메뉴 중 'GALLERY'를 클릭시 렌더링 되는 페이지이다.
-내가 찍은 사진들을 넣어보았다. 생각보다 사진이 많지는 않지만 나름 추가해 보았다.
-클릭하면 사진을 크게 볼 수 있다.`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-8. Archive"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_8.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`헤더 메뉴 중 'Archive'를 클릭시 렌더링 되는 페이지이다.
-주저리 주저리 그 날 생각나는 것들을 적어보았다.`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-9. Etc"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_gm_9.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`기타 추가적인 기능들이다.
-헤더 메뉴 중 Contact를 누르면 내 연락처가 화면에 보이게 하였고, Floating 버튼을 화면에 추가하여
-도움을 주는 기능들을 추가하였다.`}
-          />
-        </div>
-      </div>
-    );
+  if (idx === 4) return <DevLifeProject />;
+
   if (idx === 5)
     return (
       <div className="mx-auto w-full max-w-2xl">
@@ -674,74 +408,6 @@ HTML의 캔버스로 작업을 했고 직접 하나하나 고민해가며 만든
           periodText="2016.06 ~"
           tech={["C++", "Java", "Python"]}
         />
-      </div>
-    );
-  if (idx === 6)
-    return (
-      <div className="mx-auto w-full max-w-2xl">
-        <ProjectHeader
-          title="일단 뭔가 만든 Unity 게임"
-          periodIcon={cImg}
-          periodText="2019.03 ~ 2019.04"
-          tech={["Unity", "C#"]}
-        />
-      </div>
-    );
-  if (idx === 7)
-    return (
-      <div className="mx-auto w-full max-w-2xl">
-        <ProjectHeader
-          title="GM Movie"
-          periodIcon={cImg}
-          periodText="2020.09 ~ 2020.12"
-          tech={["Python", "Flask", "MySQL"]}
-        />
-        <InfoSlide slideImages={slideImages_db} />
-        <InfoContentsDetail
-          title={"1. 개요"}
-          text={`GM Movie는 2020년 2학기 데이터 베이스 수업 중 MySQL 을 활용 해보기 위해 진행한 프로젝트 이다.
-혼자서 진행한 소규모 프로젝트 였으나 기본적인 CRUD / DDL, DML문 학습 및 Flask를 써볼 수 있는 기회였다.`}
-        />
-        <InfoContentsDetail title={"2. 기능 설명"} />
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-1. CREATE"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_db_3.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`각 요소들의 특성에 따라 제약 조건을 설정하여 테이블을 생성하였다.
-추가적으로 ACTORS, MOVIES, ORDERS, MOVIEQUEUE, APPEARED_IN 테이블이 있다.
-                `}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-2. READ"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_db_4.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`구현하려는 기능들을 위해 필요한 READ 쿼리문이다.
-`}
-          />
-        </div>
-        <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-3. UPDATE"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
-          <img src={img_db_5.src} style={{ width: "1000px" }} alt="" />
-          <InfoContentsDetail
-            text={`구현하려는 기능들을 위해 필요한 UPDATE 쿼리문이다.
-`}
-          />
-        </div>
-        <InfoContentsDetail title={"3. DB 모델링"} />
-        <img src={img_db_2.src} style={{ width: "1000px" }} alt="" />
       </div>
     );
   if (idx === 8)
@@ -788,11 +454,7 @@ Art+Apartment
             3. 네비게이션 바를 통해 이동시 바로 이동하는 것이 아닌 화면 최상단 이동 후 페이지가 변경된다.
             4. 각 동작은 부드럽게 실행된다.`}
           />
-          <InfoContentsDetail
-            title={"2-2. 플로팅 버튼"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-2. 플로팅 버튼"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_artpart_ppt_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지 우측 하단에는 떠다니는 버튼이 활성화 되어있다.
@@ -801,11 +463,7 @@ Art+Apartment
             2. 화살표 버튼: 페이지 최상단으로 이동
             3. 돋보기 버튼: 각 페이지마다 설명 or 기능 제공`}
           />
-          <InfoContentsDetail
-            title={"2-3. 하단 메뉴"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-3. 하단 메뉴"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_artpart_ppt_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지 최하단에는 하단 메뉴가 있다.
@@ -841,11 +499,7 @@ Art+Apartment
                3. 마이페이지: 찜 목록/예약 목록/내 정보들을 확인할 수 있다.
       `}
           />
-          <InfoContentsDetail
-            title={"2-6. 객실 페이지"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-6. 객실 페이지"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_artpart_ppt_6.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`호텔의 객실은 4가지의 종류가 있으며 각 페이지에서 해당 객실 정보를 확인 가능
@@ -856,11 +510,7 @@ Art+Apartment
                4. 객실 클릭시 객실에 대한 상세 정보가 나타난다.
                5. 화면의 너비가 작아지면 그에 맞게 반응형으로 컨텐츠의 크기가 조절 된다.`}
           />
-          <InfoContentsDetail
-            title={"2-7. 예약 페이지"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-7. 예약 페이지"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_artpart_ppt_7.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`호텔의 각 객실은 2박 3일까지의 예약이 가능하다.
@@ -882,11 +532,7 @@ Art+Apartment
                1. 식당 메뉴 클릭 시 해당 메뉴 정보를 띄워준다.
                2. 각 부대시설 클릭시 부대시설의 운영 시간 등의 정보들을 확인할 수 있다.`}
           />
-          <InfoContentsDetail
-            title={"2-9. 후기 페이지"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-9. 후기 페이지"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_artpart_ppt_9.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`예약을 한 기록이 있는 이용자가 남길 수 있는 후기 게시판이다.
@@ -976,11 +622,7 @@ Art+Apartment
         />
         <InfoContentsDetail title={"2. 기능 설명"} />
         <div style={{ marginLeft: "15px" }}>
-          <InfoContentsDetail
-            title={"2-1. 공용 기능"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-1. 공용 기능"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_kickeat_13.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`모든 페이지에서 이용 가능한 기능이다.
@@ -989,11 +631,7 @@ Art+Apartment
               2. 사용자의 이름을 클릭시 정보보기/쪽지보내기/신고하기가 가능하다.
               3. 사이드 바를 통해 헤더와 동일한 기능을 이용 가능하다.`}
           />
-          <InfoContentsDetail
-            title={"2-4. 메인 페이지"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-4. 메인 페이지"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_kickeat_1.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`메인 페이지에서는 진행중인 이벤트와 인기 리뷰/맛집/게시글을 한눈에 확인할 수 있다.
@@ -1001,32 +639,20 @@ Art+Apartment
                  1. 이벤트 배너에는 관리자가 작성한 이벤트 글의 썸네일이 걸리게 된다. 
                  2. 이벤트 배너를 클릭 시 해당 이벤트 페이지로 이동하며, 이벤트의 남은 기간도 확인할 수 있다.`}
           />
-          <InfoContentsDetail
-            title={"2-5. 소개페이지"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-5. 소개페이지"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_kickeat_2.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`마우스를 따라 음식들이 이동하는 효과를 준 소개페이지이다.   
 아래 버튼을 클릭시 소개 문구가 나오게 된다.
         `}
           />
-          <InfoContentsDetail
-            title={"2-6. 회원가입"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-6. 회원가입"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_kickeat_3.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`회원가입은 실시간으로 아이디 중복체크 및 유효성 검사를 해준다.
 선호 음식을 카테고리별로 선택이 가능하다.`}
           />
-          <InfoContentsDetail
-            title={"2-7. 마이 페이지"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-7. 마이 페이지"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_kickeat_4.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`마이 페이지에서는 유저의 선호음식/찜목록/글목록 등을 확인 가능하다.
@@ -1037,11 +663,7 @@ Art+Apartment
                  4. 본인의 마이페이지에서는 해당 목록들을 삭제 가능하다.
                  5. 최하단의 개인정보 수정에서 회원 정보 수정이 가능하다.`}
           />
-          <InfoContentsDetail
-            title={"2-8. 맛집 추천"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-8. 맛집 추천"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_kickeat_5.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`사용자의 정보에 따라 음식점을 추천해주는 맛집 추천 페이지이다.
@@ -1051,11 +673,7 @@ Art+Apartment
                  3. 갱신 버튼을 통해 추천 음식점을 갱신 가능하다.
                  4. 주소 검색버튼을 통해 다른 주소에서도 추천을 받을 수 있다.`}
           />
-          <InfoContentsDetail
-            title={"2-9. 음식점 찾기"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-9. 음식점 찾기"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_kickeat_8.src} style={{ width: "1000px" }} alt="" />
           <img src={img_kickeat_9.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
@@ -1079,11 +697,7 @@ Art+Apartment
                  2. 음식점과 사용자가 등록한 주소와의 거리를 보여준다.
                  3. 음식점 사진들을 확인할 수 있고 리뷰작성 및 리뷰 보기가 가능하다.`}
           />
-          <InfoContentsDetail
-            title={"2-11. 자유게시판"}
-            titleFont={"30px"}
-            titleMargin={"20px"}
-          />
+          <InfoContentsDetail title={"2-11. 자유게시판"} titleFont={"30px"} titleMargin={"20px"} />
           <img src={img_kickeat_10.src} style={{ width: "1000px" }} alt="" />
           <InfoContentsDetail
             text={`유저들이 소통이 가능한 자유 게시판 페이지이다.
@@ -1155,104 +769,8 @@ Art+Apartment
         <InfoContentsDetail text={`...`} />
       </div>
     );
-  if (idx === 10)
-    return (
-      <div className="mx-auto w-full max-w-2xl">
-        <ProjectHeader
-          title="MIMYO"
-          periodIcon={cImg}
-          periodText="2025.03.31 - 2025.05.08"
-          tech={["React", "SpringBoot", "WebSocket", "Redux", "JPA"]}
-        />
-        <InfoSlide slideImages={slideImages_mimyo} />
-        <InfoContentsDetail
-          title={"1. 개요"}
-          text={`MIMYO
-Make It. Make Your Own.
+  if (idx === 10) return <MimyoProject />;
 
-수제의 정성, 실시간의 편리함.
-
-흘러넘치는 기성품 속에서,
-당신만의 감성과 취향을 담은 핸드메이드 제품을 만나보세요.
-
-MIMYO는 단순한 쇼핑몰이 아닙니다.
-작가와 실시간 소통하며 원하는 제품을 맞춤 제작하고,
-실시간 경매로 더 특별한 가치를 가진 작품을 직접 낙찰할 수 있는
-새로운 커머스 플랫폼입니다.
-
-정성스레 만든 하나뿐인 상품,
-직접 만든 것처럼 의미 있는 소비.
-
-이제 MIMYO와 함께,
-당신의 손끝에서 시작되는 진짜 ‘소유’의 경험을 느껴보세요.
-
-평범한 쇼핑에 지쳤다면, MIMYO가 답입니다.
-    `}
-        />
-        <InfoContentsDetail title={"2. 기능 설명"} />
-        <div style={{ marginLeft: "15px" }}>
-          <span>기능이 너무 많은 관계로 링크 걸어두겠습니다..</span>
-          <br />
-          <a
-            style={{ fontSize: "25px", color: "white" }}
-            href="https://drive.google.com/file/d/1ZVTpuval2WbT_x1n-3tOS7dhkpnCJQ8C/view?usp=drive_link"
-          >
-            미묘 PDF
-          </a>
-          <br />
-          <a
-            style={{ fontSize: "25px", color: "white" }}
-            href="https://mimyo.my"
-          >
-            미묘 사이트
-          </a>
-        </div>
-        <br />
-        <br />
-        <br />
-        <br />
-        <br />
-        <br />
-        <InfoContentsDetail title={"3. 개발 환경"} />
-        <img src={img_mimyo_develop_1.src} style={{ width: "1000px" }} alt="" />
-        <img src={img_mimyo_develop_2.src} style={{ width: "1000px" }} alt="" />
-        <br />
-        <br />
-        <br />
-        <br />
-        <br />
-        <br />
-        <InfoContentsDetail title={"4. DB 모델링"} />
-        <img src={img_mimyo_db.src} style={{ width: "1000px" }} alt="" />
-        <br />
-        <br />
-        <br />
-        <br />
-        <br />
-        <br />
-        <InfoContentsDetail title={"5. 프로젝트 회고"} />
-        <InfoContentsDetail
-          text={`파이널 프로젝트에서 팀장을 맡아 기획부터 개발, 배포까지 전체 과정을 리드해본 경험은 매우 값지고 인상 깊었습니다.
-처음에는 여러 명이 함께 작업하는 만큼 의견 충돌이나 갈등이 생기지 않을까 우려도 있었지만,
-팀원들이 적극적으로 소통해주고 저의 의견을 존중해준 덕분에 큰 마찰 없이 협업을 이어갈 수 있었습니다.
-
-프로젝트는 초기에는 전체 구조를 설계하고 역할을 분담한 뒤, 직접 코드 구현에 돌입했습니다.
-처음 예상보다 복잡한 기능이 많았고, 진행이 순조로운 부분도 있었지만 프로젝트 규모가 커질수록 코드의 복잡도가 증가하며
-유지보수와 확장성 측면에서 개선한 부분도 보였습니다. 특히 실시간 기능을 구현하면서 동시성 처리와 데이터 동기화의 어려움을 체감했고,
-초기에 구조를 탄탄하게 잡는 것의 중요성을 다시금 느꼈습니다.
-
-또한 데이터베이스 정규화의 중요성도 이번 경험을 통해 명확히 이해할 수 있었습니다.
-초기에 구조를 제대로 잡지 않으면 나중에 데이터 처리와 쿼리 최적화에서 큰 어려움을 겪게 된다는 점을 직접 경험했습니다.
-
-한편, 배포 후 자동화된 공격 분석 / 서버에 무차별 접근하는 상황을 마주하면서,
-단순히 기능 구현뿐 아니라 보안의 중요성 역시 실감할 수 있었습니다.
-방화벽 설정, SSH 보안, 인증 방식 등 실무에서 요구되는 인프라 측면까지 고민해보게 된 계기가 되었습니다.
-
-이 프로젝트는 단순한 결과물 제작을 넘어, 기획, 협업, 문제 해결, 성능 최적화, 보안 등
-소프트웨어 개발 전반에 대해 실질적인 경험을 쌓을 수 있었던 소중한 시간이었습니다.`}
-        />
-      </div>
-    );
   return <div></div>;
 }
 
