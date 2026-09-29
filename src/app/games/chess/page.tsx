@@ -67,6 +67,7 @@ function ChessApp() {
         nick={nick}
         intent={intent}
         onExit={() => go(null)}
+        onGoRoom={(id) => go(id)}
       />
     );
   }

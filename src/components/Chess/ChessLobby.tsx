@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useModal } from "@/components/Modal/ModalProvider";
 import {
+  ActiveRoomError,
   createRoom,
+  findMyActiveRoom,
   subscribeRooms,
   colorOf,
   serverNow,
@@ -11,6 +14,20 @@ import {
   type ChessRoom,
   type Color,
 } from "@/firestore/chessGame";
+
+/** 이미 대국자로 앉아있는 방이 있으면 그 방으로 보낼지 묻기 */
+export function useActiveRoomPrompt(go: (roomId: string) => void) {
+  const modal = useModal();
+  return async (room: ChessRoom) => {
+    const ok = await modal.confirm({
+      title: "진행중인 게임이 있습니다",
+      message: `'${room.name}' 방에서 ${room.status === "waiting" ? "대기" : "대국"} 중입니다. 한 번에 한 방에서만 둘 수 있어요.`,
+      confirmText: "그 방으로 가기",
+      cancelText: "닫기",
+    });
+    if (ok) go(room.id);
+  };
+}
 
 const TIME_OPTIONS = [0, 1, 3, 5, 10, 15, 30];
 const INC_OPTIONS = [0, 2, 3, 5, 10];
@@ -86,6 +103,13 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
   const [timeMin, setTimeMin] = useState(10);
   const [incSec, setIncSec] = useState(0);
   const [creating, setCreating] = useState(false);
+  const promptActive = useActiveRoomPrompt((id) => onEnter(id));
+
+  async function onJoin(roomId: string) {
+    const active = await findMyActiveRoom(uid).catch(() => null);
+    if (active && active.id !== roomId) return promptActive(active);
+    onEnter(roomId, "play");
+  }
 
   useEffect(
     () =>
@@ -133,9 +157,10 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
       });
       onEnter(id);
     } catch (e) {
+      setCreating(false);
+      if (e instanceof ActiveRoomError) return promptActive(e.room);
       console.error(e);
       setError("방 생성에 실패했습니다.");
-      setCreating(false);
     }
   }
 
@@ -212,11 +237,7 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
                 </span>
                 <span className="flex justify-end gap-1.5">
                   {seatOpen && (
-                    <button
-                      type="button"
-                      onClick={() => onEnter(r.id, "play")}
-                      className={ghostBtn}
-                    >
+                    <button type="button" onClick={() => onJoin(r.id)} className={ghostBtn}>
                       참여
                     </button>
                   )}

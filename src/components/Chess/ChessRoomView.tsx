@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
-import ChessBoard, { Piece } from "./ChessBoard";
-import { timeLabel } from "./ChessLobby";
+import ChessBoard from "./ChessBoard";
+import { timeLabel, useActiveRoomPrompt } from "./ChessLobby";
 import {
   ABANDON_AFTER_MS,
   HEARTBEAT_MS,
@@ -14,6 +14,7 @@ import {
   claimAbandon,
   claimTimeout,
   colorOf,
+  ActiveRoomError,
   joinAsPlayer,
   startGame,
   joinAsSpectator,
@@ -51,6 +52,13 @@ const REASON: Record<EndReason, string> = {
   agreement: "합의",
 };
 const COLOR_KO = { w: "백", b: "흑" } as const;
+const HOLLOW: Record<string, string> = {
+  q: "♕\uFE0E",
+  r: "♖\uFE0E",
+  b: "♗\uFE0E",
+  n: "♘\uFE0E",
+  p: "♙\uFE0E",
+};
 const VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 const START_COUNT: Record<string, number> = { p: 8, n: 2, b: 2, r: 2, q: 1 };
 
@@ -123,13 +131,11 @@ function PlayerBar({
         </span>
         <span className="shrink-0 font-mono text-[10px] text-white/35">{COLOR_KO[color]}</span>
         <span className="flex min-w-0 items-center overflow-hidden text-base">
+          {/* 어두운 배경에서도 보이게 잡은 기물은 외곽선 글리프로 표시 */}
           {caps.map((t, i) => (
-            <Piece
-              key={i}
-              type={t}
-              color={color === "w" ? "b" : "w"}
-              className="-mr-1 text-[15px] opacity-80"
-            />
+            <span key={i} className="-mr-0.5 text-[15px] leading-none text-white/55">
+              {HOLLOW[t]}
+            </span>
           ))}
           {diff > 0 && <span className="ml-1.5 font-mono text-[11px] text-white/40">+{diff}</span>}
         </span>
@@ -157,9 +163,11 @@ interface Props {
   nick: string;
   intent: "play" | "watch" | null;
   onExit: () => void;
+  /** 다른 방으로 이동 (이미 진행중인 내 게임으로 보낼 때) */
+  onGoRoom: (roomId: string) => void;
 }
 
-export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Props) {
+export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoRoom }: Props) {
   const [room, setRoom] = useState<ChessRoom | null | undefined>(undefined);
   const [presence, setPresence] = useState<Record<string, Presence>>({});
   const [now, setNow] = useState(() => serverNow());
@@ -170,6 +178,7 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Pro
   // 낙관적 업데이트: 서버 응답 전에 보드에 먼저 반영
   const [pending, setPending] = useState<{ base: number; uci: string } | null>(null);
   const intentDone = useRef(false);
+  const promptActive = useActiveRoomPrompt(onGoRoom);
   const timeoutClaimed = useRef("");
   const topRef = useRef<HTMLDivElement>(null);
   const scrolled = useRef(false);
@@ -199,8 +208,11 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Pro
     if (!intent) return;
     const run =
       intent === "play" ? joinAsPlayer(roomId, uid, nick) : joinAsSpectator(roomId, uid, nick);
-    run.catch((e: Error) => setMsg(e.message));
-  }, [room, intent, participating, roomId, uid, nick]);
+    run.catch((e: Error) => {
+      if (e instanceof ActiveRoomError) promptActive(e.room);
+      else setMsg(e.message);
+    });
+  }, [room, intent, participating, roomId, uid, nick, promptActive]);
 
   // 하트비트 (탭이 백그라운드로 가도 브라우저가 허용하는 한 계속 전송,
   // 돌아오면 즉시 전송)
@@ -311,6 +323,7 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit }: Pro
 
   const run = (p: Promise<unknown>) =>
     p.catch((e: Error) => {
+      if (e instanceof ActiveRoomError) return promptActive(e.room);
       console.error(e);
       setMsg(e.message || "요청에 실패했습니다.");
     });

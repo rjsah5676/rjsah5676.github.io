@@ -4,6 +4,7 @@ import {
   deleteDoc,
   deleteField,
   doc,
+  getDocs,
   limit,
   onSnapshot,
   orderBy,
@@ -12,6 +13,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
   type Timestamp,
   type Transaction,
 } from "firebase/firestore";
@@ -254,6 +256,26 @@ export interface CreateRoomInput {
   incSec: number;
 }
 
+/** 내가 대국자로 앉아있는 대기/진행중 방 (방 중복 생성·참여 방지용) */
+export async function findMyActiveRoom(uid: string): Promise<ChessRoom | null> {
+  const snaps = await Promise.all(
+    (["whiteUid", "blackUid"] as const).map((f) =>
+      getDocs(query(collection(db, ROOMS), where(f, "==", uid)))
+    )
+  );
+  const rooms = snaps
+    .flatMap((s) => s.docs.map((d) => normalize(d.id, d.data())))
+    .filter((r) => r.status === "waiting" || r.status === "playing")
+    .sort((a, b) => (b.updatedAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? 0));
+  return rooms[0] ?? null;
+}
+
+export class ActiveRoomError extends Error {
+  constructor(public room: ChessRoom) {
+    super("이미 진행중인 게임이 있습니다.");
+  }
+}
+
 export async function createRoom({
   name,
   uid,
@@ -262,6 +284,8 @@ export async function createRoom({
   timeMin,
   incSec,
 }: CreateRoomInput): Promise<string> {
+  const active = await findMyActiveRoom(uid);
+  if (active) throw new ActiveRoomError(active);
   const myColor: Color = color === "r" ? (Math.random() < 0.5 ? "w" : "b") : color;
   const ms = timeMin * 60_000;
   const ref = await addDoc(collection(db, ROOMS), {
@@ -291,6 +315,8 @@ export async function createRoom({
 }
 
 export async function joinAsPlayer(roomId: string, uid: string, nick: string) {
+  const active = await findMyActiveRoom(uid);
+  if (active && active.id !== roomId) throw new ActiveRoomError(active);
   await runTransaction(db, async (tx) => {
     const room = await readRoom(tx, roomId);
     if (colorOf(room, uid)) return;

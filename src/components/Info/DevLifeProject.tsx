@@ -19,6 +19,7 @@ import infoPageImg from "@/img/Page/info/devlife/infopage.webp";
 import archiveImg from "@/img/Page/info/devlife/archive.webp";
 import melonImg from "@/img/Page/info/devlife/melon.webp";
 import mineImg from "@/img/Page/info/devlife/mine.webp";
+import chessImg from "@/img/Page/info/devlife/chess.webp";
 import mobileImg from "@/img/Page/info/devlife/mobile.webp";
 
 // ───────────────────────── 데이터 ─────────────────────────
@@ -27,7 +28,7 @@ const STATS = [
   { value: "2021", label: "운영 시작" },
   { value: "140+", label: "커밋" },
   { value: "65", label: "TS 파일" },
-  { value: "4", label: "미니게임" },
+  { value: "5", label: "미니게임" },
 ];
 
 const STACK: { group: string; items: string[] }[] = [
@@ -40,7 +41,7 @@ const STACK: { group: string; items: string[] }[] = [
     group: "Infra / CI",
     items: ["GitHub Actions", "GitHub Pages", "Firebase Hosting", "Node.js 24"],
   },
-  { group: "Library", items: ["React Quill", "Canvas API", "jQuery UI", "anime.js"] },
+  { group: "Library", items: ["React Quill", "chess.js", "Canvas API", "jQuery UI", "anime.js"] },
   { group: "Tooling", items: ["ESLint", "Prettier"] },
 ];
 
@@ -64,17 +65,29 @@ const FEATURES: Feature[] = [
     ],
   },
   {
-    title: "미니게임 4종",
+    title: "미니게임",
     items: [
       "멜론 게임: Canvas 기반 드래그 퍼즐(합 10·20), 2분 타임어택, BGM·효과음, 랭킹",
       "지뢰찾기: 지뢰 99개 고급 난이도, 첫 클릭 주변 안전 보장, 모바일 길게 누르기 지원",
       "반응속도 테스트: 5회 평균 측정 및 랭킹",
       "스케치 퀴즈: 닉네임·방·채팅까지 구현 (그림판 미완성)",
+      "온라인 체스: 방을 만들어 실시간 대국 (아래에서 따로 소개)",
     ],
     images: [
       { img: melonImg, alt: "멜론 게임" },
       { img: mineImg, alt: "지뢰찾기" },
     ],
+  },
+  {
+    title: "온라인 체스 (실시간 대전)",
+    items: [
+      "방 생성·참여·관전(최대 2명), 방장이 시작 버튼으로 대국 시작, 초대 링크로 바로 입장",
+      "제한 시간(무제한~30분)·수당 추가 시간·선후공(백/흑/랜덤) 선택, 무르기·무승부 제안·기권",
+      "소켓 서버 없이 Firestore onSnapshot으로 실시간 동기화, 수 두기·무르기는 트랜잭션 처리",
+      "익명 로그인 uid로 좌석을 식별해 새로고침·탭 종료 후에도 같은 자리로 복귀, 하트비트로 접속 상태 표시",
+      "체크메이트·스테일메이트·3회 동형반복 등 판정은 chess.js, 탭·드래그 모두 지원하는 모바일 대응 보드",
+    ],
+    images: [{ img: chessImg, alt: "온라인 체스" }],
   },
   {
     title: "개인공부 · 아카이브",
@@ -142,6 +155,14 @@ const RENEWAL: { title: string; items: string[] }[] = [
 
 const TROUBLES: Trouble[] = [
   {
+    title: "체스 대국 중 남은 시간이 오히려 늘어남",
+    problem: "3분+2초 대국에서 3수만 뒀는데 남은 시간이 3:29로 표시됨",
+    cause:
+      "서버 시각 보정을 presence 컬렉션 스냅샷마다 내 문서의 lastSeen으로 다시 계산해, 상대 하트비트로 스냅샷이 올 때 예전 lastSeen 기준으로 시계가 뒤로 밀림",
+    solution:
+      "docChanges()로 서버가 방금 확정한 내 하트비트일 때만 오프셋을 갱신하고, 경과 시간은 0 미만이 되지 않도록 보정",
+  },
+  {
     title: "정적 export에서 개인공부 목록이 HTML에 남지 않음",
     problem: "빌드된 /study 페이지 HTML에 글 링크가 하나도 없어 크롤러가 글을 찾지 못함",
     cause:
@@ -184,7 +205,7 @@ const HISTORY = [
   { date: "2024.12", text: "프로젝트 상세·소개·방명록·아카이브 페이지 구성" },
   { date: "2025.01", text: "사이트 전면 리디자인, 퀵메뉴·Contact 모달 추가" },
   { date: "2025.05", text: "개인공부 게시판, 지뢰찾기 추가" },
-  { date: "2026.09", text: "Next.js · TypeScript 전면 리뉴얼, SEO·배포 자동화" },
+  { date: "2026.09", text: "Next.js · TypeScript 전면 리뉴얼, SEO·배포 자동화, 온라인 체스 추가" },
 ];
 
 // ───────────────────────── 페이지 ─────────────────────────
@@ -256,8 +277,8 @@ export default function DevLifeProject() {
             <FlowBox title="정적 페이지" sub="HTML · JS · 이미지" />
             <Arrow />
             <div className="grid grid-cols-2 gap-2">
-              <FlowBox title="Firestore" sub="방명록 · 랭킹 · 방문자 · 글 저장" />
-              <FlowBox title="Auth" sub="관리자 로그인" />
+              <FlowBox title="Firestore" sub="방명록 · 랭킹 · 방문자 · 글 저장 · 체스 대국" />
+              <FlowBox title="Auth" sub="관리자 로그인 · 체스 익명 로그인" />
             </div>
           </div>
         </div>
