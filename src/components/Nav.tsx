@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 // 모바일(좁은 폭)에서도 한 줄에 들어가도록 여백·글자 크기를 줄임
 const navItemClass =
-  "block px-2 py-3 font-mono text-[13px] text-white/60 transition-colors hover:text-white whitespace-nowrap min-[400px]:px-2.5 sm:px-3 sm:text-sm";
+  "block px-1.5 py-3 font-mono text-[13px] text-white/60 transition-colors hover:text-white whitespace-nowrap min-[360px]:px-2 min-[400px]:px-2.5 sm:px-3 sm:text-sm";
 // 모바일: 메뉴 바 전체 폭 아래로 펼쳐지는 카드(2열) → 오른쪽 항목이 화면 밖으로 잘리지 않음
 // 데스크톱: 기존처럼 해당 항목 아래에 붙는 드롭다운
 const dropdownClass =
@@ -44,6 +45,10 @@ function DropdownNavItem({
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname().replace(/\/+$/, "");
+  // 현재 페이지가 이 메뉴 그룹 안이면 강조 (헤더 archive/about 처럼)
+  const active = items.some((i) => pathname === i.href.replace(/\/+$/, ""));
+  const labelColor = active ? "text-[#8B84FF]" : "";
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +62,21 @@ function DropdownNavItem({
   return (
     // 모바일에선 드롭다운이 nav(sticky) 기준으로 펼쳐지도록 relative를 sm 이상에서만
     <div ref={wrapRef} className="flex items-center sm:relative">
-      <Link href={href} className={navItemClass}>
+      {/* 모바일: 이름 자체를 눌러 펼침 (공간 절약) */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label={`${label} 메뉴`}
+        className={`${navItemClass} ${labelColor} flex cursor-pointer items-center gap-1 sm:hidden`}
+      >
+        {label}
+        <span className="text-white/40">
+          <ChevronIcon open={open} />
+        </span>
+      </button>
+      {/* 데스크톱: 이름은 대표 페이지 링크, 화살표로 펼침 */}
+      <Link href={href} className={`${navItemClass} ${labelColor} hidden sm:block`}>
         {label}
       </Link>
       <button
@@ -65,12 +84,12 @@ function DropdownNavItem({
         aria-label={`${label} submenu`}
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="cursor-pointer py-3 pr-1 text-white/40 transition-colors hover:text-white sm:px-1"
+        className="hidden cursor-pointer py-3 text-white/40 transition-colors hover:text-white sm:block sm:px-1"
       >
         <ChevronIcon open={open} />
       </button>
       {open && (
-        <div className={dropdownClass}>
+        <div className={`${dropdownClass} ${items.length === 1 ? "grid-cols-1" : ""}`}>
           {items.map((item) => (
             <Link
               key={item.href}
@@ -91,10 +110,6 @@ export default function Nav() {
   return (
     <nav className="sticky top-14 z-30 border-b border-white/10 bg-[#121212]">
       <div className="mx-auto flex max-w-4xl flex-nowrap items-center justify-center gap-x-0 px-1 sm:gap-x-1 sm:px-6">
-        <Link href="/about" className={navItemClass}>
-          about
-        </Link>
-
         <DropdownNavItem
           href="/project"
           label="project"
@@ -115,9 +130,20 @@ export default function Nav() {
           ]}
         />
 
-        <Link href="/guest" className={navItemClass}>
-          guest box
-        </Link>
+        <DropdownNavItem
+          href="/random/ladder"
+          label="random"
+          items={[
+            { href: "/random/ladder", label: "사다리타기" },
+            { href: "/random/roulette", label: "룰렛" },
+          ]}
+        />
+
+        <DropdownNavItem
+          href="/devtools/json"
+          label="devtools"
+          items={[{ href: "/devtools/json", label: "JSON 포매터" }]}
+        />
       </div>
     </nav>
   );
