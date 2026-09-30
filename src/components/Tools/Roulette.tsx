@@ -92,6 +92,7 @@ export default function Roulette() {
   const [history, setHistory] = useState<string[]>([]);
   const pendingWinner = useRef<number | null>(null);
 
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
@@ -103,12 +104,15 @@ export default function Roulette() {
             .map((it: Item) => ({ name: String(it.name), weight: clampWeight(Number(it.weight)) }))
         );
     } catch {}
+    // 저장된 값을 불러온 뒤부터 저장 (개발 모드에서 effect가 두 번 돌 때 기본값이 덮어쓰는 것 방지)
+    setHydrated(true);
   }, []);
   useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch {}
-  }, [items]);
+  }, [hydrated, items]);
 
   const n = items.length;
   const total = items.reduce((s, it) => s + it.weight, 0);

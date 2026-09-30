@@ -113,6 +113,7 @@ export default function JsonToJavaTool() {
   const set = <K extends keyof JsonGenOptions>(k: K, v: JsonGenOptions[K]) =>
     setOpt((o) => ({ ...o, [k]: v }));
 
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
@@ -121,12 +122,15 @@ export default function JsonToJavaTool() {
       if (saved?.opt) setOpt((o) => ({ ...o, ...saved.opt }));
       /* eslint-enable react-hooks/set-state-in-effect */
     } catch {}
+    // 저장된 값을 불러온 뒤부터 저장 (개발 모드에서 effect가 두 번 돌 때 기본값이 덮어쓰는 것 방지)
+    setHydrated(true);
   }, []);
   useEffect(() => {
+    if (!hydrated) return;
     try {
       if (input.length < 500_000) localStorage.setItem(STORAGE_KEY, JSON.stringify({ input, opt }));
     } catch {}
-  }, [input, opt]);
+  }, [hydrated, input, opt]);
 
   const result = useMemo(() => {
     if (!input.trim()) return null;

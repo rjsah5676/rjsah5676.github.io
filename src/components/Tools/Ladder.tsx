@@ -115,6 +115,7 @@ export default function Ladder() {
   const height = rows * ROW_H + 24;
 
   // 마지막 설정 복원
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as Saved | null;
@@ -126,12 +127,15 @@ export default function Ladder() {
         /* eslint-enable react-hooks/set-state-in-effect */
       }
     } catch {}
+    // 저장된 값을 불러온 뒤부터 저장 (개발 모드에서 effect가 두 번 돌 때 기본값이 덮어쓰는 것 방지)
+    setHydrated(true);
   }, []);
   useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ names, results, preset } satisfies Saved));
     } catch {}
-  }, [names, results, preset]);
+  }, [hydrated, names, results, preset]);
 
   useEffect(() => {
     const el = boxRef.current;

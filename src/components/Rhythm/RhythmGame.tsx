@@ -85,6 +85,7 @@ export default function RhythmGame() {
   );
   const chart = charts[song.id][diff];
 
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null");
@@ -103,12 +104,15 @@ export default function RhythmGame() {
       if (b) setBest(b);
       /* eslint-enable react-hooks/set-state-in-effect */
     } catch {}
+    // 저장된 값을 불러온 뒤부터 저장 (개발 모드에서 effect가 두 번 돌 때 기본값이 덮어쓰는 것 방지)
+    setHydrated(true);
   }, []);
   useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings, songIdx, diff }));
     } catch {}
-  }, [settings, songIdx, diff]);
+  }, [hydrated, settings, songIdx, diff]);
 
   // 고른 곡은 미리 렌더링해 둬서 시작을 빠르게
   useEffect(() => {
@@ -428,13 +432,12 @@ export default function RhythmGame() {
             음악 싱크 (ms) · +면 노트가 늦게 옴
           </label>
           <div className="mt-1.5 flex items-center gap-2">
-            <button
-              type="button"
+            <HoldButton
               className={stepBtn}
-              onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset - 5, -400, 400) }))}
+              onStep={() => setSettings((s) => ({ ...s, offset: clamp(s.offset - 1, -400, 400) }))}
             >
               −
-            </button>
+            </HoldButton>
             <input
               type="range"
               min={-400}
@@ -444,13 +447,12 @@ export default function RhythmGame() {
               onChange={(e) => setSettings((s) => ({ ...s, offset: Number(e.target.value) }))}
               className="min-w-0 flex-1 accent-[#6C63FF]"
             />
-            <button
-              type="button"
+            <HoldButton
               className={stepBtn}
-              onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset + 5, -400, 400) }))}
+              onStep={() => setSettings((s) => ({ ...s, offset: clamp(s.offset + 1, -400, 400) }))}
             >
               +
-            </button>
+            </HoldButton>
             <span className="w-10 text-right font-mono text-sm text-white">
               {settings.offset > 0 ? "+" : ""}
               {settings.offset}
@@ -474,13 +476,12 @@ export default function RhythmGame() {
             판정 싱크 (ms) · +면 늦게 쳐도 맞음
           </label>
           <div className="mt-1.5 flex items-center gap-2">
-            <button
-              type="button"
+            <HoldButton
               className={stepBtn}
-              onClick={() => setSettings((s) => ({ ...s, judge: clamp(s.judge - 5, -400, 400) }))}
+              onStep={() => setSettings((s) => ({ ...s, judge: clamp(s.judge - 1, -400, 400) }))}
             >
               −
-            </button>
+            </HoldButton>
             <input
               type="range"
               min={-400}
@@ -490,13 +491,12 @@ export default function RhythmGame() {
               onChange={(e) => setSettings((s) => ({ ...s, judge: Number(e.target.value) }))}
               className="min-w-0 flex-1 accent-[#6C63FF]"
             />
-            <button
-              type="button"
+            <HoldButton
               className={stepBtn}
-              onClick={() => setSettings((s) => ({ ...s, judge: clamp(s.judge + 5, -400, 400) }))}
+              onStep={() => setSettings((s) => ({ ...s, judge: clamp(s.judge + 1, -400, 400) }))}
             >
               +
-            </button>
+            </HoldButton>
             <span className="w-10 text-right font-mono text-sm text-white">
               {settings.judge > 0 ? "+" : ""}
               {settings.judge}
@@ -653,5 +653,60 @@ function Calibrate({
         </button>
       </div>
     </div>
+  );
+}
+
+/** 누르면 한 번, 꾹 누르고 있으면 점점 빠르게 반복 (싱크 1ms 단위 조절용) */
+function HoldButton({
+  className,
+  onStep,
+  children,
+}: {
+  className: string;
+  onStep: () => void;
+  children: React.ReactNode;
+}) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepRef = useRef(onStep);
+  useEffect(() => {
+    stepRef.current = onStep;
+  }, [onStep]);
+  const stop = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => stop, []);
+  const start = () => {
+    stop();
+    stepRef.current();
+    let delay = 380;
+    const loop = () => {
+      stepRef.current();
+      delay = Math.max(30, delay * 0.8);
+      timer.current = setTimeout(loop, delay);
+    };
+    timer.current = setTimeout(loop, delay);
+  };
+  return (
+    <button
+      type="button"
+      className={className}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        start();
+      }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          stepRef.current();
+        }
+      }}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {children}
+    </button>
   );
 }

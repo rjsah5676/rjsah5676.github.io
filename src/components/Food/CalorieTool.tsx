@@ -48,6 +48,7 @@ export default function CalorieTool() {
   const [meal, setMeal] = useState<MealItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     let alive = true;
     fetch(FOOD_DATA_URL)
@@ -60,15 +61,18 @@ export default function CalorieTool() {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- 저장된 식단 복원(마운트 1회)
         setMeal(saved.filter((m) => m && typeof m.id === "string" && m.grams > 0));
     } catch {}
+    // 저장된 값을 불러온 뒤부터 저장 (개발 모드에서 effect가 두 번 돌 때 기본값이 덮어쓰는 것 방지)
+    setHydrated(true);
     return () => {
       alive = false;
     };
   }, []);
   useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(MEAL_KEY, JSON.stringify(meal));
     } catch {}
-  }, [meal]);
+  }, [hydrated, meal]);
 
   const byId = useMemo(() => new Map((foods ?? []).map((f) => [f.id, f])), [foods]);
   const index = useMemo(() => (foods ? indexFoods(foods) : []), [foods]);

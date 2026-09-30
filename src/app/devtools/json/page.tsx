@@ -149,18 +149,22 @@ export default function JsonFormatterPage() {
   const [copied, setCopied] = useState(false);
 
   // 마지막 입력 복원 (새로고침해도 유지)
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- 저장된 입력 복원(마운트 1회)
       if (saved) setInput(saved);
     } catch {}
+    // 저장된 값을 불러온 뒤부터 저장 (개발 모드에서 effect가 두 번 돌 때 기본값이 덮어쓰는 것 방지)
+    setHydrated(true);
   }, []);
   useEffect(() => {
+    if (!hydrated) return;
     try {
       if (input.length < 500_000) localStorage.setItem(STORAGE_KEY, input);
     } catch {}
-  }, [input]);
+  }, [hydrated, input]);
 
   const result = useMemo(() => {
     if (!input.trim()) return { ok: true as const, text: "" };

@@ -131,6 +131,7 @@ export default function DdlTool() {
   const set = <K extends keyof GenOptions>(k: K, v: GenOptions[K]) =>
     setOpt((o) => ({ ...o, [k]: v }));
 
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
@@ -140,13 +141,16 @@ export default function DdlTool() {
       if (saved?.opt) setOpt((o) => ({ ...o, ...saved.opt }));
       /* eslint-enable react-hooks/set-state-in-effect */
     } catch {}
+    // 저장된 값을 불러온 뒤부터 저장 (개발 모드에서 effect가 두 번 돌 때 기본값이 덮어쓰는 것 방지)
+    setHydrated(true);
   }, []);
   useEffect(() => {
+    if (!hydrated) return;
     try {
       if (input.length < 500_000)
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ input, tab, opt }));
     } catch {}
-  }, [input, tab, opt]);
+  }, [hydrated, input, tab, opt]);
 
   const ddlMode = looksLikeDdl(input);
   const tables = useMemo(() => (ddlMode ? parseDdl(input) : []), [input, ddlMode]);
