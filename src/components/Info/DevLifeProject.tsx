@@ -23,14 +23,17 @@ import chessImg from "@/img/Page/info/devlife/chess.webp";
 import ladderImg from "@/img/Page/info/devlife/ladder.webp";
 import rouletteImg from "@/img/Page/info/devlife/roulette.webp";
 import mobileImg from "@/img/Page/info/devlife/mobile.webp";
+import rhythmImg from "@/img/Page/info/devlife/rhythm.webp";
+import calorieImg from "@/img/Page/info/devlife/calorie.webp";
+import devtoolsImg from "@/img/Page/info/devlife/devtools.webp";
 
 // ───────────────────────── 데이터 ─────────────────────────
 
 const STATS = [
   { value: "2021", label: "운영 시작" },
-  { value: "140+", label: "커밋" },
-  { value: "65", label: "TS 파일" },
-  { value: "7", label: "게임 · 도구" },
+  { value: "180+", label: "커밋" },
+  { value: "124", label: "TS 파일" },
+  { value: "12", label: "게임 · 도구" },
 ];
 
 const STACK: { group: string; items: string[] }[] = [
@@ -43,7 +46,10 @@ const STACK: { group: string; items: string[] }[] = [
     group: "Infra / CI",
     items: ["GitHub Actions", "GitHub Pages", "Firebase Hosting", "Node.js 24"],
   },
-  { group: "Library", items: ["React Quill", "chess.js", "Canvas API", "jQuery UI", "anime.js"] },
+  {
+    group: "Library",
+    items: ["Web Audio API", "Canvas API", "chess.js", "sql-formatter", "React Quill", "jQuery UI"],
+  },
   { group: "Tooling", items: ["ESLint", "Prettier"] },
 ];
 
@@ -73,7 +79,8 @@ const FEATURES: Feature[] = [
       "지뢰찾기: 지뢰 99개 고급 난이도, 첫 클릭 주변 안전 보장, 모바일 길게 누르기 지원",
       "반응속도 테스트: 5회 평균 측정 및 랭킹",
       "모바일 대응: 멜론 게임은 진입 시 화면 폭으로 배율 고정 + 터치 드래그",
-      "온라인 체스: 방을 만들어 실시간 대국 (아래에서 따로 소개)",
+      "온라인 체스: 방을 만들어 실시간 대국·방 채팅 (아래에서 따로 소개)",
+      "4키 리듬게임: 음원·채보를 코드로 직접 만든 DFJK 리듬게임 (아래에서 따로 소개)",
     ],
     images: [
       { img: melonImg, alt: "멜론 게임" },
@@ -92,6 +99,19 @@ const FEATURES: Feature[] = [
     images: [{ img: chessImg, alt: "온라인 체스" }],
   },
   {
+    title: "4키 리듬게임",
+    items: [
+      "DFJK 4키·롱노트·난이도 4단계, 곡·난이도별 랭킹, 모바일 터치 지원",
+      "곡은 월광 3악장·왕벌의 비행 피아노 리믹스: 퍼블릭 도메인 원곡을 직접 편곡해 음표 데이터(16분음표 격자)로 작성",
+      "음원 파일 없이 Web Audio로 합성: 배음 비조화성·현 여러 개의 맥놀이·2단 감쇠·해머 소리를 계산한 피아노 샘플에 서스테인 페달까지 적용",
+      "OfflineAudioContext로 곡을 미리 렌더링하고 재생 위치는 오디오 시계 기준 → 판정이 음악과 어긋나지 않음",
+      "채보 자동 생성: 멜로디 음높이로 레인을 정하고 난이도별 최소 간격·연타 간격·동시치기 규칙 적용, 시드 고정으로 항상 같은 채보",
+      "판정 PERFECT·GREAT·GOOD(100·66·33%), FAST/SLOW ms 표시, 결과 평균으로 판정 싱크 보정, 음악 싱크 측정",
+      "HP·FAILED, 롱노트 콤보, 타격음 4종·노트 스킨 5종, 판정선 타격 이펙트, 일시정지 중 속도·싱크·볼륨 조절",
+    ],
+    images: [{ img: rhythmImg, alt: "리듬게임" }],
+  },
+  {
     title: "도구 (tools · devtools)",
     items: [
       "사다리타기: 당첨 1명·순서 정하기·직접 입력, 결과 가리기, 이름 눌러 타기·전체 결과 보기",
@@ -99,10 +119,15 @@ const FEATURES: Feature[] = [
       "룰렛: 항목별 가중치(칸 크기·당첨 확률 비례), 결과를 먼저 뽑고 그 칸에 멈추도록 회전량 계산",
       "JSON Formatter: 정렬·압축·키 정렬, 오류 위치(줄·칸) 표시, 16자리 이상 정수 정밀도 경고",
       "난수는 crypto.getRandomValues 기반으로 모듈로 편향 없이 추출",
+      "칼로리 계산기: 식약처 식품영양성분 DB 2만여 개 검색·탄단지 비율·식단 합계, 대표 음식 535개는 개별 정적 페이지",
+      "MyBatis 로그 → SQL: Preparing/Parameters 로그를 값이 채워진 실행 가능한 SQL로 변환",
+      "DDL → Java DTO·resultMap·Mapper XML, JSON → Java DTO(Lombok·record) 생성기",
     ],
     images: [
       { img: ladderImg, alt: "사다리타기" },
       { img: rouletteImg, alt: "룰렛" },
+      { img: calorieImg, alt: "칼로리 계산기" },
+      { img: devtoolsImg, alt: "MyBatis 로그 → SQL 변환기" },
     ],
   },
   {
@@ -179,6 +204,35 @@ const RENEWAL: { title: string; items: string[] }[] = [
 ];
 
 const TROUBLES: Trouble[] = [
+  {
+    title: "리듬게임 노트가 분신처럼 겹쳐 보임",
+    problem: "노트가 많이 내려오면 한 노트가 여러 개로 겹쳐 보이는 잔상이 생김",
+    cause:
+      "노트 위치를 오디오 시계(currentTime)로 계산했는데, 이 값은 오디오 버퍼 단위로 끊겨 올라감 (측정해보니 16.7ms 프레임마다 8.7ms·20.3ms씩 들쭉날쭉)",
+    solution:
+      "화면용 시계를 performance.now()로 매끄럽게 흘리고 오디오 시계와의 차이만 천천히 따라가게 분리, 판정은 그대로 오디오 시계 기준",
+  },
+  {
+    title: "곡 하나 렌더링에 100초 넘게 걸림",
+    problem: "곡 전체를 OfflineAudioContext 하나로 구우면 시작 버튼 후 한참 기다려야 함",
+    cause: "만든 노드는 렌더링이 끝날 때까지 계속 처리 비용이 들어 (노드 수 × 곡 길이)로 느려짐",
+    solution:
+      "4마디씩 잘라 여운만 붙여 따로 굽고 합치도록 변경, 필터는 악기별로 공유 → 2~5초로 단축",
+  },
+  {
+    title: "칼로리 계산기 빌드 결과물이 581MB",
+    problem: "음식 3,600개를 개별 페이지로 만들었더니 배포 용량이 감당할 수 없이 커짐",
+    cause: "정적 export는 페이지마다 공통 레이아웃 데이터(약 150KB)를 HTML에 함께 담음",
+    solution:
+      "여러 조사에 공통으로 나오는 대표 음식·분류별 대표 원재료만 골라 535개로 줄이고, 나머지는 검색으로 제공 → 115MB",
+  },
+  {
+    title: "개발 모드에서 저장한 설정이 기본값으로 초기화",
+    problem: "새로고침하면 리듬게임 싱크 등 localStorage에 저장한 값이 기본값으로 돌아감",
+    cause:
+      "StrictMode에서 effect가 두 번 실행되면서, 복원 effect가 반영되기 전에 저장 effect가 기본값을 먼저 덮어씀",
+    solution: "복원이 끝났다는 hydrated 상태를 두고 그 이후에만 저장하도록 8개 컴포넌트 수정",
+  },
   {
     title: "모바일에서 지뢰찾기 첫 탭에 페이지가 죽음",
     problem: "세로 화면에서 칸을 누르는 순간 'This page couldn't load'가 뜸",
@@ -257,6 +311,10 @@ const HISTORY = [
     date: "2026.09",
     text: "Next.js · TypeScript 전면 리뉴얼, SEO·배포 자동화, 온라인 체스·도구·관리자 대시보드 추가",
   },
+  {
+    date: "2026.10",
+    text: "4키 리듬게임, 칼로리 계산기, devtools 변환기(MyBatis 로그·DDL·JSON → Java) 추가",
+  },
 ];
 
 // ───────────────────────── 페이지 ─────────────────────────
@@ -328,7 +386,10 @@ export default function DevLifeProject() {
             <FlowBox title="정적 페이지" sub="HTML · JS · 이미지" />
             <Arrow />
             <div className="grid grid-cols-2 gap-2">
-              <FlowBox title="Firestore" sub="방명록 · 랭킹 · 방문자 · 글 · 체스 대국 · 문의" />
+              <FlowBox
+                title="Firestore"
+                sub="방명록 · 랭킹 · 방문자 · 글 · 체스 대국·채팅 · 문의"
+              />
               <FlowBox title="Auth" sub="관리자 로그인 · 체스 익명 로그인" />
             </div>
           </div>

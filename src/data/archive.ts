@@ -18,6 +18,59 @@ export const ARCHIVE_TAGS: ArchiveTag[] = ["사이트", "프로젝트", "실무"
 const entries: ArchiveEntry[] = [
   // ───────────── 2026 ─────────────
   {
+    sort: "2026-10-01d",
+    date: "2026.10.01",
+    tag: "사이트",
+    title: "4키 리듬게임 추가",
+    items: [
+      "DFJK 4키, 롱노트, 난이도 4단계(쉬움~매우 어려움), 곡·난이도별 랭킹",
+      "곡: 베토벤 월광 3악장·림스키코르사코프 왕벌의 비행 피아노 리믹스 (퍼블릭 도메인 원곡, 편곡·음원 직접 제작)",
+      "음원은 파일 없이 Web Audio로 직접 합성: 배음·현 맥놀이·해머 소리를 계산한 피아노 샘플 + 페달",
+      "채보는 곡 이벤트에서 자동 생성 (멜로디 음높이 → 레인, 난이도별 간격·동시치기 규칙)",
+      "판정 PERFECT·GREAT·GOOD(100·66·33%), FAST/SLOW ms 표시, 결과 평균으로 판정 싱크 자동 보정",
+      "HP·FAILED, 롱노트 누르는 동안 콤보 상승, 타격음 4종·노트 스킨 5종, 판정선 타격 이펙트",
+      "커버 배경·점수판·마디선·박자 연출, 일시정지 중 속도·싱크·볼륨 조절, 모바일 터치 지원",
+    ],
+    href: "/games/rhythm/",
+  },
+  {
+    sort: "2026-10-01c",
+    date: "2026.10.01",
+    tag: "사이트",
+    title: "칼로리 계산기 추가",
+    items: [
+      "식약처 식품영양성분 DB 2만여 개 검색 (초성·브랜드 구분), 칼로리·탄단지 비율 도넛 차트",
+      "g·1인분 단위 계산, 여러 음식을 담아 식단 합계",
+      "대표 음식 535개는 음식별 정적 페이지로 생성해 검색엔진 노출",
+    ],
+    href: "/tools/calorie/",
+  },
+  {
+    sort: "2026-10-01b",
+    date: "2026.10.01",
+    tag: "사이트",
+    title: "devtools 변환기 3종 추가",
+    items: [
+      "MyBatis 로그 → SQL: Preparing/Parameters 로그의 ?에 값을 바인딩해 실행 가능한 SQL로, DB별 리터럴·줄 정리",
+      "DDL → Java: CREATE TABLE로 DTO·MyBatis resultMap·Mapper XML 생성, camelCase/snake_case 변환",
+      "JSON → Java DTO: Lombok·getter/setter·record, 하위 객체 내부 클래스/파일 분리, @JsonProperty",
+      "devtools 메뉴 순서 정리 (JSON Formatter → DDL → JSON → MyBatis)",
+    ],
+    href: "/devtools/mybatis-log/",
+  },
+  {
+    sort: "2026-10-01a",
+    date: "2026.10.01",
+    tag: "사이트",
+    title: "체스 방 채팅 및 설정 저장 버그 수정",
+    items: [
+      "체스 방 채팅: 대국자·관전자만 입력, 보안 규칙으로 참가자·길이 검증",
+      "개발 모드에서 저장된 설정이 기본값으로 덮이던 문제를 컴포넌트 8곳에서 수정",
+      "메뉴 드롭다운 항목 줄바꿈 방지",
+    ],
+    href: "/games/chess/",
+  },
+  {
     sort: "2026-09-30c",
     date: "2026.09.30",
     tag: "사이트",
