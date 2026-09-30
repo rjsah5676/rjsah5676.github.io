@@ -12,7 +12,7 @@ const navItemClass =
 const dropdownClass =
   "absolute inset-x-3 top-full z-40 mt-1 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-[#1C1E24] p-2 shadow-xl sm:inset-x-auto sm:left-0 sm:mt-0 sm:flex sm:min-w-[180px] sm:flex-col sm:gap-0.5 sm:rounded-md sm:p-1.5";
 const dropdownLinkClass =
-  "rounded px-3 py-2.5 text-center font-mono text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white sm:py-2 sm:text-left";
+  "rounded px-3 py-2.5 text-center font-mono text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white sm:py-2 sm:text-left sm:whitespace-nowrap";
 
 interface NavLinkItem {
   href: string;
