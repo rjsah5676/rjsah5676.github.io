@@ -13,7 +13,12 @@ const BEST_KEY = "rhythm_best";
 
 interface Settings {
   speed: number;
+  /** 음악 싱크(ms): 노트 화면+판정을 같이 옮김 */
   offset: number;
+  /** 판정 싱크(ms): 판정만 옮김 (늘 늦게/빠르게 치는 버릇 보정) */
+  judge: number;
+  /** 타격음 볼륨 0~1 */
+  hit: number;
 }
 interface Best {
   score: number;
@@ -55,7 +60,7 @@ export default function RhythmGame() {
   const [pos, setPos] = useState(0);
   const songIdx = mod(pos, SONGS.length);
   const [diff, setDiff] = useState<Difficulty>("normal");
-  const [settings, setSettings] = useState<Settings>({ speed: 3, offset: 0 });
+  const [settings, setSettings] = useState<Settings>({ speed: 3, offset: 0, judge: 0, hit: 0.6 });
   const [best, setBest] = useState<Record<string, Best>>({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -64,6 +69,7 @@ export default function RhythmGame() {
     buffer: AudioBuffer;
     round: number;
   } | null>(null);
+  const [judgeApplied, setJudgeApplied] = useState(false);
   const [result, setResult] = useState<(Result & { newBest: boolean }) | null>(null);
 
   const song = SONGS[songIdx];
@@ -88,6 +94,8 @@ export default function RhythmGame() {
         setSettings({
           speed: clamp(Number(s.speed) || 3, 1, 8),
           offset: clamp(Number(s.offset) || 0, -300, 300),
+          judge: clamp(Number(s.judge) || 0, -150, 150),
+          hit: typeof s.hit === "number" ? clamp(s.hit, 0, 1) : 0.6,
         });
         if (typeof s.songIdx === "number" && SONGS[s.songIdx]) setPos(s.songIdx);
         if (DIFFICULTIES.some((d) => d.key === s.diff)) setDiff(s.diff);
@@ -146,6 +154,7 @@ export default function RhythmGame() {
         } catch {}
       }
       setResult({ ...r, newBest });
+      setJudgeApplied(false);
       setScreen("result");
     },
     [best]
@@ -186,6 +195,8 @@ export default function RhythmGame() {
         ctx={play.ctx}
         speed={settings.speed}
         offset={settings.offset}
+        judgeOffset={settings.judge}
+        hitVolume={settings.hit}
         onFinish={finish}
         onQuit={() => setScreen("select")}
         onRestart={() => setPlay((p) => p && { ...p, round: p.round + 1 })}
@@ -238,6 +249,32 @@ export default function RhythmGame() {
           <p className="mt-1 font-mono text-sm text-white/50">
             정확도 {result.acc.toFixed(2)}% · 최대 콤보 {result.maxCombo}
           </p>
+          <p className="mt-2 font-mono text-xs">
+            <span className="text-[#60A5FA]">FAST {result.fast}</span>
+            <span className="mx-2 text-white/20">·</span>
+            <span className="text-[#FB923C]">SLOW {result.slow}</span>
+            {result.avgMs !== null && (
+              <span className="ml-2 text-white/45">
+                · 평균 {result.avgMs > 0 ? "+" : ""}
+                {result.avgMs}ms {result.avgMs > 0 ? "늦음" : result.avgMs < 0 ? "빠름" : ""}
+              </span>
+            )}
+          </p>
+          {result.avgMs !== null && Math.abs(result.avgMs) >= 8 && (
+            <button
+              type="button"
+              className={`${btn} mt-2`}
+              disabled={judgeApplied}
+              onClick={() => {
+                setSettings((s) => ({ ...s, judge: clamp(s.judge + result.avgMs!, -150, 150) }));
+                setJudgeApplied(true);
+              }}
+            >
+              {judgeApplied
+                ? `판정 싱크 ${settings.judge > 0 ? "+" : ""}${settings.judge}ms로 맞춤`
+                : `판정 싱크에 반영 (${result.avgMs > 0 ? "+" : ""}${result.avgMs}ms)`}
+            </button>
+          )}
           <div className="mt-5 grid w-full grid-cols-4 gap-2 font-mono text-xs">
             {(
               [
@@ -387,7 +424,9 @@ export default function RhythmGame() {
             </span>
           </div>
 
-          <label className="font-mono text-xs text-white/50">싱크 (ms) · +면 노트가 늦게 옴</label>
+          <label className="font-mono text-xs text-white/50">
+            음악 싱크 (ms) · +면 노트가 늦게 옴
+          </label>
           <div className="mt-1.5 flex items-center gap-2">
             <button
               type="button"
@@ -429,6 +468,58 @@ export default function RhythmGame() {
             >
               초기화
             </button>
+          </div>
+
+          <label className="mt-4 block font-mono text-xs text-white/50">
+            판정 싱크 (ms) · +면 늦게 쳐도 맞음
+          </label>
+          <div className="mt-1.5 flex items-center gap-2">
+            <button
+              type="button"
+              className={stepBtn}
+              onClick={() => setSettings((s) => ({ ...s, judge: clamp(s.judge - 5, -150, 150) }))}
+            >
+              −
+            </button>
+            <input
+              type="range"
+              min={-150}
+              max={150}
+              step={1}
+              value={settings.judge}
+              onChange={(e) => setSettings((s) => ({ ...s, judge: Number(e.target.value) }))}
+              className="min-w-0 flex-1 accent-[#6C63FF]"
+            />
+            <button
+              type="button"
+              className={stepBtn}
+              onClick={() => setSettings((s) => ({ ...s, judge: clamp(s.judge + 5, -150, 150) }))}
+            >
+              +
+            </button>
+            <span className="w-10 text-right font-mono text-sm text-white">
+              {settings.judge > 0 ? "+" : ""}
+              {settings.judge}
+            </span>
+          </div>
+          <p className="mt-1 font-mono text-[10px] text-white/30">
+            한 판 끝나면 결과 화면에서 평균 타이밍으로 맞출 수 있어요
+          </p>
+
+          <label className="mt-4 block font-mono text-xs text-white/50">타격음</label>
+          <div className="mt-1.5 flex items-center gap-2">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={settings.hit}
+              onChange={(e) => setSettings((s) => ({ ...s, hit: Number(e.target.value) }))}
+              className="min-w-0 flex-1 accent-[#6C63FF]"
+            />
+            <span className="w-10 text-right font-mono text-sm text-white">
+              {settings.hit === 0 ? "끔" : Math.round(settings.hit * 100)}
+            </span>
           </div>
 
           <div className="mt-5 space-y-1 border-t border-white/5 pt-4 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/45">

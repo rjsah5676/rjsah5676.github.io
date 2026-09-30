@@ -18,6 +18,34 @@ export interface Result {
   maxCombo: number;
   fc: boolean;
   ap: boolean;
+  /** 판정 창 안에서 빠르게/늦게 친 횟수 (±FAST_SLOW_MS 넘는 것만) */
+  fast: number;
+  slow: number;
+  /** 친 노트들의 평균 타이밍(ms, +면 늦게 침). 판정 싱크 추천용 */
+  avgMs: number | null;
+}
+
+/** 이보다 크게 어긋나면 FAST/SLOW 표시 (퍼펙트 안이어도) */
+const FAST_SLOW_MS = 20;
+
+/** 키를 누를 때 나는 짧은 타격음 (한 번만 만들어 재사용) */
+function makeHitSound(ctx: BaseAudioContext) {
+  const sr = ctx.sampleRate;
+  const len = Math.floor(sr * 0.06);
+  const buf = ctx.createBuffer(1, len, sr);
+  const d = buf.getChannelData(0);
+  let seed = 7;
+  for (let i = 0; i < len; i++) {
+    const t = i / sr;
+    seed = (seed * 16807) % 2147483647;
+    const noise = (seed / 2147483647) * 2 - 1;
+    // 짧은 클릭(노이즈) + 톡 하는 높은 음
+    d[i] =
+      noise * Math.exp(-t * 180) * 0.35 +
+      Math.sin(2 * Math.PI * 1850 * t) * Math.exp(-t * 60) * 0.45 +
+      Math.sin(2 * Math.PI * 920 * t) * Math.exp(-t * 45) * 0.25;
+  }
+  return buf;
 }
 
 const JUDGE_STYLE: Record<Judge, { text: string; color: string }> = {
@@ -39,6 +67,10 @@ interface Props {
   speed: number;
   /** ms, +면 노트가 늦게 옴 */
   offset: number;
+  /** 타격음 볼륨 0~1 (0이면 끔) */
+  hitVolume: number;
+  /** ms, 판정만 옮김(+면 늦게 쳐도 맞게). 노트가 보이는 위치는 그대로 */
+  judgeOffset: number;
   onFinish: (result: Result) => void;
   onQuit: () => void;
   onRestart: () => void;
@@ -52,6 +84,8 @@ export default function Stage({
   ctx,
   speed,
   offset,
+  hitVolume,
+  judgeOffset,
   onFinish,
   onQuit,
   onRestart,
@@ -128,6 +162,14 @@ export default function Stage({
 
     // 화면 효과용 상태
     let lastJudge: { judge: Judge; at: number; diff?: number } | null = null;
+    let fast = 0;
+    let slow = 0;
+    let diffSum = 0;
+    let diffN = 0;
+    const hitBuf = hitVolume > 0 ? makeHitSound(ctx) : null;
+    const hitGain = ctx.createGain();
+    hitGain.gain.value = hitVolume * 0.9;
+    hitGain.connect(ctx.destination);
     const flashes: { lane: number; at: number; judge: Judge }[] = [];
     let drawFrom = 0;
     const laneColor = (l: number) => (l === 1 || l === 2 ? song.color : "#E6E8EF");
@@ -227,13 +269,13 @@ export default function Stage({
         g.fillStyle = s.color;
         g.font = `800 ${Math.round(22 + 6 * (1 - pop))}px ui-monospace, SFMono-Regular, Menlo, monospace`;
         g.fillText(s.text, W / 2, H * 0.4);
-        if (
-          lastJudge.diff !== undefined &&
-          (lastJudge.judge === "great" || lastJudge.judge === "good")
-        ) {
-          g.font = "600 11px ui-monospace, monospace";
-          g.fillStyle = "rgba(255,255,255,0.55)";
-          g.fillText(lastJudge.diff < 0 ? "FAST" : "SLOW", W / 2, H * 0.4 - 24);
+        // 빠르게/늦게 친 정도: 퍼펙트 안이어도 20ms 넘게 어긋나면 표시
+        const ms = lastJudge.diff !== undefined ? Math.round(lastJudge.diff * 1000) : 0;
+        if (lastJudge.judge !== "miss" && Math.abs(ms) > FAST_SLOW_MS) {
+          const early = ms < 0;
+          g.font = "800 14px ui-monospace, SFMono-Regular, Menlo, monospace";
+          g.fillStyle = early ? "#60A5FA" : "#FB923C";
+          g.fillText(`${early ? "FAST" : "SLOW"} ${early ? "" : "+"}${ms}ms`, W / 2, H * 0.4 - 28);
         }
       }
       if (engine.combo >= 2) {
@@ -285,14 +327,25 @@ export default function Stage({
         maxCombo: engine.maxCombo,
         fc: engine.fullCombo,
         ap: engine.allPerfect,
+        fast,
+        slow,
+        avgMs: diffN >= 10 ? Math.round((diffSum / diffN) * 1000) : null,
       });
     };
     const frame = () => {
       if (!running) return;
       const t = now();
-      engine.update(t);
+      engine.update(t - judgeOffset / 1000); // 지나간 노트 미스 처리도 판정 싱크 기준
       for (const e of engine.events) {
         lastJudge = e;
+        if (e.diff !== undefined && e.judge !== "miss") {
+          diffSum += e.diff;
+          diffN++;
+        }
+        if (e.diff !== undefined && e.judge !== "miss" && Math.abs(e.diff * 1000) > FAST_SLOW_MS) {
+          if (e.diff < 0) fast++;
+          else slow++;
+        }
         if (e.judge !== "miss") flashes.push({ lane: e.lane, at: e.at, judge: e.judge });
       }
       engine.events.length = 0;
@@ -304,11 +357,17 @@ export default function Stage({
 
     const press = (lane: number) => {
       if (!running) return;
-      engine.press(lane, now());
+      if (hitBuf) {
+        const src = ctx.createBufferSource();
+        src.buffer = hitBuf;
+        src.connect(hitGain);
+        src.start();
+      }
+      engine.press(lane, now() - judgeOffset / 1000);
     };
     const release = (lane: number) => {
       if (!running) return;
-      engine.release(lane, now());
+      engine.release(lane, now() - judgeOffset / 1000);
     };
 
     const pause = () => {

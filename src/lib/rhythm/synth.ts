@@ -29,7 +29,7 @@ function makeNoise(ctx: BaseAudioContext) {
 }
 
 /** events를 t0 기준으로 len초 동안 굽기 */
-async function renderChunk(
+export async function renderChunk(
   song: Song,
   events: MusicEvent[],
   t0: number,
@@ -82,6 +82,24 @@ async function renderChunk(
   const arpSend = ctx.createGain();
   arpSend.gain.value = 0.35;
   arpF.connect(arpSend).connect(send);
+  // 기타: 톱니파 → 디스토션(웨이브셰이퍼) → 캐비닛 느낌 로우패스
+  // 디스토션은 음압이 확 커져서 멜로디 밑으로 깔리게 크게 줄임
+  const gtrOut = ctx.createGain();
+  gtrOut.gain.value = 0.26;
+  gtrOut.connect(bus);
+  const gtrF = filter("lowpass", 3000, 0.8, gtrOut);
+  const shaper = ctx.createWaveShaper();
+  const curve = new Float32Array(1024);
+  for (let i = 0; i < curve.length; i++) {
+    const x = (i / (curve.length - 1)) * 2 - 1;
+    curve[i] = Math.tanh(x * 6) * 0.8;
+  }
+  shaper.curve = curve;
+  shaper.oversample = "2x";
+  const gtrIn = ctx.createGain();
+  gtrIn.gain.value = 0.9;
+  gtrIn.connect(shaper).connect(gtrF);
+  const crashF = filter("highpass", 5000, 0.5);
   const leadSend = ctx.createGain();
   leadSend.gain.value = 0.6;
   leadF.connect(leadSend).connect(send);
@@ -164,13 +182,13 @@ async function renderChunk(
         break;
       }
       case "snare": {
-        noiseHit(t, 0.42 * v, snareF, 0.18);
+        noiseHit(t, 0.62 * v, snareF, 0.18);
         const o = ctx.createOscillator();
         o.type = "triangle";
         o.frequency.setValueAtTime(200, t);
         o.frequency.exponentialRampToValueAtTime(140, t + 0.08);
         const g = ctx.createGain();
-        g.gain.setValueAtTime(0.35 * v, t);
+        g.gain.setValueAtTime(0.48 * v, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
         o.connect(g).connect(bus);
         o.start(t);
@@ -181,7 +199,7 @@ async function renderChunk(
         for (const d of [0, 0.011, 0.022]) noiseHit(t + d, 0.22 * v, clapF, 0.1 + d * 3);
         break;
       case "hat":
-        noiseHit(t, 0.1 * v, hatF, 0.035);
+        noiseHit(t, 0.15 * v, hatF, 0.035);
         break;
       case "ohat":
         noiseHit(t, 0.08 * v, ohatF, 0.22);
@@ -198,11 +216,52 @@ async function renderChunk(
         });
         break;
       case "lead":
-        tone(song.sound.lead, e.midi!, t, dur * 0.95, chip ? 0.09 : 0.11, leadF, {
-          detune: chip ? 0 : 7,
-          rel: 0.12,
-        });
+        if (song.sound.lead === "supersaw") {
+          // 톱니파 5개를 조금씩 어긋나게 겹쳐 두껍게 (애니송 리드)
+          const g = gainEnv(t, 0.078, 0.01, Math.max(0, dur * 0.95 - 0.01), 0.14, leadF);
+          const end = t + dur + 0.2;
+          for (const d of [-16, -7, 0, 7, 16]) osc("sawtooth", hz(e.midi!), t, end, g, d);
+          osc("square", hz(e.midi! - 12), t, end, g); // 한 옥타브 아래로 몸통
+        } else
+          tone(song.sound.lead, e.midi!, t, dur * 0.95, chip ? 0.09 : 0.11, leadF, {
+            detune: chip ? 0 : 7,
+            rel: 0.12,
+          });
         break;
+      case "gtr": {
+        // 파워코드 (근음 + 5도 + 옥타브), chug는 짧게 끊어서 뮤트 느낌
+        const short = e.len <= 2;
+        const g = gainEnv(
+          t,
+          0.07 * v,
+          0.004,
+          short ? dur * 0.45 : dur * 0.92,
+          short ? 0.04 : 0.2,
+          gtrIn
+        );
+        const end = t + dur + 0.25;
+        for (const iv of [0, 7, 12]) {
+          osc("sawtooth", hz(e.midi! + iv), t, end, g, -5);
+          osc("sawtooth", hz(e.midi! + iv), t, end, g, 5);
+        }
+        break;
+      }
+      case "crash":
+        noiseHit(t, 0.16 * v, crashF, 1.4);
+        break;
+      case "tom": {
+        const o = ctx.createOscillator();
+        const f0 = hz(e.midi!);
+        o.frequency.setValueAtTime(f0 * 1.6, t);
+        o.frequency.exponentialRampToValueAtTime(f0, t + 0.08);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.55 * v, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+        o.connect(g).connect(bus);
+        o.start(t);
+        o.stop(t + 0.32);
+        break;
+      }
     }
   }
   return ctx.startRendering();

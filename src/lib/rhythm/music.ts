@@ -3,7 +3,19 @@
  * 소리(synth.ts)와 채보(chart.ts)가 같은 이벤트에서 나오게 해서 박자가 정확히 맞도록 한다.
  */
 
-export type Kind = "kick" | "snare" | "clap" | "hat" | "ohat" | "bass" | "lead" | "arp" | "pad";
+export type Kind =
+  | "kick"
+  | "snare"
+  | "clap"
+  | "hat"
+  | "ohat"
+  | "crash"
+  | "tom"
+  | "bass"
+  | "gtr"
+  | "lead"
+  | "arp"
+  | "pad";
 
 export interface MusicEvent {
   /** 곡 시작부터 16분음표 단위 위치 */
@@ -16,7 +28,8 @@ export interface MusicEvent {
 }
 
 export interface SoundSet {
-  lead: OscillatorType;
+  /** supersaw: 톱니파 여러 개를 살짝 어긋나게 겹친 두꺼운 리드 */
+  lead: OscillatorType | "supersaw";
   arp: OscillatorType;
   /** 리드 딜레이 길이(16분음표 수) */
   delaySteps: number;
@@ -70,7 +83,16 @@ interface Section {
   clap?: Drum;
   hat?: Drum;
   ohat?: Drum;
+  crash?: Drum;
+  /** 탐 필인: x 위치마다 높은 탐 → 낮은 탐 순서로 */
+  tom?: Drum;
   bass?: "pulse" | "octave" | "root" | "half";
+  /** 파워코드 기타: 8분 뮤트 연주(chug) / 한 마디 길게(sustain) */
+  gtr?: "chug" | "sustain";
+  /** 이 구간만 쓰는 코드 진행 (마디마다, 모자라면 반복) */
+  chords?: string[][];
+  /** 이 구간 음 높이를 반음 단위로 올림 (마지막 후렴 전조) */
+  transpose?: number;
   pad?: boolean;
   /** 아르페지오 간격(16분음표 수) */
   arp?: 1 | 2;
@@ -101,9 +123,12 @@ function build(spec: SongSpec): Song {
     sections.push([bar0, sec.name]);
     for (let b = 0; b < sec.bars; b++) {
       const base = (bar0 + b) * 16;
-      const chord = spec.chords[(bar0 + b) % spec.chords.length];
-      const root = midiOf(chord[0]);
-      const tones = chord.slice(1).map(midiOf);
+      const chord = sec.chords
+        ? sec.chords[b % sec.chords.length]
+        : spec.chords[(bar0 + b) % spec.chords.length];
+      const tr = sec.transpose ?? 0;
+      const root = midiOf(chord[0]) + tr;
+      const tones = chord.slice(1).map((n) => midiOf(n) + tr);
 
       const drums: [Kind, Drum | undefined][] = [
         ["kick", sec.kick],
@@ -111,6 +136,7 @@ function build(spec: SongSpec): Song {
         ["clap", sec.clap],
         ["hat", sec.hat],
         ["ohat", sec.ohat],
+        ["crash", sec.crash],
       ];
       for (const [kind, d] of drums) {
         const pat = drumAt(d, b);
@@ -119,6 +145,25 @@ function build(spec: SongSpec): Song {
             events.push({ step: base + i, kind, len: 1, vel: pat[i] === "x" ? 1 : 0.55 });
         }
       }
+
+      // 탐 필인: 한 마디 안에서 나오는 순서대로 음이 내려감
+      const tomPat = drumAt(sec.tom, b);
+      let tomN = 0;
+      for (let i = 0; i < tomPat.length; i++)
+        if (tomPat[i] === "x")
+          events.push({ step: base + i, kind: "tom", midi: 52 - 3 * (tomN++ % 5), len: 1, vel: 1 });
+
+      if (sec.gtr === "chug")
+        for (let i = 0; i < 16; i += 2)
+          events.push({
+            step: base + i,
+            kind: "gtr",
+            midi: root + 12,
+            len: 2,
+            vel: i % 4 ? 0.8 : 1,
+          });
+      if (sec.gtr === "sustain")
+        events.push({ step: base, kind: "gtr", midi: root + 12, len: 16, vel: 1 });
 
       if (sec.bass === "pulse")
         for (let i = 0; i < 16; i += 2)
@@ -157,7 +202,7 @@ function build(spec: SongSpec): Song {
 
       if (sec.lead) {
         for (const n of parseBar(sec.lead[b % sec.lead.length]))
-          events.push({ step: base + n.at, kind: "lead", midi: n.midi, len: n.len, vel: 1 });
+          events.push({ step: base + n.at, kind: "lead", midi: n.midi + tr, len: n.len, vel: 1 });
       }
     }
     bar0 += sec.bars;
@@ -411,4 +456,425 @@ const PIXEL: SongSpec = {
   ],
 };
 
-export const SONGS: Song[] = [build(NEON), build(PIXEL)];
+// ───────────────────────── 곡 3: Starlight Run (애니 OP풍, D장조) ─────────────────────────
+// A멜로 → B멜로(빌드업) → 사비(왕도진행 IV-V-iii-vi) → 간주 → B → 사비 → 브레이크 → 전조 사비
+
+const ROCK_KICK = "x.....x...x.....";
+const HAT8 = "x.x.x.x.x.x.x.x.";
+const CRASH1 = "x...............";
+const FILL_SN = "........x.x.xxxx";
+const FILL_TOM = "........xxxxxxxx";
+
+const D = ["d2", "d4", "f#4", "a4"];
+const A = ["a1", "c#4", "e4", "a4"];
+const Bm = ["b1", "b3", "d4", "f#4"];
+const G = ["g1", "g3", "b3", "d4"];
+const Fsm = ["f#1", "f#3", "a3", "c#4"];
+const Em = ["e2", "e3", "g3", "b3"];
+
+const starVerse = [
+  "f#4 - a4 - a4 - b4 a4 - - f#4 - e4 - d4 -",
+  "e4 - - - . . e4 f#4 e4 - c#4 - a3 - - -",
+  "d4 - f#4 - b4 - a4 - f#4 - a4 - b4 - c#5 -",
+  "d5 - - - b4 - - - a4 - - - . . . .",
+  "f#4 - a4 - a4 - b4 a4 - - d5 - c#5 - a4 -",
+  "b4 - - - a4 - e4 - e4 - f#4 - a4 - - -",
+  "b4 - c#5 - d5 - c#5 - b4 - a4 - f#4 - a4 -",
+  "g4 - - - - - - - a4 - - - - - . .",
+];
+const starPre = [
+  "b4 - b4 - b4 - a4 - b4 - - d5 - - b4 -",
+  "c#5 - - - a4 - - - e5 - - - c#5 - - -",
+  "a4 - a4 - a4 - f#4 - a4 - - c#5 - - a4 -",
+  "b4 - - - d5 - - - f#5 - - - e5 - d5 -",
+  "e5 - e5 - e5 - d5 - e5 - - g5 - - e5 -",
+  "f#5 - - - e5 - c#5 - a4 - - - c#5 - e5 -",
+  "d5 - - - - - - - e5 - - - - - - -",
+  "f#5 - - - - - - - e5 - - - . . . .",
+];
+const starChorus = [
+  "a5 - - - b5 - a5 - f#5 - - - d5 - e5 -",
+  "f#5 - - - e5 - d5 - e5 - - - a4 - - -",
+  "a5 - - - b5 - a5 - c#6 - - - b5 - a5 -",
+  "f#5 - - - - - e5 - d5 - - - . . . .",
+  "d5 - e5 - f#5 - g5 - a5 - - - b5 - - -",
+  "a5 - - - g5 - f#5 - e5 - - - c#5 - - -",
+  "d5 - e5 - f#5 - - - e5 - d5 - c#5 - d5 -",
+  "d5 - - - - - - - - - - - . . . .",
+];
+const starChorusChords = [G, A, Fsm, Bm, G, A, Bm, D];
+const starInterlude = [
+  "d5 e5 f#5 a5 d6 - a5 f#5 e5 f#5 a5 - f#5 e5 d5 -",
+  "e5 f#5 a5 c#6 e6 - c#6 a5 f#5 a5 c#6 - a5 f#5 e5 -",
+  "f#5 a5 c#6 f#6 - - c#6 a5 f#5 - a5 - c#6 - f#6 -",
+  "f#6 - - - e6 - - - d6 - - - c#6 - - -",
+];
+
+const chorusDrums = {
+  kick: FOUR,
+  snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+  hat: HAT8,
+  ohat: OFF8,
+  crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+};
+
+const STAR: SongSpec = {
+  id: "starlight-run",
+  title: "Starlight Run",
+  bpm: 175,
+  color: "#38BDF8",
+  desc: "175 BPM · 애니 OP풍",
+  chords: [D, A, Bm, G],
+  sound: { lead: "supersaw", arp: "triangle", delaySteps: 3 },
+  sections: [
+    {
+      name: "Intro",
+      bars: 4,
+      chords: [G, A, Fsm, Bm],
+      kick: FOUR,
+      snare: [BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      crash: [CRASH1, "", "", ""],
+      tom: ["", "", "", FILL_TOM],
+      bass: "octave",
+      gtr: "sustain",
+      lead: starChorus.slice(0, 4),
+    },
+    {
+      name: "A",
+      bars: 8,
+      kick: ROCK_KICK,
+      snare: BACK,
+      hat: HAT8,
+      crash: [CRASH1, "", "", "", "", "", "", ""],
+      bass: "pulse",
+      arp: 2,
+      lead: starVerse,
+    },
+    {
+      name: "B",
+      bars: 8,
+      chords: [G, A, Fsm, Bm, Em, Fsm, G, A],
+      kick: [
+        "x...x...x...x...",
+        "x...x...x...x...",
+        "x...x...x...x...",
+        "x...x...x...x...",
+        FOUR,
+        FOUR,
+        "x.x.x.x.x.x.x.x.",
+        "x.x.x.x.x.x.x.x.",
+      ],
+      snare: [
+        "....x.......x...",
+        "....x.......x...",
+        "....x.......x...",
+        "....x.......x...",
+        BACK,
+        BACK,
+        "x.x.x.x.x.x.x.x.",
+        "xxxxxxxxxxxxxxxx",
+      ],
+      hat: HAT8,
+      bass: "pulse",
+      gtr: "chug",
+      pad: true,
+      lead: starPre,
+    },
+    {
+      name: "Chorus",
+      bars: 8,
+      chords: starChorusChords,
+      ...chorusDrums,
+      bass: "octave",
+      gtr: "sustain",
+      pad: true,
+      arp: 2,
+      lead: starChorus,
+    },
+    {
+      name: "Interlude",
+      bars: 4,
+      chords: [G, A, Fsm, Bm],
+      kick: FOUR,
+      snare: [BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      crash: [CRASH1, "", "", ""],
+      tom: ["", "", "", FILL_TOM],
+      bass: "octave",
+      gtr: "chug",
+      lead: starInterlude,
+    },
+    {
+      name: "B",
+      bars: 8,
+      chords: [G, A, Fsm, Bm, Em, Fsm, G, A],
+      kick: FOUR,
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
+      hat: HAT8,
+      crash: [CRASH1, "", "", "", "", "", "", ""],
+      bass: "pulse",
+      gtr: "chug",
+      pad: true,
+      arp: 2,
+      lead: starPre,
+    },
+    {
+      name: "Chorus",
+      bars: 8,
+      chords: starChorusChords,
+      ...chorusDrums,
+      bass: "octave",
+      gtr: "sustain",
+      pad: true,
+      arp: 1,
+      lead: starChorus,
+    },
+    {
+      name: "Break",
+      bars: 4,
+      chords: [G, A, Fsm, A],
+      kick: ["x...............", "x...............", "x.......x.......", "x...x...x...x..."],
+      snare: ["", "", "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
+      pad: true,
+      arp: 2,
+      bass: "root",
+      lead: [
+        "b4 - - - - - - - - - - - - - - -",
+        "c#5 - - - - - - - e5 - - - - - - -",
+        "f#5 - - - - - - - - - - - e5 - - -",
+        "e5 - - - - - - - - - - - . . . .",
+      ],
+    },
+    {
+      name: "Last Chorus",
+      bars: 8,
+      transpose: 1,
+      chords: starChorusChords,
+      ...chorusDrums,
+      bass: "octave",
+      gtr: "sustain",
+      pad: true,
+      arp: 1,
+      lead: starChorus,
+    },
+    {
+      name: "Outro",
+      bars: 4,
+      transpose: 1,
+      chords: [G, A, D, D],
+      kick: ["x...x...x...x...", "x...x...x...x...", "x...............", "x..............."],
+      snare: [BACK, FILL_SN, "", ""],
+      crash: [CRASH1, "", CRASH1, ""],
+      tom: ["", FILL_TOM, "", ""],
+      bass: "half",
+      gtr: "sustain",
+      pad: true,
+      lead: [
+        "a5 - - - b5 - a5 - f#5 - - - d5 - e5 -",
+        "f#5 - - - e5 - - - c#5 - - - e5 - - -",
+        "d5 - - - - - - - - - - - - - - -",
+        ". . . . . . . . . . . . . . . .",
+      ],
+    },
+  ],
+};
+
+// ───────────────────────── 곡 4: Crimson Blade (애니 OP풍, E단조) ─────────────────────────
+// 기타 16분 리프 인트로 → 단조 A멜로 → B멜로 → 사비(C-D-Bm-Em) → 간주 → 사비 → 전조 사비
+
+const Em2 = ["e1", "e3", "g3", "b3"];
+const C = ["c2", "c3", "e3", "g3"];
+const G2 = ["g1", "g3", "b3", "d4"];
+const D2 = ["d2", "d3", "f#3", "a3"];
+const Am = ["a1", "a3", "c4", "e4"];
+const Bm2 = ["b1", "b3", "d4", "f#4"];
+
+const crimRiff = [
+  "e5 - b4 - e5 f#5 g5 - f#5 e5 d5 - b4 - d5 -",
+  "e5 - b4 - e5 f#5 g5 - a5 g5 f#5 - d5 - f#5 -",
+  "g5 - e5 - g5 a5 b5 - a5 g5 f#5 - d5 - a5 -",
+  "b5 - - - a5 - - - g5 - - - f#5 - - -",
+];
+const crimVerse = [
+  "e4 - - g4 - - a4 - b4 - - a4 - - g4 -",
+  "e4 - - - . . e4 - g4 - e4 - d4 - - -",
+  "b4 - - d5 - - b4 - a4 - - g4 - - a4 -",
+  "f#4 - - - - - . . . . a4 - b4 - d5 -",
+  "e5 - - d5 - - b4 - g4 - - a4 - - b4 -",
+  "c5 - - - b4 - a4 - g4 - - - e4 - - -",
+  "d4 - g4 - b4 - d5 - e5 - d5 - b4 - a4 -",
+  "a4 - - - - - - - f#4 - - - . . . .",
+];
+const crimPre = [
+  "a4 - a4 - c5 - a4 - e5 - - - d5 - c5 -",
+  "b4 - b4 - d5 - b4 - f#5 - - - e5 - d5 -",
+  "c5 - - - e5 - - - g5 - - - e5 - - -",
+  "f#5 - - - - - - - a5 - - - - - - -",
+  "e5 - e5 - e5 - d5 - c5 - - - a4 - c5 -",
+  "f#5 - f#5 - f#5 - e5 - d5 - - - b4 - d5 -",
+  "g5 - - - - - e5 - g5 - - - - - a5 -",
+  "b5 - - - - - - - a5 - - - . . . .",
+];
+const crimChorus = [
+  "b5 - - - a5 - g5 - e5 - - - g5 - a5 -",
+  "b5 - - - a5 - g5 - f#5 - - - d5 - - -",
+  "d5 - f#5 - b5 - - - a5 - b5 - d6 - - -",
+  "b5 - - - - - a5 - g5 - - - e5 - - -",
+  "e5 - g5 - c6 - - - b5 - a5 - g5 - e5 -",
+  "f#5 - a5 - d6 - - - c6 - b5 - a5 - f#5 -",
+  "g5 - - - f#5 - - - e5 - - - d5 - e5 -",
+  "e5 - - - - - - - - - - - . . . .",
+];
+const crimChorusChords = [C, D2, Bm2, Em2, C, D2, Em2, Em2];
+const crimChorusDrums = {
+  kick: "x...x...x...x.x.",
+  snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+  hat: "xxxxxxxxxxxxxxxx",
+  crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+  tom: ["", "", "", "", "", "", "", ""],
+};
+
+const CRIMSON: SongSpec = {
+  id: "crimson-blade",
+  title: "Crimson Blade",
+  bpm: 186,
+  color: "#EF4444",
+  desc: "186 BPM · 애니 OP풍 (단조)",
+  chords: [Em2, C, G2, D2],
+  sound: { lead: "supersaw", arp: "square", delaySteps: 3 },
+  sections: [
+    {
+      name: "Intro",
+      bars: 4,
+      chords: [Em2, C, D2, Em2],
+      kick: ["x.x...x.x.x...x.", "x.x...x.x.x...x.", "x.x...x.x.x...x.", "x.x.x.x.x.x.x.x."],
+      snare: [BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      crash: [CRASH1, "", "", ""],
+      tom: ["", "", "", FILL_TOM],
+      bass: "pulse",
+      gtr: "chug",
+      lead: crimRiff,
+    },
+    {
+      name: "A",
+      bars: 8,
+      kick: ROCK_KICK,
+      snare: BACK,
+      hat: HAT8,
+      crash: [CRASH1, "", "", "", "", "", "", ""],
+      bass: "pulse",
+      gtr: "chug",
+      lead: crimVerse,
+    },
+    {
+      name: "B",
+      bars: 8,
+      chords: [Am, Bm2, C, D2, Am, Bm2, C, D2],
+      kick: [FOUR, FOUR, FOUR, FOUR, FOUR, FOUR, "x.x.x.x.x.x.x.x.", "x.x.x.x.x.x.x.x."],
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
+      hat: HAT8,
+      bass: "octave",
+      gtr: "sustain",
+      pad: true,
+      arp: 2,
+      lead: crimPre,
+    },
+    {
+      name: "Chorus",
+      bars: 8,
+      chords: crimChorusChords,
+      ...crimChorusDrums,
+      bass: "octave",
+      gtr: "sustain",
+      pad: true,
+      arp: 2,
+      lead: crimChorus,
+    },
+    {
+      name: "Interlude",
+      bars: 4,
+      chords: [Em2, C, D2, Em2],
+      kick: ["x.x...x.x.x...x.", "x.x...x.x.x...x.", "x.x...x.x.x...x.", "x.x.x.x.x.x.x.x."],
+      snare: [BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      crash: [CRASH1, "", "", ""],
+      tom: ["", "", "", FILL_TOM],
+      bass: "pulse",
+      gtr: "chug",
+      lead: crimRiff,
+    },
+    {
+      name: "A",
+      bars: 8,
+      kick: ROCK_KICK,
+      snare: BACK,
+      hat: HAT8,
+      crash: [CRASH1, "", "", "", "", "", "", ""],
+      bass: "pulse",
+      gtr: "chug",
+      arp: 2,
+      lead: crimVerse,
+    },
+    {
+      name: "Chorus",
+      bars: 8,
+      chords: crimChorusChords,
+      ...crimChorusDrums,
+      bass: "octave",
+      gtr: "sustain",
+      pad: true,
+      arp: 1,
+      lead: crimChorus,
+    },
+    {
+      name: "Break",
+      bars: 4,
+      chords: [C, D2, Bm2, D2],
+      kick: ["x...............", "x...............", "x.......x.......", "x...x...x...x..."],
+      snare: ["", "", "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
+      pad: true,
+      arp: 2,
+      bass: "root",
+      lead: [
+        "g5 - - - - - - - - - - - - - - -",
+        "f#5 - - - - - - - a5 - - - - - - -",
+        "b5 - - - - - - - - - - - a5 - - -",
+        "a5 - - - - - - - - - - - . . . .",
+      ],
+    },
+    {
+      name: "Last Chorus",
+      bars: 8,
+      transpose: 2,
+      chords: crimChorusChords,
+      ...crimChorusDrums,
+      bass: "octave",
+      gtr: "sustain",
+      pad: true,
+      arp: 1,
+      lead: crimChorus,
+    },
+    {
+      name: "Outro",
+      bars: 4,
+      transpose: 2,
+      chords: [C, D2, Em2, Em2],
+      kick: ["x.x...x.x.x...x.", "x.x.x.x.x.x.x.x.", "x...............", "x..............."],
+      snare: [BACK, FILL_SN, "", ""],
+      crash: [CRASH1, "", CRASH1, ""],
+      tom: ["", FILL_TOM, "", ""],
+      bass: "half",
+      gtr: "sustain",
+      lead: [
+        "e5 - b4 - e5 f#5 g5 - f#5 e5 d5 - b4 - d5 -",
+        "e5 - b4 - e5 f#5 g5 - a5 g5 f#5 - d5 - f#5 -",
+        "e5 - - - - - - - - - - - - - - -",
+        ". . . . . . . . . . . . . . . .",
+      ],
+    },
+  ],
+};
+
+export const SONGS: Song[] = [build(NEON), build(PIXEL), build(STAR), build(CRIMSON)];

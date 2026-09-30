@@ -50,7 +50,7 @@ interface Rule {
 const RULES: Record<Difficulty, Rule> = {
   easy: {
     grid: 4,
-    minGap: 0.36,
+    minGap: 0.32,
     jackGap: 0.9,
     holdMin: 8,
     maxPress: 1,
@@ -60,12 +60,12 @@ const RULES: Record<Difficulty, Rule> = {
   },
   normal: {
     grid: 2,
-    minGap: 0.18,
+    minGap: 0.16,
     jackGap: 0.45,
     holdMin: 6,
     maxPress: 2,
     fill: ["arp", "kick", "snare"],
-    chord: { kinds: ["kick"], prob: 0.35, onlyDownbeat: true },
+    chord: { kinds: ["crash", "kick"], prob: 0.35, onlyDownbeat: true },
     notesDuringHold: false,
   },
   hard: {
@@ -74,8 +74,8 @@ const RULES: Record<Difficulty, Rule> = {
     jackGap: 0.22,
     holdMin: 4,
     maxPress: 2,
-    fill: ["arp", "snare", "kick", "clap"],
-    chord: { kinds: ["kick", "snare"], prob: 0.45, onlyDownbeat: false },
+    fill: ["arp", "tom", "snare", "kick", "clap"],
+    chord: { kinds: ["crash", "kick", "snare"], prob: 0.45, onlyDownbeat: false },
     notesDuringHold: true,
   },
   expert: {
@@ -84,8 +84,8 @@ const RULES: Record<Difficulty, Rule> = {
     jackGap: 0.15,
     holdMin: 4,
     maxPress: 3,
-    fill: ["arp", "snare", "clap", "kick", "hat"],
-    chord: { kinds: ["kick", "snare", "clap"], prob: 0.8, onlyDownbeat: false },
+    fill: ["arp", "tom", "snare", "clap", "kick", "gtr", "hat"],
+    chord: { kinds: ["crash", "kick", "snare", "clap"], prob: 0.8, onlyDownbeat: false },
     notesDuringHold: true,
   },
 };
