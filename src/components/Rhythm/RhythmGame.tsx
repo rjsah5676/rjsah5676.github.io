@@ -6,7 +6,6 @@ import { DIFFICULTIES, makeChart, type Difficulty } from "@/lib/rhythm/chart";
 import { renderMetronome, renderSong } from "@/lib/rhythm/synth";
 import {
   drawHead,
-  drawReceptor,
   HIT_SOUNDS,
   laneColors,
   makeHitSound,
@@ -813,9 +812,8 @@ function SkinPreview({ skin, color }: { skin: Skin; color: string }) {
     // 작게 그리려고 전체를 줄여서 그림
     g.save();
     g.scale(0.5, 0.5);
-    for (let l = 0; l < 4; l++) drawReceptor(g, skin, l, l * lw * 2, judgeY * 2, lw * 2, false);
     const ys = [22, 52, 36, 12];
-    for (let l = 0; l < 4; l++) drawHead(g, skin, l, l * lw * 2, ys[l] * 2, lw * 2, cols[l]);
+    for (let l = 0; l < 4; l++) drawHead(g, skin, l * lw * 2, ys[l] * 2, lw * 2, cols[l]);
     g.restore();
   }, [skin, color]);
   return <canvas ref={ref} className="block h-auto w-full" />;

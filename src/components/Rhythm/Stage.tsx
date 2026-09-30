@@ -7,7 +7,6 @@ import { Engine, rankOf, type Judge } from "@/lib/rhythm/engine";
 import {
   drawHead,
   drawHoldBody,
-  drawReceptor,
   laneColors,
   makeHitSound,
   type HitSound,
@@ -245,14 +244,14 @@ export default function Stage({
           const bc = dead ? "#555555" : c;
           drawHoldBody(g, skin, x, yHead, yTail, laneW, bc, dead ? 0.25 : n.holding ? 0.85 : 0.6);
           g.globalAlpha = dead ? 0.35 : 1;
-          drawHead(g, skin, n.lane, x, yHead, laneW, dead ? "#666666" : c);
+          drawHead(g, skin, x, yHead, laneW, dead ? "#666666" : c);
           g.globalAlpha = 1;
         } else {
           if (n.head && n.head !== "miss") continue;
           const y = yOf(n.t);
           if (y > H + 20) continue;
           g.globalAlpha = n.head === "miss" ? 0.3 : 1;
-          drawHead(g, skin, n.lane, x, y, laneW, c);
+          drawHead(g, skin, x, y, laneW, c);
           g.globalAlpha = 1;
         }
       }
@@ -260,8 +259,6 @@ export default function Stage({
       // 판정선 (+ 스킨별 수신부)
       g.fillStyle = "rgba(255,255,255,0.85)";
       g.fillRect(0, judgeY - 1.5, W, 3);
-      for (let l = 0; l < 4; l++)
-        drawReceptor(g, skin, l, l * laneW, judgeY, laneW, engine.pressed[l]);
 
       // 롱노트 누르는 중: 판정선에서 불꽃이 계속 튐
       if (t - lastSparkAt > 0.035) {
@@ -358,17 +355,38 @@ export default function Stage({
       // 판정·콤보
       if (lastJudge && t - lastJudge.at < 0.6) {
         const s = JUDGE_STYLE[lastJudge.judge];
-        const pop = Math.min(1, (t - lastJudge.at) / 0.06);
+        const age = Math.max(0, t - lastJudge.at);
+        const pop = Math.min(1, age / 0.14);
+        const miss = lastJudge.judge === "miss";
+        // 크게 튀어나왔다가 제자리로(오버슈트), 위로 살짝 떠오르며 사라짐. 미스는 흔들림
+        const sc = miss ? 1.15 - 0.15 * pop : 1.75 - 0.75 * easeOutBack(pop);
+        const shake = miss ? Math.sin(age * 90) * 7 * (1 - pop) : 0;
+        const jy = H * 0.4 - 8 - (miss ? -age * 18 : pop * 6);
+        g.save();
+        g.globalAlpha = age < 0.42 ? 1 : Math.max(0, 1 - (age - 0.42) / 0.18);
+        g.translate(W / 2 + shake, jy);
+        g.scale(sc * (miss ? 1 : 1 + 0.12 * (1 - pop)), sc);
+        g.font = "900 38px ui-monospace, SFMono-Regular, Menlo, monospace";
+        g.shadowColor = s.color;
+        g.shadowBlur = miss ? 6 : 22;
         g.fillStyle = s.color;
-        g.font = `800 ${Math.round(22 + 6 * (1 - pop))}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-        g.fillText(s.text, W / 2, H * 0.4);
+        g.fillText(s.text, 0, 0);
+        g.shadowBlur = 0;
+        g.fillText(s.text, 0, 0);
+        // 친 순간 하얗게 번쩍
+        if (!miss && age < 0.09) {
+          g.globalAlpha = 1 - age / 0.09;
+          g.fillStyle = "#FFFFFF";
+          g.fillText(s.text, 0, 0);
+        }
+        g.restore();
         // 빠르게/늦게 친 정도: 퍼펙트 안이어도 20ms 넘게 어긋나면 표시
         const ms = lastJudge.diff !== undefined ? Math.round(lastJudge.diff * 1000) : 0;
-        if (lastJudge.judge !== "miss" && Math.abs(ms) > FAST_SLOW_MS) {
+        if (!miss && Math.abs(ms) > FAST_SLOW_MS) {
           const early = ms < 0;
-          g.font = "800 14px ui-monospace, SFMono-Regular, Menlo, monospace";
+          g.font = "800 15px ui-monospace, SFMono-Regular, Menlo, monospace";
           g.fillStyle = early ? "#60A5FA" : "#FB923C";
-          g.fillText(`${early ? "FAST" : "SLOW"} ${early ? "" : "+"}${ms}ms`, W / 2, H * 0.4 - 28);
+          g.fillText(`${early ? "FAST" : "SLOW"} ${early ? "" : "+"}${ms}ms`, W / 2, jy - 36);
         }
       }
       if (engine.combo >= 2) {
@@ -376,10 +394,10 @@ export default function Stage({
         const bump = Math.max(0, 1 - (t - comboAt) / 0.12);
         g.fillStyle = "rgba(255,255,255,0.9)";
         g.font = `800 ${Math.round(40 + 8 * bump)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-        g.fillText(String(engine.combo), W / 2, H * 0.4 + 40 - 3 * bump);
+        g.fillText(String(engine.combo), W / 2, H * 0.4 + 46 - 3 * bump);
         g.font = "600 10px ui-monospace, monospace";
         g.fillStyle = "rgba(255,255,255,0.4)";
-        g.fillText("COMBO", W / 2, H * 0.4 + 66);
+        g.fillText("COMBO", W / 2, H * 0.4 + 72);
       }
 
       // 상단: 진행바·정확도·점수
@@ -427,9 +445,21 @@ export default function Stage({
         avgMs: diffN >= 10 ? Math.round((diffSum / diffN) * 1000) : null,
       });
     };
+    // 화면용 부드러운 시계: 오디오 시계(currentTime)는 오디오 버퍼 단위(수~십 ms)로 뚝뚝 끊겨 올라서
+    // 그대로 쓰면 노트가 프레임마다 들쭉날쭉 움직여 잔상·분신처럼 보인다.
+    // 그래서 performance.now()로 매끄럽게 흘리고, 오디오 시계와의 차이만 천천히 따라가게 한다.
+    let clockBase: number | null = null;
+    const smoothNow = () => {
+      const audioT = now();
+      const perfT = performance.now() / 1000;
+      if (clockBase === null || Math.abs(perfT + clockBase - audioT) > 0.03)
+        clockBase = audioT - perfT; // 처음·일시정지 재개 등 크게 어긋나면 바로 맞춤
+      else clockBase += (audioT - perfT - clockBase) * 0.05;
+      return perfT + clockBase;
+    };
     const frame = () => {
       if (!running) return;
-      const t = now();
+      const t = smoothNow();
       engine.update(t - judgeOffset / 1000); // 지나간 노트 미스 처리도 판정 싱크 기준
       for (const e of engine.events) {
         lastJudge = e;

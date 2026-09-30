@@ -5,15 +5,13 @@
 
 // ───────────────────────── 타격음 ─────────────────────────
 
-export type HitSound = "thud" | "pebble" | "wood" | "rim" | "clap" | "bell";
+export type HitSound = "thud" | "pebble" | "clack" | "wood";
 
 export const HIT_SOUNDS: { key: HitSound; label: string }[] = [
   { key: "thud", label: "북소리" },
   { key: "pebble", label: "조약돌" },
+  { key: "clack", label: "다그닥" },
   { key: "wood", label: "우드블록" },
-  { key: "rim", label: "림샷" },
-  { key: "clap", label: "클랩" },
-  { key: "bell", label: "벨" },
 ];
 
 /** 상태 변수 필터(밴드패스) – 노이즈를 원하는 음역만 남길 때 */
@@ -40,10 +38,8 @@ function noiseGen(seed: number) {
 const LEN: Record<HitSound, number> = {
   thud: 0.14,
   pebble: 0.09,
+  clack: 0.1,
   wood: 0.12,
-  rim: 0.1,
-  clap: 0.16,
-  bell: 0.45,
 };
 
 export function makeHitSound(ctx: BaseAudioContext, kind: HitSound = "thud") {
@@ -97,37 +93,31 @@ export function makeHitSound(ctx: BaseAudioContext, kind: HitSound = "thud") {
         rnd() * Math.exp(-t * 900) * 0.3;
       d[i] = Math.tanh(x * 1.2) * 0.75;
     }
-  } else if (kind === "rim") {
-    // 림샷: 딱! 하는 금속성 짧은 소리
-    const bp = svf(3200, 0.6, sr);
-    for (let i = 0; i < len; i++) {
-      const t = i / sr;
-      const x =
-        bp(rnd()).band * Math.exp(-t * 180) * 1.3 +
-        Math.sin(TAU * 1720 * t) * Math.exp(-t * 70) * 0.45 +
-        Math.sin(TAU * 440 * t) * Math.exp(-t * 90) * 0.35;
-      d[i] = Math.tanh(x * 1.4) * 0.75;
-    }
-  } else if (kind === "clap") {
-    // 손뼉: 짧은 노이즈 세 번 겹치고 꼬리
-    const bp = svf(1300, 0.7, sr);
-    for (let i = 0; i < len; i++) {
-      const t = i / sr;
-      let env = Math.exp(-t * 28) * 0.6;
-      for (const o of [0, 0.009, 0.018]) if (t >= o) env += Math.exp(-(t - o) * 260);
-      d[i] = Math.tanh(bp(rnd()).band * env * 1.6) * 0.75;
-    }
   } else {
-    // 벨: 맑은 "띵" (배음이 정수배가 아니라 종 느낌)
+    // 다그닥: 키캡이 바닥 치는 "딱" + 곧바로 스태빌/키캡이 달그락 튀는 두 번째 "각"
+    // 조약돌보다 밝고 플라스틱 울림이 남는 소리
+    const hi = svf(3600, 0.5, sr);
+    const mid = svf(1650, 0.35, sr);
+    const hi2 = svf(4800, 0.5, sr);
+    const mid2 = svf(2300, 0.4, sr);
     for (let i = 0; i < len; i++) {
       const t = i / sr;
-      const f = 1568;
-      const x =
-        Math.sin(TAU * f * t) * Math.exp(-t * 9) +
-        Math.sin(TAU * f * 2.76 * t) * Math.exp(-t * 22) * 0.3 +
-        Math.sin(TAU * f * 5.4 * t) * Math.exp(-t * 45) * 0.12;
-      const atk = Math.min(1, t / 0.002);
-      d[i] = x * atk * 0.45;
+      const n = rnd();
+      // 첫 타: 바닥 치는 소리
+      let x =
+        hi(n).band * Math.exp(-t * 900) * 1.1 +
+        mid(n).band * Math.exp(-t * 180) * 0.9 +
+        Math.sin(TAU * 1180 * t) * Math.exp(-t * 140) * 0.35 +
+        Math.sin(TAU * 520 * t) * Math.exp(-t * 120) * 0.25;
+      // 두 번째 타(14ms 뒤): 조금 더 높고 약한 달그락
+      const t2 = t - 0.014;
+      if (t2 > 0) {
+        x +=
+          hi2(n).band * Math.exp(-t2 * 1100) * 0.7 +
+          mid2(n).band * Math.exp(-t2 * 260) * 0.5 +
+          Math.sin(TAU * 1560 * t2) * Math.exp(-t2 * 200) * 0.2;
+      }
+      d[i] = Math.tanh(x * 1.5) * 0.8;
     }
   }
   // 끝부분 클릭 방지
@@ -137,23 +127,32 @@ export function makeHitSound(ctx: BaseAudioContext, kind: HitSound = "thud") {
 }
 
 // ───────────────────────── 노트 스킨 ─────────────────────────
+// 모양은 전부 기본 바 노트를 따르고, 색·질감만 조금씩 다르게
 
-export type Skin = "bar" | "neon" | "circle" | "arrow" | "gem";
+export type Skin = "bar" | "neon" | "metal" | "pastel" | "pixel";
 
 export const SKINS: { key: Skin; label: string }[] = [
   { key: "bar", label: "기본" },
   { key: "neon", label: "네온" },
-  { key: "circle", label: "원형" },
-  { key: "arrow", label: "화살표" },
-  { key: "gem", label: "다이아" },
+  { key: "metal", label: "메탈" },
+  { key: "pastel", label: "파스텔" },
+  { key: "pixel", label: "픽셀" },
 ];
 
 /** 스킨별 레인 색: 기본은 가운데 두 줄만 곡 색 */
 export function laneColors(skin: Skin, accent: string): string[] {
-  if (skin === "neon") return ["#F472B6", "#22D3EE", "#22D3EE", "#F472B6"];
-  if (skin === "arrow") return ["#C084FC", "#38BDF8", "#4ADE80", "#FB7185"];
-  if (skin === "gem") return ["#E6E8EF", accent, accent, "#E6E8EF"];
-  return ["#E6E8EF", accent, accent, "#E6E8EF"];
+  switch (skin) {
+    case "neon":
+      return ["#F472B6", "#22D3EE", "#22D3EE", "#F472B6"];
+    case "metal":
+      return ["#D6DAE3", "#F2C66D", "#F2C66D", "#D6DAE3"];
+    case "pastel":
+      return ["#FBCFE8", "#BAE6FD", "#BBF7D0", "#FDE68A"];
+    case "pixel":
+      return ["#FF6B6B", "#4ECDC4", "#FFE66D", "#A78BFA"];
+    default:
+      return ["#E6E8EF", accent, accent, "#E6E8EF"];
+  }
 }
 
 function roundRect(
@@ -174,101 +173,93 @@ function roundRect(
   g.closePath();
 }
 
-/** 화살표 방향: ← ↓ ↑ → (라디안, 위쪽 기준 회전) */
-const ARROW_ROT = [-Math.PI / 2, Math.PI, 0, Math.PI / 2];
-
-function arrowPath(g: CanvasRenderingContext2D, cx: number, cy: number, s: number, rot: number) {
-  g.save();
-  g.translate(cx, cy);
-  g.rotate(rot);
+/** 계단 모서리 사각형 (픽셀 느낌) */
+function pixelRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  const p = 3;
   g.beginPath();
-  g.moveTo(0, -s);
-  g.lineTo(s, 0);
-  g.lineTo(s * 0.42, 0);
-  g.lineTo(s * 0.42, s * 0.9);
-  g.lineTo(-s * 0.42, s * 0.9);
-  g.lineTo(-s * 0.42, 0);
-  g.lineTo(-s, 0);
+  g.moveTo(x + p, y);
+  g.lineTo(x + w - p, y);
+  g.lineTo(x + w - p, y + p);
+  g.lineTo(x + w, y + p);
+  g.lineTo(x + w, y + h - p);
+  g.lineTo(x + w - p, y + h - p);
+  g.lineTo(x + w - p, y + h);
+  g.lineTo(x + p, y + h);
+  g.lineTo(x + p, y + h - p);
+  g.lineTo(x, y + h - p);
+  g.lineTo(x, y + p);
+  g.lineTo(x + p, y + p);
   g.closePath();
-  g.restore();
 }
 
-/** 노트 머리(단노트·롱노트 머리) 그리기. x: 레인 왼쪽, y: 노트 중심 */
+/** 노트 머리(단노트·롱노트 머리). x: 레인 왼쪽, y: 노트 중심 */
 export function drawHead(
   g: CanvasRenderingContext2D,
   skin: Skin,
-  lane: number,
   x: number,
   y: number,
   laneW: number,
   color: string
 ) {
-  const cx = x + laneW / 2;
+  const nx = x + 4;
+  const nw = laneW - 8;
+  const top = y - 8;
+  const h = 16;
   switch (skin) {
     case "bar":
       g.fillStyle = color;
-      roundRect(g, x + 4, y - 8, laneW - 8, 16, 4);
+      roundRect(g, nx, top, nw, h, 4);
       g.fill();
       break;
     case "neon": {
+      // 속이 빈 빛나는 테두리 + 가운데 흰 심지
       g.save();
       g.shadowColor = color;
       g.shadowBlur = 14;
       g.strokeStyle = color;
       g.lineWidth = 3;
-      roundRect(g, x + 6, y - 7, laneW - 12, 14, 7);
+      roundRect(g, nx + 1.5, top + 1.5, nw - 3, h - 3, 4);
       g.stroke();
       g.shadowBlur = 0;
       g.fillStyle = "rgba(255,255,255,0.9)";
-      roundRect(g, x + 12, y - 1.5, laneW - 24, 3, 1.5);
-      g.fill();
+      g.fillRect(nx + 8, y - 1, nw - 16, 2);
       g.restore();
       break;
     }
-    case "circle": {
-      const r = Math.min(laneW * 0.36, 22);
-      const grad = g.createRadialGradient(cx - r * 0.3, y - r * 0.35, r * 0.1, cx, y, r);
-      grad.addColorStop(0, "#ffffff");
+    case "metal": {
+      // 위는 밝고 아래는 어두운 금속 광택 + 얇은 테두리
+      const grad = g.createLinearGradient(0, top, 0, top + h);
+      grad.addColorStop(0, "#FFFFFF");
       grad.addColorStop(0.35, color);
-      grad.addColorStop(1, color);
+      grad.addColorStop(0.55, shade(color, -0.35));
+      grad.addColorStop(1, shade(color, -0.1));
       g.fillStyle = grad;
-      g.beginPath();
-      g.arc(cx, y, r, 0, Math.PI * 2);
+      roundRect(g, nx, top, nw, h, 2);
       g.fill();
-      g.strokeStyle = "rgba(0,0,0,0.35)";
-      g.lineWidth = 2;
+      g.strokeStyle = "rgba(0,0,0,0.45)";
+      g.lineWidth = 1;
       g.stroke();
       break;
     }
-    case "arrow": {
-      const s = Math.min(laneW * 0.34, 22);
-      arrowPath(g, cx, y, s, ARROW_ROT[lane]);
+    case "pastel": {
+      // 알약처럼 끝이 둥글고, 위에 흰 반사
       g.fillStyle = color;
+      roundRect(g, nx, top, nw, h, 8);
       g.fill();
-      g.strokeStyle = "rgba(255,255,255,0.85)";
-      g.lineWidth = 2;
-      g.stroke();
+      g.fillStyle = "rgba(255,255,255,0.55)";
+      roundRect(g, nx + 6, top + 3, nw - 12, 4, 2);
+      g.fill();
       break;
     }
-    case "gem": {
-      const w = Math.min(laneW * 0.4, 26);
-      const h = 13;
-      g.beginPath();
-      g.moveTo(cx, y - h);
-      g.lineTo(cx + w, y);
-      g.lineTo(cx, y + h);
-      g.lineTo(cx - w, y);
-      g.closePath();
+    case "pixel": {
+      // 계단 모서리 + 위 밝은 줄·아래 어두운 줄 (8비트 게임 느낌)
       g.fillStyle = color;
+      pixelRect(g, nx, top, nw, h);
       g.fill();
-      // 윗면 반사
-      g.beginPath();
-      g.moveTo(cx, y - h);
-      g.lineTo(cx + w, y);
-      g.lineTo(cx - w, y);
-      g.closePath();
-      g.fillStyle = "rgba(255,255,255,0.35)";
-      g.fill();
+      g.fillStyle = "rgba(255,255,255,0.45)";
+      g.fillRect(nx + 3, top + 3, nw - 6, 3);
+      g.fillStyle = "rgba(0,0,0,0.3)";
+      g.fillRect(nx + 3, top + h - 6, nw - 6, 3);
       break;
     }
   }
@@ -286,77 +277,61 @@ export function drawHoldBody(
   alpha: number
 ) {
   const h = Math.max(0, yHead - yTail);
+  const bx = x + laneW * 0.22;
+  const bw = laneW * 0.56;
   g.save();
   g.globalAlpha = alpha;
   g.fillStyle = color;
   switch (skin) {
-    case "bar":
-      g.fillRect(x + laneW * 0.22, yTail, laneW * 0.56, h);
-      g.globalAlpha = Math.min(1, alpha + 0.3);
-      g.fillRect(x + laneW * 0.22, yTail - 3, laneW * 0.56, 6);
-      break;
     case "neon": {
-      const grad = g.createLinearGradient(x, 0, x + laneW, 0);
-      grad.addColorStop(0, `${color}00`);
-      grad.addColorStop(0.5, `${color}cc`);
-      grad.addColorStop(1, `${color}00`);
+      const grad = g.createLinearGradient(bx, 0, bx + bw, 0);
+      grad.addColorStop(0, `${color}22`);
+      grad.addColorStop(0.5, `${color}aa`);
+      grad.addColorStop(1, `${color}22`);
       g.fillStyle = grad;
-      g.fillRect(x + laneW * 0.15, yTail, laneW * 0.7, h);
+      g.fillRect(bx, yTail, bw, h);
       g.shadowColor = color;
-      g.shadowBlur = 10;
-      g.fillStyle = "rgba(255,255,255,0.8)";
-      g.fillRect(x + laneW / 2 - 1.5, yTail, 3, h);
+      g.shadowBlur = 8;
+      g.fillStyle = "rgba(255,255,255,0.75)";
+      g.fillRect(x + laneW / 2 - 1, yTail, 2, h);
       break;
     }
-    case "circle": {
-      const r = Math.min(laneW * 0.3, 18);
-      roundRect(g, x + laneW / 2 - r, yTail - r, r * 2, h + r, r);
+    case "metal": {
+      const grad = g.createLinearGradient(bx, 0, bx + bw, 0);
+      grad.addColorStop(0, shade(color, -0.3));
+      grad.addColorStop(0.4, "#FFFFFF");
+      grad.addColorStop(0.6, color);
+      grad.addColorStop(1, shade(color, -0.3));
+      g.fillStyle = grad;
+      g.fillRect(bx, yTail, bw, h);
+      break;
+    }
+    case "pastel":
+      roundRect(g, bx, yTail - 4, bw, h + 4, bw / 2);
       g.fill();
       break;
-    }
-    case "arrow":
-    case "gem": {
-      const w = laneW * (skin === "gem" ? 0.34 : 0.3);
-      g.fillRect(x + (laneW - w) / 2, yTail, w, h);
-      g.globalAlpha = Math.min(1, alpha + 0.3);
-      g.fillRect(x + laneW * 0.2, yTail - 2, laneW * 0.6, 4);
+    case "pixel":
+      g.fillRect(bx, yTail, bw, h);
+      // 가로 줄무늬
+      g.fillStyle = "rgba(0,0,0,0.18)";
+      for (let yy = yTail + 6; yy < yHead; yy += 12) g.fillRect(bx, yy, bw, 4);
       break;
-    }
+    default:
+      g.fillRect(bx, yTail, bw, h);
   }
+  // 꼬리 끝 표시
+  g.globalAlpha = Math.min(1, alpha + 0.3);
+  g.fillStyle = color;
+  if (skin !== "pastel") g.fillRect(bx, yTail - 3, bw, 6);
   g.restore();
 }
 
-/** 판정선 위의 수신부(빈 노트 모양) – 원형·화살표·다이아 스킨에서 어디서 치는지 보이게 */
-export function drawReceptor(
-  g: CanvasRenderingContext2D,
-  skin: Skin,
-  lane: number,
-  x: number,
-  y: number,
-  laneW: number,
-  pressed: boolean
-) {
-  if (skin === "bar" || skin === "neon") return;
-  const cx = x + laneW / 2;
-  g.save();
-  g.strokeStyle = pressed ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.28)";
-  g.lineWidth = 2;
-  if (skin === "circle") {
-    g.beginPath();
-    g.arc(cx, y, Math.min(laneW * 0.36, 22), 0, Math.PI * 2);
-    g.stroke();
-  } else if (skin === "arrow") {
-    arrowPath(g, cx, y, Math.min(laneW * 0.34, 22), ARROW_ROT[lane]);
-    g.stroke();
-  } else {
-    const w = Math.min(laneW * 0.4, 26);
-    g.beginPath();
-    g.moveTo(cx, y - 13);
-    g.lineTo(cx + w, y);
-    g.lineTo(cx, y + 13);
-    g.lineTo(cx - w, y);
-    g.closePath();
-    g.stroke();
-  }
-  g.restore();
+/** "#rrggbb"를 밝게(+)/어둡게(-) */
+function shade(hex: string, amt: number) {
+  const n = parseInt(hex.slice(1, 7), 16);
+  const f = (c: number) =>
+    Math.round(amt < 0 ? c * (1 + amt) : c + (255 - c) * amt)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${f(n >> 16)}${f((n >> 8) & 255)}${f(n & 255)}`;
 }

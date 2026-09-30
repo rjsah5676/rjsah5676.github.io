@@ -8,6 +8,7 @@
  * 필터도 악기별로 하나만 두고 공유한다.
  */
 import type { MusicEvent, Song } from "./music";
+import { pianoSample } from "./piano";
 
 const SR = 44100;
 /** 한 조각 길이(마디) */
@@ -170,71 +171,51 @@ export async function renderChunk(
   };
 
   // ── 피아노 ──
-  // 배음이 많은 "밝은 층"은 빨리 사그라들고, 기음 위주 "따뜻한 층"은 오래 남게 해서
-  // 치는 순간 또렷하다가 둥글게 울리는 피아노 느낌을 낸다. 해머 소리는 짧은 노이즈.
+  // 음 높이별로 미리 계산한 피아노 샘플(piano.ts)을 틀고, 건반을 뗄 때(또는 페달을 뗄 때) 댐퍼로 줄인다.
   let pianoIn: AudioNode = bus;
-  let bright: PeriodicWave | null = null;
-  let warm: PeriodicWave | null = null;
-  let hammerF: BiquadFilterNode | null = null;
   if (piano) {
-    const wave = (amps: number[]) => {
-      const re = new Float32Array(amps.length + 1);
-      const im = new Float32Array(amps.length + 1);
-      amps.forEach((a, i) => (im[i + 1] = a));
-      return ctx.createPeriodicWave(re, im);
-    };
-    bright = wave([1, 0.6, 0.45, 0.32, 0.26, 0.18, 0.14, 0.1, 0.07, 0.05, 0.035, 0.025]);
-    warm = wave([1, 0.22, 0.06, 0.02]);
     // 공간감: 짧은 스테레오 잔향 (좌우 다른 노이즈로 만든 임펄스)
-    const ir = ctx.createBuffer(2, Math.floor(SR * 1.6), SR);
+    const ir = ctx.createBuffer(2, Math.floor(SR * 1.8), SR);
     for (let c = 0; c < 2; c++) {
       const d = ir.getChannelData(c);
       let seed = 99 + c * 1000;
       for (let i = 0; i < d.length; i++) {
         seed = (seed * 16807) % 2147483647;
         const tt = i / SR;
-        d[i] = ((seed / 2147483647) * 2 - 1) * Math.exp(-tt * 3.2) * (tt < 0.012 ? tt / 0.012 : 1);
+        d[i] = ((seed / 2147483647) * 2 - 1) * Math.exp(-tt * 2.8) * (tt < 0.015 ? tt / 0.015 : 1);
       }
     }
     const verb = ctx.createConvolver();
     verb.buffer = ir;
     const verbOut = ctx.createGain();
-    verbOut.gain.value = 0.16;
+    verbOut.gain.value = 0.1;
     verb.connect(verbOut).connect(bus);
-    const pianoTone = filter("lowpass", 6500, 0.5);
     const pIn = ctx.createGain();
-    pIn.connect(pianoTone);
+    pIn.connect(bus);
     pIn.connect(verb);
     pianoIn = pIn;
-    hammerF = filter("bandpass", 2600, 0.8, pIn);
   }
-  const pianoNote = (midi: number, t: number, dur: number, vel: number) => {
-    const f = hz(midi);
-    // 높은 음일수록 빨리 사그라듦
-    const decay = Math.max(0.35, Math.min(3.5, 2.2 * Math.pow(2, -(midi - 60) / 18)));
-    const off = t + Math.max(0.06, dur);
-    const end = Math.min(off + 0.3, t + decay * 3.2);
-    // 낮은 음은 배음이 둥글게, 높은 음은 기음이 약해서 살짝 올림
-    const pk = vel * (midi < 48 ? 0.9 : 1);
-    const layer = (w: PeriodicWave, peak: number, tau: number, detune: number) => {
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(peak, t + 0.003);
-      g.gain.setTargetAtTime(0, t + 0.003, tau);
-      if (off < end) g.gain.setTargetAtTime(0, off, 0.07); // 건반 뗌 (댐퍼)
-      g.connect(pianoIn);
-      const o = ctx.createOscillator();
-      o.setPeriodicWave(w);
-      o.frequency.value = f;
-      o.detune.value = detune;
-      o.connect(g);
-      o.start(t);
-      o.stop(end + 0.05);
-    };
-    layer(bright!, pk * 0.55, decay * 0.18, 1.5);
-    layer(warm!, pk, decay, -1.5);
-    noiseHit(t, 0.05 * vel, hammerF!, 0.018);
+  const barSec = stepSec * 16;
+  /** off: 건반(또는 페달)을 떼는 시각 */
+  const pianoNote = (midi: number, t: number, off: number, vel: number) => {
+    const buf = pianoSample(midi);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.value = vel;
+    let end = t + buf.duration;
+    if (off < end) {
+      g.gain.setValueAtTime(vel, off);
+      g.gain.setTargetAtTime(0, off, 0.08);
+      end = off + 0.6;
+    }
+    src.connect(g).connect(pianoIn);
+    src.start(t);
+    src.stop(end);
   };
+  /** 페달 밟은 음은 그 마디 끝까지, 아니면 음 길이만큼(살짝 겹치게) */
+  const pianoOff = (e: MusicEvent, t: number, dur: number) =>
+    e.pedal ? (Math.floor(e.step / 16) + 1) * barSec - t0 - 0.02 : t + dur + 0.03;
 
   for (const e of events) {
     const t = e.step * stepSec - t0;
@@ -278,7 +259,7 @@ export async function renderChunk(
         break;
       case "bass":
         if (piano) {
-          pianoNote(e.midi!, t, dur * 0.95, 0.1 * v);
+          pianoNote(e.midi!, t, pianoOff(e, t, dur), 0.16 * v);
           break;
         }
         tone("sawtooth", e.midi!, t, dur * 0.85, 0.3 * v, bassF, { rel: 0.05 });
@@ -288,7 +269,7 @@ export async function renderChunk(
         break;
       case "arp":
         if (piano) {
-          pianoNote(e.midi!, t, dur, 0.065 * v);
+          pianoNote(e.midi!, t, pianoOff(e, t, dur), 0.15 * v);
           break;
         }
         tone(
@@ -304,7 +285,7 @@ export async function renderChunk(
         );
         break;
       case "lead":
-        if (piano) pianoNote(e.midi!, t, dur, 0.17 * (song.sound.leadGain ?? 1));
+        if (piano) pianoNote(e.midi!, t, pianoOff(e, t, dur), 0.8 * (song.sound.leadGain ?? 1));
         else if (song.sound.lead === "supersaw") {
           // 톱니파 5개를 조금씩 어긋나게 겹쳐 두껍게 (애니송 리드)
           const g = gainEnv(

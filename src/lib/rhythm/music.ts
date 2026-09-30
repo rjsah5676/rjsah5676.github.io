@@ -25,6 +25,8 @@ export interface MusicEvent {
   /** 길이(16분음표 수) */
   len: number;
   vel: number;
+  /** 피아노: 서스테인 페달 (마디 끝까지 울림) */
+  pedal?: boolean;
 }
 
 export interface SoundSet {
@@ -105,6 +107,8 @@ interface Section {
   arpVel?: number;
   /** 마디별 멜로디 (모자라면 반복) */
   lead?: string[];
+  /** 피아노 페달: true면 전부, "acc"면 반주(베이스·아르페지오)만 마디 끝까지 울림 */
+  pedal?: boolean | "acc";
 }
 
 interface SongSpec {
@@ -128,6 +132,7 @@ function build(spec: SongSpec): Song {
   let bar0 = 0;
   for (const sec of spec.sections) {
     sections.push([bar0, sec.name]);
+    const secStart = events.length;
     for (let b = 0; b < sec.bars; b++) {
       const base = (bar0 + b) * 16;
       const chord = sec.chords
@@ -212,6 +217,12 @@ function build(spec: SongSpec): Song {
           events.push({ step: base + n.at, kind: "lead", midi: n.midi + tr, len: n.len, vel: 1 });
       }
     }
+    if (sec.pedal)
+      for (let i = secStart; i < events.length; i++) {
+        const k = events[i].kind;
+        if (k === "bass" || k === "arp" || (k === "lead" && sec.pedal === true))
+          events[i].pedal = true;
+      }
     bar0 += sec.bars;
   }
   // 마디 경계를 넘는 멜로디 이어붙이기: 마디 끝까지 '-'였고 다음 마디가 '-'로 시작하는 경우는
@@ -940,9 +951,17 @@ const MOON: SongSpec = {
   chords: prestoChords,
   sound: { lead: "piano", arp: "triangle", delaySteps: 3, drums: 0.42 },
   sections: [
-    { name: "Intro", bars: 2, chords: [CSm, CSm], bass: "root", lead: [prestoCm1, prestoCm2] },
+    {
+      name: "Intro",
+      pedal: true,
+      bars: 2,
+      chords: [CSm, CSm],
+      bass: "root",
+      lead: [prestoCm1, prestoCm2],
+    },
     {
       name: "Presto",
+      pedal: true,
       bars: 8,
       chords: prestoChords,
       kick: ROCK_KICK,
@@ -954,6 +973,7 @@ const MOON: SongSpec = {
     },
     {
       name: "Theme",
+      pedal: "acc",
       bars: 8,
       chords: theme2Chords,
       kick: FOUR,
@@ -966,6 +986,7 @@ const MOON: SongSpec = {
     },
     {
       name: "Adagio",
+      pedal: true,
       bars: 8,
       chords: [CSm, CSmB, A3, GS7, CSm, CSmB, A3, GS7],
       kick: [
@@ -985,6 +1006,7 @@ const MOON: SongSpec = {
     },
     {
       name: "Build",
+      pedal: true,
       bars: 4,
       chords: [GS7, GS7, GS7, GS7],
       kick: FOUR,
@@ -996,6 +1018,7 @@ const MOON: SongSpec = {
     },
     {
       name: "Presto",
+      pedal: true,
       bars: 8,
       chords: prestoChords,
       kick: FOUR,
@@ -1007,6 +1030,7 @@ const MOON: SongSpec = {
     },
     {
       name: "Theme",
+      pedal: "acc",
       bars: 8,
       chords: theme2Chords,
       kick: FOUR,
@@ -1020,6 +1044,7 @@ const MOON: SongSpec = {
     },
     {
       name: "Outro",
+      pedal: true,
       bars: 2,
       chords: [CSm, CSm],
       kick: ["x.......x.......", "x..............."],
