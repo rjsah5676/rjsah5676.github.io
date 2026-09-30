@@ -489,6 +489,14 @@ export default function Stage({
         }
       }
 
+      // 판정선 아래 키 바닥: 불투명하게 덮어서 지나간 노트가 비쳐 보이지 않게
+      g.fillStyle = "#0B0C10";
+      g.fillRect(0, judgeY + 2, W, H - judgeY - 2);
+      for (let l = 0; l < 4; l++) {
+        g.fillStyle = engine.pressed[l] ? `${laneColor(l)}40` : "#15171D";
+        g.fillRect(l * laneW + 3, judgeY + 14, laneW - 6, H - judgeY - 20);
+      }
+
       // 판정선 (+ 스킨별 수신부)
       g.save();
       g.shadowColor = song.color;
@@ -571,8 +579,6 @@ export default function Stage({
       // 키 표시
       for (let l = 0; l < 4; l++) {
         const on = engine.pressed[l];
-        g.fillStyle = on ? `${laneColor(l)}40` : "rgba(255,255,255,0.03)";
-        g.fillRect(l * laneW + 3, judgeY + 14, laneW - 6, H - judgeY - 20);
         g.fillStyle = on ? "#fff" : "rgba(255,255,255,0.35)";
         g.font = "700 18px ui-monospace, SFMono-Regular, Menlo, monospace";
         g.textAlign = "center";
