@@ -30,3 +30,6 @@ yarn-error.log*
 # firebase cli 배포 캐시 / IDE 설정
 .firebase/
 .idea/
+
+# 식약처 영양성분 원본 CSV (npm run foods 로 public/data/foods.json 생성)
+/data/raw/

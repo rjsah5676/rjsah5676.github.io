@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { allProjects } from "@/data/projects";
+import { loadFoods } from "@/lib/foodServer";
 import { getAllStudyPosts, parseStudyDate } from "@/firestore/studyPosts";
 
 // output: "export"에서는 빌드 시 정적 파일(sitemap.xml)로 생성돼야 함
@@ -27,6 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/devtools/json-to-java/", priority: 0.6, changeFrequency: "monthly" },
     { path: "/tools/ladder/", priority: 0.6, changeFrequency: "monthly" },
     { path: "/tools/roulette/", priority: 0.6, changeFrequency: "monthly" },
+    { path: "/tools/calorie/", priority: 0.7, changeFrequency: "monthly" },
   ];
 
   return [
@@ -40,6 +42,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.8,
     })),
+    ...loadFoods()
+      .foods.filter((f) => f.page)
+      .map((f) => ({
+        url: `${SITE_URL}/tools/calorie/${f.id}/`,
+        changeFrequency: "yearly" as const,
+        priority: 0.5,
+      })),
     ...studyPosts.map((p) => ({
       url: `${SITE_URL}/study/${p.id}/`,
       lastModified: parseStudyDate(p.date) ?? undefined,

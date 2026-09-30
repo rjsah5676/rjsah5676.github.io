@@ -137,6 +137,7 @@ export default function Nav() {
           items={[
             { href: "/tools/ladder", label: "사다리타기" },
             { href: "/tools/roulette", label: "룰렛" },
+            { href: "/tools/calorie", label: "칼로리 계산기" },
           ]}
         />
 
