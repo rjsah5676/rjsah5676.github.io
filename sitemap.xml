@@ -56,6 +56,11 @@
 <priority>0.6</priority>
 </url>
 <url>
+<loc>https://rjsah5676.github.io/devtools/mybatis-log/</loc>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
 <loc>https://rjsah5676.github.io/tools/ladder/</loc>
 <changefreq>monthly</changefreq>
 <priority>0.6</priority>
