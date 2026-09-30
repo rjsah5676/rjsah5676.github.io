@@ -144,8 +144,9 @@ export default function Nav() {
           label="devtools"
           items={[
             { href: "/devtools/json", label: "JSON Formatter" },
-            { href: "/devtools/mybatis-log", label: "MyBatis 로그 → SQL" },
             { href: "/devtools/ddl-to-java", label: "DDL → Java DTO" },
+            { href: "/devtools/json-to-java", label: "JSON → Java DTO" },
+            { href: "/devtools/mybatis-log", label: "MyBatis 로그 → SQL" },
           ]}
         />
       </div>
