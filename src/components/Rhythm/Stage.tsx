@@ -71,7 +71,10 @@ export default function Stage({
     const g = canvas.getContext("2d")!;
     const engine = new Engine(chart);
     const vis = visibleSec(speed);
-    const leadIn = Math.max(1.6, vis + 0.6);
+    // READY → 3 → 2 → 1 → GO! 가 끝난 뒤에 노트가 내려오기 시작
+    const cd = countdownPhases(song.color);
+    const cdEnd = cd[cd.length - 2].from + cd[cd.length - 2].dur; // "1"이 끝나는 시점
+    const leadIn = cdEnd + vis + 0.25;
     const lanePointer = new Map<number, number>();
 
     let W = 0;
@@ -96,6 +99,25 @@ export default function Stage({
     const startAt = ctx.currentTime + leadIn;
     src.start(startAt);
     let stopped = false;
+
+    // 카운트다운 효과음 (화면 표시 시점에 들리도록 싱크값만큼 밀어서 예약)
+    const base = startAt - leadIn + offset / 1000;
+    const beeps: OscillatorNode[] = [];
+    for (const ph of cd) {
+      if (!ph.beep) continue;
+      const at = Math.max(ctx.currentTime, base + ph.from);
+      const o = ctx.createOscillator();
+      const gn = ctx.createGain();
+      o.type = "triangle";
+      o.frequency.value = ph.beep;
+      gn.gain.setValueAtTime(0.0001, at);
+      gn.gain.exponentialRampToValueAtTime(0.35, at + 0.01);
+      gn.gain.exponentialRampToValueAtTime(0.0001, at + (ph.label === "GO!" ? 0.45 : 0.18));
+      o.connect(gn).connect(ctx.destination);
+      o.start(at);
+      o.stop(at + 0.5);
+      beeps.push(o);
+    }
 
     const now = () =>
       ctx.currentTime -
@@ -242,13 +264,7 @@ export default function Stage({
         W - 10,
         12
       );
-      if (t < 0) {
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.fillStyle = "rgba(255,255,255,0.5)";
-        g.font = "600 13px ui-monospace, monospace";
-        g.fillText("READY", W / 2, H * 0.3);
-      }
+      drawCountdown(g, cd, t + leadIn, W, H);
     };
 
     let raf = 0;
@@ -368,6 +384,11 @@ export default function Stage({
     return () => {
       running = false;
       cancelAnimationFrame(raf);
+      for (const o of beeps) {
+        try {
+          o.stop();
+        } catch {}
+      }
       if (!stopped) {
         stopped = true;
         try {
@@ -440,4 +461,105 @@ function roundRect(
   g.arcTo(x, y, x + w, y, r);
   g.closePath();
   g.fill();
+}
+
+// ───────────────────────── 카운트다운 ─────────────────────────
+
+interface Phase {
+  label: string;
+  from: number;
+  dur: number;
+  color: string;
+  size: number;
+  beep?: number;
+}
+
+function countdownPhases(accent: string): Phase[] {
+  const list: Omit<Phase, "from">[] = [
+    { label: "READY", dur: 1.2, color: "#FFFFFF", size: 54 },
+    { label: "3", dur: 0.7, color: "#60A5FA", size: 120, beep: 660 },
+    { label: "2", dur: 0.7, color: "#FBBF24", size: 120, beep: 660 },
+    { label: "1", dur: 0.7, color: "#F43F5E", size: 120, beep: 660 },
+    { label: "GO!", dur: 0.6, color: accent, size: 96, beep: 1320 },
+  ];
+  let from = 0;
+  return list.map((p) => {
+    const out = { ...p, from };
+    from += p.dur;
+    return out;
+  });
+}
+
+const easeOutBack = (x: number) => {
+  const c1 = 1.9;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+};
+
+/** s: 시작 후 흐른 시간(초) */
+function drawCountdown(
+  g: CanvasRenderingContext2D,
+  phases: Phase[],
+  s: number,
+  W: number,
+  H: number
+) {
+  const ph = phases.find((p) => s >= p.from && s < p.from + p.dur);
+  if (!ph) return;
+  const p = (s - ph.from) / ph.dur;
+  const cx = W / 2;
+  const cy = H * 0.4;
+  const go = ph.label === "GO!";
+
+  g.save();
+  // 숫자 동안은 화면을 살짝 어둡게
+  if (!go) {
+    g.fillStyle = "rgba(0,0,0,0.35)";
+    g.fillRect(0, 0, W, H);
+  }
+
+  // 퍼지는 링
+  g.globalAlpha = Math.max(0, 1 - p) * 0.7;
+  g.strokeStyle = ph.color;
+  g.lineWidth = go ? 6 : 4;
+  g.beginPath();
+  g.arc(
+    cx,
+    cy,
+    30 + easeOutBack(Math.min(1, p * 1.4)) * (go ? W * 0.55 : W * 0.32),
+    0,
+    Math.PI * 2
+  );
+  g.stroke();
+
+  if (ph.label === "READY") {
+    // 가로로 번쩍이는 띠 + 글자가 옆에서 미끄러져 들어옴
+    const band = g.createLinearGradient(0, 0, W, 0);
+    band.addColorStop(0, "rgba(108,99,255,0)");
+    band.addColorStop(0.5, "rgba(108,99,255,0.45)");
+    band.addColorStop(1, "rgba(108,99,255,0)");
+    g.globalAlpha = p < 0.85 ? 1 : (1 - p) / 0.15;
+    g.fillStyle = band;
+    const bh = 90 * Math.min(1, p * 5);
+    g.fillRect(0, cy - bh / 2, W, bh);
+  }
+
+  // 글자: 크게 튀어나왔다가 제자리로(오버슈트), 끝에서 흐려짐
+  const pop = Math.min(1, p / 0.22);
+  const scale = ph.label === "READY" ? 1 : 2.2 - 1.2 * easeOutBack(pop);
+  const slide = ph.label === "READY" ? (1 - easeOutBack(Math.min(1, p / 0.3))) * -W * 0.6 : 0;
+  const alpha = p > 0.78 ? Math.max(0, 1 - (p - 0.78) / 0.22) : Math.min(1, p / 0.08);
+  g.globalAlpha = alpha;
+  g.translate(cx + slide, cy);
+  g.scale(scale, scale);
+  g.font = `900 ${ph.size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.shadowColor = ph.color;
+  g.shadowBlur = 28;
+  g.fillStyle = ph.color;
+  g.fillText(ph.label, 0, 0);
+  g.shadowBlur = 0;
+  g.fillText(ph.label, 0, 0);
+  g.restore();
 }
