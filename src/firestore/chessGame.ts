@@ -664,3 +664,53 @@ export async function expirePausedGame(roomId: string) {
     });
   });
 }
+
+// ───────────────────── 채팅 ─────────────────────
+// chess_rooms/{id}/chat/{autoId} : 대국자·관전자만 쓰기 (firestore.rules), 읽기는 누구나
+
+export const CHAT_MAX = 200;
+/** 화면에 유지하는 최근 메시지 수 */
+const CHAT_LIMIT = 100;
+
+export interface ChatMessage {
+  id: string;
+  uid: string;
+  name: string;
+  text: string;
+  at: number;
+  pending: boolean;
+}
+
+export function subscribeChat(roomId: string, cb: (list: ChatMessage[]) => void) {
+  const q = query(
+    collection(db, ROOMS, roomId, "chat"),
+    orderBy("createdAt", "desc"),
+    limit(CHAT_LIMIT)
+  );
+  return onSnapshot(q, (snap) => {
+    const list = snap.docs.map((d) => {
+      const data = d.data({ serverTimestamps: "estimate" });
+      const ts = data.createdAt as Timestamp | null;
+      return {
+        id: d.id,
+        uid: String(data.uid ?? ""),
+        name: String(data.name ?? ""),
+        text: String(data.text ?? ""),
+        at: ts ? ts.toMillis() : serverNow(),
+        pending: d.metadata.hasPendingWrites,
+      };
+    });
+    cb(list.reverse());
+  });
+}
+
+export async function sendChat(roomId: string, uid: string, name: string, text: string) {
+  const t = text.trim().slice(0, CHAT_MAX);
+  if (!t) return;
+  await addDoc(collection(db, ROOMS, roomId, "chat"), {
+    uid,
+    name: name.slice(0, 20),
+    text: t,
+    createdAt: serverTimestamp(),
+  });
+}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import ChessBoard from "./ChessBoard";
+import ChessChat from "./ChessChat";
 import { timeLabel, useActiveRoomPrompt } from "./ChessLobby";
 import {
   ABANDON_AFTER_MS,
@@ -788,6 +789,9 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoR
               </div>
             )}
           </div>
+
+          {/* 채팅 */}
+          <ChessChat room={room} uid={uid} nick={nick} canSend={participating} />
 
           {/* 관전자 */}
           <div className="px-1 font-mono text-[11px] text-white/35">
