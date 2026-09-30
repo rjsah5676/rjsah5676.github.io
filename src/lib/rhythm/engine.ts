@@ -9,6 +9,10 @@ export type Judge = "perfect" | "great" | "good" | "miss";
 export const WINDOW = { perfect: 0.033, great: 0.066, good: 0.1, early: 0.14 } as const;
 /** 정확도·점수 반영 비율: PERFECT 100%, GREAT 66%, GOOD 33% */
 const WEIGHT: Record<Judge, number> = { perfect: 1, great: 0.66, good: 0.33, miss: 0 };
+/** HP 증감: 미스가 이어지면 금방 바닥나고, 잘 치면 천천히 회복 */
+export const HP_MAX = 100;
+const HP_DELTA: Record<Judge, number> = { perfect: 1, great: 0.6, good: 0, miss: -9 };
+
 /** 롱노트를 끝나기 이만큼 전에 떼도 성공으로 봄 */
 const RELEASE_GRACE = 0.1;
 
@@ -40,6 +44,9 @@ export class Engine {
   counts: Record<Judge, number> = { perfect: 0, great: 0, good: 0, miss: 0 };
   combo = 0;
   maxCombo = 0;
+  hp = HP_MAX;
+  /** HP가 바닥났을 때 */
+  dead = false;
   private sum = 0;
   private judged = 0;
   /** 레인별 노트 인덱스 목록과 아직 머리 판정 안 된 첫 위치 */
@@ -66,6 +73,8 @@ export class Engine {
     this.counts[j]++;
     this.sum += WEIGHT[j];
     this.judged++;
+    this.hp = Math.max(0, Math.min(HP_MAX, this.hp + HP_DELTA[j]));
+    if (this.hp <= 0) this.dead = true;
     if (j === "miss") this.combo = 0;
     else this.maxCombo = Math.max(this.maxCombo, ++this.combo);
     this.events.push({ judge: j, lane, at, diff });

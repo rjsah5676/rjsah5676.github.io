@@ -70,7 +70,7 @@ const RULES: Record<Difficulty, Rule> = {
   },
   hard: {
     grid: 1,
-    minGap: 0.1,
+    minGap: 0.11,
     jackGap: 0.22,
     holdMin: 4,
     maxPress: 2,

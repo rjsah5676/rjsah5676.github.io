@@ -186,8 +186,9 @@ export default function RhythmGame() {
     (r: Result) => {
       const key = `${r.songId}:${r.diff}`;
       const prev = best[key];
-      const newBest = !prev || r.score > prev.score;
-      if (newBest || (r.fc && !prev?.fc) || (r.ap && !prev?.ap)) {
+      // 중간에 죽은 판은 기록에 안 남김
+      const newBest = !r.failed && (!prev || r.score > prev.score);
+      if (!r.failed && (newBest || (r.fc && !prev?.fc) || (r.ap && !prev?.ap))) {
         const next = {
           ...best,
           [key]: {
@@ -296,7 +297,9 @@ export default function RhythmGame() {
             {result.rank}
           </p>
           <div className="mt-2 flex h-5 gap-2 font-mono text-[11px] font-bold">
-            {result.ap ? (
+            {result.failed ? (
+              <span className="text-[#F43F5E]">FAILED · HP가 바닥났어요</span>
+            ) : result.ap ? (
               <span className="text-[#7DF9FF]">ALL PERFECT</span>
             ) : result.fc ? (
               <span className="text-[#4ADE80]">FULL COMBO</span>
@@ -369,7 +372,13 @@ export default function RhythmGame() {
             </button>
           </div>
         </div>
-        <SubmitRanking result={result} label={`${song.title} ${d.label}`} />
+        {result.failed ? (
+          <div className="rounded-2xl border border-white/10 bg-[#1C1E24] p-6 text-center font-['Nanum_Gothic',sans-serif] text-sm text-white/50">
+            끝까지 살아남아야 랭킹에 올릴 수 있어요.
+          </div>
+        ) : (
+          <SubmitRanking result={result} label={`${song.title} ${d.label}`} />
+        )}
       </div>
     );
   }

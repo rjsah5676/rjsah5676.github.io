@@ -243,659 +243,17 @@ function build(spec: SongSpec): Song {
   };
 }
 
-// ───────────────────────── 곡 1: Neon Drive ─────────────────────────
+// ───────────────────────── 공용 드럼 패턴 ─────────────────────────
 
 const FOUR = "x...x...x...x...";
 const BACK = "....x.......x...";
-const OFF8 = "..x...x...x...x.";
-const HAT16 = "xoxoxoxoxoxoxoxo";
-
-const neonVerse = [
-  "e5 - - - . . c5 - d5 - e5 - - - . .",
-  "f5 - - - e5 - c5 - - - - - . . a4 -",
-  "g4 - - - c5 - - - e5 - g5 - - - . .",
-  "f5 - e5 - d5 - - - - - - - . . . .",
-  "e5 - - - . . c5 - d5 - e5 - - - . .",
-  "f5 - - - e5 - c5 - - - - - . . a4 -",
-  "g4 - - - c5 - - - e5 - g5 - - - . .",
-  "b4 - - - - - - - d5 - - - - - . .",
-];
-const neonChorus = [
-  "a5 - - - g5 - e5 - . . e5 - g5 - a5 -",
-  "c6 - - - a5 - - - g5 - f5 - e5 - - -",
-  "e5 - g5 - - - e5 - c5 - - - d5 - e5 -",
-  "d5 - - - - - - - b4 - c5 - d5 - - -",
-  "a5 - - - g5 - e5 - . . e5 - g5 - a5 -",
-  "c6 - - - a5 - - - g5 - f5 - e5 - - -",
-  "e5 - g5 - - - e5 - c5 - - - d5 - e5 -",
-  "e5 - - - - - - - - - - - . . . .",
-];
-
-const NEON: SongSpec = {
-  id: "neon-drive",
-  title: "Neon Drive",
-  bpm: 124,
-  color: "#6C63FF",
-  desc: "124 BPM · 신스웨이브",
-  chords: [
-    ["a2", "a3", "c4", "e4"],
-    ["f2", "f3", "a3", "c4"],
-    ["c3", "g3", "c4", "e4"],
-    ["g2", "g3", "b3", "d4"],
-  ],
-  sound: { lead: "sawtooth", arp: "triangle", delaySteps: 3 },
-  sections: [
-    { name: "Intro", bars: 4, pad: true, arp: 2, hat: ["", "", OFF8, OFF8] },
-    {
-      name: "Verse",
-      bars: 8,
-      kick: FOUR,
-      snare: BACK,
-      hat: OFF8,
-      bass: "pulse",
-      pad: true,
-      lead: neonVerse,
-    },
-    {
-      name: "Chorus",
-      bars: 8,
-      kick: FOUR,
-      snare: BACK,
-      clap: BACK,
-      hat: HAT16,
-      ohat: OFF8,
-      bass: "octave",
-      pad: true,
-      lead: neonChorus,
-    },
-    {
-      name: "Break",
-      bars: 4,
-      kick: "x...............",
-      pad: true,
-      arp: 1,
-      bass: "root",
-      lead: [
-        "e5 - - - - - - - - - - - - - - -",
-        "c5 - - - - - - - a4 - - - - - - -",
-        "g4 - - - - - - - - - - - c5 - - -",
-        "b4 - - - - - - - - - - - - - - -",
-      ],
-    },
-    {
-      name: "Build",
-      bars: 4,
-      kick: FOUR,
-      snare: ["x...x...x...x...", "x.x.x.x.x.x.x.x.", "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
-      hat: OFF8,
-      bass: "pulse",
-      arp: 2,
-      pad: true,
-    },
-    {
-      name: "Chorus",
-      bars: 8,
-      kick: FOUR,
-      snare: BACK,
-      clap: BACK,
-      hat: HAT16,
-      ohat: OFF8,
-      bass: "octave",
-      pad: true,
-      arp: 2,
-      lead: neonChorus,
-    },
-    {
-      name: "Outro",
-      bars: 4,
-      kick: ["x...x...x...x...", "x...x...x...x...", "x.......x.......", "x..............."],
-      pad: true,
-      bass: "half",
-      lead: [
-        "a4 - - - c5 - e5 - - - - - - - - -",
-        "f5 - - - e5 - c5 - - - - - - - - -",
-        "e5 - - - d5 - c5 - - - - - b4 - - -",
-        "a4 - - - - - - - - - - - - - - -",
-      ],
-    },
-  ],
-};
-
-// ───────────────────────── 곡 2: Pixel Rush ─────────────────────────
-
-const pixVerse = [
-  "b4 - . b4 e5 - . g5 - - f#5 - e5 - . .",
-  "g5 - . g5 e5 - c5 - - - . . . . . .",
-  "d5 - . d5 g5 - . b5 - - a5 - g5 - . .",
-  "a5 - - - f#5 - d5 - - - - - . . . .",
-  "b4 - . b4 e5 - . g5 - - f#5 - e5 - . .",
-  "g5 - . g5 e5 - c5 - - - . . e5 - g5 -",
-  "d5 - . d5 g5 - . b5 - - a5 - g5 - . .",
-  "f#5 - - - - - - - a5 - - - - - . .",
-];
-const pixChorus = [
-  "e6 - - - b5 - - - g5 - b5 - e6 - - -",
-  "d6 - c6 - b5 - - - g5 - - - e5 - - -",
-  "d6 - - - b5 - - - g5 - b5 - d6 - g6 -",
-  "f#6 - - - - - - - e6 - d6 - a5 - - -",
-  "e6 - - - b5 - - - g5 - b5 - e6 - - -",
-  "d6 - c6 - b5 - - - g5 - - - e5 - - -",
-  "d6 - - - b5 - - - g5 - b5 - d6 - g6 -",
-  "e6 - - - - - - - - - - - . . . .",
-];
-
-const PIXEL: SongSpec = {
-  id: "pixel-rush",
-  title: "Pixel Rush",
-  bpm: 160,
-  color: "#FF6FA8",
-  desc: "160 BPM · 칩튠",
-  chords: [
-    ["e2", "e4", "g4", "b4"],
-    ["c2", "c4", "e4", "g4"],
-    ["g2", "g3", "b3", "d4"],
-    ["d2", "d4", "f#4", "a4"],
-  ],
-  sound: { lead: "square", arp: "square", delaySteps: 3 },
-  sections: [
-    { name: "Intro", bars: 4, arp: 1, hat: ["", "", OFF8, "x.x.x.x.x.x.xxxx"] },
-    {
-      name: "Verse",
-      bars: 8,
-      kick: "x.....x.x.......",
-      snare: BACK,
-      hat: "x.x.x.x.x.x.x.x.",
-      bass: "octave",
-      lead: pixVerse,
-    },
-    {
-      name: "Chorus",
-      bars: 8,
-      kick: "x...x...x...x...",
-      snare: BACK,
-      clap: "....x..x....x...",
-      hat: OFF8,
-      ohat: "..o...o...o...o.",
-      bass: "octave",
-      pad: true,
-      arp: 2,
-      lead: pixChorus,
-    },
-    {
-      name: "Break",
-      bars: 4,
-      kick: "x.......x.......",
-      snare: "........x.......",
-      bass: "half",
-      pad: true,
-      lead: [
-        "g5 - - - - - - - - - - - - - - -",
-        "e5 - - - - - - - g5 - - - - - - -",
-        "d5 - - - - - - - - - - - b4 - - -",
-        "a4 - - - - - - - - - - - - - - -",
-      ],
-    },
-    {
-      name: "Verse",
-      bars: 8,
-      kick: "x.....x.x.x.....",
-      snare: ["....x.......x...", "....x.......x..x"],
-      hat: "xxx.xxx.xxx.xxx.",
-      bass: "octave",
-      arp: 2,
-      lead: pixVerse,
-    },
-    {
-      name: "Chorus",
-      bars: 8,
-      kick: "x...x...x...x...",
-      snare: BACK,
-      clap: "....x..x....x...",
-      hat: "xxxxxxxxxxxxxxxx",
-      ohat: "..o...o...o...o.",
-      bass: "octave",
-      pad: true,
-      arp: 1,
-      lead: pixChorus,
-    },
-    {
-      name: "Outro",
-      bars: 4,
-      kick: ["x...x...x...x...", "x...x...x...x...", "x.......x.......", "x..............."],
-      bass: "half",
-      pad: true,
-      lead: [
-        "b5 - - - g5 - e5 - - - - - - - - -",
-        "g5 - - - e5 - c5 - - - - - - - - -",
-        "d5 - - - g5 - b5 - - - - - a5 - - -",
-        "e5 - - - - - - - - - - - - - - -",
-      ],
-    },
-  ],
-};
-
-// ───────────────────────── 곡 3: Starlight Run (애니 OP풍, D장조) ─────────────────────────
-// A멜로 → B멜로(빌드업) → 사비(왕도진행 IV-V-iii-vi) → 간주 → B → 사비 → 브레이크 → 전조 사비
-
 const ROCK_KICK = "x.....x...x.....";
 const HAT8 = "x.x.x.x.x.x.x.x.";
 const CRASH1 = "x...............";
 const FILL_SN = "........x.x.xxxx";
 const FILL_TOM = "........xxxxxxxx";
 
-const D = ["d2", "d4", "f#4", "a4"];
-const A = ["a1", "c#4", "e4", "a4"];
-const Bm = ["b1", "b3", "d4", "f#4"];
-const G = ["g1", "g3", "b3", "d4"];
-const Fsm = ["f#1", "f#3", "a3", "c#4"];
-const Em = ["e2", "e3", "g3", "b3"];
-
-const starVerse = [
-  "f#4 - a4 - a4 - b4 a4 - - f#4 - e4 - d4 -",
-  "e4 - - - . . e4 f#4 e4 - c#4 - a3 - - -",
-  "d4 - f#4 - b4 - a4 - f#4 - a4 - b4 - c#5 -",
-  "d5 - - - b4 - - - a4 - - - . . . .",
-  "f#4 - a4 - a4 - b4 a4 - - d5 - c#5 - a4 -",
-  "b4 - - - a4 - e4 - e4 - f#4 - a4 - - -",
-  "b4 - c#5 - d5 - c#5 - b4 - a4 - f#4 - a4 -",
-  "g4 - - - - - - - a4 - - - - - . .",
-];
-const starPre = [
-  "b4 - b4 - b4 - a4 - b4 - - d5 - - b4 -",
-  "c#5 - - - a4 - - - e5 - - - c#5 - - -",
-  "a4 - a4 - a4 - f#4 - a4 - - c#5 - - a4 -",
-  "b4 - - - d5 - - - f#5 - - - e5 - d5 -",
-  "e5 - e5 - e5 - d5 - e5 - - g5 - - e5 -",
-  "f#5 - - - e5 - c#5 - a4 - - - c#5 - e5 -",
-  "d5 - - - - - - - e5 - - - - - - -",
-  "f#5 - - - - - - - e5 - - - . . . .",
-];
-const starChorus = [
-  "a5 - - - b5 - a5 - f#5 - - - d5 - e5 -",
-  "f#5 - - - e5 - d5 - e5 - - - a4 - - -",
-  "a5 - - - b5 - a5 - c#6 - - - b5 - a5 -",
-  "f#5 - - - - - e5 - d5 - - - . . . .",
-  "d5 - e5 - f#5 - g5 - a5 - - - b5 - - -",
-  "a5 - - - g5 - f#5 - e5 - - - c#5 - - -",
-  "d5 - e5 - f#5 - - - e5 - d5 - c#5 - d5 -",
-  "d5 - - - - - - - - - - - . . . .",
-];
-const starChorusChords = [G, A, Fsm, Bm, G, A, Bm, D];
-const starInterlude = [
-  "d5 e5 f#5 a5 d6 - a5 f#5 e5 f#5 a5 - f#5 e5 d5 -",
-  "e5 f#5 a5 c#6 e6 - c#6 a5 f#5 a5 c#6 - a5 f#5 e5 -",
-  "f#5 a5 c#6 f#6 - - c#6 a5 f#5 - a5 - c#6 - f#6 -",
-  "f#6 - - - e6 - - - d6 - - - c#6 - - -",
-];
-
-const chorusDrums = {
-  kick: FOUR,
-  snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-  hat: HAT8,
-  ohat: OFF8,
-  crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-};
-
-const STAR: SongSpec = {
-  id: "starlight-run",
-  title: "Starlight Run",
-  bpm: 175,
-  color: "#38BDF8",
-  desc: "175 BPM · 애니 OP풍",
-  chords: [D, A, Bm, G],
-  sound: { lead: "supersaw", arp: "triangle", delaySteps: 3 },
-  sections: [
-    {
-      name: "Intro",
-      bars: 4,
-      chords: [G, A, Fsm, Bm],
-      kick: FOUR,
-      snare: [BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", ""],
-      tom: ["", "", "", FILL_TOM],
-      bass: "octave",
-      gtr: "sustain",
-      lead: starChorus.slice(0, 4),
-    },
-    {
-      name: "A",
-      bars: 8,
-      kick: ROCK_KICK,
-      snare: BACK,
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", "", "", "", ""],
-      bass: "pulse",
-      arp: 2,
-      lead: starVerse,
-    },
-    {
-      name: "B",
-      bars: 8,
-      chords: [G, A, Fsm, Bm, Em, Fsm, G, A],
-      kick: [
-        "x...x...x...x...",
-        "x...x...x...x...",
-        "x...x...x...x...",
-        "x...x...x...x...",
-        FOUR,
-        FOUR,
-        "x.x.x.x.x.x.x.x.",
-        "x.x.x.x.x.x.x.x.",
-      ],
-      snare: [
-        "....x.......x...",
-        "....x.......x...",
-        "....x.......x...",
-        "....x.......x...",
-        BACK,
-        BACK,
-        "x.x.x.x.x.x.x.x.",
-        "xxxxxxxxxxxxxxxx",
-      ],
-      hat: HAT8,
-      bass: "pulse",
-      gtr: "chug",
-      pad: true,
-      lead: starPre,
-    },
-    {
-      name: "Chorus",
-      bars: 8,
-      chords: starChorusChords,
-      ...chorusDrums,
-      bass: "octave",
-      gtr: "sustain",
-      pad: true,
-      arp: 2,
-      lead: starChorus,
-    },
-    {
-      name: "Interlude",
-      bars: 4,
-      chords: [G, A, Fsm, Bm],
-      kick: FOUR,
-      snare: [BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", ""],
-      tom: ["", "", "", FILL_TOM],
-      bass: "octave",
-      gtr: "chug",
-      lead: starInterlude,
-    },
-    {
-      name: "B",
-      bars: 8,
-      chords: [G, A, Fsm, Bm, Em, Fsm, G, A],
-      kick: FOUR,
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", "", "", "", ""],
-      bass: "pulse",
-      gtr: "chug",
-      pad: true,
-      arp: 2,
-      lead: starPre,
-    },
-    {
-      name: "Chorus",
-      bars: 8,
-      chords: starChorusChords,
-      ...chorusDrums,
-      bass: "octave",
-      gtr: "sustain",
-      pad: true,
-      arp: 1,
-      lead: starChorus,
-    },
-    {
-      name: "Break",
-      bars: 4,
-      chords: [G, A, Fsm, A],
-      kick: ["x...............", "x...............", "x.......x.......", "x...x...x...x..."],
-      snare: ["", "", "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
-      pad: true,
-      arp: 2,
-      bass: "root",
-      lead: [
-        "b4 - - - - - - - - - - - - - - -",
-        "c#5 - - - - - - - e5 - - - - - - -",
-        "f#5 - - - - - - - - - - - e5 - - -",
-        "e5 - - - - - - - - - - - . . . .",
-      ],
-    },
-    {
-      name: "Last Chorus",
-      bars: 8,
-      transpose: 1,
-      chords: starChorusChords,
-      ...chorusDrums,
-      bass: "octave",
-      gtr: "sustain",
-      pad: true,
-      arp: 1,
-      lead: starChorus,
-    },
-    {
-      name: "Outro",
-      bars: 4,
-      transpose: 1,
-      chords: [G, A, D, D],
-      kick: ["x...x...x...x...", "x...x...x...x...", "x...............", "x..............."],
-      snare: [BACK, FILL_SN, "", ""],
-      crash: [CRASH1, "", CRASH1, ""],
-      tom: ["", FILL_TOM, "", ""],
-      bass: "half",
-      gtr: "sustain",
-      pad: true,
-      lead: [
-        "a5 - - - b5 - a5 - f#5 - - - d5 - e5 -",
-        "f#5 - - - e5 - - - c#5 - - - e5 - - -",
-        "d5 - - - - - - - - - - - - - - -",
-        ". . . . . . . . . . . . . . . .",
-      ],
-    },
-  ],
-};
-
-// ───────────────────────── 곡 4: Crimson Blade (애니 OP풍, E단조) ─────────────────────────
-// 기타 16분 리프 인트로 → 단조 A멜로 → B멜로 → 사비(C-D-Bm-Em) → 간주 → 사비 → 전조 사비
-
-const Em2 = ["e1", "e3", "g3", "b3"];
-const C = ["c2", "c3", "e3", "g3"];
-const G2 = ["g1", "g3", "b3", "d4"];
-const D2 = ["d2", "d3", "f#3", "a3"];
-const Am = ["a1", "a3", "c4", "e4"];
-const Bm2 = ["b1", "b3", "d4", "f#4"];
-
-const crimRiff = [
-  "e5 - b4 - e5 f#5 g5 - f#5 e5 d5 - b4 - d5 -",
-  "e5 - b4 - e5 f#5 g5 - a5 g5 f#5 - d5 - f#5 -",
-  "g5 - e5 - g5 a5 b5 - a5 g5 f#5 - d5 - a5 -",
-  "b5 - - - a5 - - - g5 - - - f#5 - - -",
-];
-const crimVerse = [
-  "e4 - - g4 - - a4 - b4 - - a4 - - g4 -",
-  "e4 - - - . . e4 - g4 - e4 - d4 - - -",
-  "b4 - - d5 - - b4 - a4 - - g4 - - a4 -",
-  "f#4 - - - - - . . . . a4 - b4 - d5 -",
-  "e5 - - d5 - - b4 - g4 - - a4 - - b4 -",
-  "c5 - - - b4 - a4 - g4 - - - e4 - - -",
-  "d4 - g4 - b4 - d5 - e5 - d5 - b4 - a4 -",
-  "a4 - - - - - - - f#4 - - - . . . .",
-];
-const crimPre = [
-  "a4 - a4 - c5 - a4 - e5 - - - d5 - c5 -",
-  "b4 - b4 - d5 - b4 - f#5 - - - e5 - d5 -",
-  "c5 - - - e5 - - - g5 - - - e5 - - -",
-  "f#5 - - - - - - - a5 - - - - - - -",
-  "e5 - e5 - e5 - d5 - c5 - - - a4 - c5 -",
-  "f#5 - f#5 - f#5 - e5 - d5 - - - b4 - d5 -",
-  "g5 - - - - - e5 - g5 - - - - - a5 -",
-  "b5 - - - - - - - a5 - - - . . . .",
-];
-const crimChorus = [
-  "b5 - - - a5 - g5 - e5 - - - g5 - a5 -",
-  "b5 - - - a5 - g5 - f#5 - - - d5 - - -",
-  "d5 - f#5 - b5 - - - a5 - b5 - d6 - - -",
-  "b5 - - - - - a5 - g5 - - - e5 - - -",
-  "e5 - g5 - c6 - - - b5 - a5 - g5 - e5 -",
-  "f#5 - a5 - d6 - - - c6 - b5 - a5 - f#5 -",
-  "g5 - - - f#5 - - - e5 - - - d5 - e5 -",
-  "e5 - - - - - - - - - - - . . . .",
-];
-const crimChorusChords = [C, D2, Bm2, Em2, C, D2, Em2, Em2];
-const crimChorusDrums = {
-  kick: "x...x...x...x.x.",
-  snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-  hat: "xxxxxxxxxxxxxxxx",
-  crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-  tom: ["", "", "", "", "", "", "", ""],
-};
-
-const CRIMSON: SongSpec = {
-  id: "crimson-blade",
-  title: "Crimson Blade",
-  bpm: 186,
-  color: "#EF4444",
-  desc: "186 BPM · 애니 OP풍 (단조)",
-  chords: [Em2, C, G2, D2],
-  sound: { lead: "supersaw", arp: "square", delaySteps: 3 },
-  sections: [
-    {
-      name: "Intro",
-      bars: 4,
-      chords: [Em2, C, D2, Em2],
-      kick: ["x.x...x.x.x...x.", "x.x...x.x.x...x.", "x.x...x.x.x...x.", "x.x.x.x.x.x.x.x."],
-      snare: [BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", ""],
-      tom: ["", "", "", FILL_TOM],
-      bass: "pulse",
-      gtr: "chug",
-      lead: crimRiff,
-    },
-    {
-      name: "A",
-      bars: 8,
-      kick: ROCK_KICK,
-      snare: BACK,
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", "", "", "", ""],
-      bass: "pulse",
-      gtr: "chug",
-      lead: crimVerse,
-    },
-    {
-      name: "B",
-      bars: 8,
-      chords: [Am, Bm2, C, D2, Am, Bm2, C, D2],
-      kick: [FOUR, FOUR, FOUR, FOUR, FOUR, FOUR, "x.x.x.x.x.x.x.x.", "x.x.x.x.x.x.x.x."],
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
-      hat: HAT8,
-      bass: "octave",
-      gtr: "sustain",
-      pad: true,
-      arp: 2,
-      lead: crimPre,
-    },
-    {
-      name: "Chorus",
-      bars: 8,
-      chords: crimChorusChords,
-      ...crimChorusDrums,
-      bass: "octave",
-      gtr: "sustain",
-      pad: true,
-      arp: 2,
-      lead: crimChorus,
-    },
-    {
-      name: "Interlude",
-      bars: 4,
-      chords: [Em2, C, D2, Em2],
-      kick: ["x.x...x.x.x...x.", "x.x...x.x.x...x.", "x.x...x.x.x...x.", "x.x.x.x.x.x.x.x."],
-      snare: [BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", ""],
-      tom: ["", "", "", FILL_TOM],
-      bass: "pulse",
-      gtr: "chug",
-      lead: crimRiff,
-    },
-    {
-      name: "A",
-      bars: 8,
-      kick: ROCK_KICK,
-      snare: BACK,
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", "", "", "", ""],
-      bass: "pulse",
-      gtr: "chug",
-      arp: 2,
-      lead: crimVerse,
-    },
-    {
-      name: "Chorus",
-      bars: 8,
-      chords: crimChorusChords,
-      ...crimChorusDrums,
-      bass: "octave",
-      gtr: "sustain",
-      pad: true,
-      arp: 1,
-      lead: crimChorus,
-    },
-    {
-      name: "Break",
-      bars: 4,
-      chords: [C, D2, Bm2, D2],
-      kick: ["x...............", "x...............", "x.......x.......", "x...x...x...x..."],
-      snare: ["", "", "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
-      pad: true,
-      arp: 2,
-      bass: "root",
-      lead: [
-        "g5 - - - - - - - - - - - - - - -",
-        "f#5 - - - - - - - a5 - - - - - - -",
-        "b5 - - - - - - - - - - - a5 - - -",
-        "a5 - - - - - - - - - - - . . . .",
-      ],
-    },
-    {
-      name: "Last Chorus",
-      bars: 8,
-      transpose: 2,
-      chords: crimChorusChords,
-      ...crimChorusDrums,
-      bass: "octave",
-      gtr: "sustain",
-      pad: true,
-      arp: 1,
-      lead: crimChorus,
-    },
-    {
-      name: "Outro",
-      bars: 4,
-      transpose: 2,
-      chords: [C, D2, Em2, Em2],
-      kick: ["x.x...x.x.x...x.", "x.x.x.x.x.x.x.x.", "x...............", "x..............."],
-      snare: [BACK, FILL_SN, "", ""],
-      crash: [CRASH1, "", CRASH1, ""],
-      tom: ["", FILL_TOM, "", ""],
-      bass: "half",
-      gtr: "sustain",
-      lead: [
-        "e5 - b4 - e5 f#5 g5 - f#5 e5 d5 - b4 - d5 -",
-        "e5 - b4 - e5 f#5 g5 - a5 g5 f#5 - d5 - f#5 -",
-        "e5 - - - - - - - - - - - - - - -",
-        ". . . . . . . . . . . . . . . .",
-      ],
-    },
-  ],
-};
-
-// ───────────────────────── 곡 5: Moonlight (베토벤 월광 소나타 3악장 리믹스) ─────────────────────────
+// ───────────────────────── 곡: Moonlight (베토벤 월광 소나타 3악장 리믹스) ─────────────────────────
 // 원곡(1801)은 퍼블릭 도메인, 편곡은 직접. 3악장 Presto 아르페지오 + 1악장 테마 인용 브레이크.
 
 const CSm = ["c#2", "c#4", "e4", "g#4"];
@@ -1055,4 +413,129 @@ const MOON: SongSpec = {
   ],
 };
 
-export const SONGS: Song[] = [build(NEON), build(PIXEL), build(STAR), build(CRIMSON), build(MOON)];
+// ───────────────────────── 곡: Flight of the Bumblebee (림스키코르사코프 「왕벌의 비행」 리믹스) ─────────────────────────
+// 원곡(1900)은 퍼블릭 도메인, 편곡은 직접. 쉬지 않고 이어지는 반음계 16분음표가 핵심.
+
+const Am = ["a1", "a3", "c4", "e4"];
+const E7 = ["e2", "g#3", "b3", "d4"];
+const Dm = ["d2", "d4", "f4", "a4"];
+const F = ["f1", "f3", "a3", "c4"];
+
+// 도입: 높은 E에서 반음씩 흘러내림
+const beeIntro = [
+  "e6 d#6 d6 c#6 d6 c#6 c6 b5 c6 b5 a#5 a5 g#5 g5 f#5 f5",
+  "e5 d#5 d5 c#5 d5 c#5 c5 b4 c5 b4 a#4 a4 g#4 g4 f#4 f4",
+];
+// 주제: A에서 반음 내려갔다 돌아오는 붕붕거림
+const beeA1 = "a5 g#5 g5 f#5 f5 a#5 a5 g#5 a5 g#5 g5 f#5 f5 f#5 g5 g#5";
+const beeA2 = "a5 g#5 g5 f#5 g5 f#5 f5 e5 f5 e5 d#5 d5 c#5 c5 b4 a#4";
+const beeA3 = "a4 g#4 g4 f#4 f4 a#4 a4 g#4 a4 g#4 g4 f#4 f4 f#4 g4 g#4";
+const beeA4 = "a4 a#4 b4 c5 c#5 d5 d#5 e5 f5 f#5 g5 g#5 a5 - . .";
+const beeA = [beeA1, beeA1, beeA2, beeA3, beeA1, beeA1, beeA2, beeA4];
+const beeAChords = [Am, Am, E7, Am, Am, Am, E7, Am];
+// 4도 위(D)로 옮긴 주제
+const beeB1 = "d6 c#6 c6 b5 a#5 d#6 d6 c#6 d6 c#6 c6 b5 a#5 b5 c6 c#6";
+const beeB2 = "d6 c#6 c6 b5 c6 b5 a#5 a5 a#5 a5 g#5 g5 f#5 f5 e5 d#5";
+const beeB3 = "d5 c#5 c5 b4 a#4 d#5 d5 c#5 d5 c#5 c5 b4 a#4 b4 c5 c#5";
+const beeRun = "e5 f5 f#5 g5 g#5 a5 a#5 b5 c6 c#6 d6 d#6 e6 - - -";
+const beeB = [beeB1, beeB1, beeB2, beeB3, beeA1, beeA1, beeA2, beeRun];
+const beeBChords = [Dm, Dm, Dm, Dm, Am, Am, E7, E7];
+// 날갯짓 트릴 + 긴 음 (숨 돌리는 구간)
+const beeBuzz = [
+  "e5 f5 e5 f5 e5 f5 e5 f5 e5 f5 e5 f5 e5 - - -",
+  "d#5 e5 d#5 e5 d#5 e5 d#5 e5 d#5 e5 d#5 e5 d#5 - - -",
+  "a5 - - - - - - - g#5 - - - - - - -",
+  "g5 - - - f#5 - - - f5 - - - e5 - - -",
+];
+// 끝: 반음씩 기어올라 A로 착지
+const beeFinal = [
+  "f4 f#4 g4 g#4 a4 a#4 b4 c5 c#5 d5 d#5 e5 f5 f#5 g5 g#5",
+  "a5 a#5 b5 c6 c#6 d6 d#6 e6 . . e6 . . e6 . .",
+  beeA1,
+  "a5 g#5 g5 f#5 f5 e5 d#5 d5 c#5 c5 b4 a#4 a4 g#4 g4 f#4",
+];
+
+const BEE: SongSpec = {
+  id: "bumblebee",
+  title: "Flight of the Bumblebee",
+  bpm: 150,
+  color: "#FACC15",
+  desc: "150 BPM · 림스키코르사코프 왕벌의 비행 리믹스",
+  chords: beeAChords,
+  sound: { lead: "piano", arp: "triangle", delaySteps: 3, drums: 0.42 },
+  sections: [
+    { name: "Intro", bars: 2, chords: [Am, E7], lead: beeIntro },
+    {
+      name: "Theme",
+      pedal: "acc",
+      bars: 8,
+      chords: beeAChords,
+      kick: FOUR,
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+      bass: "pulse",
+      lead: beeA,
+    },
+    {
+      name: "Rise",
+      pedal: "acc",
+      bars: 8,
+      chords: beeBChords,
+      kick: ROCK_KICK,
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+      bass: "octave",
+      lead: beeB,
+    },
+    {
+      name: "Buzz",
+      bars: 4,
+      pedal: "acc",
+      chords: [Am, E7, F, E7],
+      kick: ["x.......x.......", "x.......x.......", "x...............", "x...x...x...x..."],
+      bass: "root",
+      arp: 2,
+      arpVel: 0.9,
+      lead: beeBuzz,
+    },
+    {
+      name: "Theme",
+      pedal: "acc",
+      bars: 8,
+      chords: beeAChords,
+      kick: FOUR,
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+      tom: ["", "", "", "", "", "", "", FILL_TOM],
+      bass: "octave",
+      lead: beeA,
+    },
+    {
+      name: "Final",
+      pedal: "acc",
+      bars: 4,
+      chords: [E7, E7, Am, E7],
+      kick: FOUR,
+      snare: [BACK, "x.x.x.x.x.x.x.x.", BACK, "xxxxxxxxxxxxxxxx"],
+      hat: HAT8,
+      crash: [CRASH1, "", CRASH1, ""],
+      bass: "pulse",
+      lead: beeFinal,
+    },
+    {
+      name: "Outro",
+      bars: 2,
+      pedal: true,
+      chords: [Am, Am],
+      kick: ["x.......x.......", "x..............."],
+      crash: [CRASH1, CRASH1],
+      bass: "half",
+      lead: ["a5 . e5 . c5 . a4 . a5 - - - - - - -", "a4 - - - - - - - - - - - . . . ."],
+    },
+  ],
+};
+
+export const SONGS: Song[] = [build(MOON), build(BEE)];

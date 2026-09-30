@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Song } from "@/lib/rhythm/music";
 import type { Chart, Difficulty } from "@/lib/rhythm/chart";
-import { Engine, rankOf, type Judge } from "@/lib/rhythm/engine";
+import { Engine, HP_MAX, rankOf, type Judge } from "@/lib/rhythm/engine";
 import { DIFFICULTIES } from "@/lib/rhythm/chart";
 import { COVERS } from "./SongCarousel";
 import HoldButton from "./HoldButton";
@@ -34,6 +34,8 @@ export interface Result {
   slow: number;
   /** 친 노트들의 평균 타이밍(ms, +면 늦게 침). 판정 싱크 추천용 */
   avgMs: number | null;
+  /** HP가 바닥나서 중간에 끝남 */
+  failed: boolean;
 }
 
 /** 이보다 크게 어긋나면 FAST/SLOW 표시 (퍼펙트 안이어도) */
@@ -300,6 +302,32 @@ export default function Stage({
       }
       if (sparks.length > 400) sparks.splice(0, sparks.length - 400);
     };
+    /** 친 노트가 조각나서 흩어짐 → 노트가 "없어졌다"는 게 확실히 보이게 */
+    const spawnShards = (
+      lane: number,
+      at: number,
+      color: string,
+      laneW: number,
+      judgeY: number
+    ) => {
+      const x0 = lane * laneW + 4;
+      const w = laneW - 8;
+      for (let k = 0; k < 7; k++) {
+        const fx = (k + 0.5) / 7;
+        const ang = -Math.PI / 2 + (fx - 0.5) * 2.2 + (Math.random() - 0.5) * 0.4;
+        const v = 240 + Math.random() * 220;
+        sparks.push({
+          x: x0 + w * fx,
+          y: judgeY,
+          vx: Math.cos(ang) * v,
+          vy: Math.sin(ang) * v,
+          at,
+          life: 0.22 + Math.random() * 0.12,
+          size: 4 + Math.random() * 4,
+          color,
+        });
+      }
+    };
     const songEnd = song.duration - 2.5;
 
     const barSec = beatSec * 4;
@@ -440,6 +468,8 @@ export default function Stage({
         const c = laneColor(n.lane);
         if (n.end) {
           if (n.tail === "perfect") continue;
+          // 머리는 쳤는데 일찍 뗀 롱노트: 남은 몸통은 바로 없앰 (회색으로 계속 내려오면 남아 있는 느낌)
+          if (n.head && n.head !== "miss" && n.tail === "miss") continue;
           const dead = n.head === "miss" || n.tail === "miss";
           const yHead = n.holding ? judgeY : yOf(n.t);
           const yTail = Math.max(-20, yOf(n.end));
@@ -496,35 +526,26 @@ export default function Stage({
         g.fillStyle = beam;
         const bw = laneW * (0.9 - 0.3 * p);
         g.fillRect(cx - bw / 2, judgeY - beamH, bw, beamH);
-        // 판정선 섬광 (가로로 번짐)
-        const glow = g.createRadialGradient(cx, judgeY, 0, cx, judgeY, laneW * (0.6 + p * 0.8));
-        glow.addColorStop(0, `rgba(255,255,255,${0.9 * fade * fade})`);
-        glow.addColorStop(0.25, `${col}${hex2(0.8 * fade)}`);
-        glow.addColorStop(1, `${col}00`);
-        g.fillStyle = glow;
-        g.save();
-        g.translate(cx, judgeY);
-        g.scale(1, 0.45);
-        g.translate(-cx, -judgeY);
-        g.beginPath();
-        g.arc(cx, judgeY, laneW * (0.6 + p * 0.8), 0, Math.PI * 2);
-        g.fill();
-        g.restore();
+        // 친 순간 짧은 흰 섬광 (노트 모양으로 남아 보이지 않게 둥글고 짧게)
+        if (age < 0.12) {
+          const fp = Math.max(0, age) / 0.12;
+          const fr = laneW * (0.25 + fp * 0.45);
+          const flash = g.createRadialGradient(cx, judgeY, 0, cx, judgeY, fr);
+          flash.addColorStop(0, `rgba(255,255,255,${0.95 * (1 - fp)})`);
+          flash.addColorStop(0.4, `${col}${hex2(0.6 * (1 - fp))}`);
+          flash.addColorStop(1, `${col}00`);
+          g.fillStyle = flash;
+          g.beginPath();
+          g.arc(cx, judgeY, fr, 0, Math.PI * 2);
+          g.fill();
+        }
         // 링
         const ease = 1 - Math.pow(1 - p, 3);
         g.globalAlpha = fade;
         g.strokeStyle = col;
         g.lineWidth = 3 * fade + 1;
         g.beginPath();
-        g.ellipse(
-          cx,
-          judgeY,
-          laneW * (0.2 + ease * 0.55),
-          laneW * (0.1 + ease * 0.25),
-          0,
-          0,
-          Math.PI * 2
-        );
+        g.arc(cx, judgeY, laneW * (0.2 + ease * 0.5), 0, Math.PI * 2);
         g.stroke();
         g.globalAlpha = 1;
       }
@@ -557,6 +578,32 @@ export default function Stage({
         g.textAlign = "center";
         g.textBaseline = "middle";
         g.fillText(KEY_LABELS[l], l * laneW + laneW / 2, judgeY + 14 + (H - judgeY - 20) / 2);
+      }
+
+      // HP 게이지: 기어 오른쪽 (좁은 화면이면 기어 안쪽 가장자리)
+      {
+        const hpr = engine.hp / HP_MAX;
+        const bx = gx >= 24 ? W + 12 : W - 7;
+        const top = 40;
+        const bh = judgeY - top;
+        const low = hpr < 0.3;
+        const blink = low ? 0.55 + 0.45 * Math.sin(performance.now() / 90) : 1;
+        g.fillStyle = "rgba(0,0,0,0.5)";
+        g.fillRect(bx - 1, top - 1, 7, bh + 2);
+        const hc = hpr > 0.6 ? "#4ADE80" : hpr > 0.3 ? "#FBBF24" : "#F43F5E";
+        g.globalAlpha = blink;
+        g.fillStyle = hc;
+        g.fillRect(bx, top + bh * (1 - hpr), 5, bh * hpr);
+        g.globalAlpha = 1;
+        if (gx >= 24) {
+          g.fillStyle = "rgba(255,255,255,0.5)";
+          g.font = "700 9px ui-monospace, monospace";
+          g.textAlign = "center";
+          g.textBaseline = "top";
+          g.fillText("HP", bx + 2.5, judgeY + 6);
+        }
+        g.textAlign = "center";
+        g.textBaseline = "middle";
       }
 
       // 판정·콤보
@@ -640,17 +687,18 @@ export default function Stage({
     let raf = 0;
     let running = true;
     let finished = false;
-    const finish = () => {
+    const finish = (failed = false) => {
       if (finished) return;
       finished = true;
       running = false;
       const acc = engine.accuracy;
       onFinish({
+        failed,
         songId: song.id,
         diff,
         score: engine.score,
         acc,
-        rank: rankOf(acc),
+        rank: failed ? "F" : rankOf(acc),
         counts: { ...engine.counts },
         maxCombo: engine.maxCombo,
         fc: engine.fullCombo,
@@ -705,15 +753,47 @@ export default function Stage({
             laneW,
             H - 92
           );
+          // 노트가 깨져 흩어지는 조각
+          spawnShards(e.lane, e.at, laneColor(e.lane), laneW, H - 92);
           comboAt = e.at;
         }
       }
       engine.events.length = 0;
+      if (engine.dead) return fail(t);
       draw(t);
       if (engine.done && t > Math.max(engine.lastTime + 1.2, songEnd)) return finish();
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
+
+    // HP 바닥: 화면 멈추고 음악이 테이프 멈추듯 느려지며 꺼짐 → FAILED → 결과
+    let failing = false;
+    const fail = (tFail: number) => {
+      if (failing) return;
+      failing = true;
+      running = false;
+      const a = ctx.currentTime;
+      try {
+        src.playbackRate.setValueAtTime(1, a);
+        src.playbackRate.linearRampToValueAtTime(0.05, a + 1.1);
+        musicGain.gain.setValueAtTime(musicGain.gain.value, a);
+        musicGain.gain.linearRampToValueAtTime(0, a + 1.2);
+      } catch {}
+      const t0 = performance.now();
+      const tick = () => {
+        if (!failing) return;
+        const el = (performance.now() - t0) / 1000;
+        draw(tFail);
+        drawFailed(g, el, gx, W, H);
+        if (el >= 2.6) {
+          failing = false;
+          finish(true);
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    };
 
     const press = (lane: number) => {
       if (!running) return;
@@ -746,7 +826,7 @@ export default function Stage({
         setPaused(true);
         return;
       }
-      if (!running || finished) return;
+      if (!running || finished || failing) return;
       running = false;
       cancelAnimationFrame(raf);
       // 누르던 키는 뗀 걸로 (롱노트 중이면 끊김)
@@ -756,7 +836,7 @@ export default function Stage({
       setPaused(true);
     };
     const resume = () => {
-      if (running || finished || resuming) return;
+      if (running || finished || resuming || failing) return;
       setPaused(false);
       resuming = true;
       const frozen = now(); // 오디오가 멈춰 있어서 시간도 그대로
@@ -858,6 +938,7 @@ export default function Stage({
     return () => {
       running = false;
       resuming = false;
+      failing = false;
       cancelAnimationFrame(raf);
       for (const o of beeps) {
         try {
@@ -1136,4 +1217,43 @@ function PauseSlider({
       </span>
     </div>
   );
+}
+
+/** HP가 바닥났을 때: 화면이 붉게 어두워지고 FAILED가 쾅 */
+function drawFailed(g: CanvasRenderingContext2D, el: number, gx: number, W: number, H: number) {
+  const CWd = gx * 2 + W;
+  g.save();
+  // 흑백처럼 어둡게 + 붉은 기
+  g.globalAlpha = Math.min(1, el / 0.5) * 0.7;
+  g.fillStyle = "#12020a";
+  g.fillRect(0, 0, CWd, H);
+  // 친 순간 붉은 번쩍임
+  if (el < 0.25) {
+    g.globalAlpha = (1 - el / 0.25) * 0.5;
+    g.fillStyle = "#F43F5E";
+    g.fillRect(0, 0, CWd, H);
+  }
+  const p = Math.min(1, Math.max(0, (el - 0.35) / 0.25));
+  if (p > 0) {
+    const sc = 2.4 - 1.4 * easeOutBack(p);
+    const shake = el < 0.9 ? Math.sin(el * 70) * 6 * (1 - (el - 0.35) / 0.55) : 0;
+    g.globalAlpha = Math.min(1, p * 1.5);
+    g.translate(CWd / 2 + shake, H * 0.42);
+    g.scale(sc, sc);
+    g.font = "900 64px ui-monospace, SFMono-Regular, Menlo, monospace";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.shadowColor = "#F43F5E";
+    g.shadowBlur = 30;
+    g.fillStyle = "#F43F5E";
+    g.fillText("FAILED", 0, 0);
+    g.shadowBlur = 0;
+    g.fillStyle = "#FFE4E6";
+    g.fillText("FAILED", 0, 0);
+    g.globalAlpha = Math.min(1, Math.max(0, (el - 0.8) / 0.3));
+    g.font = "700 14px ui-monospace, monospace";
+    g.fillStyle = "rgba(255,255,255,0.7)";
+    g.fillText("HP가 바닥났어요", 0, 52);
+  }
+  g.restore();
 }
