@@ -142,7 +142,10 @@ export default function Nav() {
         <DropdownNavItem
           href="/devtools/json"
           label="devtools"
-          items={[{ href: "/devtools/json", label: "JSON Formatter" }]}
+          items={[
+            { href: "/devtools/json", label: "JSON Formatter" },
+            { href: "/devtools/mybatis-log", label: "MyBatis 로그 → SQL" },
+          ]}
         />
       </div>
     </nav>
