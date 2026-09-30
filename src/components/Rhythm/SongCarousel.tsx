@@ -7,12 +7,14 @@ import neonCover from "@/img/rhythm/neon-drive.svg";
 import pixelCover from "@/img/rhythm/pixel-rush.svg";
 import starCover from "@/img/rhythm/starlight-run.svg";
 import crimsonCover from "@/img/rhythm/crimson-blade.svg";
+import moonCover from "@/img/rhythm/moonlight.svg";
 
 export const COVERS: Record<string, StaticImageData> = {
   "neon-drive": neonCover,
   "pixel-rush": pixelCover,
   "starlight-run": starCover,
   "crimson-blade": crimsonCover,
+  moonlight: moonCover,
 };
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;

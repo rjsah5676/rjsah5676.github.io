@@ -211,22 +211,45 @@ export async function renderChunk(
         tone("sawtooth", e.midi!, t, dur, 0.035, padF, { detune: 9, a: 0.35, rel: 0.6 });
         break;
       case "arp":
-        tone(song.sound.arp, e.midi!, t, Math.min(dur, stepSec) * 0.9, chip ? 0.05 : 0.08, arpF, {
-          rel: 0.05,
-        });
+        tone(
+          song.sound.arp,
+          e.midi!,
+          t,
+          Math.min(dur, stepSec) * 0.9,
+          (chip ? 0.05 : 0.08) * v,
+          arpF,
+          {
+            rel: 0.05,
+          }
+        );
         break;
       case "lead":
         if (song.sound.lead === "supersaw") {
           // 톱니파 5개를 조금씩 어긋나게 겹쳐 두껍게 (애니송 리드)
-          const g = gainEnv(t, 0.078, 0.01, Math.max(0, dur * 0.95 - 0.01), 0.14, leadF);
+          const g = gainEnv(
+            t,
+            0.078 * (song.sound.leadGain ?? 1),
+            0.01,
+            Math.max(0, dur * 0.95 - 0.01),
+            0.14,
+            leadF
+          );
           const end = t + dur + 0.2;
           for (const d of [-16, -7, 0, 7, 16]) osc("sawtooth", hz(e.midi!), t, end, g, d);
           osc("square", hz(e.midi! - 12), t, end, g); // 한 옥타브 아래로 몸통
         } else
-          tone(song.sound.lead, e.midi!, t, dur * 0.95, chip ? 0.09 : 0.11, leadF, {
-            detune: chip ? 0 : 7,
-            rel: 0.12,
-          });
+          tone(
+            song.sound.lead,
+            e.midi!,
+            t,
+            dur * 0.95,
+            (chip ? 0.09 : 0.11) * (song.sound.leadGain ?? 1),
+            leadF,
+            {
+              detune: chip ? 0 : 7,
+              rel: 0.12,
+            }
+          );
         break;
       case "gtr": {
         // 파워코드 (근음 + 5도 + 옥타브), chug는 짧게 끊어서 뮤트 느낌

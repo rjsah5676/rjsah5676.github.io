@@ -376,7 +376,22 @@ export default function Stage({
       engine.release(lane, now() - judgeOffset / 1000);
     };
 
+    // 재개 카운트다운 (멈춘 화면 위에 3·2·1, 끝나면 음악 재개)
+    let resuming = false;
+    const RESUME_PHASES: Phase[] = [
+      { label: "3", from: 0, dur: 1, color: "#60A5FA", size: 110 },
+      { label: "2", from: 1, dur: 1, color: "#FBBF24", size: 110 },
+      { label: "1", from: 2, dur: 1, color: "#F43F5E", size: 110 },
+    ];
+
     const pause = () => {
+      if (resuming) {
+        // 카운트다운 중에 다시 Esc → 일시정지로 돌아감
+        resuming = false;
+        cancelAnimationFrame(raf);
+        setPaused(true);
+        return;
+      }
       if (!running || finished) return;
       running = false;
       cancelAnimationFrame(raf);
@@ -387,19 +402,35 @@ export default function Stage({
       setPaused(true);
     };
     const resume = () => {
-      if (running || finished) return;
+      if (running || finished || resuming) return;
       setPaused(false);
-      ctx.resume().then(() => {
-        running = true;
-        raf = requestAnimationFrame(frame);
-      });
+      resuming = true;
+      const frozen = now(); // 오디오가 멈춰 있어서 시간도 그대로
+      lastJudge = null; // 카운트다운 숫자와 겹치지 않게
+      const t0 = performance.now();
+      const tick = () => {
+        if (!resuming) return;
+        const el = (performance.now() - t0) / 1000;
+        draw(frozen);
+        drawCountdown(g, RESUME_PHASES, el, W, H);
+        if (el >= 3) {
+          resuming = false;
+          ctx.resume().then(() => {
+            running = true;
+            raf = requestAnimationFrame(frame);
+          });
+          return;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
     };
     ctrl.current = { pause, resume };
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Escape") {
         e.preventDefault();
-        if (running) pause();
+        if (running || resuming) pause();
         else resume();
         return;
       }
@@ -448,6 +479,7 @@ export default function Stage({
 
     return () => {
       running = false;
+      resuming = false;
       cancelAnimationFrame(raf);
       for (const o of beeps) {
         try {

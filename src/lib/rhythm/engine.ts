@@ -6,10 +6,10 @@ import type { Chart, Note } from "./chart";
 
 export type Judge = "perfect" | "great" | "good" | "miss";
 
-export const WINDOW = { perfect: 0.042, great: 0.085, good: 0.125, early: 0.17 } as const;
-const WEIGHT: Record<Judge, number> = { perfect: 1, great: 0.75, good: 0.4, miss: 0 };
+export const WINDOW = { perfect: 0.033, great: 0.066, good: 0.1, early: 0.14 } as const;
+const WEIGHT: Record<Judge, number> = { perfect: 1, great: 0.7, good: 0.35, miss: 0 };
 /** 롱노트를 끝나기 이만큼 전에 떼도 성공으로 봄 */
-const RELEASE_GRACE = 0.14;
+const RELEASE_GRACE = 0.1;
 
 export interface LiveNote extends Note {
   /** 머리 판정 결과 */

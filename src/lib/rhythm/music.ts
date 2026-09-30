@@ -33,6 +33,8 @@ export interface SoundSet {
   arp: OscillatorType;
   /** 리드 딜레이 길이(16분음표 수) */
   delaySteps: number;
+  /** 리드 음량 배율 (기본 1) */
+  leadGain?: number;
 }
 
 export interface Song {
@@ -96,6 +98,8 @@ interface Section {
   pad?: boolean;
   /** 아르페지오 간격(16분음표 수) */
   arp?: 1 | 2;
+  /** 아르페지오 음량 (기본 1) – 멜로디를 받쳐줘야 하는 구간에서 낮춤 */
+  arpVel?: number;
   /** 마디별 멜로디 (모자라면 반복) */
   lead?: string[];
 }
@@ -196,7 +200,7 @@ function build(spec: SongSpec): Song {
             kind: "arp",
             midi: up[seq[(i / sec.arp) % seq.length]],
             len: sec.arp,
-            vel: 1,
+            vel: sec.arpVel ?? 1,
           });
       }
 
@@ -877,4 +881,161 @@ const CRIMSON: SongSpec = {
   ],
 };
 
-export const SONGS: Song[] = [build(NEON), build(PIXEL), build(STAR), build(CRIMSON)];
+// ───────────────────────── 곡 5: Moonlight (베토벤 월광 소나타 3악장 리믹스) ─────────────────────────
+// 원곡(1801)은 퍼블릭 도메인, 편곡은 직접. 3악장 Presto 아르페지오 + 1악장 테마 인용 브레이크.
+
+const CSm = ["c#2", "c#4", "e4", "g#4"];
+const CSmB = ["b1", "c#4", "e4", "g#4"];
+const GS7 = ["g#1", "b#3", "d#4", "f#4"];
+const GS = ["g#1", "g#3", "b#3", "d#4"];
+const GSm = ["g#1", "g#3", "b3", "d#4"];
+const A3 = ["a1", "a3", "c#4", "e4"];
+const FSm3 = ["f#1", "f#3", "a3", "c#4"];
+const E3 = ["e2", "e3", "g#3", "b3"];
+const B3 = ["b1", "b3", "d#4", "f#4"];
+
+const prestoCm1 = "c#4 e4 g#4 c#5 e4 g#4 c#5 e5 g#4 c#5 e5 g#5 c#5 e5 g#5 c#6";
+const prestoCm2 = "c#5 e5 g#5 c#6 e5 g#5 c#6 e6 . . c#6 - . . c#6 -";
+const prestoG1 = "b#3 d#4 f#4 g#4 d#4 f#4 g#4 b#4 f#4 g#4 b#4 d#5 g#4 b#4 d#5 f#5";
+const prestoG2 = "g#4 b#4 d#5 g#5 b#4 d#5 g#5 b#5 . . g#5 - . . g#5 -";
+const prestoA = "a3 c#4 e4 a4 c#4 e4 a4 c#5 e4 a4 c#5 e5 a4 c#5 e5 a5";
+const prestoFm = "f#3 a3 c#4 f#4 a3 c#4 f#4 a4 c#4 f#4 a4 c#5 f#4 a4 c#5 f#5";
+const prestoGend = "g#3 b#3 d#4 g#4 b#3 d#4 g#4 b#4 d#4 g#4 b#4 d#5 . . g#5 -";
+const presto = [prestoCm1, prestoCm2, prestoG1, prestoG2, prestoCm1, prestoA, prestoFm, prestoGend];
+const prestoChords = [CSm, CSm, GS7, GS7, CSm, A3, FSm3, GS];
+
+const moonTheme2 = [
+  "g#5 - - - f#5 - e5 - d#5 - e5 - f#5 - - -",
+  "d#5 - - - c#5 - b4 - a4 - b4 - c#5 - - -",
+  "e5 - - - d#5 - c#5 - b4 - c#5 - e5 - g#5 -",
+  "f#5 - - - - - d#5 - - - - - . . . .",
+  "c#6 - - - b5 - a5 - g#5 - a5 - b5 - - -",
+  "b5 - - - a5 - g#5 - f#5 - g#5 - e5 - - -",
+  "a5 - - - g#5 - f#5 - e5 - f#5 - a5 - c#6 -",
+  "b#5 - - - - - - - g#5 - - - . . . .",
+];
+const theme2Chords = [E3, B3, CSm, GSm, A3, E3, FSm3, GS];
+
+// 1악장(Adagio sostenuto) 멜로디: 셋잇단 반주는 16분음표로 바꿔 흐르게
+const adagio = [
+  ". . . . . . . . . . . . . . . .",
+  ". . . . . . . . . . . . . . . .",
+  ". . . . . . . . . . . . g#4 - - g#4",
+  "g#4 - - - - - - - g#4 - - g#4 g#4 - - -",
+  "g#4 - - - - - - - g#4 - - g#4 g#4 - - -",
+  "g#4 - - - - - - - a4 - - - g#4 - - -",
+  "f#4 - - - - - - - b4 - - - e4 - - -",
+  "d#4 - - - - - - - - - - - . . . .",
+];
+
+const MOON: SongSpec = {
+  id: "moonlight",
+  title: "Moonlight",
+  bpm: 160,
+  color: "#A5B4FC",
+  desc: "160 BPM · 베토벤 월광 3악장 리믹스",
+  chords: prestoChords,
+  sound: { lead: "sawtooth", arp: "triangle", delaySteps: 3, leadGain: 1.4 },
+  sections: [
+    { name: "Intro", bars: 2, chords: [CSm, CSm], bass: "root", lead: [prestoCm1, prestoCm2] },
+    {
+      name: "Presto",
+      bars: 8,
+      chords: prestoChords,
+      kick: ROCK_KICK,
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+      bass: "octave",
+      pad: true,
+      lead: presto,
+    },
+    {
+      name: "Theme",
+      bars: 8,
+      chords: theme2Chords,
+      kick: FOUR,
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      ohat: OFF8,
+      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+      bass: "octave",
+      gtr: "sustain",
+      arp: 1,
+      lead: moonTheme2,
+    },
+    {
+      name: "Adagio",
+      bars: 8,
+      chords: [CSm, CSmB, A3, GS7, CSm, CSmB, A3, GS7],
+      kick: [
+        "x...............",
+        "",
+        "x...............",
+        "",
+        "x.......x.......",
+        "x.......x.......",
+        "x.......x.......",
+        "x...x...x...x...",
+      ],
+      pad: true,
+      arp: 1,
+      arpVel: 0.55,
+      bass: "root",
+      lead: adagio,
+    },
+    {
+      name: "Build",
+      bars: 4,
+      chords: [GS7, GS7, GS7, GS7],
+      kick: FOUR,
+      snare: ["x...x...x...x...", "x.x.x.x.x.x.x.x.", "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
+      hat: HAT8,
+      tom: ["", "", "", FILL_TOM],
+      bass: "pulse",
+      gtr: "chug",
+      lead: [prestoG1, prestoG2, prestoG1, prestoGend],
+    },
+    {
+      name: "Presto",
+      bars: 8,
+      chords: prestoChords,
+      kick: FOUR,
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+      hat: "xxxxxxxxxxxxxxxx",
+      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+      bass: "octave",
+      gtr: "chug",
+      pad: true,
+      lead: presto,
+    },
+    {
+      name: "Theme",
+      bars: 8,
+      chords: theme2Chords,
+      kick: FOUR,
+      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
+      hat: HAT8,
+      ohat: OFF8,
+      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
+      tom: ["", "", "", "", "", "", "", FILL_TOM],
+      bass: "octave",
+      gtr: "sustain",
+      arp: 1,
+      pad: true,
+      lead: moonTheme2,
+    },
+    {
+      name: "Outro",
+      bars: 2,
+      chords: [CSm, CSm],
+      kick: ["x.......x.......", "x..............."],
+      crash: [CRASH1, CRASH1],
+      bass: "half",
+      gtr: "sustain",
+      lead: ["c#5 - - - . . . . c#5 - - - . . . .", "c#4 - - - - - - - - - - - - - - -"],
+    },
+  ],
+};
+
+export const SONGS: Song[] = [build(NEON), build(PIXEL), build(STAR), build(CRIMSON), build(MOON)];
