@@ -145,6 +145,7 @@ export default function Nav() {
           items={[
             { href: "/devtools/json", label: "JSON Formatter" },
             { href: "/devtools/mybatis-log", label: "MyBatis 로그 → SQL" },
+            { href: "/devtools/ddl-to-java", label: "DDL → Java DTO" },
           ]}
         />
       </div>
