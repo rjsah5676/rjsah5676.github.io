@@ -51,6 +51,11 @@
 <priority>0.5</priority>
 </url>
 <url>
+<loc>https://rjsah5676.github.io/games/rhythm/</loc>
+<changefreq>monthly</changefreq>
+<priority>0.5</priority>
+</url>
+<url>
 <loc>https://rjsah5676.github.io/devtools/json/</loc>
 <changefreq>monthly</changefreq>
 <priority>0.6</priority>
@@ -62,6 +67,11 @@
 </url>
 <url>
 <loc>https://rjsah5676.github.io/devtools/ddl-to-java/</loc>
+<changefreq>monthly</changefreq>
+<priority>0.6</priority>
+</url>
+<url>
+<loc>https://rjsah5676.github.io/devtools/json-to-java/</loc>
 <changefreq>monthly</changefreq>
 <priority>0.6</priority>
 </url>
