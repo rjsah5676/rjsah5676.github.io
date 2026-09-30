@@ -4,6 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SONGS, type Song } from "@/lib/rhythm/music";
 import { DIFFICULTIES, makeChart, type Difficulty } from "@/lib/rhythm/chart";
 import { renderMetronome, renderSong } from "@/lib/rhythm/synth";
+import {
+  drawHead,
+  drawReceptor,
+  HIT_SOUNDS,
+  laneColors,
+  makeHitSound,
+  SKINS,
+  type HitSound,
+  type Skin,
+} from "@/lib/rhythm/fx";
 import Stage, { KEY_CODES, type Result } from "./Stage";
 import SongCarousel from "./SongCarousel";
 import { RankingBoard, SubmitRanking } from "./RankingBoard";
@@ -19,6 +29,8 @@ interface Settings {
   judge: number;
   /** 타격음 볼륨 0~1 */
   hit: number;
+  hitSound: HitSound;
+  skin: Skin;
 }
 interface Best {
   score: number;
@@ -52,6 +64,27 @@ const btn =
 const stepBtn =
   "h-8 w-8 shrink-0 cursor-pointer rounded-full border border-white/15 font-mono text-sm text-white/70 hover:border-[#6C63FF]/60 hover:text-white";
 
+const seg = (on: boolean) =>
+  `cursor-pointer rounded-full px-2.5 py-1 font-mono text-[11px] whitespace-nowrap transition-colors ${
+    on ? "bg-[#6C63FF] text-white" : "bg-white/5 text-white/60 hover:bg-white/10"
+  }`;
+
+// 타격음 미리 듣기 (종류별로 한 번만 만들어 둠)
+const hitCache = new Map<HitSound, AudioBuffer>();
+async function previewHit(kind: HitSound, volume: number) {
+  if (volume <= 0) return;
+  try {
+    const ctx = await audio();
+    if (!hitCache.has(kind)) hitCache.set(kind, makeHitSound(ctx, kind));
+    const src = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    gain.gain.value = volume * 0.9;
+    src.buffer = hitCache.get(kind)!;
+    src.connect(gain).connect(ctx.destination);
+    src.start();
+  } catch {}
+}
+
 type Screen = "select" | "play" | "result" | "calibrate";
 
 export default function RhythmGame() {
@@ -60,7 +93,14 @@ export default function RhythmGame() {
   const [pos, setPos] = useState(0);
   const songIdx = mod(pos, SONGS.length);
   const [diff, setDiff] = useState<Difficulty>("normal");
-  const [settings, setSettings] = useState<Settings>({ speed: 3, offset: 0, judge: 0, hit: 0.6 });
+  const [settings, setSettings] = useState<Settings>({
+    speed: 3,
+    offset: 0,
+    judge: 0,
+    hit: 0.6,
+    hitSound: "thud",
+    skin: "bar",
+  });
   const [best, setBest] = useState<Record<string, Best>>({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -97,6 +137,8 @@ export default function RhythmGame() {
           offset: clamp(Number(s.offset) || 0, -400, 400),
           judge: clamp(Number(s.judge) || 0, -400, 400),
           hit: typeof s.hit === "number" ? clamp(s.hit, 0, 1) : 0.6,
+          hitSound: HIT_SOUNDS.some((h) => h.key === s.hitSound) ? s.hitSound : "thud",
+          skin: SKINS.some((k) => k.key === s.skin) ? s.skin : "bar",
         });
         if (typeof s.songIdx === "number" && SONGS[s.songIdx]) setPos(s.songIdx);
         if (DIFFICULTIES.some((d) => d.key === s.diff)) setDiff(s.diff);
@@ -201,6 +243,8 @@ export default function RhythmGame() {
         offset={settings.offset}
         judgeOffset={settings.judge}
         hitVolume={settings.hit}
+        hitSound={settings.hitSound}
+        skin={settings.skin}
         onFinish={finish}
         onQuit={() => setScreen("select")}
         onRestart={() => setPlay((p) => p && { ...p, round: p.round + 1 })}
@@ -507,7 +551,22 @@ export default function RhythmGame() {
           </p>
 
           <label className="mt-4 block font-mono text-xs text-white/50">타격음</label>
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {HIT_SOUNDS.map((h) => (
+              <button
+                key={h.key}
+                type="button"
+                className={seg(settings.hitSound === h.key)}
+                onClick={() => {
+                  setSettings((s) => ({ ...s, hitSound: h.key, hit: s.hit || 0.6 }));
+                  previewHit(h.key, settings.hit || 0.6);
+                }}
+              >
+                {h.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
             <input
               type="range"
               min={0}
@@ -515,11 +574,31 @@ export default function RhythmGame() {
               step={0.05}
               value={settings.hit}
               onChange={(e) => setSettings((s) => ({ ...s, hit: Number(e.target.value) }))}
+              onPointerUp={() => previewHit(settings.hitSound, settings.hit)}
               className="min-w-0 flex-1 accent-[#6C63FF]"
             />
             <span className="w-10 text-right font-mono text-sm text-white">
               {settings.hit === 0 ? "끔" : Math.round(settings.hit * 100)}
             </span>
+          </div>
+
+          <label className="mt-4 block font-mono text-xs text-white/50">노트 스킨</label>
+          <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+            {SKINS.map((k) => (
+              <button
+                key={k.key}
+                type="button"
+                onClick={() => setSettings((s) => ({ ...s, skin: k.key }))}
+                className={`cursor-pointer overflow-hidden rounded-lg border transition-colors ${
+                  settings.skin === k.key
+                    ? "border-[#6C63FF] bg-[#6C63FF]/10"
+                    : "border-white/10 hover:border-white/30"
+                }`}
+              >
+                <SkinPreview skin={k.key} color={song.color} />
+                <div className="pb-1 font-mono text-[10px] text-white/60">{k.label}</div>
+              </button>
+            ))}
           </div>
 
           <div className="mt-5 space-y-1 border-t border-white/5 pt-4 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/45">
@@ -709,4 +788,35 @@ function HoldButton({
       {children}
     </button>
   );
+}
+
+/** 설정에서 스킨 고를 때 보이는 작은 미리보기 (레인 4개 + 노트) */
+function SkinPreview({ skin, color }: { skin: Skin; color: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const W = 96;
+    const H = 72;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    c.width = W * dpr;
+    c.height = H * dpr;
+    const g = c.getContext("2d")!;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = "#0E1015";
+    g.fillRect(0, 0, W, H);
+    const lw = W / 4;
+    const cols = laneColors(skin, color);
+    const judgeY = H - 12;
+    g.fillStyle = "rgba(255,255,255,0.7)";
+    g.fillRect(0, judgeY - 0.5, W, 1);
+    // 작게 그리려고 전체를 줄여서 그림
+    g.save();
+    g.scale(0.5, 0.5);
+    for (let l = 0; l < 4; l++) drawReceptor(g, skin, l, l * lw * 2, judgeY * 2, lw * 2, false);
+    const ys = [22, 52, 36, 12];
+    for (let l = 0; l < 4; l++) drawHead(g, skin, l, l * lw * 2, ys[l] * 2, lw * 2, cols[l]);
+    g.restore();
+  }, [skin, color]);
+  return <canvas ref={ref} className="block h-auto w-full" />;
 }

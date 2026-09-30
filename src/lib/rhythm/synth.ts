@@ -39,10 +39,15 @@ export async function renderChunk(
   const stepSec = 60 / song.bpm / 4;
   const noise = makeNoise(ctx);
   const chip = song.sound.lead === "square";
+  const piano = song.sound.lead === "piano";
 
   const bus = ctx.createGain();
   bus.gain.value = 0.8;
   bus.connect(ctx.destination);
+  // 드럼은 따로 모아서 곡마다 음량 조절
+  const drumBus = ctx.createGain();
+  drumBus.gain.value = song.sound.drums ?? 1;
+  drumBus.connect(bus);
 
   // 리드·아르페지오용 스테레오 딜레이 (L 한 번, R 두 번 늦게)
   const send = ctx.createGain();
@@ -71,10 +76,10 @@ export async function renderChunk(
     return f;
   };
   // 악기별 공유 필터
-  const hatF = filter("highpass", 8000);
-  const ohatF = filter("highpass", 7000);
-  const snareF = filter("highpass", 1400);
-  const clapF = filter("bandpass", 1500, 1.2);
+  const hatF = filter("highpass", 8000, 0.7, drumBus);
+  const ohatF = filter("highpass", 7000, 0.7, drumBus);
+  const snareF = filter("highpass", 1400, 0.7, drumBus);
+  const clapF = filter("bandpass", 1500, 1.2, drumBus);
   const padF = filter("lowpass", 1300, 1);
   const arpF = filter("lowpass", 3200, 1);
   const leadF = filter("lowpass", chip ? 5000 : 3400, 1);
@@ -99,7 +104,7 @@ export async function renderChunk(
   const gtrIn = ctx.createGain();
   gtrIn.gain.value = 0.9;
   gtrIn.connect(shaper).connect(gtrF);
-  const crashF = filter("highpass", 5000, 0.5);
+  const crashF = filter("highpass", 5000, 0.5, drumBus);
   const leadSend = ctx.createGain();
   leadSend.gain.value = 0.6;
   leadF.connect(leadSend).connect(send);
@@ -164,6 +169,73 @@ export async function renderChunk(
     } else osc(type, hz(midi), t, end, g);
   };
 
+  // ── 피아노 ──
+  // 배음이 많은 "밝은 층"은 빨리 사그라들고, 기음 위주 "따뜻한 층"은 오래 남게 해서
+  // 치는 순간 또렷하다가 둥글게 울리는 피아노 느낌을 낸다. 해머 소리는 짧은 노이즈.
+  let pianoIn: AudioNode = bus;
+  let bright: PeriodicWave | null = null;
+  let warm: PeriodicWave | null = null;
+  let hammerF: BiquadFilterNode | null = null;
+  if (piano) {
+    const wave = (amps: number[]) => {
+      const re = new Float32Array(amps.length + 1);
+      const im = new Float32Array(amps.length + 1);
+      amps.forEach((a, i) => (im[i + 1] = a));
+      return ctx.createPeriodicWave(re, im);
+    };
+    bright = wave([1, 0.6, 0.45, 0.32, 0.26, 0.18, 0.14, 0.1, 0.07, 0.05, 0.035, 0.025]);
+    warm = wave([1, 0.22, 0.06, 0.02]);
+    // 공간감: 짧은 스테레오 잔향 (좌우 다른 노이즈로 만든 임펄스)
+    const ir = ctx.createBuffer(2, Math.floor(SR * 1.6), SR);
+    for (let c = 0; c < 2; c++) {
+      const d = ir.getChannelData(c);
+      let seed = 99 + c * 1000;
+      for (let i = 0; i < d.length; i++) {
+        seed = (seed * 16807) % 2147483647;
+        const tt = i / SR;
+        d[i] = ((seed / 2147483647) * 2 - 1) * Math.exp(-tt * 3.2) * (tt < 0.012 ? tt / 0.012 : 1);
+      }
+    }
+    const verb = ctx.createConvolver();
+    verb.buffer = ir;
+    const verbOut = ctx.createGain();
+    verbOut.gain.value = 0.16;
+    verb.connect(verbOut).connect(bus);
+    const pianoTone = filter("lowpass", 6500, 0.5);
+    const pIn = ctx.createGain();
+    pIn.connect(pianoTone);
+    pIn.connect(verb);
+    pianoIn = pIn;
+    hammerF = filter("bandpass", 2600, 0.8, pIn);
+  }
+  const pianoNote = (midi: number, t: number, dur: number, vel: number) => {
+    const f = hz(midi);
+    // 높은 음일수록 빨리 사그라듦
+    const decay = Math.max(0.35, Math.min(3.5, 2.2 * Math.pow(2, -(midi - 60) / 18)));
+    const off = t + Math.max(0.06, dur);
+    const end = Math.min(off + 0.3, t + decay * 3.2);
+    // 낮은 음은 배음이 둥글게, 높은 음은 기음이 약해서 살짝 올림
+    const pk = vel * (midi < 48 ? 0.9 : 1);
+    const layer = (w: PeriodicWave, peak: number, tau: number, detune: number) => {
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(peak, t + 0.003);
+      g.gain.setTargetAtTime(0, t + 0.003, tau);
+      if (off < end) g.gain.setTargetAtTime(0, off, 0.07); // 건반 뗌 (댐퍼)
+      g.connect(pianoIn);
+      const o = ctx.createOscillator();
+      o.setPeriodicWave(w);
+      o.frequency.value = f;
+      o.detune.value = detune;
+      o.connect(g);
+      o.start(t);
+      o.stop(end + 0.05);
+    };
+    layer(bright!, pk * 0.55, decay * 0.18, 1.5);
+    layer(warm!, pk, decay, -1.5);
+    noiseHit(t, 0.05 * vel, hammerF!, 0.018);
+  };
+
   for (const e of events) {
     const t = e.step * stepSec - t0;
     const dur = e.len * stepSec;
@@ -176,7 +248,7 @@ export async function renderChunk(
         const g = ctx.createGain();
         g.gain.setValueAtTime(0.95 * v, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
-        o.connect(g).connect(bus);
+        o.connect(g).connect(drumBus);
         o.start(t);
         o.stop(t + 0.45);
         break;
@@ -190,7 +262,7 @@ export async function renderChunk(
         const g = ctx.createGain();
         g.gain.setValueAtTime(0.48 * v, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
-        o.connect(g).connect(bus);
+        o.connect(g).connect(drumBus);
         o.start(t);
         o.stop(t + 0.14);
         break;
@@ -205,12 +277,20 @@ export async function renderChunk(
         noiseHit(t, 0.08 * v, ohatF, 0.22);
         break;
       case "bass":
+        if (piano) {
+          pianoNote(e.midi!, t, dur * 0.95, 0.1 * v);
+          break;
+        }
         tone("sawtooth", e.midi!, t, dur * 0.85, 0.3 * v, bassF, { rel: 0.05 });
         break;
       case "pad":
         tone("sawtooth", e.midi!, t, dur, 0.035, padF, { detune: 9, a: 0.35, rel: 0.6 });
         break;
       case "arp":
+        if (piano) {
+          pianoNote(e.midi!, t, dur, 0.065 * v);
+          break;
+        }
         tone(
           song.sound.arp,
           e.midi!,
@@ -224,7 +304,8 @@ export async function renderChunk(
         );
         break;
       case "lead":
-        if (song.sound.lead === "supersaw") {
+        if (piano) pianoNote(e.midi!, t, dur, 0.17 * (song.sound.leadGain ?? 1));
+        else if (song.sound.lead === "supersaw") {
           // 톱니파 5개를 조금씩 어긋나게 겹쳐 두껍게 (애니송 리드)
           const g = gainEnv(
             t,
@@ -239,7 +320,7 @@ export async function renderChunk(
           osc("square", hz(e.midi! - 12), t, end, g); // 한 옥타브 아래로 몸통
         } else
           tone(
-            song.sound.lead,
+            song.sound.lead as OscillatorType,
             e.midi!,
             t,
             dur * 0.95,
@@ -280,7 +361,7 @@ export async function renderChunk(
         const g = ctx.createGain();
         g.gain.setValueAtTime(0.55 * v, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-        o.connect(g).connect(bus);
+        o.connect(g).connect(drumBus);
         o.start(t);
         o.stop(t + 0.32);
         break;

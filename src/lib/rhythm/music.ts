@@ -28,13 +28,16 @@ export interface MusicEvent {
 }
 
 export interface SoundSet {
-  /** supersaw: 톱니파 여러 개를 살짝 어긋나게 겹친 두꺼운 리드 */
-  lead: OscillatorType | "supersaw";
+  /** supersaw: 톱니파 여러 개를 살짝 어긋나게 겹친 두꺼운 리드
+   *  piano: 리드·아르페지오·베이스를 전부 피아노 음색으로 */
+  lead: OscillatorType | "supersaw" | "piano";
   arp: OscillatorType;
   /** 리드 딜레이 길이(16분음표 수) */
   delaySteps: number;
   /** 리드 음량 배율 (기본 1) */
   leadGain?: number;
+  /** 드럼 음량 배율 (기본 1) */
+  drums?: number;
 }
 
 export interface Song {
@@ -935,7 +938,7 @@ const MOON: SongSpec = {
   color: "#A5B4FC",
   desc: "160 BPM · 베토벤 월광 3악장 리믹스",
   chords: prestoChords,
-  sound: { lead: "sawtooth", arp: "triangle", delaySteps: 3, leadGain: 1.4 },
+  sound: { lead: "piano", arp: "triangle", delaySteps: 3, drums: 0.42 },
   sections: [
     { name: "Intro", bars: 2, chords: [CSm, CSm], bass: "root", lead: [prestoCm1, prestoCm2] },
     {
@@ -947,7 +950,6 @@ const MOON: SongSpec = {
       hat: HAT8,
       crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
       bass: "octave",
-      pad: true,
       lead: presto,
     },
     {
@@ -957,10 +959,8 @@ const MOON: SongSpec = {
       kick: FOUR,
       snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
       hat: HAT8,
-      ohat: OFF8,
       crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
       bass: "octave",
-      gtr: "sustain",
       arp: 1,
       lead: moonTheme2,
     },
@@ -978,9 +978,8 @@ const MOON: SongSpec = {
         "x.......x.......",
         "x...x...x...x...",
       ],
-      pad: true,
       arp: 1,
-      arpVel: 0.55,
+      arpVel: 0.7,
       bass: "root",
       lead: adagio,
     },
@@ -993,7 +992,6 @@ const MOON: SongSpec = {
       hat: HAT8,
       tom: ["", "", "", FILL_TOM],
       bass: "pulse",
-      gtr: "chug",
       lead: [prestoG1, prestoG2, prestoG1, prestoGend],
     },
     {
@@ -1002,11 +1000,9 @@ const MOON: SongSpec = {
       chords: prestoChords,
       kick: FOUR,
       snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-      hat: "xxxxxxxxxxxxxxxx",
+      hat: HAT8,
       crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
       bass: "octave",
-      gtr: "chug",
-      pad: true,
       lead: presto,
     },
     {
@@ -1016,13 +1012,10 @@ const MOON: SongSpec = {
       kick: FOUR,
       snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
       hat: HAT8,
-      ohat: OFF8,
       crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
       tom: ["", "", "", "", "", "", "", FILL_TOM],
       bass: "octave",
-      gtr: "sustain",
       arp: 1,
-      pad: true,
       lead: moonTheme2,
     },
     {
@@ -1032,7 +1025,6 @@ const MOON: SongSpec = {
       kick: ["x.......x.......", "x..............."],
       crash: [CRASH1, CRASH1],
       bass: "half",
-      gtr: "sustain",
       lead: ["c#5 - - - . . . . c#5 - - - . . . .", "c#4 - - - - - - - - - - - - - - -"],
     },
   ],

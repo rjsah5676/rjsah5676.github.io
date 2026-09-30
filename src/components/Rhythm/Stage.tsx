@@ -4,6 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import type { Song } from "@/lib/rhythm/music";
 import type { Chart, Difficulty } from "@/lib/rhythm/chart";
 import { Engine, rankOf, type Judge } from "@/lib/rhythm/engine";
+import {
+  drawHead,
+  drawHoldBody,
+  drawReceptor,
+  laneColors,
+  makeHitSound,
+  type HitSound,
+  type Skin,
+} from "@/lib/rhythm/fx";
 
 export const KEY_CODES = ["KeyD", "KeyF", "KeyJ", "KeyK"];
 export const KEY_LABELS = ["D", "F", "J", "K"];
@@ -28,32 +37,6 @@ export interface Result {
 /** 이보다 크게 어긋나면 FAST/SLOW 표시 (퍼펙트 안이어도) */
 const FAST_SLOW_MS = 20;
 
-/** 키를 누를 때 나는 타격음: 묵직한 "퉁" (한 번만 만들어 재사용) */
-function makeHitSound(ctx: BaseAudioContext) {
-  const sr = ctx.sampleRate;
-  const len = Math.floor(sr * 0.14);
-  const buf = ctx.createBuffer(1, len, sr);
-  const d = buf.getChannelData(0);
-  let seed = 7;
-  let lp = 0;
-  let lp2 = 0;
-  let phase = 0;
-  for (let i = 0; i < len; i++) {
-    const t = i / sr;
-    // 몸통: 190Hz → 70Hz로 빠르게 떨어지는 사인 (킥드럼처럼 묵직하게)
-    const f = 70 + 120 * Math.exp(-t * 45);
-    phase += (2 * Math.PI * f) / sr;
-    const body = Math.sin(phase) * Math.exp(-t * 26);
-    // 타격감: 아주 짧은 노이즈를 로우패스로 뭉개서 "딱"이 아니라 "퍽"
-    seed = (seed * 16807) % 2147483647;
-    lp += ((seed / 2147483647) * 2 - 1 - lp) * 0.08;
-    lp2 += (lp - lp2) * 0.08;
-    const thud = lp2 * Math.exp(-t * 90) * 3;
-    d[i] = Math.tanh((body * 0.85 + thud) * 1.4) * 0.8;
-  }
-  return buf;
-}
-
 const JUDGE_STYLE: Record<Judge, { text: string; color: string }> = {
   perfect: { text: "PERFECT", color: "#7DF9FF" },
   great: { text: "GREAT", color: "#4ADE80" },
@@ -75,6 +58,8 @@ interface Props {
   offset: number;
   /** 타격음 볼륨 0~1 (0이면 끔) */
   hitVolume: number;
+  hitSound: HitSound;
+  skin: Skin;
   /** ms, 판정만 옮김(+면 늦게 쳐도 맞게). 노트가 보이는 위치는 그대로 */
   judgeOffset: number;
   onFinish: (result: Result) => void;
@@ -91,6 +76,8 @@ export default function Stage({
   speed,
   offset,
   hitVolume,
+  hitSound,
+  skin,
   judgeOffset,
   onFinish,
   onQuit,
@@ -172,13 +159,53 @@ export default function Stage({
     let slow = 0;
     let diffSum = 0;
     let diffN = 0;
-    const hitBuf = hitVolume > 0 ? makeHitSound(ctx) : null;
+    const hitBuf = hitVolume > 0 ? makeHitSound(ctx, hitSound) : null;
     const hitGain = ctx.createGain();
     hitGain.gain.value = hitVolume * 0.9;
     hitGain.connect(ctx.destination);
-    const flashes: { lane: number; at: number; judge: Judge }[] = [];
+    // 타격 효과: 판정선에서 터지는 빛·링·불꽃
+    const bursts: { lane: number; at: number; judge: Judge; big: boolean }[] = [];
+    const sparks: {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      at: number;
+      life: number;
+      size: number;
+      color: string;
+    }[] = [];
+    let lastSparkAt = -1;
+    let comboAt = -1;
     let drawFrom = 0;
-    const laneColor = (l: number) => (l === 1 || l === 2 ? song.color : "#E6E8EF");
+    const colors = laneColors(skin, song.color);
+    const laneColor = (l: number) => colors[l];
+    const spawnSparks = (
+      lane: number,
+      at: number,
+      n: number,
+      color: string,
+      speed: number,
+      laneW: number,
+      judgeY: number
+    ) => {
+      const cx = lane * laneW + laneW / 2;
+      for (let k = 0; k < n; k++) {
+        const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.9;
+        const v = speed * (0.45 + Math.random() * 0.75);
+        sparks.push({
+          x: cx + (Math.random() - 0.5) * laneW * 0.5,
+          y: judgeY,
+          vx: Math.cos(ang) * v,
+          vy: Math.sin(ang) * v,
+          at,
+          life: 0.28 + Math.random() * 0.25,
+          size: 1.5 + Math.random() * 2.5,
+          color: Math.random() < 0.35 ? "#FFFFFF" : color,
+        });
+      }
+      if (sparks.length > 400) sparks.splice(0, sparks.length - 400);
+    };
     const songEnd = song.duration - 2.5;
 
     const draw = (t: number) => {
@@ -215,46 +242,106 @@ export default function Stage({
           const yHead = n.holding ? judgeY : yOf(n.t);
           const yTail = Math.max(-20, yOf(n.end));
           if (yTail > H) continue;
-          g.globalAlpha = dead ? 0.25 : n.holding ? 0.85 : 0.6;
-          g.fillStyle = dead ? "#555" : c;
-          g.fillRect(x + laneW * 0.22, yTail, laneW * 0.56, Math.max(0, yHead - yTail));
+          const bc = dead ? "#555555" : c;
+          drawHoldBody(g, skin, x, yHead, yTail, laneW, bc, dead ? 0.25 : n.holding ? 0.85 : 0.6);
           g.globalAlpha = dead ? 0.35 : 1;
-          g.fillRect(x + laneW * 0.22, yTail - 3, laneW * 0.56, 6);
-          g.fillStyle = dead ? "#666" : c;
-          roundRect(g, x + 4, yHead - 8, laneW - 8, 16, 4);
+          drawHead(g, skin, n.lane, x, yHead, laneW, dead ? "#666666" : c);
           g.globalAlpha = 1;
         } else {
           if (n.head && n.head !== "miss") continue;
           const y = yOf(n.t);
           if (y > H + 20) continue;
           g.globalAlpha = n.head === "miss" ? 0.3 : 1;
-          g.fillStyle = c;
-          roundRect(g, x + 4, y - 8, laneW - 8, 16, 4);
+          drawHead(g, skin, n.lane, x, y, laneW, c);
           g.globalAlpha = 1;
         }
       }
 
-      // 판정선
+      // 판정선 (+ 스킨별 수신부)
       g.fillStyle = "rgba(255,255,255,0.85)";
       g.fillRect(0, judgeY - 1.5, W, 3);
+      for (let l = 0; l < 4; l++)
+        drawReceptor(g, skin, l, l * laneW, judgeY, laneW, engine.pressed[l]);
 
-      // 타격 효과
-      for (let k = flashes.length - 1; k >= 0; k--) {
-        const f = flashes[k];
+      // 롱노트 누르는 중: 판정선에서 불꽃이 계속 튐
+      if (t - lastSparkAt > 0.035) {
+        lastSparkAt = t;
+        for (let l = 0; l < 4; l++)
+          if (engine.holding[l]) spawnSparks(l, t, 2, laneColor(l), 260, laneW, judgeY);
+      }
+
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      // 타격 효과: 레인 빛기둥 + 판정선 섬광 + 퍼지는 링
+      for (let k = bursts.length - 1; k >= 0; k--) {
+        const f = bursts[k];
         const age = t - f.at;
-        if (age > 0.22 || age < -0.5) {
-          flashes.splice(k, 1);
+        if (age > 0.4 || age < -0.5) {
+          bursts.splice(k, 1);
           continue;
         }
-        const p = Math.max(0, age) / 0.22;
-        g.globalAlpha = 1 - p;
-        g.strokeStyle = JUDGE_STYLE[f.judge].color;
-        g.lineWidth = 3;
+        const p = Math.max(0, age) / 0.4;
+        const col = f.judge === "perfect" ? laneColor(f.lane) : JUDGE_STYLE[f.judge].color;
         const cx = f.lane * laneW + laneW / 2;
-        const r = laneW * (0.25 + p * 0.35);
-        g.strokeRect(cx - r, judgeY - r * 0.55, r * 2, r * 1.1);
+        const fade = 1 - p;
+        // 빛기둥
+        const beamH = H * (f.big ? 0.55 : 0.4) * (0.6 + 0.4 * Math.min(1, p * 4));
+        const beam = g.createLinearGradient(0, judgeY, 0, judgeY - beamH);
+        beam.addColorStop(0, `${col}${hex2(0.7 * fade * fade)}`);
+        beam.addColorStop(1, `${col}00`);
+        g.fillStyle = beam;
+        const bw = laneW * (0.9 - 0.3 * p);
+        g.fillRect(cx - bw / 2, judgeY - beamH, bw, beamH);
+        // 판정선 섬광 (가로로 번짐)
+        const glow = g.createRadialGradient(cx, judgeY, 0, cx, judgeY, laneW * (0.6 + p * 0.8));
+        glow.addColorStop(0, `rgba(255,255,255,${0.9 * fade * fade})`);
+        glow.addColorStop(0.25, `${col}${hex2(0.8 * fade)}`);
+        glow.addColorStop(1, `${col}00`);
+        g.fillStyle = glow;
+        g.save();
+        g.translate(cx, judgeY);
+        g.scale(1, 0.45);
+        g.translate(-cx, -judgeY);
+        g.beginPath();
+        g.arc(cx, judgeY, laneW * (0.6 + p * 0.8), 0, Math.PI * 2);
+        g.fill();
+        g.restore();
+        // 링
+        const ease = 1 - Math.pow(1 - p, 3);
+        g.globalAlpha = fade;
+        g.strokeStyle = col;
+        g.lineWidth = 3 * fade + 1;
+        g.beginPath();
+        g.ellipse(
+          cx,
+          judgeY,
+          laneW * (0.2 + ease * 0.55),
+          laneW * (0.1 + ease * 0.25),
+          0,
+          0,
+          Math.PI * 2
+        );
+        g.stroke();
         g.globalAlpha = 1;
       }
+      // 불꽃
+      for (let k = sparks.length - 1; k >= 0; k--) {
+        const sp = sparks[k];
+        const age = t - sp.at;
+        if (age > sp.life || age < -0.5) {
+          sparks.splice(k, 1);
+          continue;
+        }
+        const a = Math.max(0, age);
+        const px = sp.x + sp.vx * a;
+        const py = sp.y + sp.vy * a + 900 * a * a;
+        const fadeS = 1 - a / sp.life;
+        g.globalAlpha = fadeS;
+        g.fillStyle = sp.color;
+        g.fillRect(px - sp.size / 2, py - sp.size / 2, sp.size, sp.size);
+      }
+      g.globalAlpha = 1;
+      g.restore();
 
       // 키 표시
       for (let l = 0; l < 4; l++) {
@@ -285,9 +372,11 @@ export default function Stage({
         }
       }
       if (engine.combo >= 2) {
+        // 콤보가 오를 때마다 살짝 튀어오름
+        const bump = Math.max(0, 1 - (t - comboAt) / 0.12);
         g.fillStyle = "rgba(255,255,255,0.9)";
-        g.font = "800 40px ui-monospace, SFMono-Regular, Menlo, monospace";
-        g.fillText(String(engine.combo), W / 2, H * 0.4 + 40);
+        g.font = `800 ${Math.round(40 + 8 * bump)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        g.fillText(String(engine.combo), W / 2, H * 0.4 + 40 - 3 * bump);
         g.font = "600 10px ui-monospace, monospace";
         g.fillStyle = "rgba(255,255,255,0.4)";
         g.fillText("COMBO", W / 2, H * 0.4 + 66);
@@ -352,7 +441,21 @@ export default function Stage({
           if (e.diff < 0) fast++;
           else slow++;
         }
-        if (e.judge !== "miss") flashes.push({ lane: e.lane, at: e.at, judge: e.judge });
+        if (e.judge !== "miss") {
+          const big = e.judge === "perfect";
+          bursts.push({ lane: e.lane, at: e.at, judge: e.judge, big });
+          const laneW = W / 4;
+          spawnSparks(
+            e.lane,
+            e.at,
+            big ? 14 : e.judge === "great" ? 8 : 4,
+            big ? laneColor(e.lane) : JUDGE_STYLE[e.judge].color,
+            big ? 520 : 380,
+            laneW,
+            H - 92
+          );
+          comboAt = e.at;
+        }
       }
       engine.events.length = 0;
       draw(t);
@@ -542,23 +645,11 @@ export default function Stage({
   );
 }
 
-function roundRect(
-  g: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-) {
-  g.beginPath();
-  g.moveTo(x + r, y);
-  g.arcTo(x + w, y, x + w, y + h, r);
-  g.arcTo(x + w, y + h, x, y + h, r);
-  g.arcTo(x, y + h, x, y, r);
-  g.arcTo(x, y, x + w, y, r);
-  g.closePath();
-  g.fill();
-}
+/** 0~1 투명도 → "#rrggbb" 뒤에 붙일 두 자리 16진수 */
+const hex2 = (a: number) =>
+  Math.round(Math.max(0, Math.min(1, a)) * 255)
+    .toString(16)
+    .padStart(2, "0");
 
 // ───────────────────────── 카운트다운 ─────────────────────────
 
