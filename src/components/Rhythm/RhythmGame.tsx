@@ -93,8 +93,8 @@ export default function RhythmGame() {
       if (s) {
         setSettings({
           speed: clamp(Number(s.speed) || 3, 1, 8),
-          offset: clamp(Number(s.offset) || 0, -300, 300),
-          judge: clamp(Number(s.judge) || 0, -150, 150),
+          offset: clamp(Number(s.offset) || 0, -400, 400),
+          judge: clamp(Number(s.judge) || 0, -400, 400),
           hit: typeof s.hit === "number" ? clamp(s.hit, 0, 1) : 0.6,
         });
         if (typeof s.songIdx === "number" && SONGS[s.songIdx]) setPos(s.songIdx);
@@ -266,7 +266,7 @@ export default function RhythmGame() {
               className={`${btn} mt-2`}
               disabled={judgeApplied}
               onClick={() => {
-                setSettings((s) => ({ ...s, judge: clamp(s.judge + result.avgMs!, -150, 150) }));
+                setSettings((s) => ({ ...s, judge: clamp(s.judge + result.avgMs!, -400, 400) }));
                 setJudgeApplied(true);
               }}
             >
@@ -431,14 +431,14 @@ export default function RhythmGame() {
             <button
               type="button"
               className={stepBtn}
-              onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset - 5, -300, 300) }))}
+              onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset - 5, -400, 400) }))}
             >
               −
             </button>
             <input
               type="range"
-              min={-300}
-              max={300}
+              min={-400}
+              max={400}
               step={1}
               value={settings.offset}
               onChange={(e) => setSettings((s) => ({ ...s, offset: Number(e.target.value) }))}
@@ -447,7 +447,7 @@ export default function RhythmGame() {
             <button
               type="button"
               className={stepBtn}
-              onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset + 5, -300, 300) }))}
+              onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset + 5, -400, 400) }))}
             >
               +
             </button>
@@ -477,14 +477,14 @@ export default function RhythmGame() {
             <button
               type="button"
               className={stepBtn}
-              onClick={() => setSettings((s) => ({ ...s, judge: clamp(s.judge - 5, -150, 150) }))}
+              onClick={() => setSettings((s) => ({ ...s, judge: clamp(s.judge - 5, -400, 400) }))}
             >
               −
             </button>
             <input
               type="range"
-              min={-150}
-              max={150}
+              min={-400}
+              max={400}
               step={1}
               value={settings.judge}
               onChange={(e) => setSettings((s) => ({ ...s, judge: Number(e.target.value) }))}
@@ -493,7 +493,7 @@ export default function RhythmGame() {
             <button
               type="button"
               className={stepBtn}
-              onClick={() => setSettings((s) => ({ ...s, judge: clamp(s.judge + 5, -150, 150) }))}
+              onClick={() => setSettings((s) => ({ ...s, judge: clamp(s.judge + 5, -400, 400) }))}
             >
               +
             </button>

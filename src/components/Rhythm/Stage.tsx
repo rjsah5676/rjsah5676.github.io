@@ -28,22 +28,28 @@ export interface Result {
 /** 이보다 크게 어긋나면 FAST/SLOW 표시 (퍼펙트 안이어도) */
 const FAST_SLOW_MS = 20;
 
-/** 키를 누를 때 나는 짧은 타격음 (한 번만 만들어 재사용) */
+/** 키를 누를 때 나는 타격음: 묵직한 "퉁" (한 번만 만들어 재사용) */
 function makeHitSound(ctx: BaseAudioContext) {
   const sr = ctx.sampleRate;
-  const len = Math.floor(sr * 0.06);
+  const len = Math.floor(sr * 0.14);
   const buf = ctx.createBuffer(1, len, sr);
   const d = buf.getChannelData(0);
   let seed = 7;
+  let lp = 0;
+  let lp2 = 0;
+  let phase = 0;
   for (let i = 0; i < len; i++) {
     const t = i / sr;
+    // 몸통: 190Hz → 70Hz로 빠르게 떨어지는 사인 (킥드럼처럼 묵직하게)
+    const f = 70 + 120 * Math.exp(-t * 45);
+    phase += (2 * Math.PI * f) / sr;
+    const body = Math.sin(phase) * Math.exp(-t * 26);
+    // 타격감: 아주 짧은 노이즈를 로우패스로 뭉개서 "딱"이 아니라 "퍽"
     seed = (seed * 16807) % 2147483647;
-    const noise = (seed / 2147483647) * 2 - 1;
-    // 짧은 클릭(노이즈) + 톡 하는 높은 음
-    d[i] =
-      noise * Math.exp(-t * 180) * 0.35 +
-      Math.sin(2 * Math.PI * 1850 * t) * Math.exp(-t * 60) * 0.45 +
-      Math.sin(2 * Math.PI * 920 * t) * Math.exp(-t * 45) * 0.25;
+    lp += ((seed / 2147483647) * 2 - 1 - lp) * 0.08;
+    lp2 += (lp - lp2) * 0.08;
+    const thud = lp2 * Math.exp(-t * 90) * 3;
+    d[i] = Math.tanh((body * 0.85 + thud) * 1.4) * 0.8;
   }
   return buf;
 }
