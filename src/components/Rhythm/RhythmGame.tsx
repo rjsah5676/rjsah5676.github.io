@@ -13,8 +13,9 @@ import {
   type HitSound,
   type Skin,
 } from "@/lib/rhythm/fx";
-import Stage, { KEY_CODES, type Result } from "./Stage";
+import Stage, { KEY_CODES, type LiveSettings, type Result } from "./Stage";
 import SongCarousel from "./SongCarousel";
+import HoldButton from "./HoldButton";
 import { RankingBoard, SubmitRanking } from "./RankingBoard";
 
 const SETTINGS_KEY = "rhythm_settings";
@@ -28,6 +29,8 @@ interface Settings {
   judge: number;
   /** 타격음 볼륨 0~1 */
   hit: number;
+  /** 음악 볼륨 0~1 */
+  music: number;
   hitSound: HitSound;
   skin: Skin;
 }
@@ -97,6 +100,7 @@ export default function RhythmGame() {
     offset: 0,
     judge: 0,
     hit: 0.6,
+    music: 1,
     hitSound: "thud",
     skin: "bar",
   });
@@ -136,6 +140,7 @@ export default function RhythmGame() {
           offset: clamp(Number(s.offset) || 0, -400, 400),
           judge: clamp(Number(s.judge) || 0, -400, 400),
           hit: typeof s.hit === "number" ? clamp(s.hit, 0, 1) : 0.6,
+          music: typeof s.music === "number" ? clamp(s.music, 0, 1) : 1,
           hitSound: HIT_SOUNDS.some((h) => h.key === s.hitSound) ? s.hitSound : "thud",
           skin: SKINS.some((k) => k.key === s.skin) ? s.skin : "bar",
         });
@@ -205,6 +210,12 @@ export default function RhythmGame() {
     [best]
   );
 
+  // 플레이 중(일시정지 화면·속도 단축키)에 바꾼 설정 저장
+  const onLiveSettings = useCallback(
+    (p: Partial<LiveSettings>) => setSettings((s) => ({ ...s, ...p })),
+    []
+  );
+
   // 선택·결과 화면 단축키
   useEffect(() => {
     if (screen !== "select" && screen !== "result") return;
@@ -242,6 +253,8 @@ export default function RhythmGame() {
         offset={settings.offset}
         judgeOffset={settings.judge}
         hitVolume={settings.hit}
+        musicVolume={settings.music}
+        onSettings={onLiveSettings}
         hitSound={settings.hitSound}
         skin={settings.skin}
         onFinish={finish}
@@ -549,6 +562,22 @@ export default function RhythmGame() {
             한 판 끝나면 결과 화면에서 평균 타이밍으로 맞출 수 있어요
           </p>
 
+          <label className="mt-4 block font-mono text-xs text-white/50">음악 볼륨</label>
+          <div className="mt-1.5 flex items-center gap-2">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={settings.music}
+              onChange={(e) => setSettings((s) => ({ ...s, music: Number(e.target.value) }))}
+              className="min-w-0 flex-1 accent-[#6C63FF]"
+            />
+            <span className="w-10 text-right font-mono text-sm text-white">
+              {settings.music === 0 ? "끔" : Math.round(settings.music * 100)}
+            </span>
+          </div>
+
           <label className="mt-4 block font-mono text-xs text-white/50">타격음</label>
           <div className="mt-1.5 flex flex-wrap gap-1">
             {HIT_SOUNDS.map((h) => (
@@ -607,9 +636,12 @@ export default function RhythmGame() {
             </p>
             <p>모바일은 레인을 터치하면 됩니다.</p>
             <p>
-              <b className="font-mono text-white/70">Esc</b> 일시정지 ·{" "}
               <b className="font-mono text-white/70">← →</b> 곡 ·{" "}
               <b className="font-mono text-white/70">↑ ↓</b> 난이도
+            </p>
+            <p>
+              플레이 중 <b className="font-mono text-white/70">↑ ↓</b> 노트 속도 ·{" "}
+              <b className="font-mono text-white/70">Esc</b> 일시정지 (싱크·볼륨 조절)
             </p>
             <p>블루투스 이어폰은 지연이 있어서 싱크 맞추기를 권장해요.</p>
           </div>
@@ -731,61 +763,6 @@ function Calibrate({
         </button>
       </div>
     </div>
-  );
-}
-
-/** 누르면 한 번, 꾹 누르고 있으면 점점 빠르게 반복 (싱크 1ms 단위 조절용) */
-function HoldButton({
-  className,
-  onStep,
-  children,
-}: {
-  className: string;
-  onStep: () => void;
-  children: React.ReactNode;
-}) {
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stepRef = useRef(onStep);
-  useEffect(() => {
-    stepRef.current = onStep;
-  }, [onStep]);
-  const stop = () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-  };
-  useEffect(() => stop, []);
-  const start = () => {
-    stop();
-    stepRef.current();
-    let delay = 380;
-    const loop = () => {
-      stepRef.current();
-      delay = Math.max(30, delay * 0.8);
-      timer.current = setTimeout(loop, delay);
-    };
-    timer.current = setTimeout(loop, delay);
-  };
-  return (
-    <button
-      type="button"
-      className={className}
-      onPointerDown={(e) => {
-        e.preventDefault();
-        start();
-      }}
-      onPointerUp={stop}
-      onPointerLeave={stop}
-      onPointerCancel={stop}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          stepRef.current();
-        }
-      }}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      {children}
-    </button>
   );
 }
 

@@ -7,7 +7,8 @@ import type { Chart, Note } from "./chart";
 export type Judge = "perfect" | "great" | "good" | "miss";
 
 export const WINDOW = { perfect: 0.033, great: 0.066, good: 0.1, early: 0.14 } as const;
-const WEIGHT: Record<Judge, number> = { perfect: 1, great: 0.7, good: 0.35, miss: 0 };
+/** 정확도·점수 반영 비율: PERFECT 100%, GREAT 66%, GOOD 33% */
+const WEIGHT: Record<Judge, number> = { perfect: 1, great: 0.66, good: 0.33, miss: 0 };
 /** 롱노트를 끝나기 이만큼 전에 떼도 성공으로 봄 */
 const RELEASE_GRACE = 0.1;
 
@@ -18,6 +19,8 @@ export interface LiveNote extends Note {
   tail?: Judge;
   /** 롱노트를 누르고 있는 중 */
   holding?: boolean;
+  /** 다음 롱노트 콤보 틱 시각 */
+  nextTick?: number;
 }
 
 export interface JudgeEvent {
@@ -27,6 +30,8 @@ export interface JudgeEvent {
   at: number;
   /** 음수면 빠름, 양수면 늦음 (단노트·머리만) */
   diff?: number;
+  /** 롱노트 누르는 중에 오르는 콤보 틱 (점수·판정 횟수에는 안 들어감) */
+  tick?: boolean;
 }
 
 export class Engine {
@@ -46,7 +51,11 @@ export class Engine {
   events: JudgeEvent[] = [];
   readonly lastTime: number;
 
-  constructor(chart: Chart) {
+  /** 롱노트 콤보 틱 간격(초). 0이면 틱 없음 */
+  private tickSec: number;
+
+  constructor(chart: Chart, tickSec = 0) {
+    this.tickSec = tickSec;
     this.notes = chart.notes.map((n) => ({ ...n }));
     this.units = chart.units;
     this.notes.forEach((n, i) => this.lanes[n.lane].push(i));
@@ -119,6 +128,15 @@ export class Engine {
         this.ptr[lane]++;
       }
       const h = this.holding[lane];
+      // 롱노트를 누르고 있는 동안 일정 간격으로 콤보가 오름 (끝나기 직전까지)
+      if (h && this.tickSec > 0) {
+        h.nextTick ??= h.t + this.tickSec;
+        while (h.nextTick <= Math.min(t, h.end! - this.tickSec * 0.5)) {
+          this.maxCombo = Math.max(this.maxCombo, ++this.combo);
+          this.events.push({ judge: "perfect", lane, at: h.nextTick, tick: true });
+          h.nextTick += this.tickSec;
+        }
+      }
       if (h && t >= h.end!) {
         this.holding[lane] = null;
         h.holding = false;

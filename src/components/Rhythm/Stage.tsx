@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Song } from "@/lib/rhythm/music";
 import type { Chart, Difficulty } from "@/lib/rhythm/chart";
 import { Engine, rankOf, type Judge } from "@/lib/rhythm/engine";
+import { DIFFICULTIES } from "@/lib/rhythm/chart";
+import { COVERS } from "./SongCarousel";
+import HoldButton from "./HoldButton";
 import {
   drawHead,
   drawHoldBody,
@@ -46,6 +49,15 @@ const JUDGE_STYLE: Record<Judge, { text: string; color: string }> = {
 /** 스크롤 속도 1.0 → 노트가 2.4초 동안 내려옴 */
 export const visibleSec = (speed: number) => 2.4 / speed;
 
+/** 플레이 중에도 바꿀 수 있는 설정 */
+export interface LiveSettings {
+  speed: number;
+  offset: number;
+  judge: number;
+  music: number;
+  hit: number;
+}
+
 interface Props {
   song: Song;
   diff: Difficulty;
@@ -61,6 +73,10 @@ interface Props {
   skin: Skin;
   /** ms, 판정만 옮김(+면 늦게 쳐도 맞게). 노트가 보이는 위치는 그대로 */
   judgeOffset: number;
+  /** 음악 볼륨 0~1 */
+  musicVolume: number;
+  /** 플레이 중(일시정지 화면·속도 단축키)에 바꾼 설정을 부모에 저장 */
+  onSettings: (patch: Partial<LiveSettings>) => void;
   onFinish: (result: Result) => void;
   onQuit: () => void;
   onRestart: () => void;
@@ -78,6 +94,8 @@ export default function Stage({
   hitSound,
   skin,
   judgeOffset,
+  musicVolume,
+  onSettings,
   onFinish,
   onQuit,
   onRestart,
@@ -86,34 +104,107 @@ export default function Stage({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [paused, setPaused] = useState(false);
   // 일시정지·재개를 effect 밖(버튼)에서도 부르기 위해
-  const ctrl = useRef<{ pause: () => void; resume: () => void }>({
+  const ctrl = useRef<{
+    pause: () => void;
+    resume: () => void;
+    apply: (p: Partial<LiveSettings>) => void;
+  }>({
     pause: () => {},
     resume: () => {},
+    apply: () => {},
   });
+  // 일시정지 화면에서 보여줄 현재 설정값
+  const [liveUi, setLiveUi] = useState<LiveSettings>({
+    speed,
+    offset,
+    judge: judgeOffset,
+    music: musicVolume,
+    hit: hitVolume,
+  });
+  const change = (p: Partial<LiveSettings>) => {
+    setLiveUi((v) => ({ ...v, ...p }));
+    ctrl.current.apply(p);
+    onSettings(p);
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const wrap = wrapRef.current!;
     const g = canvas.getContext("2d")!;
-    const engine = new Engine(chart);
-    const vis = visibleSec(speed);
+    const beatSec = 60 / song.bpm;
+    // 롱노트 누르는 동안 8분음표마다 콤보가 오름
+    const engine = new Engine(chart, beatSec / 2);
+    // 플레이 중에 바뀔 수 있는 값들 (일시정지 화면·속도 단축키)
+    const live: LiveSettings = {
+      speed,
+      offset,
+      judge: judgeOffset,
+      music: musicVolume,
+      hit: hitVolume,
+    };
+    let vis = visibleSec(speed);
     // READY → 3 → 2 → 1 → GO! 가 끝난 뒤에 노트가 내려오기 시작
     const cd = countdownPhases(song.color);
     const cdEnd = cd[cd.length - 2].from + cd[cd.length - 2].dur; // "1"이 끝나는 시점
     const leadIn = cdEnd + vis + 0.25;
     const lanePointer = new Map<number, number>();
 
+    // CW: 캔버스 전체 폭, W: 가운데 기어(레인 4개) 폭, gx: 기어 왼쪽 위치
+    // 넓은 화면에서는 기어 양옆에 곡 커버 배경과 점수판을 그린다
+    let CW = 0;
     let W = 0;
+    let gx = 0;
     let H = 0;
+    let dpr = 1;
+    const cover = new Image();
+    let backdrop: HTMLCanvasElement | null = null;
+    const makeBackdrop = () => {
+      if (!cover.complete || !cover.naturalWidth || !CW) return;
+      const c = document.createElement("canvas");
+      c.width = Math.round(CW * dpr);
+      c.height = Math.round(H * dpr);
+      const b = c.getContext("2d")!;
+      // 화면을 꽉 채우게(비율 유지) 크게 흐리게
+      const sc = Math.max(c.width / cover.naturalWidth, c.height / cover.naturalHeight) * 1.15;
+      const iw = cover.naturalWidth * sc;
+      const ih = cover.naturalHeight * sc;
+      b.filter = `blur(${Math.round(22 * dpr)}px) saturate(1.3)`;
+      b.drawImage(cover, (c.width - iw) / 2, (c.height - ih) / 2, iw, ih);
+      b.filter = "none";
+      b.fillStyle = "rgba(8,9,13,0.66)";
+      b.fillRect(0, 0, c.width, c.height);
+      backdrop = c;
+    };
+    // 박자 번쩍임용 빛 (한 번 그려두고 투명도만 바꿔서 씀 – 매 프레임 그라데이션 계산 안 하게)
+    let beatGlow: HTMLCanvasElement | null = null;
+    const makeGlow = () => {
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round((CW / 2) * dpr));
+      c.height = Math.max(1, Math.round((H / 2) * dpr));
+      const b = c.getContext("2d")!;
+      b.scale(c.width / CW, c.height / H);
+      const gr = b.createRadialGradient(CW / 2, H * 0.55, W * 0.4, CW / 2, H * 0.55, CW * 0.7);
+      gr.addColorStop(0, `${song.color}55`);
+      gr.addColorStop(1, `${song.color}00`);
+      b.fillStyle = gr;
+      b.fillRect(0, 0, CW, H);
+      beatGlow = c;
+    };
+    cover.onload = makeBackdrop;
+    cover.src = COVERS[song.id]?.src ?? "";
     const resize = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      W = Math.min(wrap.clientWidth, 460);
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      CW = Math.min(wrap.clientWidth, 1100);
+      W = Math.min(CW, 440);
+      gx = Math.round((CW - W) / 2);
       H = Math.max(420, Math.min(window.innerHeight - 170, 760));
-      canvas.width = Math.round(W * dpr);
+      canvas.width = Math.round(CW * dpr);
       canvas.height = Math.round(H * dpr);
-      canvas.style.width = `${W}px`;
+      canvas.style.width = `${CW}px`;
       canvas.style.height = `${H}px`;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      makeBackdrop();
+      makeGlow();
     };
     resize();
     window.addEventListener("resize", resize);
@@ -121,7 +212,9 @@ export default function Stage({
     // 오디오 시작
     const src = ctx.createBufferSource();
     src.buffer = buffer;
-    src.connect(ctx.destination);
+    const musicGain = ctx.createGain();
+    musicGain.gain.value = live.music;
+    src.connect(musicGain).connect(ctx.destination);
     const startAt = ctx.currentTime + leadIn;
     src.start(startAt);
     let stopped = false;
@@ -150,17 +243,19 @@ export default function Stage({
       startAt -
       ((ctx as AudioContext & { outputLatency?: number }).outputLatency ?? 0) -
       (ctx.baseLatency ?? 0) -
-      offset / 1000;
+      live.offset / 1000;
 
     // 화면 효과용 상태
-    let lastJudge: { judge: Judge; at: number; diff?: number } | null = null;
+    let lastJudge: { judge: Judge; at: number; diff?: number; tick?: boolean } | null = null;
+    let shownScore = 0;
+    let speedToastAt = -10;
     let fast = 0;
     let slow = 0;
     let diffSum = 0;
     let diffN = 0;
-    const hitBuf = hitVolume > 0 ? makeHitSound(ctx, hitSound) : null;
+    const hitBuf = makeHitSound(ctx, hitSound);
     const hitGain = ctx.createGain();
-    hitGain.gain.value = hitVolume * 0.9;
+    hitGain.gain.value = live.hit * 0.9;
     hitGain.connect(ctx.destination);
     // 타격 효과: 판정선에서 터지는 빛·링·불꽃
     const bursts: { lane: number; at: number; judge: Judge; big: boolean }[] = [];
@@ -207,14 +302,116 @@ export default function Stage({
     };
     const songEnd = song.duration - 2.5;
 
+    const barSec = beatSec * 4;
+    const diffInfo = DIFFICULTIES.find((d) => d.key === diff)!;
+    const secName = (t: number) => {
+      const bar = Math.floor(t / barSec);
+      let name = "";
+      for (const [b0, n] of song.sections) if (bar >= b0) name = n;
+      return name;
+    };
+
+    /** 기어 바깥: 흐린 커버 배경 + 박자에 맞춰 번쩍임 + 양옆 정보판 */
+    const drawBackdrop = (t: number, pulse: number) => {
+      g.clearRect(0, 0, CW, H);
+      if (backdrop) g.drawImage(backdrop, 0, 0, CW, H);
+      else {
+        g.fillStyle = "#0B0C10";
+        g.fillRect(0, 0, CW, H);
+      }
+      if (gx < 8) return;
+      // 박자마다 곡 색이 은은하게 번짐
+      if (beatGlow && pulse > 0.02) {
+        g.globalAlpha = pulse;
+        g.drawImage(beatGlow, 0, 0, CW, H);
+        g.globalAlpha = 1;
+      }
+      if (gx < 150) return;
+
+      const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
+      const lx = 24;
+      const panelW = gx - 48;
+      g.textAlign = "left";
+      g.textBaseline = "top";
+      // 왼쪽: 곡 정보
+      g.fillStyle = "rgba(255,255,255,0.45)";
+      g.font = `600 11px ${mono}`;
+      g.fillText("NOW PLAYING", lx, 28);
+      g.fillStyle = "#fff";
+      g.font = `900 ${Math.min(30, Math.max(18, panelW / 7))}px ${mono}`;
+      g.fillText(song.title, lx, 46, panelW);
+      g.fillStyle = diffInfo.color;
+      g.font = `800 13px ${mono}`;
+      g.fillText(`${diffInfo.label.toUpperCase()}  Lv.${chart.level}`, lx, 86);
+      g.fillStyle = "rgba(255,255,255,0.5)";
+      g.font = `600 12px ${mono}`;
+      g.fillText(`${song.bpm} BPM`, lx, 106);
+      const sec = t > 0 ? secName(t) : "";
+      if (sec) {
+        g.fillStyle = song.color;
+        g.font = `800 12px ${mono}`;
+        g.fillText(`▶ ${sec.toUpperCase()}`, lx, 128);
+      }
+      g.fillStyle = "rgba(255,255,255,0.35)";
+      g.font = `600 11px ${mono}`;
+      g.fillText(`SPEED x${live.speed.toFixed(1)}`, lx, H - 40);
+
+      // 오른쪽: 점수판
+      const rx = gx + W + 24;
+      g.fillStyle = "rgba(255,255,255,0.45)";
+      g.font = `600 11px ${mono}`;
+      g.fillText("SCORE", rx, 28);
+      g.fillStyle = "#fff";
+      g.font = `900 ${Math.min(34, Math.max(20, panelW / 6))}px ${mono}`;
+      g.fillText(fmtScore(Math.round(shownScore)), rx, 46, panelW);
+      g.fillStyle = "rgba(255,255,255,0.7)";
+      g.font = `700 13px ${mono}`;
+      g.fillText(`${engine.accuracy.toFixed(2)}%`, rx, 90);
+      g.fillStyle = "rgba(255,255,255,0.45)";
+      g.font = `600 11px ${mono}`;
+      g.fillText(`MAX COMBO ${engine.maxCombo}`, rx, 110);
+      const rows: [string, number, string][] = [
+        ["PERFECT", engine.counts.perfect, JUDGE_STYLE.perfect.color],
+        ["GREAT", engine.counts.great, JUDGE_STYLE.great.color],
+        ["GOOD", engine.counts.good, JUDGE_STYLE.good.color],
+        ["MISS", engine.counts.miss, JUDGE_STYLE.miss.color],
+      ];
+      rows.forEach(([label, n, c], i) => {
+        const y = 144 + i * 20;
+        g.fillStyle = c;
+        g.font = `700 11px ${mono}`;
+        g.textAlign = "left";
+        g.fillText(label, rx, y);
+        g.fillStyle = "#fff";
+        g.textAlign = "right";
+        g.fillText(String(n), rx + Math.min(panelW, 170), y);
+      });
+      g.textAlign = "left";
+    };
+
     const draw = (t: number) => {
       const laneW = W / 4;
       const judgeY = H - 92;
-      g.clearRect(0, 0, W, H);
-      g.fillStyle = "#0E1015";
-      g.fillRect(0, 0, W, H);
+      // 박자 위상 (0: 박자 순간) → 판정선·배경이 박자에 맞춰 번쩍
+      const beatPh = t > 0 ? (((t % beatSec) + beatSec) % beatSec) / beatSec : 1;
+      const pulse = t > 0 ? Math.exp(-beatPh * 5) : 0;
+      shownScore += (engine.score - shownScore) * 0.18;
+      drawBackdrop(t, pulse);
+      g.save();
+      g.translate(gx, 0);
+      // 기어 테두리 빛
+      if (gx > 0) {
+        g.fillStyle = song.color;
+        g.globalAlpha = 0.5 + 0.5 * pulse;
+        g.fillRect(-3, 0, 3, H);
+        g.fillRect(W, 0, 3, H);
+        g.globalAlpha = 0.12 + 0.2 * pulse;
+        g.fillRect(-9, 0, 6, H);
+        g.fillRect(W + 3, 0, 6, H);
+        g.globalAlpha = 1;
+      }
       for (let l = 0; l < 4; l++) {
-        g.fillStyle = l % 2 ? "#12141A" : "#101217";
+        g.fillStyle = l % 2 ? "rgba(18,20,26,0.94)" : "rgba(16,18,23,0.94)";
         g.fillRect(l * laneW, 0, laneW, H);
         if (engine.pressed[l]) {
           const grad = g.createLinearGradient(0, judgeY, 0, judgeY - H * 0.5);
@@ -229,6 +426,12 @@ export default function Stage({
 
       // 노트
       const yOf = (time: number) => judgeY - ((time - t) / vis) * judgeY;
+      // 마디선: 마디마다 가로줄이 같이 내려와서 박자 읽기 쉽게
+      g.fillStyle = "rgba(255,255,255,0.13)";
+      for (let k = Math.max(0, Math.ceil(t / barSec)); k * barSec < t + vis; k++) {
+        const y = yOf(k * barSec);
+        if (y < judgeY) g.fillRect(0, y - 0.5, W, 1);
+      }
       while (drawFrom < engine.notes.length && engine.notes[drawFrom].t < t - 4) drawFrom++;
       for (let i = drawFrom; i < engine.notes.length; i++) {
         const n = engine.notes[i];
@@ -257,8 +460,12 @@ export default function Stage({
       }
 
       // 판정선 (+ 스킨별 수신부)
-      g.fillStyle = "rgba(255,255,255,0.85)";
-      g.fillRect(0, judgeY - 1.5, W, 3);
+      g.save();
+      g.shadowColor = song.color;
+      g.shadowBlur = 10 * pulse;
+      g.fillStyle = `rgba(255,255,255,${0.75 + 0.25 * pulse})`;
+      g.fillRect(0, judgeY - 1.5 - pulse, W, 3 + 2 * pulse);
+      g.restore();
 
       // 롱노트 누르는 중: 판정선에서 불꽃이 계속 튐
       if (t - lastSparkAt > 0.035) {
@@ -393,11 +600,11 @@ export default function Stage({
         // 콤보가 오를 때마다 살짝 튀어오름
         const bump = Math.max(0, 1 - (t - comboAt) / 0.12);
         g.fillStyle = "rgba(255,255,255,0.9)";
-        g.font = `800 ${Math.round(40 + 8 * bump)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-        g.fillText(String(engine.combo), W / 2, H * 0.4 + 46 - 3 * bump);
-        g.font = "600 10px ui-monospace, monospace";
-        g.fillStyle = "rgba(255,255,255,0.4)";
-        g.fillText("COMBO", W / 2, H * 0.4 + 72);
+        g.font = `900 ${Math.round(64 + 14 * bump)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        g.fillText(String(engine.combo), W / 2, H * 0.4 + 58 - 4 * bump);
+        g.font = "700 12px ui-monospace, monospace";
+        g.fillStyle = "rgba(255,255,255,0.45)";
+        g.fillText("COMBO", W / 2, H * 0.4 + 98);
       }
 
       // 상단: 진행바·정확도·점수
@@ -412,14 +619,22 @@ export default function Stage({
       g.fillText(`${engine.accuracy.toFixed(2)}%`, 10, 12);
       g.textAlign = "right";
       g.fillStyle = "#fff";
-      g.fillText(
-        String(engine.score)
-          .padStart(7, "0")
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-        W - 10,
-        12
-      );
+      g.fillText(fmtScore(Math.round(shownScore)), W - 10, 12);
+      // 속도 바꿨을 때 잠깐 표시
+      const sAge = performance.now() / 1000 - speedToastAt;
+      if (sAge < 1) {
+        g.globalAlpha = sAge < 0.7 ? 1 : (1 - sAge) / 0.3;
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillStyle = "rgba(0,0,0,0.55)";
+        roundRectFill(g, W / 2 - 70, H * 0.22 - 18, 140, 36, 18);
+        g.fillStyle = "#fff";
+        g.font = "800 16px ui-monospace, SFMono-Regular, Menlo, monospace";
+        g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.22);
+        g.globalAlpha = 1;
+      }
       drawCountdown(g, cd, t + leadIn, W, H);
+      g.restore();
     };
 
     let raf = 0;
@@ -460,9 +675,15 @@ export default function Stage({
     const frame = () => {
       if (!running) return;
       const t = smoothNow();
-      engine.update(t - judgeOffset / 1000); // 지나간 노트 미스 처리도 판정 싱크 기준
+      engine.update(t - live.judge / 1000); // 지나간 노트 미스 처리도 판정 싱크 기준
       for (const e of engine.events) {
         lastJudge = e;
+        if (e.tick) {
+          // 롱노트 콤보 틱: 작은 불꽃만
+          spawnSparks(e.lane, e.at, 4, laneColor(e.lane), 300, W / 4, H - 92);
+          comboAt = e.at;
+          continue;
+        }
         if (e.diff !== undefined && e.judge !== "miss") {
           diffSum += e.diff;
           diffN++;
@@ -496,17 +717,17 @@ export default function Stage({
 
     const press = (lane: number) => {
       if (!running) return;
-      if (hitBuf) {
+      if (live.hit > 0) {
         const src = ctx.createBufferSource();
         src.buffer = hitBuf;
         src.connect(hitGain);
         src.start();
       }
-      engine.press(lane, now() - judgeOffset / 1000);
+      engine.press(lane, now() - live.judge / 1000);
     };
     const release = (lane: number) => {
       if (!running) return;
-      engine.release(lane, now() - judgeOffset / 1000);
+      engine.release(lane, now() - live.judge / 1000);
     };
 
     // 재개 카운트다운 (멈춘 화면 위에 3·2·1, 끝나면 음악 재개)
@@ -545,7 +766,10 @@ export default function Stage({
         if (!resuming) return;
         const el = (performance.now() - t0) / 1000;
         draw(frozen);
+        g.save();
+        g.translate(gx, 0);
         drawCountdown(g, RESUME_PHASES, el, W, H);
+        g.restore();
         if (el >= 3) {
           resuming = false;
           ctx.resume().then(() => {
@@ -558,13 +782,33 @@ export default function Stage({
       };
       raf = requestAnimationFrame(tick);
     };
-    ctrl.current = { pause, resume };
+    /** 설정 바로 반영 (일시정지 화면·속도 단축키) */
+    const apply = (p: Partial<LiveSettings>) => {
+      Object.assign(live, p);
+      if (p.speed !== undefined) vis = visibleSec(live.speed);
+      if (p.music !== undefined) musicGain.gain.value = live.music;
+      if (p.hit !== undefined) hitGain.gain.value = live.hit * 0.9;
+    };
+    ctrl.current = { pause, resume, apply };
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Escape") {
         e.preventDefault();
         if (running || resuming) pause();
         else resume();
+        return;
+      }
+      // 플레이 중 속도 조절: ↑ ↓ (0.1씩)
+      if ((e.code === "ArrowUp" || e.code === "ArrowDown") && running) {
+        e.preventDefault();
+        const sp =
+          Math.round(
+            Math.max(1, Math.min(8, live.speed + (e.code === "ArrowUp" ? 0.1 : -0.1))) * 10
+          ) / 10;
+        apply({ speed: sp });
+        onSettings({ speed: sp });
+        setLiveUi((v) => ({ ...v, speed: sp }));
+        speedToastAt = performance.now() / 1000;
         return;
       }
       const lane = KEY_CODES.indexOf(e.code);
@@ -578,7 +822,8 @@ export default function Stage({
     };
     const laneAt = (clientX: number) => {
       const r = canvas.getBoundingClientRect();
-      return Math.max(0, Math.min(3, Math.floor(((clientX - r.left) / r.width) * 4)));
+      const x = ((clientX - r.left) / r.width) * CW - gx; // 기어 기준 위치
+      return Math.max(0, Math.min(3, Math.floor((x / W) * 4)));
     };
     const onPointerDown = (e: PointerEvent) => {
       e.preventDefault();
@@ -642,7 +887,7 @@ export default function Stage({
   }, []);
 
   const btn =
-    "w-40 cursor-pointer rounded-full border border-white/15 px-4 py-2 font-mono text-sm text-white/80 transition-colors hover:border-[#6C63FF]/60 hover:text-white";
+    "cursor-pointer rounded-full border border-white/15 px-5 py-2 whitespace-nowrap font-mono text-sm text-white/80 transition-colors hover:border-[#6C63FF]/60 hover:text-white";
 
   return (
     <div ref={wrapRef} className="relative flex w-full flex-col items-center">
@@ -658,17 +903,51 @@ export default function Stage({
         II 일시정지 (Esc)
       </button>
       {paused && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-black/70 backdrop-blur-sm">
-          <p className="mb-2 font-mono text-lg font-bold text-white">일시정지</p>
-          <button type="button" className={btn} onClick={() => ctrl.current.resume()}>
-            계속하기
-          </button>
-          <button type="button" className={btn} onClick={onRestart}>
-            처음부터
-          </button>
-          <button type="button" className={btn} onClick={onQuit}>
-            곡 선택으로
-          </button>
+        <div className="absolute inset-0 flex items-center justify-center overflow-y-auto rounded-xl bg-black/75 p-4 backdrop-blur-sm">
+          <div className="flex w-full max-w-sm flex-col items-center gap-2.5">
+            <p className="mb-1 font-mono text-lg font-bold text-white">일시정지</p>
+            <div className="w-full rounded-xl border border-white/10 bg-[#1C1E24]/90 p-3.5">
+              <PauseRow
+                label="노트 속도"
+                value={`x${liveUi.speed.toFixed(1)}`}
+                onMinus={() => change({ speed: clamp(round1(liveUi.speed - 0.1), 1, 8) })}
+                onPlus={() => change({ speed: clamp(round1(liveUi.speed + 0.1), 1, 8) })}
+              />
+              <PauseRow
+                label="음악 싱크"
+                value={`${liveUi.offset > 0 ? "+" : ""}${liveUi.offset}ms`}
+                onMinus={() => change({ offset: clamp(liveUi.offset - 1, -400, 400) })}
+                onPlus={() => change({ offset: clamp(liveUi.offset + 1, -400, 400) })}
+              />
+              <PauseRow
+                label="판정 싱크"
+                value={`${liveUi.judge > 0 ? "+" : ""}${liveUi.judge}ms`}
+                onMinus={() => change({ judge: clamp(liveUi.judge - 1, -400, 400) })}
+                onPlus={() => change({ judge: clamp(liveUi.judge + 1, -400, 400) })}
+              />
+              <PauseSlider
+                label="음악 볼륨"
+                value={liveUi.music}
+                onChange={(v) => change({ music: v })}
+              />
+              <PauseSlider
+                label="타격음 볼륨"
+                value={liveUi.hit}
+                onChange={(v) => change({ hit: v })}
+              />
+            </div>
+            <div className="mt-1 flex flex-wrap justify-center gap-2">
+              <button type="button" className={btn} onClick={() => ctrl.current.resume()}>
+                계속하기 (Esc)
+              </button>
+              <button type="button" className={btn} onClick={onRestart}>
+                처음부터
+              </button>
+              <button type="button" className={btn} onClick={onQuit}>
+                곡 선택으로
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -780,4 +1059,81 @@ function drawCountdown(
   g.shadowBlur = 0;
   g.fillText(ph.label, 0, 0);
   g.restore();
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const round1 = (v: number) => Math.round(v * 10) / 10;
+const fmtScore = (n: number) =>
+  String(n)
+    .padStart(7, "0")
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+function roundRectFill(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  g.beginPath();
+  g.roundRect(x, y, w, h, r);
+  g.fill();
+}
+
+const stepBtn =
+  "h-7 w-7 shrink-0 cursor-pointer rounded-full border border-white/15 font-mono text-sm text-white/70 hover:border-[#6C63FF]/60 hover:text-white";
+
+/** 일시정지 화면: − 값 + (꾹 누르면 연속) */
+function PauseRow({
+  label,
+  value,
+  onMinus,
+  onPlus,
+}: {
+  label: string;
+  value: string;
+  onMinus: () => void;
+  onPlus: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <span className="w-20 shrink-0 font-mono text-xs text-white/55">{label}</span>
+      <HoldButton className={stepBtn} onStep={onMinus}>
+        −
+      </HoldButton>
+      <span className="flex-1 text-center font-mono text-sm text-white">{value}</span>
+      <HoldButton className={stepBtn} onStep={onPlus}>
+        +
+      </HoldButton>
+    </div>
+  );
+}
+
+function PauseSlider({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <span className="w-20 shrink-0 font-mono text-xs text-white/55">{label}</span>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.05}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="min-w-0 flex-1 accent-[#6C63FF]"
+      />
+      <span className="w-9 text-right font-mono text-xs text-white">
+        {value === 0 ? "끔" : Math.round(value * 100)}
+      </span>
+    </div>
+  );
 }
