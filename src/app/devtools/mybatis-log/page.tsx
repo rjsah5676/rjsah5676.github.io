@@ -6,7 +6,7 @@ import { pageMeta, SITE_NAME, SITE_URL } from "@/lib/seo";
 const PATH = "/devtools/mybatis-log/";
 const TITLE = "MyBatis 로그 SQL 변환기";
 const DESCRIPTION =
-  "MyBatis 로그의 ==> Preparing / ==> Parameters 줄을 붙여넣으면 ? 자리에 파라미터를 채운 실행 가능한 SQL로 바꿔줍니다. MySQL·MariaDB·PostgreSQL·Oracle, 여러 쿼리 한 번에, 줄 정리까지. 브라우저에서만 처리됩니다.";
+  "MyBatis 로그의 ==> Preparing / ==> Parameters 줄을 붙여넣으면 ? 자리에 파라미터를 채운 실행 가능한 SQL로 바꿔줍니다. MySQL·MariaDB·PostgreSQL·Oracle, 여러 쿼리 한 번에, 줄 정리까지.";
 
 export const metadata = {
   ...pageMeta({ title: TITLE, description: DESCRIPTION, path: PATH }),
@@ -43,10 +43,6 @@ const FAQ: { q: string; a: string }[] = [
   {
     q: "?와 파라미터 개수가 다르다고 나와요.",
     a: "로그가 중간에 잘렸거나, 멀티스레드 환경에서 다른 요청의 로그 줄과 섞인 경우가 대부분입니다. 같은 스레드 이름의 Preparing/Parameters 두 줄만 골라서 다시 붙여넣어 보세요. 남는 ?는 그대로 둡니다.",
-  },
-  {
-    q: "입력한 로그가 서버로 전송되나요?",
-    a: "전송되지 않습니다. 변환은 전부 브라우저 안의 JavaScript로 처리되고, 마지막 입력만 새로고침 대비로 이 브라우저의 localStorage에 남습니다.",
   },
 ];
 
@@ -115,7 +111,7 @@ export default function MybatisLogPage() {
           <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/45">
             <span className="font-mono text-white/60">Preparing</span> /{" "}
             <span className="font-mono text-white/60">Parameters</span> 로그를 붙여넣으면 ? 자리에
-            값을 채운 실행 가능한 SQL로 바꿔줍니다. 모든 처리는 브라우저 안에서만 이뤄져요.
+            값을 채운 실행 가능한 SQL로 바꿔줍니다.
           </p>
         </div>
 

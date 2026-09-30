@@ -5,6 +5,8 @@ import { SONGS, type Song } from "@/lib/rhythm/music";
 import { DIFFICULTIES, makeChart, type Difficulty } from "@/lib/rhythm/chart";
 import { renderMetronome, renderSong } from "@/lib/rhythm/synth";
 import Stage, { KEY_CODES, type Result } from "./Stage";
+import SongCarousel from "./SongCarousel";
+import { RankingBoard, SubmitRanking } from "./RankingBoard";
 
 const SETTINGS_KEY = "rhythm_settings";
 const BEST_KEY = "rhythm_best";
@@ -37,8 +39,7 @@ async function audio() {
 const latencyOf = (ctx: AudioContext) =>
   ((ctx as AudioContext & { outputLatency?: number }).outputLatency ?? 0) + (ctx.baseLatency ?? 0);
 
-const fmtTime = (s: number) =>
-  `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+const mod = (n: number, m: number) => ((n % m) + m) % m;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 const btn =
@@ -50,7 +51,9 @@ type Screen = "select" | "play" | "result" | "calibrate";
 
 export default function RhythmGame() {
   const [screen, setScreen] = useState<Screen>("select");
-  const [songIdx, setSongIdx] = useState(0);
+  // 캐러셀 가상 위치 (곡 번호 = pos mod 곡 수)
+  const [pos, setPos] = useState(0);
+  const songIdx = mod(pos, SONGS.length);
   const [diff, setDiff] = useState<Difficulty>("normal");
   const [settings, setSettings] = useState<Settings>({ speed: 3, offset: 0 });
   const [best, setBest] = useState<Record<string, Best>>({});
@@ -86,7 +89,7 @@ export default function RhythmGame() {
           speed: clamp(Number(s.speed) || 3, 1, 8),
           offset: clamp(Number(s.offset) || 0, -300, 300),
         });
-        if (typeof s.songIdx === "number" && SONGS[s.songIdx]) setSongIdx(s.songIdx);
+        if (typeof s.songIdx === "number" && SONGS[s.songIdx]) setPos(s.songIdx);
         if (DIFFICULTIES.some((d) => d.key === s.diff)) setDiff(s.diff);
       }
       if (b) setBest(b);
@@ -161,7 +164,7 @@ export default function RhythmGame() {
         const di = DIFFICULTIES.findIndex((d) => d.key === diff);
         if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
           e.preventDefault();
-          setSongIdx((i) => (i + (e.code === "ArrowLeft" ? SONGS.length - 1 : 1)) % SONGS.length);
+          setPos((p) => p + (e.code === "ArrowLeft" ? -1 : 1));
         } else if (e.code === "ArrowUp" || e.code === "ArrowDown") {
           e.preventDefault();
           setDiff(DIFFICULTIES[clamp(di + (e.code === "ArrowUp" ? -1 : 1), 0, 3)].key);
@@ -213,245 +216,234 @@ export default function RhythmGame() {
           ? "#60A5FA"
           : "#F87171";
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center rounded-2xl border border-white/10 bg-[#1C1E24] p-6 text-center sm:p-8">
-        <p className="font-mono text-xs text-white/40">
-          {song.title} · <span style={{ color: d.color }}>{d.label}</span>
-        </p>
-        <p className="mt-3 font-mono text-7xl font-black" style={{ color: rankColor }}>
-          {result.rank}
-        </p>
-        <div className="mt-2 flex h-5 gap-2 font-mono text-[11px] font-bold">
-          {result.ap ? (
-            <span className="text-[#7DF9FF]">ALL PERFECT</span>
-          ) : result.fc ? (
-            <span className="text-[#4ADE80]">FULL COMBO</span>
-          ) : null}
-          {result.newBest && <span className="text-[#FDE047]">NEW BEST</span>}
-        </div>
-        <p className="mt-3 font-mono text-3xl font-bold text-white">
-          {result.score.toLocaleString("en-US")}
-        </p>
-        <p className="mt-1 font-mono text-sm text-white/50">
-          정확도 {result.acc.toFixed(2)}% · 최대 콤보 {result.maxCombo}
-        </p>
-        <div className="mt-5 grid w-full grid-cols-4 gap-2 font-mono text-xs">
-          {(
-            [
-              ["PERFECT", result.counts.perfect, "#7DF9FF"],
-              ["GREAT", result.counts.great, "#4ADE80"],
-              ["GOOD", result.counts.good, "#FBBF24"],
-              ["MISS", result.counts.miss, "#F87171"],
-            ] as const
-          ).map(([label, n, c]) => (
-            <div key={label} className="rounded-lg bg-white/5 py-2">
-              <div className="text-[10px]" style={{ color: c }}>
-                {label}
+      <div className="mx-auto grid max-w-4xl items-start gap-4 md:grid-cols-2">
+        <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-[#1C1E24] p-6 text-center sm:p-8">
+          <p className="font-mono text-xs text-white/40">
+            {song.title} · <span style={{ color: d.color }}>{d.label}</span>
+          </p>
+          <p className="mt-3 font-mono text-7xl font-black" style={{ color: rankColor }}>
+            {result.rank}
+          </p>
+          <div className="mt-2 flex h-5 gap-2 font-mono text-[11px] font-bold">
+            {result.ap ? (
+              <span className="text-[#7DF9FF]">ALL PERFECT</span>
+            ) : result.fc ? (
+              <span className="text-[#4ADE80]">FULL COMBO</span>
+            ) : null}
+            {result.newBest && <span className="text-[#FDE047]">NEW BEST</span>}
+          </div>
+          <p className="mt-3 font-mono text-3xl font-bold text-white">
+            {result.score.toLocaleString("en-US")}
+          </p>
+          <p className="mt-1 font-mono text-sm text-white/50">
+            정확도 {result.acc.toFixed(2)}% · 최대 콤보 {result.maxCombo}
+          </p>
+          <div className="mt-5 grid w-full grid-cols-4 gap-2 font-mono text-xs">
+            {(
+              [
+                ["PERFECT", result.counts.perfect, "#7DF9FF"],
+                ["GREAT", result.counts.great, "#4ADE80"],
+                ["GOOD", result.counts.good, "#FBBF24"],
+                ["MISS", result.counts.miss, "#F87171"],
+              ] as const
+            ).map(([label, n, c]) => (
+              <div key={label} className="rounded-lg bg-white/5 py-2">
+                <div className="text-[10px]" style={{ color: c }}>
+                  {label}
+                </div>
+                <div className="mt-0.5 text-sm text-white">{n}</div>
               </div>
-              <div className="mt-0.5 text-sm text-white">{n}</div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="mt-6 flex gap-2">
+            <button
+              type="button"
+              className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm text-white hover:bg-[#5b52f0]"
+              onClick={start}
+            >
+              다시하기 (Enter)
+            </button>
+            <button
+              type="button"
+              className={`${btn} px-5 py-2 text-sm`}
+              onClick={() => setScreen("select")}
+            >
+              곡 선택 (Esc)
+            </button>
+          </div>
         </div>
-        <div className="mt-6 flex gap-2">
-          <button
-            type="button"
-            className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm text-white hover:bg-[#5b52f0]"
-            onClick={start}
-          >
-            다시하기 (Enter)
-          </button>
-          <button
-            type="button"
-            className={`${btn} px-5 py-2 text-sm`}
-            onClick={() => setScreen("select")}
-          >
-            곡 선택 (Esc)
-          </button>
-        </div>
+        <SubmitRanking result={result} label={`${song.title} ${d.label}`} />
       </div>
     );
   }
 
   // ─── 곡 선택 ───
+  const diffLabel = DIFFICULTIES.find((x) => x.key === diff)!.label;
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="min-w-0">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {SONGS.map((s, i) => (
+    <div>
+      <SongCarousel songs={SONGS} pos={pos} onMove={(dlt) => setPos((p) => p + dlt)} />
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {DIFFICULTIES.map((d) => {
+              const c = charts[song.id][d.key];
+              const b = best[`${song.id}:${d.key}`];
+              const on = d.key === diff;
+              return (
+                <button
+                  key={d.key}
+                  type="button"
+                  onClick={() => setDiff(d.key)}
+                  className={`cursor-pointer rounded-xl border px-3 py-3 text-left transition-colors ${
+                    on ? "bg-white/[0.07]" : "border-white/10 bg-[#1C1E24] hover:border-white/25"
+                  }`}
+                  style={on ? { borderColor: d.color } : undefined}
+                >
+                  <div className="flex items-baseline justify-between gap-1">
+                    <span
+                      className="font-['Nanum_Gothic',sans-serif] text-sm font-bold"
+                      style={{ color: d.color }}
+                    >
+                      {d.label}
+                    </span>
+                    <span className="font-mono text-xs text-white/60">Lv.{c.level}</span>
+                  </div>
+                  <div className="mt-1 font-mono text-[11px] text-white/35">
+                    노트 {c.notes.length}
+                  </div>
+                  <div className="mt-1 h-4 font-mono text-[11px] text-white/60">
+                    {b && (
+                      <>
+                        {b.rank} · {b.score.toLocaleString("en-US")}
+                        {b.ap ? (
+                          <span className="ml-1 text-[#7DF9FF]">AP</span>
+                        ) : b.fc ? (
+                          <span className="ml-1 text-[#4ADE80]">FC</span>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={start}
+            disabled={loading}
+            className="mt-5 w-full cursor-pointer rounded-full py-3 font-mono text-base font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+            style={{ background: song.color }}
+          >
+            {loading ? "곡 준비 중…" : "시작 (Enter)"}
+          </button>
+          {err && <p className="mt-2 text-center font-mono text-xs text-red-300">{err}</p>}
+          <div className="mt-5">
+            <RankingBoard songId={song.id} diff={diff} label={`${song.title} ${diffLabel}`} />
+          </div>
+        </div>
+
+        {/* 설정 */}
+        <div className="rounded-xl border border-white/10 bg-[#1C1E24] p-4">
+          <p className="mb-3 font-mono text-sm font-bold text-white">설정</p>
+
+          <label className="font-mono text-xs text-white/50">노트 속도</label>
+          <div className="mt-1.5 mb-4 flex items-center gap-2">
             <button
-              key={s.id}
               type="button"
-              onClick={() => setSongIdx(i)}
-              className={`cursor-pointer overflow-hidden rounded-xl border bg-[#1C1E24] text-left transition-colors ${
-                i === songIdx ? "border-white/40" : "border-white/10 hover:border-white/25"
-              }`}
+              className={stepBtn}
+              onClick={() =>
+                setSettings((s) => ({
+                  ...s,
+                  speed: clamp(Math.round((s.speed - 0.5) * 10) / 10, 1, 8),
+                }))
+              }
             >
-              <div className="h-1.5" style={{ background: s.color }} />
-              <div className="p-4">
-                <div className="font-mono text-lg font-bold text-white">{s.title}</div>
-                <div className="mt-1 font-mono text-xs text-white/45">
-                  {s.desc} · {fmtTime(s.duration - 2.5)}
-                </div>
-              </div>
+              −
             </button>
-          ))}
-        </div>
+            <input
+              type="range"
+              min={1}
+              max={8}
+              step={0.1}
+              value={settings.speed}
+              onChange={(e) => setSettings((s) => ({ ...s, speed: Number(e.target.value) }))}
+              className="min-w-0 flex-1 accent-[#6C63FF]"
+            />
+            <button
+              type="button"
+              className={stepBtn}
+              onClick={() =>
+                setSettings((s) => ({
+                  ...s,
+                  speed: clamp(Math.round((s.speed + 0.5) * 10) / 10, 1, 8),
+                }))
+              }
+            >
+              +
+            </button>
+            <span className="w-10 text-right font-mono text-sm text-white">
+              x{settings.speed.toFixed(1)}
+            </span>
+          </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {DIFFICULTIES.map((d) => {
-            const c = charts[song.id][d.key];
-            const b = best[`${song.id}:${d.key}`];
-            const on = d.key === diff;
-            return (
-              <button
-                key={d.key}
-                type="button"
-                onClick={() => setDiff(d.key)}
-                className={`cursor-pointer rounded-xl border px-3 py-3 text-left transition-colors ${
-                  on ? "bg-white/[0.07]" : "border-white/10 bg-[#1C1E24] hover:border-white/25"
-                }`}
-                style={on ? { borderColor: d.color } : undefined}
-              >
-                <div className="flex items-baseline justify-between gap-1">
-                  <span
-                    className="font-['Nanum_Gothic',sans-serif] text-sm font-bold"
-                    style={{ color: d.color }}
-                  >
-                    {d.label}
-                  </span>
-                  <span className="font-mono text-xs text-white/60">Lv.{c.level}</span>
-                </div>
-                <div className="mt-1 font-mono text-[11px] text-white/35">
-                  노트 {c.notes.length}
-                </div>
-                <div className="mt-1 h-4 font-mono text-[11px] text-white/60">
-                  {b && (
-                    <>
-                      {b.rank} · {b.score.toLocaleString("en-US")}
-                      {b.ap ? (
-                        <span className="ml-1 text-[#7DF9FF]">AP</span>
-                      ) : b.fc ? (
-                        <span className="ml-1 text-[#4ADE80]">FC</span>
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+          <label className="font-mono text-xs text-white/50">싱크 (ms) · +면 노트가 늦게 옴</label>
+          <div className="mt-1.5 flex items-center gap-2">
+            <button
+              type="button"
+              className={stepBtn}
+              onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset - 5, -300, 300) }))}
+            >
+              −
+            </button>
+            <input
+              type="range"
+              min={-300}
+              max={300}
+              step={1}
+              value={settings.offset}
+              onChange={(e) => setSettings((s) => ({ ...s, offset: Number(e.target.value) }))}
+              className="min-w-0 flex-1 accent-[#6C63FF]"
+            />
+            <button
+              type="button"
+              className={stepBtn}
+              onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset + 5, -300, 300) }))}
+            >
+              +
+            </button>
+            <span className="w-10 text-right font-mono text-sm text-white">
+              {settings.offset > 0 ? "+" : ""}
+              {settings.offset}
+            </span>
+          </div>
+          <div className="mt-2 flex gap-1.5">
+            <button type="button" className={btn} onClick={() => setScreen("calibrate")}>
+              싱크 맞추기
+            </button>
+            <button
+              type="button"
+              className={btn}
+              disabled={settings.offset === 0}
+              onClick={() => setSettings((s) => ({ ...s, offset: 0 }))}
+            >
+              초기화
+            </button>
+          </div>
 
-        <button
-          type="button"
-          onClick={start}
-          disabled={loading}
-          className="mt-5 w-full cursor-pointer rounded-full py-3 font-mono text-base font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
-          style={{ background: song.color }}
-        >
-          {loading ? "곡 준비 중…" : "시작 (Enter)"}
-        </button>
-        {err && <p className="mt-2 text-center font-mono text-xs text-red-300">{err}</p>}
-      </div>
-
-      {/* 설정 */}
-      <div className="rounded-xl border border-white/10 bg-[#1C1E24] p-4">
-        <p className="mb-3 font-mono text-sm font-bold text-white">설정</p>
-
-        <label className="font-mono text-xs text-white/50">노트 속도</label>
-        <div className="mt-1.5 mb-4 flex items-center gap-2">
-          <button
-            type="button"
-            className={stepBtn}
-            onClick={() =>
-              setSettings((s) => ({
-                ...s,
-                speed: clamp(Math.round((s.speed - 0.5) * 10) / 10, 1, 8),
-              }))
-            }
-          >
-            −
-          </button>
-          <input
-            type="range"
-            min={1}
-            max={8}
-            step={0.1}
-            value={settings.speed}
-            onChange={(e) => setSettings((s) => ({ ...s, speed: Number(e.target.value) }))}
-            className="min-w-0 flex-1 accent-[#6C63FF]"
-          />
-          <button
-            type="button"
-            className={stepBtn}
-            onClick={() =>
-              setSettings((s) => ({
-                ...s,
-                speed: clamp(Math.round((s.speed + 0.5) * 10) / 10, 1, 8),
-              }))
-            }
-          >
-            +
-          </button>
-          <span className="w-10 text-right font-mono text-sm text-white">
-            x{settings.speed.toFixed(1)}
-          </span>
-        </div>
-
-        <label className="font-mono text-xs text-white/50">싱크 (ms) · +면 노트가 늦게 옴</label>
-        <div className="mt-1.5 flex items-center gap-2">
-          <button
-            type="button"
-            className={stepBtn}
-            onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset - 5, -300, 300) }))}
-          >
-            −
-          </button>
-          <input
-            type="range"
-            min={-300}
-            max={300}
-            step={1}
-            value={settings.offset}
-            onChange={(e) => setSettings((s) => ({ ...s, offset: Number(e.target.value) }))}
-            className="min-w-0 flex-1 accent-[#6C63FF]"
-          />
-          <button
-            type="button"
-            className={stepBtn}
-            onClick={() => setSettings((s) => ({ ...s, offset: clamp(s.offset + 5, -300, 300) }))}
-          >
-            +
-          </button>
-          <span className="w-10 text-right font-mono text-sm text-white">
-            {settings.offset > 0 ? "+" : ""}
-            {settings.offset}
-          </span>
-        </div>
-        <div className="mt-2 flex gap-1.5">
-          <button type="button" className={btn} onClick={() => setScreen("calibrate")}>
-            싱크 맞추기
-          </button>
-          <button
-            type="button"
-            className={btn}
-            disabled={settings.offset === 0}
-            onClick={() => setSettings((s) => ({ ...s, offset: 0 }))}
-          >
-            초기화
-          </button>
-        </div>
-
-        <div className="mt-5 space-y-1 border-t border-white/5 pt-4 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/45">
-          <p>
-            <b className="font-mono text-white/70">D F J K</b> 로 치고, 긴 노트는 끝까지 꾹
-            누르세요.
-          </p>
-          <p>모바일은 레인을 터치하면 됩니다.</p>
-          <p>
-            <b className="font-mono text-white/70">Esc</b> 일시정지 ·{" "}
-            <b className="font-mono text-white/70">← →</b> 곡 ·{" "}
-            <b className="font-mono text-white/70">↑ ↓</b> 난이도
-          </p>
-          <p>블루투스 이어폰은 지연이 있어서 싱크 맞추기를 권장해요.</p>
+          <div className="mt-5 space-y-1 border-t border-white/5 pt-4 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/45">
+            <p>
+              <b className="font-mono text-white/70">D F J K</b> 로 치고, 긴 노트는 끝까지 꾹
+              누르세요.
+            </p>
+            <p>모바일은 레인을 터치하면 됩니다.</p>
+            <p>
+              <b className="font-mono text-white/70">Esc</b> 일시정지 ·{" "}
+              <b className="font-mono text-white/70">← →</b> 곡 ·{" "}
+              <b className="font-mono text-white/70">↑ ↓</b> 난이도
+            </p>
+            <p>블루투스 이어폰은 지연이 있어서 싱크 맞추기를 권장해요.</p>
+          </div>
         </div>
       </div>
     </div>

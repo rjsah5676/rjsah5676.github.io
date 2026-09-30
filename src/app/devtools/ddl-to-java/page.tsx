@@ -48,10 +48,6 @@ const FAQ: { q: string; a: string }[] = [
     q: "컬럼명만 camelCase로 바꾸고 싶어요.",
     a: "CREATE TABLE 없이 컬럼명만 한 줄에 하나씩(또는 쉼표로) 넣으면 camelCase, PascalCase, snake_case, UPPER_SNAKE, kebab-case 변환표가 나옵니다. 열마다 복사 버튼이 있어서 엑셀 컬럼 목록을 바로 필드명으로 바꿀 수 있어요.",
   },
-  {
-    q: "입력한 DDL이 서버로 전송되나요?",
-    a: "전송되지 않습니다. 파싱과 코드 생성은 전부 브라우저 안에서 이뤄지고, 마지막 입력과 옵션만 이 브라우저의 localStorage에 저장됩니다.",
-  },
 ];
 
 const TYPES: [string, string, string][] = [
@@ -137,7 +133,7 @@ export default function DdlToJavaPage() {
           <h1 className="mt-1 font-mono text-2xl font-bold text-white">DDL → Java DTO · MyBatis</h1>
           <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/45">
             CREATE TABLE을 붙여넣으면 DTO, resultMap, Mapper XML까지 한 번에. 컬럼명만 넣으면
-            camelCase ↔ snake_case 변환표가 나옵니다. 모든 처리는 브라우저 안에서만 이뤄져요.
+            camelCase ↔ snake_case 변환표가 나옵니다.
           </p>
         </div>
 

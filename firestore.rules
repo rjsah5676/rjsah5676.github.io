@@ -46,6 +46,29 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // 리듬게임 랭킹 - 곡·난이도별 서브컬렉션 (rhythm_rankings/{곡_난이도}/scores)
+    match /rhythm_rankings/{chartId}/scores/{entryId} {
+      allow read: if true;
+      allow create: if chartId.matches('^[a-z0-9-]+_(easy|normal|hard|expert)$')
+                    && request.resource.data.keys().hasOnly(['name', 'score', 'acc', 'maxCombo', 'fc', 'ap', 'createdAt'])
+                    && request.resource.data.keys().hasAll(['name', 'score', 'acc', 'maxCombo', 'fc', 'ap', 'createdAt'])
+                    && validRankName()
+                    && request.resource.data.name.size() <= 12
+                    && request.resource.data.score is int
+                    && request.resource.data.score >= 0
+                    && request.resource.data.score <= 1000000
+                    && request.resource.data.acc is number
+                    && request.resource.data.acc >= 0
+                    && request.resource.data.acc <= 100
+                    && request.resource.data.maxCombo is int
+                    && request.resource.data.maxCombo >= 0
+                    && request.resource.data.maxCombo <= 5000
+                    && request.resource.data.fc is bool
+                    && request.resource.data.ap is bool
+                    && request.resource.data.createdAt == request.time;
+      allow update, delete: if isAdmin();
+    }
+
     // 반응속도 게임 랭킹 (5회 평균, ms) - 사람이 낼 수 없는 기록 차단
     match /reaction/{entryId} {
       allow read: if true;

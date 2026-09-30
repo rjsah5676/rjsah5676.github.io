@@ -6,7 +6,7 @@ import { pageMeta, SITE_NAME, SITE_URL } from "@/lib/seo";
 const PATH = "/devtools/json-to-java/";
 const TITLE = "JSON → Java DTO 클래스 변환기";
 const DESCRIPTION =
-  "API 응답 JSON을 붙여넣으면 Java DTO 클래스를 만들어줍니다. 중첩 객체는 내부 클래스로, 배열은 List<>로, snake_case 키는 camelCase 필드 + @JsonProperty로. Lombok·getter/setter·record 지원, 브라우저에서만 처리됩니다.";
+  "API 응답 JSON을 붙여넣으면 Java DTO 클래스를 만들어줍니다. 중첩 객체는 내부 클래스로, 배열은 List<>로, snake_case 키는 camelCase 필드 + @JsonProperty로. Lombok·getter/setter·record 지원.";
 
 export const metadata = {
   ...pageMeta({ title: TITLE, description: DESCRIPTION, path: PATH }),
@@ -47,10 +47,6 @@ const FAQ: { q: string; a: string }[] = [
   {
     q: "record로 만들어도 Jackson이 읽나요?",
     a: "Jackson 2.12 이상(Spring Boot 2.5 이상)이면 record를 바로 역직렬화합니다. 이 경우 @JsonProperty는 생성자 파라미터에 붙어서 나옵니다.",
-  },
-  {
-    q: "입력한 JSON이 서버로 전송되나요?",
-    a: "전송되지 않습니다. 파싱과 코드 생성은 전부 브라우저 안에서 이뤄지고, 마지막 입력과 옵션만 이 브라우저의 localStorage에 저장됩니다.",
   },
 ];
 
@@ -144,8 +140,7 @@ export default function JsonToJavaPage() {
           <div className="font-mono text-sm text-[#8B84FF]">devtools</div>
           <h1 className="mt-1 font-mono text-2xl font-bold text-white">JSON → Java DTO</h1>
           <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/45">
-            API 응답 JSON을 붙여넣으면 중첩 객체·배열까지 Java 클래스로 만들어줍니다. 모든 처리는
-            브라우저 안에서만 이뤄져요.
+            API 응답 JSON을 붙여넣으면 중첩 객체·배열까지 Java 클래스로 만들어줍니다.
           </p>
         </div>
 
