@@ -3,7 +3,15 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useModal } from "@/components/Modal/ModalProvider";
-import { deleteStudyPost, parseStudyDate, type StudyPost } from "@/firestore/studyPosts";
+import {
+  deleteStudyPost,
+  parseStudyDate,
+  postPath,
+  SECTION_META,
+  sectionOf,
+  type StudyPost,
+  type StudySection,
+} from "@/firestore/studyPosts";
 
 const btn =
   "cursor-pointer rounded-full border border-white/15 px-3 py-1 font-mono text-xs whitespace-nowrap text-white/70 transition-colors hover:border-[#6C63FF]/60 hover:text-white";
@@ -19,14 +27,17 @@ export default function PostManager({
 }) {
   const modal = useModal();
   const [q, setQ] = useState("");
+  const [sec, setSec] = useState<"all" | StudySection>("all");
 
   const list = useMemo(() => {
     const sorted = [...posts].sort(
       (a, b) => (parseStudyDate(b.date)?.getTime() ?? 0) - (parseStudyDate(a.date)?.getTime() ?? 0)
     );
     const t = q.trim().toLowerCase();
-    return t ? sorted.filter((p) => `${p.title} ${p.category}`.toLowerCase().includes(t)) : sorted;
-  }, [posts, q]);
+    return sorted
+      .filter((p) => sec === "all" || sectionOf(p) === sec)
+      .filter((p) => !t || `${p.title} ${p.category}`.toLowerCase().includes(t));
+  }, [posts, q, sec]);
 
   const remove = async (p: StudyPost) => {
     const ok = await modal.confirm({
@@ -61,6 +72,25 @@ export default function PostManager({
           + 새 글 쓰기
         </Link>
       </div>
+      <div className="mb-3 flex gap-1.5">
+        {(["all", "study", "retro"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setSec(k)}
+            className={`cursor-pointer rounded-full border px-3 py-1 font-mono text-xs transition-colors ${
+              sec === k
+                ? "border-[#6C63FF] bg-[#6C63FF]/15 text-white"
+                : "border-white/10 text-white/50 hover:text-white/80"
+            }`}
+          >
+            {k === "all" ? "전체" : SECTION_META[k].label}{" "}
+            <span className="text-white/35">
+              {k === "all" ? posts.length : posts.filter((p) => sectionOf(p) === k).length}
+            </span>
+          </button>
+        ))}
+      </div>
       <p className="mb-3 font-['Nanum_Gothic',sans-serif] text-xs text-white/35">
         작성·수정·삭제는 바로 저장되고, 사이트 목록에는 재배포 후 반영됩니다.
       </p>
@@ -83,11 +113,12 @@ export default function PostManager({
                   {p.title}
                 </div>
                 <div className="mt-0.5 font-mono text-[11px] text-white/35">
+                  <span className="text-white/55">{SECTION_META[sectionOf(p)].label}</span> ·{" "}
                   <span className="text-[#8B84FF]/80">{p.category}</span> · {p.date.split(" ")[0]}
                 </div>
               </div>
               <div className="flex shrink-0 gap-1.5">
-                <Link href={`/study/${p.id}/`} className={btn} target="_blank">
+                <Link href={postPath(p)} className={btn} target="_blank">
                   보기
                 </Link>
                 <Link href={`/admin/write/?id=${p.id}`} className={btn}>

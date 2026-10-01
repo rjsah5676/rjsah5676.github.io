@@ -8,6 +8,10 @@ import {
   addStudyPost,
   updateStudyPost,
   STUDY_CATEGORIES,
+  STUDY_SECTIONS,
+  SECTION_META,
+  sectionOf,
+  type StudySection,
 } from "@/firestore/studyPosts";
 import { useAuth } from "@/lib/AuthContext";
 import "react-quill-new/dist/quill.snow.css";
@@ -27,6 +31,7 @@ export default function StudyWriteForm() {
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Java");
+  const [section, setSection] = useState<StudySection>("study");
   const [content, setContent] = useState("");
 
   useEffect(() => {
@@ -43,6 +48,7 @@ export default function StudyWriteForm() {
           if (post) {
             setTitle(post.title);
             setCategory(post.category);
+            setSection(sectionOf(post));
             setContent(post.content);
           } else {
             alert("글을 찾을 수 없습니다.");
@@ -68,10 +74,10 @@ export default function StudyWriteForm() {
 
     try {
       if (isEdit) {
-        await updateStudyPost(postId!, { title, content, category, date: formattedDate });
+        await updateStudyPost(postId!, { title, content, category, section, date: formattedDate });
         alert("글이 수정되었습니다! 사이트 반영은 재배포 후 적용됩니다.");
       } else {
-        await addStudyPost({ title, content, category, date: formattedDate });
+        await addStudyPost({ title, content, category, section, date: formattedDate });
         alert("글이 저장되었습니다! 사이트 반영은 재배포 후 적용됩니다.");
       }
 
@@ -99,6 +105,23 @@ export default function StudyWriteForm() {
         onChange={(e) => setTitle(e.target.value)}
         className="mb-4 w-full rounded-lg border border-white/10 bg-[#1C1E24] px-4 py-2.5 text-white placeholder:text-white/30 focus:border-[#6C63FF]/50 focus:outline-none"
       />
+
+      <div className="mb-4 flex gap-1.5">
+        {STUDY_SECTIONS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setSection(s)}
+            className={`cursor-pointer rounded-full border px-4 py-1.5 font-mono text-sm transition-colors ${
+              section === s
+                ? "border-[#6C63FF] bg-[#6C63FF]/15 text-white"
+                : "border-white/10 text-white/50 hover:text-white/80"
+            }`}
+          >
+            {SECTION_META[s].label}
+          </button>
+        ))}
+      </div>
 
       <select
         value={category}

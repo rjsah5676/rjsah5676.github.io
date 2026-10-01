@@ -16,7 +16,7 @@ import { fetchStudyPostsLive, type StudyPost } from "@/firestore/studyPosts";
 type Tab = "inbox" | "posts" | "data" | "links";
 const TABS: { key: Tab; label: string }[] = [
   { key: "inbox", label: "문의함" },
-  { key: "posts", label: "개인공부" },
+  { key: "posts", label: "글 관리" },
   { key: "data", label: "데이터" },
   { key: "links", label: "바로가기" },
 ];
@@ -24,7 +24,7 @@ const isTab = (v: string | null): v is Tab => TABS.some((t) => t.key === v);
 
 const LINKS = [
   { href: "/guest/", label: "방명록 관리", desc: "메모에 마우스를 올리면 ✕로 삭제" },
-  { href: "/study/import/", label: "개인공부 일괄 등록", desc: "시드 글 등록 · 작성일 맞춤" },
+  { href: "/study/import/", label: "글 일괄 등록", desc: "시드 글 등록 · 작성일 맞춤" },
   { href: "/", label: "사이트 보기", desc: "메인 페이지" },
   {
     href: "https://console.firebase.google.com/project/gunmo-portfolio/overview",
@@ -136,7 +136,7 @@ export default function AdminDashboard() {
         <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-3">
           <Stat label="안 읽은 문의" value={inqLoaded ? unread : "…"} accent={unread > 0} />
           <Stat label="전체 문의" value={inqLoaded ? inquiries.length : "…"} />
-          <Stat label="개인공부 글" value={postsLoaded ? posts.length : "…"} />
+          <Stat label="공부·회고 글" value={postsLoaded ? posts.length : "…"} />
         </div>
 
         <div className="mb-6 flex gap-1 border-b border-white/10">

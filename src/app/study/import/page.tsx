@@ -9,7 +9,8 @@ import {
   addStudyPost,
   deleteStudyPost,
   fetchStudyPostsLive,
-  updateStudyPostDate,
+  updateStudyPostMeta,
+  sectionOf,
   type StudyPost,
 } from "@/firestore/studyPosts";
 
@@ -44,7 +45,10 @@ export default function StudyImportPage() {
     ? []
     : STUDY_SEED.flatMap((s) => {
         const cur = existingByTitle.get(s.title);
-        return cur && cur.date !== s.date ? [{ id: cur.id, title: s.title, date: s.date }] : [];
+        const section = s.section ?? "study";
+        return cur && (cur.date !== s.date || sectionOf(cur) !== section)
+          ? [{ id: cur.id, title: s.title, date: s.date, section }]
+          : [];
       });
 
   const run = async () => {
@@ -52,7 +56,7 @@ export default function StudyImportPage() {
       title: "일괄 등록",
       message: replaceAll
         ? `기존 글 ${existing?.length ?? 0}개를 모두 삭제하고 ${STUDY_SEED.length}개를 새로 등록합니다. 삭제한 글은 복구할 수 없습니다.`
-        : `새 글 ${toAdd.length}개를 등록하고, 기존 글 ${toRedate.length}개의 작성일을 맞춥니다. (기존 글 주소는 그대로 유지)`,
+        : `새 글 ${toAdd.length}개를 등록하고, 기존 글 ${toRedate.length}개의 작성일·구분을 맞춥니다. (기존 글 주소는 그대로 유지)`,
       confirmText: replaceAll ? "삭제 후 등록" : "등록",
     });
     if (!ok) return;
@@ -67,8 +71,8 @@ export default function StudyImportPage() {
         }
       }
       for (const r of toRedate) {
-        await updateStudyPostDate(r.id, r.date);
-        write(`날짜  ${r.date}  ${r.title}`);
+        await updateStudyPostMeta(r.id, { date: r.date, section: r.section });
+        write(`갱신  ${r.date}  ${r.section}  ${r.title}`);
       }
       for (const s of toAdd) {
         await addStudyPost(s);

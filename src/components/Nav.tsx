@@ -115,7 +115,8 @@ export default function Nav() {
           label="project"
           items={[
             { href: "/project", label: "프로젝트" },
-            { href: "/study", label: "개인공부" },
+            { href: "/study", label: "개인 공부" },
+            { href: "/retro", label: "프로젝트 회고" },
           ]}
         />
 

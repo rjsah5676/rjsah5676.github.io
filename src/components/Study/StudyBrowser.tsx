@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { STUDY_CATEGORIES, type StudyPostListItem } from "@/firestore/studyPosts";
+import {
+  SECTION_META,
+  STUDY_CATEGORIES,
+  postPath,
+  type StudyPostListItem,
+  type StudySection,
+} from "@/firestore/studyPosts";
 
 const isCategory = (v: string | null): v is string =>
   !!v && (STUDY_CATEGORIES as readonly string[]).includes(v);
@@ -11,7 +17,7 @@ const isCategory = (v: string | null): v is string =>
 function PostCard({ post, showCategory }: { post: StudyPostListItem; showCategory?: boolean }) {
   return (
     <Link
-      href={`/study/${post.id}/`}
+      href={postPath(post)}
       className="block rounded-xl border border-white/10 bg-[#1C1E24] p-5 transition-colors hover:border-[#6C63FF]/50"
     >
       <div className="mb-1 flex items-baseline justify-between gap-4">
@@ -33,9 +39,20 @@ function PostCard({ post, showCategory }: { post: StudyPostListItem; showCategor
 // 목록 데이터는 빌드 시점에 받아온 것(정적) — 새 글은 재배포 후 반영됨.
 // useSearchParams를 쓰면 정적 export에서 이 컴포넌트 전체가 클라이언트 렌더링으로 빠져서
 // HTML에 글 링크가 안 남음(SEO 손해) -> ?category는 마운트 후 location에서 읽음
-export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) {
+export default function StudyBrowser({
+  posts,
+  section,
+}: {
+  posts: StudyPostListItem[];
+  section: StudySection;
+}) {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState<string>(STUDY_CATEGORIES[0]);
+  const meta = SECTION_META[section];
+  // 글이 있는 분류만 보여줌 (회고는 분류가 몇 개 안 됨)
+  const categories = STUDY_CATEGORIES.filter((c) => posts.some((p) => p.category === c));
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    categories[0] ?? STUDY_CATEGORIES[0]
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [q, setQ] = useState("");
 
@@ -50,15 +67,16 @@ export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) 
 
   useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("category");
+    if (!isCategory(fromUrl) || !posts.some((p) => p.category === fromUrl)) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 기반 초기값 동기화(마운트 1회)
-    if (isCategory(fromUrl)) setSelectedCategory(fromUrl);
-  }, []);
+    setSelectedCategory(fromUrl);
+  }, [posts]);
 
   const selectCategory = (cat: string) => {
     setSelectedCategory(cat);
     setIsMenuOpen(false);
     // 글 상세에서 "목록으로" 돌아올 때 카테고리 유지되게 URL에도 반영
-    router.replace(`/study/?category=${encodeURIComponent(cat)}`, { scroll: false });
+    router.replace(`${meta.path}/?category=${encodeURIComponent(cat)}`, { scroll: false });
   };
 
   return (
@@ -85,9 +103,12 @@ export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) 
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-4 font-mono text-sm text-[#8B84FF]">분류</div>
+        <div className="mb-1 font-mono text-sm text-[#8B84FF]">{meta.label}</div>
+        <p className="mb-4 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/35">
+          {meta.desc}
+        </p>
         <ul className="flex flex-col gap-1">
-          {STUDY_CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const count = posts.filter((p) => p.category === cat).length;
             return (
               <li key={cat}>
@@ -117,7 +138,7 @@ export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) 
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && setQ("")}
             placeholder="글 검색 (제목·본문)"
-            aria-label="개인공부 글 검색"
+            aria-label={`${meta.label} 글 검색`}
             className="w-full rounded-full border border-white/10 bg-[#1C1E24] py-2.5 pr-10 pl-5 font-['Nanum_Gothic',sans-serif] text-sm text-white placeholder:text-white/30 focus:border-[#6C63FF]/50 focus:outline-none"
           />
           {q && (
@@ -154,7 +175,11 @@ export default function StudyBrowser({ posts }: { posts: StudyPostListItem[] }) 
         )}
 
         {/* 크롤러가 모든 글 링크를 볼 수 있게 카테고리별 목록을 전부 렌더하고 선택된 것만 보여줌 */}
-        {STUDY_CATEGORIES.map((cat) => {
+        {posts.length === 0 && !searching && (
+          <p className="font-['Nanum_Gothic',sans-serif] text-white/50">아직 글이 없습니다.</p>
+        )}
+
+        {categories.map((cat) => {
           const categoryPosts = posts.filter((p) => p.category === cat);
           return (
             <div key={cat} hidden={searching || cat !== selectedCategory}>

@@ -22,11 +22,33 @@ export const STUDY_CATEGORIES = [
   "etc",
 ] as const;
 
+// 글 구분: 개념 정리(개인 공부) / 실제 겪은 일과 배운 점(프로젝트 회고)
+// 예전 글엔 section 필드가 없음 -> "study"로 취급
+export const STUDY_SECTIONS = ["study", "retro"] as const;
+export type StudySection = (typeof STUDY_SECTIONS)[number];
+export const SECTION_META: Record<StudySection, { label: string; path: string; desc: string }> = {
+  study: {
+    label: "개인 공부",
+    path: "/study",
+    desc: "Java, 네트워크, 데이터베이스, 프론트엔드·백엔드, 알고리즘 등 개념 정리.",
+  },
+  retro: {
+    label: "프로젝트 회고",
+    path: "/retro",
+    desc: "프로젝트에서 직접 겪은 문제와 해결 과정, 그리고 배운 점.",
+  },
+};
+export const sectionOf = (p: { section?: string }): StudySection =>
+  p.section === "retro" ? "retro" : "study";
+export const postPath = (p: { id: string; section?: string }) =>
+  `${SECTION_META[sectionOf(p)].path}/${p.id}/`;
+
 export interface StudyPostInput {
   title: string;
   content: string;
   category: string;
   date: string;
+  section?: StudySection;
 }
 
 export interface StudyPost extends StudyPostInput {
@@ -39,6 +61,7 @@ export interface StudyPostListItem {
   title: string;
   category: string;
   date: string;
+  section: StudySection;
   excerpt: string;
   /** 목록 검색용 본문 평문 (제목·분류 포함, 소문자) */
   searchText: string;
@@ -74,6 +97,7 @@ export function toListItem(post: StudyPost): StudyPostListItem {
     title: post.title,
     category: post.category,
     date: post.date,
+    section: sectionOf(post),
     excerpt: toPlainText(post.content, 120),
     searchText: `${post.title} ${post.category} ${toPlainText(post.content, 4000)}`.toLowerCase(),
   };
@@ -95,6 +119,10 @@ export function getAllStudyPosts(): Promise<StudyPost[]> {
   return allPostsPromise;
 }
 
+export async function getSectionPosts(section: StudySection): Promise<StudyPost[]> {
+  return (await getAllStudyPosts()).filter((p) => sectionOf(p) === section);
+}
+
 // 캐시(메모) 없이 항상 서버에서 새로 조회 — 관리자 일괄 작업용
 export async function fetchStudyPostsLive(): Promise<StudyPost[]> {
   const snapshot = await getDocsFromServer(collection(db, COLLECTION));
@@ -111,21 +139,25 @@ export async function addStudyPost({
   content,
   category,
   date,
+  section = "study",
 }: StudyPostInput): Promise<string> {
-  const ref = await addDoc(collection(db, COLLECTION), { title, content, category, date });
+  const ref = await addDoc(collection(db, COLLECTION), { title, content, category, date, section });
   return ref.id;
 }
 
 export async function updateStudyPost(
   id: string,
-  { title, content, category, date }: StudyPostInput
+  { title, content, category, date, section = "study" }: StudyPostInput
 ): Promise<void> {
-  await updateDoc(doc(db, COLLECTION, id), { title, content, category, date });
+  await updateDoc(doc(db, COLLECTION, id), { title, content, category, date, section });
 }
 
-// 일괄 등록 페이지에서 기존 글(문서 id = URL 유지)의 작성일만 맞출 때
-export async function updateStudyPostDate(id: string, date: string): Promise<void> {
-  await updateDoc(doc(db, COLLECTION, id), { date });
+// 일괄 등록 페이지에서 기존 글(문서 id = URL 유지)의 작성일·구분만 맞출 때
+export async function updateStudyPostMeta(
+  id: string,
+  meta: { date: string; section: StudySection }
+): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), meta);
 }
 
 export async function deleteStudyPost(id: string): Promise<void> {
