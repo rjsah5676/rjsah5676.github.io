@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NAV_GROUPS } from "@/data/navMenu";
 
 // 모바일(좁은 폭)에서도 한 줄에 들어가도록 여백·글자 크기를 줄임
 const navItemClass =
@@ -46,9 +47,9 @@ function DropdownNavItem({
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname().replace(/\/+$/, "");
-  // 현재 페이지가 이 메뉴 그룹 안이면 강조 (헤더 archive/about 처럼)
-  const active = items.some((i) => pathname === i.href.replace(/\/+$/, ""));
-  const labelColor = active ? "text-[#8B84FF]" : "";
+  // 현재 페이지가 이 메뉴 그룹(목록 페이지 포함) 안이면 강조 (헤더 archive/about 처럼)
+  const active = pathname === href || items.some((i) => pathname === i.href.replace(/\/+$/, ""));
+  const labelColor = active ? "!text-[#8B84FF]" : "";
 
   useEffect(() => {
     if (!open) return;
@@ -62,21 +63,12 @@ function DropdownNavItem({
   return (
     // 모바일에선 드롭다운이 nav(sticky) 기준으로 펼쳐지도록 relative를 sm 이상에서만
     <div ref={wrapRef} className="flex items-center sm:relative">
-      {/* 모바일: 이름 자체를 눌러 펼침 (공간 절약) */}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-label={`${label} 메뉴`}
-        className={`${navItemClass} ${labelColor} flex cursor-pointer items-center gap-1 sm:hidden`}
+      {/* 이름은 하위 메뉴 목록(격자) 페이지 링크, 화살표로 드롭다운 펼침 */}
+      <Link
+        href={href}
+        onClick={() => setOpen(false)}
+        className={`${navItemClass} ${labelColor} !pr-0.5 sm:!pr-1`}
       >
-        {label}
-        <span className="text-white/40">
-          <ChevronIcon open={open} />
-        </span>
-      </button>
-      {/* 데스크톱: 이름은 대표 페이지 링크, 화살표로 펼침 */}
-      <Link href={href} className={`${navItemClass} ${labelColor} hidden sm:block`}>
         {label}
       </Link>
       <button
@@ -84,7 +76,7 @@ function DropdownNavItem({
         aria-label={`${label} submenu`}
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="hidden cursor-pointer py-3 text-white/40 transition-colors hover:text-white sm:block sm:px-1"
+        className="cursor-pointer py-3 pr-1.5 pl-0.5 text-white/40 transition-colors hover:text-white sm:px-1"
       >
         <ChevronIcon open={open} />
       </button>
@@ -110,48 +102,14 @@ export default function Nav() {
   return (
     <nav className="sticky top-14 z-30 border-b border-white/10 bg-[#121212]">
       <div className="mx-auto flex max-w-4xl flex-nowrap items-center justify-center gap-x-0 px-1 sm:gap-x-1 sm:px-6">
-        <DropdownNavItem
-          href="/project"
-          label="project"
-          items={[
-            { href: "/project", label: "프로젝트" },
-            { href: "/study", label: "개인 공부" },
-            { href: "/retro", label: "프로젝트 회고" },
-          ]}
-        />
-
-        <DropdownNavItem
-          href="/games/melongame"
-          label="games"
-          items={[
-            { href: "/games/melongame", label: "멜론 게임" },
-            { href: "/games/rspeed", label: "반응속도 테스트" },
-            { href: "/games/mine", label: "지뢰찾기" },
-            { href: "/games/chess", label: "온라인 체스" },
-            { href: "/games/rhythm", label: "리듬게임" },
-          ]}
-        />
-
-        <DropdownNavItem
-          href="/tools/ladder"
-          label="tools"
-          items={[
-            { href: "/tools/ladder", label: "사다리타기" },
-            { href: "/tools/roulette", label: "룰렛" },
-            { href: "/tools/calorie", label: "칼로리 계산기" },
-          ]}
-        />
-
-        <DropdownNavItem
-          href="/devtools/json"
-          label="devtools"
-          items={[
-            { href: "/devtools/json", label: "JSON Formatter" },
-            { href: "/devtools/ddl-to-java", label: "DDL → Java DTO" },
-            { href: "/devtools/json-to-java", label: "JSON → Java DTO" },
-            { href: "/devtools/mybatis-log", label: "MyBatis 로그 → SQL" },
-          ]}
-        />
+        {NAV_GROUPS.map((g) => (
+          <DropdownNavItem
+            key={g.key}
+            href={g.href}
+            label={g.label}
+            items={g.items.map(({ href, label }) => ({ href, label }))}
+          />
+        ))}
       </div>
     </nav>
   );

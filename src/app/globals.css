@@ -45,3 +45,25 @@ body {
     transform: translateY(8px) scale(0.97);
   }
 }
+
+/* 메뉴 허브 카드: 순서대로 떠오르기 */
+.menu-hub-card {
+  opacity: 0;
+  animation: menu-hub-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes menu-hub-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-hub-card {
+    opacity: 1;
+    animation: none;
+  }
+}
