@@ -9,13 +9,15 @@ import { useAuth } from "@/lib/AuthContext";
 import Faded from "@/components/Faded";
 import InquiryInbox from "@/components/Admin/InquiryInbox";
 import PostManager from "@/components/Admin/PostManager";
+import DataManager from "@/components/Admin/DataManager";
 import { subscribeInquiries, type Inquiry } from "@/firestore/inquiries";
 import { fetchStudyPostsLive, type StudyPost } from "@/firestore/studyPosts";
 
-type Tab = "inbox" | "posts" | "links";
+type Tab = "inbox" | "posts" | "data" | "links";
 const TABS: { key: Tab; label: string }[] = [
   { key: "inbox", label: "문의함" },
   { key: "posts", label: "개인공부" },
+  { key: "data", label: "데이터" },
   { key: "links", label: "바로가기" },
 ];
 const isTab = (v: string | null): v is Tab => TABS.some((t) => t.key === v);
@@ -163,6 +165,7 @@ export default function AdminDashboard() {
         {tab === "posts" && (
           <PostManager posts={posts} loaded={postsLoaded} onChanged={loadPosts} />
         )}
+        {tab === "data" && <DataManager />}
         {tab === "links" && (
           <div className="grid gap-2 sm:grid-cols-2">
             {LINKS.map((l) => (
