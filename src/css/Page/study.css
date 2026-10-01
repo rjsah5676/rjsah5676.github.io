@@ -186,3 +186,25 @@
 .quill-dark .ql-picker-options {
   background: #1c1e24;
 }
+
+/* 프로젝트 회고 본문: 개인 공부(보라)와 구분되게 민트 톤 */
+.retro-post .quill-content h2 {
+  border-bottom-color: rgba(45, 212, 191, 0.18);
+}
+.retro-post .quill-content h2::before {
+  content: "# ";
+  color: #2dd4bf;
+}
+.retro-post .quill-content blockquote {
+  border-left-color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.07);
+}
+.retro-post .quill-content code {
+  background: rgba(45, 212, 191, 0.12);
+}
+.retro-post .quill-content a {
+  color: #5eead4;
+}
+.retro-post .quill-content li > .ql-ui::before {
+  color: #2dd4bf;
+}

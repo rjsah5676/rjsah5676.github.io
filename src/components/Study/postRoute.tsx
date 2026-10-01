@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Faded from "@/components/Faded";
 import StudyBrowser from "@/components/Study/StudyBrowser";
+import RetroBrowser from "@/components/Study/RetroBrowser";
 import StudyPostActions from "@/components/Study/StudyPostActions";
 import {
   getSectionPosts,
@@ -25,7 +26,11 @@ export function makeListPage(section: StudySection) {
   const metadata = pageMeta({ title: meta.label, description: meta.desc, path: `${meta.path}/` });
   async function Page() {
     const posts = (await getSectionPosts(section)).map(toListItem);
-    return <StudyBrowser posts={posts} section={section} />;
+    return section === "retro" ? (
+      <RetroBrowser posts={posts} />
+    ) : (
+      <StudyBrowser posts={posts} section={section} />
+    );
   }
   return { metadata, Page };
 }
@@ -91,16 +96,30 @@ export function makePostPage(section: StudySection) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <article className="mx-auto max-w-3xl px-6 pt-16 pb-24">
+        <article
+          className={`mx-auto max-w-3xl px-6 pt-16 pb-24 ${section === "retro" ? "retro-post" : ""}`}
+        >
           <Link
             href={`${meta.path}/?category=${encodeURIComponent(post.category)}`}
-            className="mb-6 inline-block font-mono text-sm text-white/40 transition-colors hover:text-white"
+            className="mb-6 block w-fit font-mono text-sm text-white/40 transition-colors hover:text-white"
           >
             ← {meta.label} · {post.category}
           </Link>
+          {/* 개인 공부(교재, 보라) / 회고(기록, 민트) 구분 배지 */}
+          <div
+            className={`mb-3 inline-flex rounded-full border px-2.5 py-0.5 font-mono text-[11px] ${
+              section === "retro"
+                ? "border-[#2dd4bf]/40 bg-[#2dd4bf]/10 text-[#7ff0dd]"
+                : "border-[#6C63FF]/40 bg-[#6C63FF]/10 text-[#A9A3FF]"
+            }`}
+          >
+            {section === "retro" ? "RETROSPECTIVE · 회고" : "STUDY NOTE · 개념 정리"}
+          </div>
           <h1 className="font-mono text-2xl font-bold text-white sm:text-3xl">{post.title}</h1>
           <div className="mt-3 flex gap-3 font-mono text-xs text-white/40">
-            <span className="text-[#8B84FF]">{post.category}</span>
+            <span className={section === "retro" ? "text-[#2dd4bf]" : "text-[#8B84FF]"}>
+              {post.category}
+            </span>
             <time dateTime={published}>{post.date}</time>
           </div>
           <div

@@ -19,11 +19,12 @@ const STACK = [
   "Firebase",
 ];
 
+// 상단 nav의 4개 메뉴와 같게
 const LINKS = [
-  { href: "/about/", label: "About", desc: "일하는 방식과 걸어온 길" },
   { href: "/works/", label: "Project", desc: "프로젝트 · 공부 · 회고" },
   { href: "/games/", label: "Games", desc: "직접 만든 브라우저 게임" },
-  { href: "/archive/", label: "Archive", desc: "작업 기록 타임라인" },
+  { href: "/tools/", label: "Tools", desc: "일상 도구" },
+  { href: "/devtools/", label: "DevTools", desc: "개발 편의 도구" },
 ];
 
 const GREETING = "hello, world";
