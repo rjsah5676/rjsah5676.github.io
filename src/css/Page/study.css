@@ -47,9 +47,44 @@
 }
 .quill-content blockquote {
   margin: 1rem 0;
-  padding-left: 1rem;
+  padding: 0.85rem 1rem;
   border-left: 3px solid #6c63ff;
-  color: rgba(255, 255, 255, 0.6);
+  border-radius: 0 8px 8px 0;
+  background: rgba(108, 99, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* 비교표 - Quill 2 table 포맷(<table><tbody><tr><td data-row>), 첫 행은 헤더처럼 */
+.quill-content table,
+.quill-dark .ql-editor table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1.1rem 0 1.4rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.quill-content td,
+.quill-dark .ql-editor td {
+  min-width: 6.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: top;
+  line-height: 1.55;
+}
+.quill-content tr:first-child td,
+.quill-dark .ql-editor tr:first-child td {
+  background: rgba(108, 99, 255, 0.14);
+  color: #fff;
+  white-space: nowrap;
+}
+.quill-content tr:not(:first-child) td:first-child {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.quill-content tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
 }
 .quill-content code {
   padding: 0.1em 0.35em;

@@ -9,7 +9,7 @@ import {
   addStudyPost,
   deleteStudyPost,
   fetchStudyPostsLive,
-  updateStudyPostMeta,
+  updateStudyPost,
   sectionOf,
   type StudyPost,
 } from "@/firestore/studyPosts";
@@ -38,17 +38,24 @@ export default function StudyImportPage() {
     if (user) refresh();
   }, [user, refresh]);
 
+  // 같은 제목(또는 바꾸기 전 제목 replaces)의 기존 글을 찾아 같은 문서(URL)를 갱신
   const existingByTitle = new Map((existing ?? []).map((p) => [p.title, p]));
-  const existingTitles = new Set(existingByTitle.keys());
-  const toAdd = replaceAll ? STUDY_SEED : STUDY_SEED.filter((s) => !existingTitles.has(s.title));
+  const findExisting = (s: (typeof STUDY_SEED)[number]) =>
+    existingByTitle.get(s.title) ?? (s.replaces ? existingByTitle.get(s.replaces) : undefined);
+  const toAdd = replaceAll ? STUDY_SEED : STUDY_SEED.filter((s) => !findExisting(s));
   const toRedate = replaceAll
     ? []
     : STUDY_SEED.flatMap((s) => {
-        const cur = existingByTitle.get(s.title);
+        const cur = findExisting(s);
         const section = s.section ?? "study";
-        return cur && (cur.date !== s.date || sectionOf(cur) !== section)
-          ? [{ id: cur.id, title: s.title, date: s.date, section }]
-          : [];
+        const changed =
+          cur &&
+          (cur.title !== s.title ||
+            cur.content !== s.content ||
+            cur.category !== s.category ||
+            cur.date !== s.date ||
+            sectionOf(cur) !== section);
+        return cur && changed ? [{ id: cur.id, seed: { ...s, section } }] : [];
       });
 
   const run = async () => {
@@ -56,7 +63,7 @@ export default function StudyImportPage() {
       title: "일괄 등록",
       message: replaceAll
         ? `기존 글 ${existing?.length ?? 0}개를 모두 삭제하고 ${STUDY_SEED.length}개를 새로 등록합니다. 삭제한 글은 복구할 수 없습니다.`
-        : `새 글 ${toAdd.length}개를 등록하고, 기존 글 ${toRedate.length}개의 작성일·구분을 맞춥니다. (기존 글 주소는 그대로 유지)`,
+        : `새 글 ${toAdd.length}개를 등록하고, 기존 글 ${toRedate.length}개의 제목·내용·작성일·구분을 갱신합니다. (기존 글 주소는 그대로 유지)`,
       confirmText: replaceAll ? "삭제 후 등록" : "등록",
     });
     if (!ok) return;
@@ -71,8 +78,9 @@ export default function StudyImportPage() {
         }
       }
       for (const r of toRedate) {
-        await updateStudyPostMeta(r.id, { date: r.date, section: r.section });
-        write(`갱신  ${r.date}  ${r.section}  ${r.title}`);
+        const { title, content, category, date, section } = r.seed;
+        await updateStudyPost(r.id, { title, content, category, date, section });
+        write(`갱신  ${date}  ${section}  ${title}`);
       }
       for (const s of toAdd) {
         await addStudyPost(s);
@@ -115,7 +123,7 @@ export default function StudyImportPage() {
 
       <ul className="mb-6 overflow-hidden rounded-xl border border-white/10">
         {STUDY_SEED.map((s, i) => {
-          const dup = existingTitles.has(s.title);
+          const dup = !!findExisting(s);
           return (
             <li
               key={s.title}
