@@ -6,38 +6,10 @@ import clickSoundSrc from "@/sounds/melongame/bbyong.mp3";
 import flagSoundSrc from "@/sounds/melongame/bbyong.mp3";
 import endBgmSrc from "@/sounds/melongame/endbgm.mp3";
 import "@/css/minesweeper.css";
+import { generateNoGuessBoard } from "./noGuess";
 
 type Grid<T> = T[][];
 type Timer = ReturnType<typeof setTimeout>;
-
-function generateBoardSafe(
-  safeR: number,
-  safeC: number,
-  rows: number,
-  cols: number,
-  mineCount: number
-): Grid<number> {
-  const board: Grid<number> = Array.from({ length: rows }, () => Array(cols).fill(0));
-  let minesPlaced = 0;
-  while (minesPlaced < mineCount) {
-    const r = Math.floor(Math.random() * rows);
-    const c = Math.floor(Math.random() * cols);
-    if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;
-    if (board[r][c] === -1) continue;
-    board[r][c] = -1;
-    minesPlaced++;
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        const nr = r + dr,
-          nc = c + dc;
-        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc] !== -1) {
-          board[nr][nc]++;
-        }
-      }
-    }
-  }
-  return board;
-}
 
 export default function Minesweeper() {
   // window.innerHeight/innerWidth를 useState 초기값으로 직접 넣으면 정적 export
@@ -73,7 +45,9 @@ export default function Minesweeper() {
     endBgmAudioRef.current.volume = 0.6;
   }, []);
 
-  const [board, setBoard] = useState<Grid<number>>(Array.from({ length: ROWS }, () => Array(COLS).fill(0)));
+  const [board, setBoard] = useState<Grid<number>>(
+    Array.from({ length: ROWS }, () => Array(COLS).fill(0))
+  );
   const [visible, setVisible] = useState<Grid<boolean>>(
     Array.from({ length: ROWS }, () => Array(COLS).fill(false))
   );
@@ -166,7 +140,8 @@ export default function Minesweeper() {
     clickAudioRef.current?.play();
 
     if (!initialized) {
-      const newBoard = generateBoardSafe(r, c, ROWS, COLS, MINES);
+      // 찍기(50:50) 없이 논리만으로 끝까지 풀리는 판만 생성
+      const { board: newBoard } = generateNoGuessBoard(r, c, ROWS, COLS, MINES);
       setBoard(newBoard);
       setStartTime(Date.now());
 
@@ -235,7 +210,14 @@ export default function Minesweeper() {
         for (let dc = -1; dc <= 1; dc++) {
           const nr = r + dr,
             nc = c + dc;
-          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
+          if (
+            nr >= 0 &&
+            nr < ROWS &&
+            nc >= 0 &&
+            nc < COLS &&
+            !visible[nr][nc] &&
+            !flagged[nr][nc]
+          ) {
             if (board[nr][nc] === -1) {
               newVisible[nr][nc] = true;
               setVisible(newVisible);
@@ -300,7 +282,14 @@ export default function Minesweeper() {
         for (let dc = -1; dc <= 1; dc++) {
           const nr = r + dr,
             nc = c + dc;
-          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visible[nr][nc] && !flagged[nr][nc]) {
+          if (
+            nr >= 0 &&
+            nr < ROWS &&
+            nc >= 0 &&
+            nc < COLS &&
+            !visible[nr][nc] &&
+            !flagged[nr][nc]
+          ) {
             if (board[nr][nc] === -1) {
               newVisible[nr][nc] = true;
               setVisible(newVisible);
@@ -344,8 +333,9 @@ export default function Minesweeper() {
           </div>
           <div id="mine-right">
             누르면 시작됩니다
+            <br />총 지뢰는 {MINES}개입니다
             <br />
-            총 지뢰는 {MINES}개입니다
+            찍을 필요 없이 논리만으로 풀리는 판만 나옵니다
             <br />
             클리어 시 랭킹 등록이 가능합니다.
             <br />
@@ -389,19 +379,21 @@ export default function Minesweeper() {
                     handleTouchEnd();
                   }}
                 >
-                  {flagged[rIdx][cIdx]
-                    ? "🚩"
-                    : isOpen
-                      ? cell === -1
-                        ? "💣"
-                        : cell
-                          ? (
-                              <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
-                                {cell}
-                              </span>
-                            )
-                          : ""
-                      : ""}
+                  {flagged[rIdx][cIdx] ? (
+                    "🚩"
+                  ) : isOpen ? (
+                    cell === -1 ? (
+                      "💣"
+                    ) : cell ? (
+                      <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
+                        {cell}
+                      </span>
+                    ) : (
+                      ""
+                    )
+                  ) : (
+                    ""
+                  )}
                 </div>
               );
             })}

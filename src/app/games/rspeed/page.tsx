@@ -1,16 +1,31 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Faded from "@/components/Faded";
-import { getTopReactionScores, addReactionScore, type ReactionScore } from "@/firestore/reactionGame";
+import {
+  getTopReactionScores,
+  addReactionScore,
+  type ReactionScore,
+} from "@/firestore/reactionGame";
 
-let ct = 0;
+const ROUNDS = 5;
+const MIN_DELAY = 1500;
+const MAX_DELAY = 4500;
+// 사람 반응속도 하한(~100ms)보다 빠르면 신호 보고 누른 게 아니라 예측한 걸로 보고 다시
+const ANTICIPATION_MS = 100;
 
-function RankBox({ list }: { list: ReactionScore[] }) {
+type Phase = "idle" | "waiting" | "go" | "early" | "result" | "done";
+
+function RankBox({ list, highlight }: { list: ReactionScore[]; highlight?: number }) {
+  if (!list.length)
+    return <div className="mb-10 font-mono text-sm text-white/30">랭킹 불러오는 중…</div>;
   return (
     <div className="mb-10 flex flex-col gap-1">
       {list.map((item, i) => (
-        <div key={i} className="font-mono text-sm text-white/50">
+        <div
+          key={i}
+          className={`font-mono text-sm ${i === highlight ? "text-[#8B84FF]" : "text-white/50"}`}
+        >
           {i + 1}위: <span className="text-white/80">{item.name}</span> / {item.score}ms
         </div>
       ))}
@@ -19,140 +34,220 @@ function RankBox({ list }: { list: ReactionScore[] }) {
 }
 
 export default function RspeedPage() {
-  const NUM = 5;
-  const [start, setStart] = useState(0);
-  const [count, setCount] = useState(1);
-  const [color, setColor] = useState(0); // 0 : red, 1 : blue
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [rTime, setRTime] = useState(0);
-  const [res, setRes] = useState<number[]>([]);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [results, setResults] = useState<number[]>([]);
   const [list, setList] = useState<ReactionScore[]>([]);
-  const [, setRen] = useState(0);
   const [name, setName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submittedRank, setSubmittedRank] = useState<number | undefined>();
 
+  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 파란색이 실제로 그려지는 프레임 시각(performance.now 기준)
+  const goAtRef = useRef<number | null>(null);
+
+  const loadRankings = useCallback(() => getTopReactionScores(10).then(setList), []);
   useEffect(() => {
-    (async () => {
-      const top = await getTopReactionScores(10);
-      setList(top);
-      ct = top.length;
-      setRen(1);
-    })();
+    loadRankings();
+    return () => {
+      if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+    };
+  }, [loadRankings]);
+
+  // 색이 바뀐 렌더가 커밋된 뒤 다음 프레임 시각을 시작점으로 잡음
+  // (setState 시점이 아니라 화면에 파란색이 보이는 시점에 가깝게)
+  useEffect(() => {
+    if (phase !== "go") return;
+    const id = requestAnimationFrame((t) => {
+      goAtRef.current = t;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [phase]);
+
+  const startRound = () => {
+    goAtRef.current = null;
+    setPhase("waiting");
+    const delay = MIN_DELAY + Math.random() * (MAX_DELAY - MIN_DELAY);
+    delayTimerRef.current = setTimeout(() => setPhase("go"), delay);
+  };
+
+  const reset = () => {
+    setResults([]);
+    setName("");
+    setSubmittedRank(undefined);
+    setPhase("idle");
+  };
+
+  // onClick은 손을 뗄 때 발생해서 수십 ms가 더 붙음 -> 누르는 순간(pointerdown) 기준
+  const press = (timeStamp: number) => {
+    switch (phase) {
+      case "idle":
+      case "early":
+      case "result":
+        startRound();
+        break;
+      case "waiting":
+        if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+        setPhase("early");
+        break;
+      case "go": {
+        const goAt = goAtRef.current;
+        if (goAt === null) return;
+        const ms = Math.round(timeStamp - goAt);
+        if (ms < ANTICIPATION_MS) {
+          setPhase("early");
+          return;
+        }
+        const next = [...results, ms];
+        setResults(next);
+        setPhase(next.length >= ROUNDS ? "done" : "result");
+        break;
+      }
+    }
+  };
+
+  // 스페이스/엔터로도 가능
+  const pressRef = useRef(press);
+  useEffect(() => {
+    pressRef.current = press;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || (e.code !== "Space" && e.code !== "Enter")) return;
+      if (e.target instanceof HTMLInputElement) return;
+      e.preventDefault();
+      pressRef.current(e.timeStamp);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  function clickStart() {
-    setStart(1);
-    changeColor(getRandom() * 10000);
-  }
-  const changeColor = (time: number) => {
-    setTimeout(() => startTimer(), time);
-  };
-  const getRandom = () => Math.random() / 5 + 0.3;
+  const avg = results.length ? Math.round(results.reduce((a, b) => a + b, 0) / results.length) : 0;
+  const best = results.length ? Math.min(...results) : 0;
+  const isRanked = phase === "done" && (list.length < 10 || avg < list[list.length - 1].score);
 
-  function startTimer() {
-    setStartTime(new Date());
-    setColor(1);
-  }
-  function clickRed() {
-    window.alert("파란색일때 클릭바랍니다.");
-    window.location.reload();
-  }
-  function clickBlue() {
-    if (!startTime) return;
-    const x = new Date().getTime() - startTime.getTime();
-    setRes([...res, x]);
-    setRTime(x);
-    setCount(count + 1);
-    setColor(0);
-    clickStart();
-  }
-  const onChangeName = (event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value);
-
-  const submittedRef = useRef(false);
-  async function submitScore(sc: number) {
-    if (name !== "" && name.length < 20 && !submittedRef.current) {
-      submittedRef.current = true;
-      await addReactionScore(name, sc);
-      window.location.reload();
+  async function submitScore() {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed.length > 20 || submitting || submittedRank !== undefined) return;
+    setSubmitting(true);
+    try {
+      await addReactionScore(trimmed, avg);
+      const top = await getTopReactionScores(10);
+      setList(top);
+      setSubmittedRank(top.findIndex((s) => s.name === trimmed && s.score === avg));
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  const avgScore = (res[0] + res[1] + res[2] + res[3] + res[4]) / 5;
-  const isRanked = list.length < 10 || avgScore < list[ct - 1]?.score;
+  const header = <div className="mb-8 font-mono text-sm text-[#8B84FF]">반응속도 테스트</div>;
 
-  if (start === 0) {
+  if (phase === "done") {
     return (
       <Faded>
         <div className="mx-auto max-w-md px-6 pt-16 pb-24 text-center">
-          <div className="mb-8 font-mono text-sm text-[#8B84FF]">반응속도 테스트</div>
-          <RankBox list={list} />
+          {header}
+          <div className="mb-2 font-mono text-lg text-white/60">평균</div>
+          <div className="mb-2 font-mono text-5xl font-bold text-white">{avg} ms</div>
+          <div className="mb-6 font-mono text-sm text-white/40">최고 {best} ms</div>
+          <div className="mb-8 flex justify-center gap-2 font-mono text-xs text-white/50">
+            {results.map((ms, i) => (
+              <span
+                key={i}
+                className={`rounded-full border px-3 py-1 ${ms === best ? "border-[#6C63FF]/60 text-white" : "border-white/10"}`}
+              >
+                {ms}
+              </span>
+            ))}
+          </div>
+
+          {isRanked && submittedRank === undefined && (
+            <div className="mb-8">
+              <p className="mb-4 font-['Nanum_Gothic',sans-serif] text-white/70">
+                10위 안에 들었어요! 이름을 입력해주세요.
+              </p>
+              <form
+                className="flex justify-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitScore();
+                }}
+              >
+                <input
+                  value={name}
+                  maxLength={20}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-36 rounded-full border border-white/10 bg-[#1C1E24] px-4 py-2 text-center text-white focus:border-[#6C63FF]/50 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={submitting || !name.trim()}
+                  className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0] disabled:cursor-default disabled:opacity-40"
+                >
+                  {submitting ? "등록 중" : "제출"}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {submittedRank !== undefined && <RankBox list={list} highlight={submittedRank} />}
+
           <button
             type="button"
-            onClick={clickStart}
-            className="cursor-pointer rounded-full bg-[#6C63FF] px-8 py-3 font-mono text-white transition-colors hover:bg-[#5b52f0]"
+            onClick={reset}
+            className="cursor-pointer rounded-full border border-white/10 px-6 py-2 font-mono text-sm text-white/70 transition-colors hover:text-white"
           >
-            시작
+            다시하기
           </button>
         </div>
       </Faded>
     );
-  } else if (count === 6) {
-    return (
-      <Faded>
-        <div className="mx-auto max-w-md px-6 pt-16 pb-24 text-center">
-          <div className="mb-8 font-mono text-sm text-[#8B84FF]">반응속도 테스트</div>
-          <div className="mb-2 font-mono text-lg text-white/60">결과</div>
-          <div className="mb-8 font-mono text-4xl font-bold text-white">{avgScore} ms</div>
-
-          {isRanked ? (
-            <div>
-              <p className="mb-4 font-['Nanum_Gothic',sans-serif] text-white/70">
-                {avgScore}점으로 10위안에 랭크되셨습니다. 이름을 입력해주세요.
-              </p>
-              <div className="flex justify-center gap-2">
-                <input
-                  onChange={onChangeName}
-                  className="w-32 rounded-full border border-white/10 bg-[#1C1E24] px-4 py-2 text-center text-white focus:border-[#6C63FF]/50 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => submitScore(avgScore)}
-                  className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0]"
-                >
-                  제출
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="cursor-pointer rounded-full border border-white/10 px-6 py-2 font-mono text-sm text-white/70 transition-colors hover:text-white"
-            >
-              다시하기
-            </button>
-          )}
-        </div>
-      </Faded>
-    );
-  } else {
-    return (
-      <Faded>
-        <div className="mx-auto max-w-md px-6 pt-16 pb-24 text-center">
-          <div className="mb-8 font-mono text-sm text-[#8B84FF]">반응속도 테스트</div>
-          <p className="mb-6 font-['Nanum_Gothic',sans-serif] text-white/60">
-            버튼이 파란색이 되고 클릭하면 됩니다. 총 {NUM}번 실행됩니다.
-          </p>
-          <div className="mb-1 font-mono text-2xl text-white">{count} / {NUM}</div>
-          <div className="mb-10 font-mono text-lg text-white/40">{rTime} ms</div>
-          <button
-            type="button"
-            onClick={color === 0 ? clickRed : clickBlue}
-            className={`aspect-square w-[min(60vw,260px)] cursor-pointer rounded-full transition-colors ${
-              color === 0 ? "bg-red-500" : "bg-blue-500"
-            }`}
-          />
-        </div>
-      </Faded>
-    );
   }
+
+  const stage = {
+    idle: {
+      bg: "bg-[#1C1E24] hover:bg-[#23252c]",
+      title: "시작",
+      sub: `파란색으로 바뀌면 최대한 빨리 누르세요 · ${ROUNDS}회 평균`,
+    },
+    waiting: { bg: "bg-red-500", title: "기다리세요…", sub: "파란색이 되면 클릭" },
+    go: { bg: "bg-blue-500", title: "지금!", sub: "" },
+    early: { bg: "bg-amber-500", title: "너무 빨라요!", sub: "눌러서 이번 라운드 다시" },
+    result: {
+      bg: "bg-[#1C1E24] hover:bg-[#23252c]",
+      title: `${results[results.length - 1]} ms`,
+      sub: "눌러서 다음 라운드",
+    },
+  }[phase];
+
+  return (
+    <Faded>
+      <div className="mx-auto max-w-xl px-6 pt-16 pb-24 text-center">
+        {header}
+        {phase === "idle" && <RankBox list={list} />}
+        <div className="mb-4 flex items-center justify-between font-mono text-sm text-white/50">
+          <span>
+            {Math.min(results.length + (phase === "idle" ? 0 : 1), ROUNDS)} / {ROUNDS}
+          </span>
+          <span>{results.length ? results.join(" · ") : "-"}</span>
+        </div>
+        <button
+          type="button"
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            press(e.timeStamp);
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+          className={`flex h-[min(60vh,360px)] w-full cursor-pointer touch-manipulation flex-col items-center justify-center rounded-3xl select-none ${stage.bg}`}
+        >
+          <span className="font-mono text-4xl font-bold text-white">{stage.title}</span>
+          {stage.sub && (
+            <span className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm text-white/70">
+              {stage.sub}
+            </span>
+          )}
+        </button>
+        <p className="mt-4 font-mono text-xs text-white/30">스페이스바 / 엔터로도 가능</p>
+      </div>
+    </Faded>
+  );
 }
