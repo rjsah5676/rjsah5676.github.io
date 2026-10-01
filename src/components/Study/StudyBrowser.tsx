@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import HintBubble, { markHintSeen } from "@/components/HintBubble";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,6 +11,8 @@ import {
   type StudyPostListItem,
   type StudySection,
 } from "@/firestore/studyPosts";
+
+const MENU_HINT_KEY = "hint:study-menu";
 
 const isCategory = (v: string | null): v is string =>
   !!v && (STUDY_CATEGORIES as readonly string[]).includes(v);
@@ -54,6 +57,16 @@ export default function StudyBrowser({
     categories[0] ?? STUDY_CATEGORIES[0]
   );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // 메뉴 탭을 아직 한 번도 안 열어본 사람에게만 탭을 툭툭 밀어서 안내
+  const [nudge, setNudge] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage는 마운트 후에만 읽을 수 있음
+      setNudge(localStorage.getItem(MENU_HINT_KEY) !== "1");
+    } catch {
+      // 저장소 접근 불가 — 안내 생략
+    }
+  }, []);
   const [q, setQ] = useState("");
 
   // 공백으로 나눈 단어가 모두 들어있는 글 (제목·분류·본문)
@@ -72,23 +85,111 @@ export default function StudyBrowser({
     setSelectedCategory(fromUrl);
   }, [posts]);
 
+  // 모바일 메뉴: 열릴 때 히스토리를 하나 쌓아서 안드로이드 뒤로가기(popstate)로 닫히게.
+  // 버튼으로 닫으면 쌓아둔 항목을 history.back()으로 소비 (Modal과 같은 방식)
+  const afterCloseRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    let pushed = false;
+    let closedByPop = false;
+    const onPop = () => {
+      closedByPop = true;
+      setIsMenuOpen(false);
+    };
+    // StrictMode의 mount→cleanup→mount에서 push/back이 꼬이지 않게 한 틱 미룸
+    const timer = setTimeout(() => {
+      window.history.pushState({ ...window.history.state, __menu: true }, "");
+      pushed = true;
+      window.addEventListener("popstate", onPop);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("popstate", onPop);
+      const after = afterCloseRef.current;
+      afterCloseRef.current = null;
+      if (pushed && !closedByPop) {
+        // back()이 끝난 뒤에 URL을 바꿔야 back이 방금 바꾼 URL을 되돌리지 않음
+        if (after) {
+          const done = () => {
+            window.removeEventListener("popstate", done);
+            after();
+          };
+          window.addEventListener("popstate", done);
+        }
+        window.history.back();
+      } else {
+        after?.();
+      }
+    };
+  }, [isMenuOpen]);
+
   const selectCategory = (cat: string) => {
     setSelectedCategory(cat);
-    setIsMenuOpen(false);
     // 글 상세에서 "목록으로" 돌아올 때 카테고리 유지되게 URL에도 반영
-    router.replace(`${meta.path}/?category=${encodeURIComponent(cat)}`, { scroll: false });
+    const sync = () =>
+      router.replace(`${meta.path}/?category=${encodeURIComponent(cat)}`, { scroll: false });
+    if (isMenuOpen) {
+      afterCloseRef.current = sync;
+      setIsMenuOpen(false);
+    } else {
+      sync();
+    }
   };
 
   return (
     <div className="mx-auto flex max-w-4xl gap-8 px-6 pt-16 pb-24">
-      {/* 모바일 사이드바 토글 */}
+      {/* 모바일: 화면 왼쪽 가장자리의 반원 탭으로 열기 */}
       <button
         type="button"
-        onClick={() => setIsMenuOpen(true)}
-        className="fixed bottom-6 left-6 z-40 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-[#6C63FF] text-lg text-white shadow-lg md:hidden"
+        onClick={() => {
+          setIsMenuOpen(true);
+          setNudge(false);
+          markHintSeen(MENU_HINT_KEY); // 한 번 열어봤으면 안내 그만
+        }}
         aria-label="분류 메뉴 열기"
+        className={`fixed top-1/2 left-0 z-40 flex h-14 w-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-r-full bg-[#6C63FF] text-white shadow-[4px_0_16px_rgba(0,0,0,0.4)] transition-all duration-300 md:hidden ${
+          isMenuOpen
+            ? "pointer-events-none -translate-x-full opacity-0"
+            : `opacity-90 hover:w-6 hover:opacity-100 ${nudge ? "hint-nudge" : ""}`
+        }`}
       >
-        📄
+        <svg
+          viewBox="0 0 12 12"
+          className="h-3 w-3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        >
+          <path d="M4.5 2.5L8 6L4.5 9.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <HintBubble
+        storageKey={MENU_HINT_KEY}
+        hidden={isMenuOpen}
+        className="fixed top-1/2 left-8 z-40 -translate-y-1/2 md:hidden"
+      >
+        <span className="font-mono text-[#A9A3FF]">←</span> 여기를 누르면{" "}
+        <b className="text-white">분류 메뉴</b>가 열려요
+      </HintBubble>
+
+      {/* 열린 메뉴 오른쪽에 붙는 접기 탭 (메뉴 폭 w-72 = 18rem) */}
+      <button
+        type="button"
+        onClick={() => setIsMenuOpen(false)}
+        aria-label="분류 메뉴 닫기"
+        className={`fixed top-1/2 left-72 z-50 flex h-14 w-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-r-full border-y border-r border-white/10 bg-[#121212] text-white/70 transition-all duration-300 hover:text-white md:hidden ${
+          isMenuOpen ? "opacity-100" : "pointer-events-none -translate-x-72 opacity-0"
+        }`}
+      >
+        <svg
+          viewBox="0 0 12 12"
+          className="h-3 w-3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        >
+          <path d="M7.5 2.5L4 6L7.5 9.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
 
       {isMenuOpen && (

@@ -67,3 +67,35 @@ body {
     animation: none;
   }
 }
+
+/* 공통 안내 말풍선: 왼쪽을 가리키는 꼬리 */
+.hint-bubble::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  background: #1c1e24;
+  border-left: 1px solid rgba(108, 99, 255, 0.4);
+  border-bottom: 1px solid rgba(108, 99, 255, 0.4);
+  transform: translateY(-50%) rotate(45deg);
+}
+/* 안내 중인 탭을 살짝 툭툭 밀어서 눈에 띄게 */
+.hint-nudge {
+  animation: hint-nudge 1.4s ease-in-out 3;
+}
+@keyframes hint-nudge {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 5px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint-nudge {
+    animation: none;
+  }
+}
