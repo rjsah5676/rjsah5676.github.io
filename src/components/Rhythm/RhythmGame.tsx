@@ -198,9 +198,9 @@ export default function RhythmGame() {
     speed: 3,
     offset: 0,
     judge: 0,
-    hit: 0.6,
+    hit: 0.3,
     music: 1,
-    hitSound: "wood",
+    hitSound: "thump",
     skin: "bar",
     lanes: "none",
     cover: "none",
@@ -329,9 +329,9 @@ export default function RhythmGame() {
           speed: clamp(Number(s.speed) || 3, 1, 8),
           offset: clamp(Number(s.offset) || 0, -400, 400),
           judge: clamp(Number(s.judge) || 0, -400, 400),
-          hit: typeof s.hit === "number" ? clamp(s.hit, 0, 1) : 0.6,
+          hit: typeof s.hit === "number" ? clamp(s.hit, 0, 1) : 0.3,
           music: typeof s.music === "number" ? clamp(s.music, 0, 1) : 1,
-          hitSound: HIT_SOUNDS.some((h) => h.key === s.hitSound) ? s.hitSound : "wood",
+          hitSound: HIT_SOUNDS.some((h) => h.key === s.hitSound) ? s.hitSound : "thump",
           skin: SKINS.some((k) => k.key === s.skin) ? s.skin : "bar",
           lanes: LANE_MODS.some((k) => k.key === s.lanes) ? s.lanes : "none",
           cover: COVERS_OPT.some((k) => k.key === s.cover) ? s.cover : "none",
@@ -968,8 +968,8 @@ export default function RhythmGame() {
                 type="button"
                 className={seg(settings.hitSound === h.key)}
                 onClick={() => {
-                  setSettings((s) => ({ ...s, hitSound: h.key, hit: s.hit || 0.6 }));
-                  previewHit(h.key, settings.hit || 0.6);
+                  setSettings((s) => ({ ...s, hitSound: h.key, hit: s.hit || 0.3 }));
+                  previewHit(h.key, settings.hit || 0.3);
                 }}
               >
                 {h.label}
