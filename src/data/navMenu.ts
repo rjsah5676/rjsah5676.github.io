@@ -190,7 +190,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/devtools/regex",
         image: imgRegex,
         label: "정규식 테스터",
-        desc: "매칭 하이라이트·그룹·치환, Java 코드 변환",
+        desc: "검증 정규식 테스트·정규식 만들기·찾기/치환",
         icon: ".*",
       },
     ],
