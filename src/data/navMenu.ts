@@ -14,6 +14,7 @@ import imgJson from "@/img/menu/json.jpg";
 import imgDdlToJava from "@/img/menu/ddl-to-java.jpg";
 import imgJsonToJava from "@/img/menu/json-to-java.jpg";
 import imgMybatisLog from "@/img/menu/mybatis-log.jpg";
+import imgRegex from "@/img/menu/regex.jpg";
 
 // 상단 nav 메뉴 정의 — Nav 드롭다운과 대제목 클릭 시 나오는 목록(허브) 페이지가 같이 씀
 
@@ -93,7 +94,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/games/mine",
         image: imgMine,
         label: "지뢰찾기",
-        desc: "찍기 없이 논리로 풀리는 판만",
+        desc: "지뢰 99개 고급 난이도, 클리어 시간 랭킹",
         icon: "💣",
       },
       {
@@ -176,6 +177,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "MyBatis 로그 → SQL",
         desc: "Preparing/Parameters 로그를 실행 SQL로",
         icon: "🧾",
+      },
+      {
+        href: "/devtools/regex",
+        image: imgRegex,
+        label: "정규식 테스터",
+        desc: "매칭 하이라이트·그룹·치환, Java 코드 변환",
+        icon: ".*",
       },
     ],
   },
