@@ -1,7 +1,7 @@
-:HL["/_next/static/chunks/3i90-zs2b0fvj.css","style"]
+:HL["/_next/static/chunks/3f7_a5d1ixsd8.css","style"]
 :HL["https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap","style"]
 :HL["https://fonts.googleapis.com/css2?family=Jua&display=swap","style"]
 :HL["https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap","style"]
 :HL["https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap","style"]
 :HL["/_next/static/media/github.416pdeob057z9.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"games","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chess","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"r3oK0KzvUBPoCq5suxDVk"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"games","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chess","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"uBA2IeJfqGiNcVHBimT2f"}
