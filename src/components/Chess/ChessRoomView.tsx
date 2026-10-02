@@ -26,6 +26,9 @@ import {
   joinAsPlayer,
   startGame,
   joinAsSpectator,
+  hasRoomAccess,
+  inviteLink,
+  unlockChessRoom,
   leaveRoom,
   liveClock,
   makeMove,
@@ -198,12 +201,22 @@ interface Props {
   uid: string;
   nick: string;
   intent: "play" | "watch" | null;
+  /** 초대 링크의 키 (비밀번호 방도 비번 없이 입장) */
+  invite: string | null;
   onExit: () => void;
   /** 다른 방으로 이동 (이미 진행중인 내 게임으로 보낼 때) */
   onGoRoom: (roomId: string) => void;
 }
 
-export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoRoom }: Props) {
+export default function ChessRoomView({
+  roomId,
+  uid,
+  nick,
+  intent,
+  invite,
+  onExit,
+  onGoRoom,
+}: Props) {
   const [room, setRoom] = useState<ChessRoom | null | undefined>(undefined);
   const [presence, setPresence] = useState<Record<string, Presence>>({});
   const [now, setNow] = useState(() => serverNow());
@@ -239,9 +252,38 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoR
   const paused = playing && !!room?.pausedAt;
   const isHost = !!room && room.hostUid === uid;
 
+  // 비밀번호 방: 권한 확인 (초대 링크로 왔으면 키로 바로 통과)
+  const [access, setAccess] = useState<boolean | null>(null);
+  const [pw, setPw] = useState("");
+  const [pwError, setPwError] = useState("");
+  const accessChecked = useRef(false);
+  useEffect(() => {
+    if (!room || accessChecked.current) return;
+    accessChecked.current = true;
+    (async () => {
+      if (await hasRoomAccess(room, uid)) return setAccess(true);
+      if (invite) {
+        try {
+          await unlockChessRoom(roomId, uid, { invite });
+          return setAccess(true);
+        } catch {}
+      }
+      setAccess(false);
+    })();
+  }, [room, uid, roomId, invite]);
+  const submitPw = async () => {
+    setPwError("");
+    try {
+      await unlockChessRoom(roomId, uid, { password: pw });
+      setAccess(true);
+    } catch (e) {
+      setPwError((e as Error).message);
+    }
+  };
+
   // 로비에서 참여/관전 누르고 들어온 경우 자동 처리
   useEffect(() => {
-    if (!room || intentDone.current || participating) return;
+    if (!room || intentDone.current || participating || !access) return;
     intentDone.current = true;
     if (!intent) return;
     const run =
@@ -250,7 +292,7 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoR
       if (e instanceof ActiveRoomError) promptActive(e.room);
       else setMsg(e.message);
     });
-  }, [room, intent, participating, roomId, uid, nick, promptActive]);
+  }, [room, intent, participating, roomId, uid, nick, promptActive, access]);
 
   // 하트비트 (탭이 백그라운드로 가도 브라우저가 허용하는 한 계속 전송,
   // 돌아오면 즉시 전송)
@@ -340,6 +382,38 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoR
     );
   }
 
+  if (room.locked && access === false && !participating) {
+    return (
+      <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-6 pt-24 pb-24 text-center">
+        <div className="font-mono text-sm text-[#8B84FF]">🔒 {room.name}</div>
+        <p className="font-['Nanum_Gothic',sans-serif] text-sm text-white/60">
+          비밀번호를 입력해주세요
+        </p>
+        <div className="flex w-full gap-2">
+          <input
+            type="password"
+            autoFocus
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitPw()}
+            className="min-w-0 flex-1 rounded-full border border-white/10 bg-[#1C1E24] px-4 py-2 text-center text-white focus:border-[#6C63FF]/50 focus:outline-none"
+          />
+          <button type="button" onClick={submitPw} className={primaryBtn}>
+            입장
+          </button>
+        </div>
+        {pwError && <p className="font-mono text-xs text-red-300">{pwError}</p>}
+        <button
+          type="button"
+          onClick={onExit}
+          className="font-mono text-xs text-white/40 hover:text-white"
+        >
+          ← 로비로
+        </button>
+      </div>
+    );
+  }
+
   const orientation: Color = me ?? (flip ? "b" : "w");
   const opp: Color = orientation === "w" ? "b" : "w";
   const seat = (c: Color) => ({
@@ -393,7 +467,7 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoR
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(`${location.origin}/games/chess/?room=${roomId}`);
+      await navigator.clipboard.writeText(await inviteLink(roomId));
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {}

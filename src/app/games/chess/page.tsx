@@ -13,6 +13,7 @@ function ChessApp() {
   const params = useSearchParams();
   const roomId = params.get("room");
   const as = params.get("as");
+  const invite = params.get("k");
   const intent = as === "play" || as === "watch" ? as : null;
 
   const { uid, nick, setNick, nickLoaded, error } = useChessUser();
@@ -66,6 +67,7 @@ function ChessApp() {
         uid={uid}
         nick={nick}
         intent={intent}
+        invite={invite}
         onExit={() => go(null)}
         onGoRoom={(id) => go(id)}
       />

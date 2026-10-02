@@ -47,10 +47,10 @@ export async function removeDocs(path: string, ids: string[]): Promise<void> {
   }
 }
 
-/** 체스방은 하위 컬렉션(chat, presence)까지 같이 지움 - 방 문서만 지우면 고아 데이터가 남음 */
+/** 체스방은 하위 컬렉션(chat, presence, private, access)까지 같이 지움 - 방 문서만 지우면 고아 데이터가 남음 */
 export async function removeChessRooms(ids: string[]): Promise<void> {
   for (const id of ids) {
-    for (const sub of ["chat", "presence"]) {
+    for (const sub of ["chat", "presence", "private", "access"]) {
       const snap = await getDocs(collection(db, "chess_rooms", id, sub));
       if (snap.size)
         await removeDocs(

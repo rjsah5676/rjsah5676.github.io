@@ -103,6 +103,7 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
   const [color, setColor] = useState<Color | "r">("w");
   const [timeMin, setTimeMin] = useState(10);
   const [incSec, setIncSec] = useState(0);
+  const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const promptActive = useActiveRoomPrompt((id) => onEnter(id));
 
@@ -156,6 +157,7 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
         color,
         timeMin,
         incSec: timeMin ? incSec : 0,
+        password,
       });
       onEnter(id);
     } catch (e) {
@@ -185,7 +187,10 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
               onClick={() => onEnter(r.id)}
               className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/80 transition-colors hover:bg-white/5"
             >
-              <span className="truncate font-['Nanum_Gothic',sans-serif]">{r.name}</span>
+              <span className="truncate font-['Nanum_Gothic',sans-serif]">
+                {r.locked && "🔒 "}
+                {r.name}
+              </span>
               <span className="shrink-0 font-mono text-xs text-[#8B84FF]">돌아가기 →</span>
             </button>
           ))}
@@ -232,7 +237,10 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
                           : "대국중"
                         : "종료"}
                   </span>
-                  <span className="truncate text-white/85">{r.name}</span>
+                  <span className="truncate text-white/85">
+                    {r.locked && "🔒 "}
+                    {r.name}
+                  </span>
                 </span>
                 <span className="order-3 col-span-2 truncate text-xs text-white/40 sm:order-none sm:col-span-1">
                   <span className="text-white/70">♔ {r.whiteName || "—"}</span>
@@ -302,6 +310,14 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
               options={INC_OPTIONS.map((v) => ({ v, label: v === 0 ? "없음" : `+${v}초` }))}
             />
           )}
+          <input
+            value={password}
+            maxLength={20}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호 (비우면 공개방 · 초대 링크로는 비번 없이 입장)"
+            aria-label="비밀번호"
+            className={input}
+          />
           {error && <p className="font-mono text-xs text-red-400">{error}</p>}
           <button
             type="button"

@@ -4,6 +4,7 @@ import {
   deleteDoc,
   deleteField,
   doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -14,11 +15,13 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type Timestamp,
   type Transaction,
 } from "firebase/firestore";
 import { Chess } from "chess.js";
 import { db } from "../firebase";
+import { hashPassword, randomKey, WrongPasswordError } from "@/lib/roomLock";
 
 /*
  * 온라인 체스 (방 생성/참여/관전)
@@ -73,6 +76,8 @@ export interface ChessRoom {
   undoReq: { uid: string; ply: number } | null;
   drawOffer: string;
   spectators: Record<string, string>;
+  /** 비밀번호 방 (링크의 초대키로 들어오면 비번 없이 입장) */
+  locked: boolean;
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
 }
@@ -207,6 +212,7 @@ function normalize(id: string, data: Record<string, unknown>): ChessRoom {
     drawOffer: d.drawOffer ?? "",
     pausedAt: d.pausedAt ?? null,
     spectators: d.spectators ?? {},
+    locked: d.locked === true,
     createdAt: d.createdAt ?? null,
     updatedAt: d.updatedAt ?? null,
   };
@@ -279,6 +285,8 @@ export interface CreateRoomInput {
   color: Color | "r";
   timeMin: number;
   incSec: number;
+  /** 비우면 공개방 */
+  password?: string;
 }
 
 /** 내가 대국자로 앉아있는 대기/진행중 방 (방 중복 생성·참여 방지용) */
@@ -314,12 +322,16 @@ export async function createRoom({
   color,
   timeMin,
   incSec,
+  password = "",
 }: CreateRoomInput): Promise<string> {
   const active = await findMyActiveRoom(uid);
   if (active) throw new ActiveRoomError(active);
   const myColor: Color = color === "r" ? (Math.random() < 0.5 ? "w" : "b") : color;
   const ms = timeMin * 60_000;
-  const ref = await addDoc(collection(db, ROOMS), {
+  const ref = doc(collection(db, ROOMS));
+  const locked = password.trim() !== "";
+  const batch = writeBatch(db);
+  batch.set(ref, {
     name: name.trim().slice(0, 20),
     hostUid: uid,
     whiteUid: myColor === "w" ? uid : "",
@@ -340,10 +352,57 @@ export async function createRoom({
     undoReq: null,
     drawOffer: "",
     spectators: {},
+    locked,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  // 초대키는 참가자만 읽을 수 있고(초대 링크용), 비밀번호 해시는 아무도 못 읽음(규칙에서만 비교)
+  const invite = randomKey();
+  batch.set(doc(db, ROOMS, ref.id, "private", "invite"), { key: invite });
+  if (locked) {
+    const pw = await hashPassword(ref.id, password.trim());
+    batch.set(doc(db, ROOMS, ref.id, "private", "lock"), { pw, invite });
+    batch.set(doc(db, ROOMS, ref.id, "access", uid), { key: pw });
+  }
+  await batch.commit();
   return ref.id;
+}
+
+// ───────────────────── 비밀번호 방 ─────────────────────
+
+/** 이 방에 들어갈 권한이 있는지 (공개방이거나, 비번/초대키를 이미 맞혔거나) */
+export async function hasRoomAccess(room: ChessRoom, uid: string): Promise<boolean> {
+  if (!room.locked || colorOf(room, uid) || room.spectators[uid] !== undefined) return true;
+  try {
+    return (await getDoc(doc(db, ROOMS, room.id, "access", uid))).exists();
+  } catch {
+    return false;
+  }
+}
+
+/** 비밀번호나 초대키로 권한 얻기 — 틀리면 규칙에서 거부됨 */
+export async function unlockChessRoom(
+  roomId: string,
+  uid: string,
+  cred: { password?: string; invite?: string }
+) {
+  const key = cred.invite ?? (await hashPassword(roomId, cred.password ?? ""));
+  try {
+    await setDoc(doc(db, ROOMS, roomId, "access", uid), { key });
+  } catch {
+    throw new WrongPasswordError();
+  }
+}
+
+/** 초대 링크 (참가자만 초대키를 읽을 수 있음, 예전 방은 키 없이) */
+export async function inviteLink(roomId: string): Promise<string> {
+  let key = "";
+  try {
+    key = ((await getDoc(doc(db, ROOMS, roomId, "private", "invite"))).data()?.key as string) ?? "";
+  } catch {
+    key = "";
+  }
+  return `${location.origin}/games/chess/?room=${roomId}${key ? `&k=${key}` : ""}`;
 }
 
 export async function joinAsPlayer(roomId: string, uid: string, nick: string) {

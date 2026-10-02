@@ -1,0 +1,93 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "sketch": {
+      "lobby": {
+        ".read": true,
+        "$room": {
+          ".write": "auth != null && (root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists() || (!data.exists() && newData.parent().parent().child('rooms/' + $room + '/meta/hostUid').val() === auth.uid) || (!newData.exists() && !root.child('sketch/rooms/' + $room + '/players').exists()))",
+          ".validate": "!newData.exists() || (newData.child('name').isString() && newData.child('name').val().length <= 20 && newData.child('max').isNumber() && newData.child('count').isNumber() && newData.child('createdAt').isNumber())"
+        }
+      },
+      "rooms": {
+        "$room": {
+          ".read": "auth != null",
+          ".write": "auth != null && !newData.exists() && !data.child('players').exists()",
+          "meta": {
+            ".write": "auth != null && !data.exists() && newData.child('hostUid').val() === auth.uid",
+            ".validate": "newData.child('name').isString() && newData.child('name').val().length <= 20 && newData.child('max').val() >= 2 && newData.child('max').val() <= 8 && newData.child('drawTime').val() >= 30 && newData.child('drawTime').val() <= 180 && newData.child('rounds').val() >= 1 && newData.child('rounds').val() <= 3 && newData.child('locked').isBoolean()"
+          },
+          "players": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && (!newData.exists() || (root.child('sketch/rooms/' + $room + '/meta').exists() && (root.child('sketch/rooms/' + $room + '/meta/locked').val() !== true || root.child('sketch/rooms/' + $room + '/meta/hostUid').val() === auth.uid || root.child('sketch/access/' + $room + '/' + auth.uid).exists())))",
+              ".validate": "newData.child('nick').isString() && newData.child('nick').val().length <= 10 && newData.child('joinedAt').isNumber()"
+            }
+          },
+          "scores": {
+            ".write": "auth != null && root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists()"
+          },
+          "state": {
+            ".write": "auth != null && (root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists() || (!data.exists() && newData.parent().child('meta/hostUid').val() === auth.uid))"
+          }
+        }
+      },
+      "strokes": {
+        "$room": {
+          ".read": "auth != null && root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists()",
+          ".write": "auth != null && !newData.exists() && (root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists() || !root.child('sketch/rooms/' + $room + '/players').exists())",
+          "$turn": {
+            ".write": "auth != null && auth.uid === root.child('sketch/rooms/' + $room + '/state/drawer').val() && $turn === root.child('sketch/rooms/' + $room + '/state/turnId').val()"
+          }
+        }
+      },
+      "chat": {
+        "$room": {
+          ".read": "auth != null && root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists()",
+          ".write": "auth != null && !newData.exists() && !root.child('sketch/rooms/' + $room + '/players').exists()",
+          "$msg": {
+            ".write": "auth != null && !data.exists() && root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists()",
+            ".validate": "newData.child('text').isString() && newData.child('text').val().length <= 100 && newData.child('ts').isNumber()"
+          }
+        }
+      },
+      "guesses": {
+        "$room": {
+          ".read": "auth != null && auth.uid === root.child('sketch/rooms/' + $room + '/state/drawer').val()",
+          ".write": "auth != null && !newData.exists() && (root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists() || !root.child('sketch/rooms/' + $room + '/players').exists())",
+          "$g": {
+            ".write": "auth != null && root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists() && (newData.exists() ? newData.child('uid').val() === auth.uid : auth.uid === root.child('sketch/rooms/' + $room + '/state/drawer').val())",
+            ".validate": "!newData.exists() || (newData.child('text').isString() && newData.child('text').val().length <= 100)"
+          }
+        }
+      },
+      "words": {
+        "$room": {
+          ".read": "auth != null && auth.uid === root.child('sketch/rooms/' + $room + '/state/drawer').val()",
+          ".write": "auth != null && (auth.uid === root.child('sketch/rooms/' + $room + '/state/drawer').val() || (!newData.exists() && (root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists() || !root.child('sketch/rooms/' + $room + '/players').exists())))"
+        }
+      },
+      "locks": {
+        "$room": {
+          ".read": false,
+          ".write": "auth != null && ((!data.exists() && newData.parent().parent().child('rooms/' + $room + '/meta/hostUid').val() === auth.uid) || (!newData.exists() && !root.child('sketch/rooms/' + $room + '/players').exists()))"
+        }
+      },
+      "invites": {
+        "$room": {
+          ".read": "auth != null && root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists()",
+          ".write": "auth != null && ((!data.exists() && newData.parent().parent().child('rooms/' + $room + '/meta/hostUid').val() === auth.uid) || (!newData.exists() && !root.child('sketch/rooms/' + $room + '/players').exists()))"
+        }
+      },
+      "access": {
+        "$room": {
+          ".write": "auth != null && !newData.exists() && !root.child('sketch/rooms/' + $room + '/players').exists()",
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": "auth != null && auth.uid === $uid && newData.isString() && (newData.val() === newData.parent().parent().parent().child('locks/' + $room + '/pw').val() || newData.val() === newData.parent().parent().parent().child('locks/' + $room + '/invite').val())"
+          }
+        }
+      }
+    }
+  }
+}

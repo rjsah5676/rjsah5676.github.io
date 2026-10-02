@@ -7,6 +7,7 @@ import imgRspeed from "@/img/menu/rspeed.jpg";
 import imgMine from "@/img/menu/mine.jpg";
 import imgChess from "@/img/menu/chess.jpg";
 import imgRhythm from "@/img/menu/rhythm.jpg";
+import imgSketch from "@/img/menu/sketch.jpg";
 import imgLadder from "@/img/menu/ladder.jpg";
 import imgRoulette from "@/img/menu/roulette.jpg";
 import imgCalorie from "@/img/menu/calorie.jpg";
@@ -110,6 +111,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "리듬게임",
         desc: "4키 리듬게임, 곡·난이도별 랭킹",
         icon: "🎹",
+      },
+      {
+        href: "/games/sketch",
+        image: imgSketch,
+        label: "스케치 퀴즈",
+        desc: "최대 8명, 한 명이 그리고 나머지가 맞히기",
+        icon: "🎨",
       },
     ],
   },
