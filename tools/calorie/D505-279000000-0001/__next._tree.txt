@@ -4,4 +4,4 @@
 :HL["https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap","style"]
 :HL["https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap","style"]
 :HL["/_next/static/media/github.416pdeob057z9.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"tools","param":null,"prefetchHints":4192,"slots":{"children":{"name":"calorie","param":null,"prefetchHints":4192,"slots":{"children":{"name":"id","param":{"type":"d","key":"D505-279000000-0001","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}}}},"staleTime":300,"buildId":"v4XfQk9Q7Nqpv-A_fH9s8"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"tools","param":null,"prefetchHints":4192,"slots":{"children":{"name":"calorie","param":null,"prefetchHints":4192,"slots":{"children":{"name":"id","param":{"type":"d","key":"D505-279000000-0001","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}}}},"staleTime":300,"buildId":"pdxZN0mQbGfCgIpoV2icz"}
