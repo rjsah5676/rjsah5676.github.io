@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_GROUPS } from "@/data/navMenu";
+import HintBubble, { markHintSeen } from "@/components/HintBubble";
+
+const NAV_HINT_KEY = "hint:nav-chevron";
 
 // 모바일(좁은 폭)에서도 한 줄에 들어가도록 여백·글자 크기를 줄임
 const navItemClass =
@@ -74,7 +77,10 @@ function DropdownNavItem({
       <button
         type="button"
         aria-label={`${label} submenu`}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setOpen((o) => !o);
+          markHintSeen(NAV_HINT_KEY); // 한 번 펼쳐봤으면 안내 그만
+        }}
         aria-expanded={open}
         className="cursor-pointer py-3 pr-1.5 pl-0.5 text-white/40 transition-colors hover:text-white sm:px-1"
       >
@@ -111,6 +117,17 @@ export default function Nav() {
           />
         ))}
       </div>
+      <HintBubble
+        storageKey={NAV_HINT_KEY}
+        tail="top"
+        maxShows={2}
+        delay={1500}
+        duration={5000}
+        className="absolute top-full left-1/2 mt-2 -translate-x-1/2"
+      >
+        이름을 누르면 <b className="text-white">전체 목록</b>, <b className="text-white">▾</b>를
+        누르면 하위 메뉴가 펼쳐져요
+      </HintBubble>
     </nav>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
+import HintBubble from "@/components/HintBubble";
 
 export interface AboutProject {
   idx: number;
@@ -376,6 +377,16 @@ function Hero({ photos }: { photos: AboutProject[] }) {
           className="ab-fade-up relative mx-auto h-[300px] w-full max-w-[380px] sm:h-[340px]"
           style={{ "--d": "700ms" } as CSSProperties}
         >
+          <HintBubble
+            storageKey="hint:about-stack"
+            device="pc"
+            tail="bottom"
+            maxShows={1}
+            delay={2400}
+            className="absolute -top-3 left-1/2 -translate-x-1/2"
+          >
+            사진에 <b className="text-white">마우스를 올려보세요</b>
+          </HintBubble>
           <div className="ab-stack absolute inset-0 flex items-center justify-center">
             {photos.slice(0, 3).map((p, i) => (
               <Link
@@ -601,6 +612,7 @@ function useHScroll() {
 
 function Projects({ projects }: { projects: AboutProject[] }) {
   const { scrollRef, trackRef, bar, onThumbDown, onTrackDown, step } = useHScroll();
+  const [barRef, barInView] = useInView<HTMLDivElement>(0.8);
   const arrow =
     "flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/10 font-mono text-sm text-white/60 transition-all hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-default disabled:opacity-30 disabled:hover:border-white/10 disabled:hover:text-white/60";
   return (
@@ -653,7 +665,20 @@ function Projects({ projects }: { projects: AboutProject[] }) {
             전체 보기 →
           </Link>
         </div>
-        <div className="mx-auto mt-5 flex max-w-5xl items-center gap-4 px-6">
+        <div ref={barRef} className="relative mx-auto mt-5 flex max-w-5xl items-center gap-4 px-6">
+          {/* 화면에 들어왔을 때 넘기는 법 안내 */}
+          <HintBubble
+            storageKey="hint:about-gallery"
+            tail="bottom"
+            maxShows={2}
+            delay={400}
+            active={barInView}
+            className="absolute bottom-full left-1/2 mb-3 -translate-x-1/2"
+            mobile={<>옆으로 밀어서 넘겨보세요</>}
+          >
+            바를 <b className="text-white">드래그</b>하거나 <b className="text-white">← →</b> 로
+            넘겨보세요
+          </HintBubble>
           <div
             ref={trackRef}
             onPointerDown={onTrackDown}

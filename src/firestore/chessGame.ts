@@ -129,6 +129,22 @@ export function replay(moves: string[]): Chess {
   return game;
 }
 
+/**
+ * 현재 국면이 지금까지 몇 번 나왔는지 (기물 배치·차례·캐슬링·앙파상이 같으면 같은 국면).
+ * 3이 되면 endState에서 3회 동형반복 무승부로 끝남 — 2일 때 화면에 경고용.
+ */
+export function repetitionCount(moves: string[]): number {
+  const key = (fen: string) => fen.split(" ").slice(0, 4).join(" ");
+  const game = new Chess();
+  const seen = [key(game.fen())];
+  for (const m of moves) {
+    game.move(uciToMove(m));
+    seen.push(key(game.fen()));
+  }
+  const now = seen[seen.length - 1];
+  return seen.filter((k) => k === now).length;
+}
+
 /** 지금 이 순간 기준 양쪽 남은 시간 (진행중인 쪽은 경과시간 차감) */
 export function liveClock(room: ChessRoom, now = serverNow()): { w: number; b: number } {
   const clock = { w: room.whiteMs, b: room.blackMs };

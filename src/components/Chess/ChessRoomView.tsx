@@ -31,6 +31,7 @@ import {
   makeMove,
   offerDraw,
   replay,
+  repetitionCount,
   requestUndo,
   resign,
   respondDraw,
@@ -281,6 +282,7 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoR
   const moves = room?.moves;
   const game = useMemo(() => replay(moves ?? []), [moves]);
   const history = useMemo(() => game.history(), [game]);
+  const repeats = useMemo(() => repetitionCount(moves ?? []), [moves]);
 
   // 서버 반영되면 낙관적 수 제거
   const [prevLen, setPrevLen] = useState(moves?.length ?? 0);
@@ -423,6 +425,9 @@ export default function ChessRoomView({ roomId, uid, nick, intent, onExit, onGoR
       <>
         {me ? (turn === me ? "내 차례" : "상대 차례") : `${COLOR_KO[turn]} 차례`}
         {game.inCheck() && <span className="ml-2 text-red-400">체크!</span>}
+        {repeats === 2 && (
+          <span className="ml-2 text-amber-300/90">같은 국면 2회째 · 한 번 더 나오면 무승부</span>
+        )}
       </>
     );
   }

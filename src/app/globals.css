@@ -68,18 +68,33 @@ body {
   }
 }
 
-/* 공통 안내 말풍선: 왼쪽을 가리키는 꼬리 */
+/* 공통 안내 말풍선: data-tail 방향으로 꼬리 */
 .hint-bubble::before {
   content: "";
   position: absolute;
-  top: 50%;
-  left: -5px;
   width: 9px;
   height: 9px;
   background: #1c1e24;
   border-left: 1px solid rgba(108, 99, 255, 0.4);
   border-bottom: 1px solid rgba(108, 99, 255, 0.4);
+}
+.hint-bubble[data-tail="none"]::before {
+  display: none;
+}
+.hint-bubble[data-tail="left"]::before {
+  top: 50%;
+  left: -5px;
   transform: translateY(-50%) rotate(45deg);
+}
+.hint-bubble[data-tail="top"]::before {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(135deg);
+}
+.hint-bubble[data-tail="bottom"]::before {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-45deg);
 }
 /* 안내 중인 탭을 살짝 툭툭 밀어서 눈에 띄게 */
 .hint-nudge {
