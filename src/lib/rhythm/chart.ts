@@ -2,6 +2,12 @@
  * 곡 이벤트 → 난이도별 4키 채보.
  * 멜로디 음높이로 레인을 정하고(높은 음 → 오른쪽), 드럼은 동시치기·채우기로 쓴다.
  * 같은 곡·난이도면 항상 같은 채보가 나오도록 시드 고정 난수를 쓴다.
+ *
+ * 패턴 사전 — 음악 흐름에 맞는 "손맛" 패턴을 구간별로 넣는다:
+ *  - 계단(stairs): 멜로디가 3음 이상 한 방향으로 오르내리면 레인도 한 칸씩 같은 방향으로
+ *  - 트릴(trill): 같은 음이 16분으로 4번 이상 반복되면 두 레인을 번갈아 (어려움 이상)
+ *  - 롤(roll): 탐 필인은 3→2→1→0 처럼 레인을 쓸어내리며
+ *  - 진입 동시치기(entry chord): 구간이 바뀌는 첫 박은 난이도만큼 동시치기
  */
 import type { Kind, MusicEvent, Song } from "./music";
 
@@ -84,7 +90,7 @@ const RULES: Record<Difficulty, Rule> = {
     jackGap: 0.15,
     holdMin: 4,
     maxPress: 3,
-    fill: ["arp", "tom", "snare", "clap", "kick", "gtr", "hat"],
+    fill: ["arp", "tom", "snare", "clap", "kick", "gtr"],
     chord: { kinds: ["crash", "kick", "snare", "clap"], prob: 0.8, onlyDownbeat: false },
     notesDuringHold: true,
   },
@@ -116,6 +122,45 @@ export function makeChart(song: Song, diff: Difficulty): Chart {
   }
   const leads = song.events.filter((e) => e.kind === "lead");
   const arps = song.events.filter((e) => e.kind === "arp");
+
+  // ── 패턴 사전: 이벤트 흐름에서 구간별 패턴 힌트를 미리 뽑아둠 ──
+  type Hint =
+    | { kind: "stairs"; dir: 1 | -1 }
+    | { kind: "trill"; idx: number }
+    | { kind: "roll"; idx: number; len: number };
+  const hints = new Map<number, Hint>();
+  {
+    // 계단·트릴: 멜로디를 시간순으로 보며 연속 구간 찾기 (간격 ≤ 8분음표)
+    const seq = [...leads].sort((a, b) => a.step - b.step);
+    let i = 0;
+    while (i < seq.length) {
+      let j = i;
+      const dir = Math.sign(seq[i + 1]?.midi! - seq[i].midi!) as 1 | -1 | 0;
+      while (
+        j + 1 < seq.length &&
+        seq[j + 1].step - seq[j].step <= 2 &&
+        Math.sign(seq[j + 1].midi! - seq[j].midi!) === dir
+      )
+        j++;
+      const len = j - i + 1;
+      if (dir !== 0 && len >= 3)
+        for (let k = i; k <= j; k++) hints.set(seq[k].step, { kind: "stairs", dir });
+      else if (dir === 0 && len >= 4 && R.grid === 1 && seq[j].step - seq[i].step <= len)
+        for (let k = i; k <= j; k++) hints.set(seq[k].step, { kind: "trill", idx: k - i });
+      i = len >= 3 ? j + 1 : i + 1;
+    }
+    // 롤: 탐이 한 마디 안에 3개 이상 이어지면
+    const toms = song.events.filter((e) => e.kind === "tom").sort((a, b) => a.step - b.step);
+    for (let a = 0; a < toms.length;) {
+      let b = a;
+      while (b + 1 < toms.length && toms[b + 1].step - toms[b].step <= 2) b++;
+      const len = b - a + 1;
+      if (len >= 3)
+        for (let k = a; k <= b; k++) hints.set(toms[k].step, { kind: "roll", idx: k - a, len });
+      a = b + 1;
+    }
+  }
+  const sectionStarts = new Set(song.sections.map(([bar]) => bar * 16));
 
   // 레인 계산용: 근처 2마디 안의 음역
   const rangeAround = (list: MusicEvent[], step: number) => {
@@ -176,7 +221,22 @@ export function makeChart(song: Song, diff: Difficulty): Chart {
     if (!main) continue;
 
     let want: number;
-    if (main.kind === "lead") want = pitchLane(leads, main);
+    const hint = hints.get(step);
+    if (hint?.kind === "stairs" && main.kind === "lead") {
+      // 계단: 직전 레인에서 한 칸씩 같은 방향으로, 끝에 닿으면 되돌아옴
+      let next = lastLane + hint.dir;
+      if (next < 0 || next > 3) next = lastLane - hint.dir;
+      want = Math.max(0, Math.min(3, next));
+    } else if (hint?.kind === "trill" && main.kind === "lead") {
+      // 트릴: 음높이 레인과 그 옆 레인을 번갈아
+      const base = pitchLane(leads, main);
+      const other = base === 3 ? 2 : base + 1;
+      want = hint.idx % 2 ? other : base;
+    } else if (hint?.kind === "roll" && main.kind === "tom") {
+      // 롤: 3 → 2 → 1 → 0 쓸어내리기 (길면 다시 올라감)
+      const seqLane = [3, 2, 1, 0, 1, 2];
+      want = seqLane[hint.idx % seqLane.length];
+    } else if (main.kind === "lead") want = pitchLane(leads, main);
     else if (main.kind === "arp") want = pitchLane(arps, main);
     else if (main.kind === "kick") want = (step / 4) % 2 ? 3 : 0;
     else if (main.kind === "snare" || main.kind === "clap") want = (step / 8) % 2 ? 2 : 1;
@@ -203,7 +263,19 @@ export function makeChart(song: Song, diff: Difficulty): Chart {
     let count = end ? pressing : pressing + 1;
     const beat = step % 4 === 0;
     const down = step % 16 === 0;
-    if (R.chord.prob > 0 && (R.chord.onlyDownbeat ? down : beat)) {
+    // 진입 동시치기: 구간이 바뀌는 첫 박은 확률 없이 꽉 채움 (쉬움은 제외)
+    if (sectionStarts.has(step) && R.maxPress >= 2 && !end) {
+      while (count < R.maxPress) {
+        const l2 = pickLane(
+          3 - lane,
+          t,
+          notes.filter((n) => n.t === t).map((n) => n.lane)
+        );
+        if (l2 < 0) break;
+        place(l2, t);
+        count++;
+      }
+    } else if (R.chord.prob > 0 && (R.chord.onlyDownbeat ? down : beat)) {
       for (const k of R.chord.kinds) {
         if (count >= R.maxPress) break;
         if (main.kind === k || !evs.some((e) => e.kind === k)) continue;
@@ -216,10 +288,34 @@ export function makeChart(song: Song, diff: Difficulty): Chart {
     }
   }
 
+  return finishChart(notes, diff);
+}
+
+/** 난이도별 레벨 범위: 쉬움 1~4 · 보통 5~10 · 어려움 11~13 · 매우 어려움 14+ */
+const LEVEL_BAND: Record<Difficulty, [number, number]> = {
+  easy: [1, 4],
+  normal: [5, 10],
+  hard: [11, 13],
+  expert: [14, 20],
+};
+/** 그 난이도에서 보통 나오는 밀도(초당 노트 + 최고 구간 가중) 범위 → 레벨 범위에 대응 */
+const DENSITY_BAND: Record<Difficulty, [number, number]> = {
+  easy: [1, 5],
+  normal: [3.5, 9],
+  hard: [7, 12],
+  expert: [9, 20],
+};
+
+/** 정렬 + 판정 단위 수 + 레벨 계산 (자동 채보에서도 같이 씀) */
+export function finishChart(
+  notes: Note[],
+  diff: Difficulty = "normal",
+  densityBand: [number, number] = DENSITY_BAND[diff]
+): Chart {
   notes.sort((a, b) => a.t - b.t || a.lane - b.lane);
   const units = notes.reduce((s, n) => s + (n.end ? 2 : 1), 0);
 
-  // 레벨: 초당 노트 수(평균·최고 구간) 기준 대략 1~15
+  // 밀도: 초당 노트 수(평균) + 가장 빽빽한 4초 구간 가중
   const playSec = notes.length ? notes[notes.length - 1].t - notes[0].t + 1 : 1;
   const avg = notes.length / playSec;
   let peak = 0;
@@ -227,6 +323,11 @@ export function makeChart(song: Song, diff: Difficulty): Chart {
     while (notes[i].t - notes[j].t > 4) j++;
     peak = Math.max(peak, (i - j + 1) / 4);
   }
-  const level = Math.max(1, Math.min(15, Math.round(avg + peak * 0.45)));
+  const density = avg + peak * 0.45;
+  // 난이도 범위 안에서 밀도에 비례해 레벨을 매김 (매우 어려움은 위로 열려 있음)
+  const [l0, l1] = LEVEL_BAND[diff];
+  const [d0, d1] = densityBand;
+  const ratio = (density - d0) / (d1 - d0);
+  const level = Math.max(l0, Math.min(l1, Math.round(l0 + ratio * (l1 - l0))));
   return { notes, level, units };
 }

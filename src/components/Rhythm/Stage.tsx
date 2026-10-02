@@ -17,6 +17,13 @@ import {
 } from "@/lib/rhythm/fx";
 
 export const KEY_CODES = ["KeyD", "KeyF", "KeyJ", "KeyK"];
+
+export type Cover = "none" | "fade" | "sudden";
+export const COVERS_OPT: { key: Cover; label: string; desc: string }[] = [
+  { key: "none", label: "없음", desc: "" },
+  { key: "fade", label: "페이드", desc: "판정선 가까이에서 노트가 사라져요 — 박자감으로 치기" },
+  { key: "sudden", label: "서든", desc: "위쪽 30%가 가려져 노트를 미리 읽을 수 없어요" },
+];
 export const KEY_LABELS = ["D", "F", "J", "K"];
 
 export interface Result {
@@ -32,10 +39,31 @@ export interface Result {
   /** 판정 창 안에서 빠르게/늦게 친 횟수 (±FAST_SLOW_MS 넘는 것만) */
   fast: number;
   slow: number;
-  /** 친 노트들의 평균 타이밍(ms, +면 늦게 침). 판정 싱크 추천용 */
+  /** 친 노트들의 타이밍 중앙값(ms, +면 늦게 침). 싱크 자동 보정용 */
   avgMs: number | null;
+  /** 타이밍이 한쪽으로 고르게 쏠려 있는지 (들쭉날쭉이 아니라 늘 비슷하게 늦거나 빠름) */
+  steady: boolean;
   /** HP가 바닥나서 중간에 끝남 */
   failed: boolean;
+  /** 싱크 맞추기: 누를 때마다 가장 가까운 노트와의 차이(ms, 판정과 무관하게 ±250ms 안) */
+  taps?: number[];
+}
+
+/** 싱크 맞추기에서 처음 몇 개는 박자 잡는 중이라 뺌 */
+export const CAL_SKIP = 4;
+
+/**
+ * 친 타이밍(초) 목록 → 중앙값(ms)과 "고르게 쏠렸는지".
+ * 20개 이상 쳤고, 중앙값 주변으로 절반 이상이 ±25ms 안에 모여 있으면(MAD ≤ 25ms)
+ * 실수로 흔들린 게 아니라 기기·손 버릇으로 늘 그만큼 어긋난 것으로 봄.
+ */
+function timingOf(diffs: number[]): { avgMs: number | null; steady: boolean } {
+  if (diffs.length < 10) return { avgMs: null, steady: false };
+  const ms = diffs.map((d) => d * 1000).sort((a, b) => a - b);
+  const med = ms[Math.floor(ms.length / 2)];
+  const dev = ms.map((v) => Math.abs(v - med)).sort((a, b) => a - b);
+  const mad = dev[Math.floor(dev.length / 2)];
+  return { avgMs: Math.round(med), steady: ms.length >= 20 && mad <= 25 };
 }
 
 /** 이보다 크게 어긋나면 FAST/SLOW 표시 (퍼펙트 안이어도) */
@@ -73,8 +101,8 @@ interface Props {
   hitVolume: number;
   hitSound: HitSound;
   skin: Skin;
-  /** ms, 판정만 옮김(+면 늦게 쳐도 맞게). 노트가 보이는 위치는 그대로 */
-  judgeOffset: number;
+  /** 노트 가림: fade = 판정선 가까이에서 흐려짐, sudden = 아래쪽에 와서야 보임 */
+  cover: Cover;
   /** 음악 볼륨 0~1 */
   musicVolume: number;
   /** 플레이 중(일시정지 화면·속도 단축키)에 바꾼 설정을 부모에 저장 */
@@ -82,6 +110,10 @@ interface Props {
   onFinish: (result: Result) => void;
   onQuit: () => void;
   onRestart: () => void;
+  /** ms, 판정만 옮김(+면 늦게 쳐도 맞게). 노트가 보이는 위치는 그대로 */
+  judgeOffset: number;
+  /** 타격 싱크 맞추기 모드: 음악 없이 노트만 보고 침. HP로 안 죽고, 누른 타이밍(타격 싱크 적용 전)을 모아서 돌려줌 */
+  calibration?: boolean;
 }
 
 export default function Stage({
@@ -95,12 +127,14 @@ export default function Stage({
   hitVolume,
   hitSound,
   skin,
-  judgeOffset,
+  cover: coverMode,
   musicVolume,
   onSettings,
   onFinish,
   onQuit,
   onRestart,
+  calibration = false,
+  judgeOffset,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -132,7 +166,8 @@ export default function Stage({
   useEffect(() => {
     const canvas = canvasRef.current!;
     const wrap = wrapRef.current!;
-    const g = canvas.getContext("2d")!;
+    // desynchronized: 합성기를 거치지 않고 바로 그려서 화면 지연을 한 프레임쯤 줄임 (지원 안 되면 무시됨)
+    const g = (canvas.getContext("2d", { desynchronized: true }) ?? canvas.getContext("2d"))!;
     const beatSec = 60 / song.bpm;
     // 롱노트 누르는 동안 8분음표마다 콤보가 오름
     const engine = new Engine(chart, beatSec / 2);
@@ -215,7 +250,7 @@ export default function Stage({
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     const musicGain = ctx.createGain();
-    musicGain.gain.value = live.music;
+    musicGain.gain.value = calibration ? 0 : live.music;
     src.connect(musicGain).connect(ctx.destination);
     const startAt = ctx.currentTime + leadIn;
     src.start(startAt);
@@ -253,8 +288,9 @@ export default function Stage({
     let speedToastAt = -10;
     let fast = 0;
     let slow = 0;
-    let diffSum = 0;
-    let diffN = 0;
+    const diffs: number[] = [];
+    const taps: number[] = [];
+    const noteTimes = chart.notes.map((n) => n.t);
     const hitBuf = makeHitSound(ctx, hitSound);
     const hitGain = ctx.createGain();
     hitGain.gain.value = live.hit * 0.9;
@@ -333,7 +369,7 @@ export default function Stage({
     const barSec = beatSec * 4;
     const diffInfo = DIFFICULTIES.find((d) => d.key === diff)!;
     const secName = (t: number) => {
-      const bar = Math.floor(t / barSec);
+      const bar = Math.floor((t - (song.beatOffset ?? 0)) / barSec);
       let name = "";
       for (const [b0, n] of song.sections) if (bar >= b0) name = n;
       return name;
@@ -373,7 +409,7 @@ export default function Stage({
       g.fillText(`${diffInfo.label.toUpperCase()}  Lv.${chart.level}`, lx, 86);
       g.fillStyle = "rgba(255,255,255,0.5)";
       g.font = `600 12px ${mono}`;
-      g.fillText(`${song.bpm} BPM`, lx, 106);
+      g.fillText(`${Math.round(song.bpmLabel ?? song.bpm)} BPM`, lx, 106);
       const sec = t > 0 ? secName(t) : "";
       if (sec) {
         g.fillStyle = song.color;
@@ -421,7 +457,8 @@ export default function Stage({
       const laneW = W / 4;
       const judgeY = H - 92;
       // 박자 위상 (0: 박자 순간) → 판정선·배경이 박자에 맞춰 번쩍
-      const beatPh = t > 0 ? (((t % beatSec) + beatSec) % beatSec) / beatSec : 1;
+      const bt = t - (song.beatOffset ?? 0);
+      const beatPh = bt > 0 ? (((bt % beatSec) + beatSec) % beatSec) / beatSec : 1;
       const pulse = t > 0 ? Math.exp(-beatPh * 5) : 0;
       shownScore += (engine.score - shownScore) * 0.18;
       drawBackdrop(t, pulse);
@@ -460,6 +497,14 @@ export default function Stage({
         const y = yOf(k * barSec);
         if (y < judgeY) g.fillRect(0, y - 0.5, W, 1);
       }
+      // 가림 옵션: y(0=위, judgeY=판정선) 위치에 따른 투명도
+      const coverAlpha = (y: number) => {
+        if (coverMode === "none" || calibration) return 1;
+        const r = y / judgeY; // 0 위 → 1 판정선
+        if (coverMode === "fade") return r < 0.55 ? 1 : Math.max(0, 1 - (r - 0.55) / 0.3);
+        // 서든: 위쪽 30%만 가리고 아래 70%는 보임 (반응 시간은 남기면서 미리 읽기만 막음)
+        return r < 0.3 ? 0 : Math.min(1, (r - 0.3) / 0.1);
+      };
       while (drawFrom < engine.notes.length && engine.notes[drawFrom].t < t - 4) drawFrom++;
       for (let i = drawFrom; i < engine.notes.length; i++) {
         const n = engine.notes[i];
@@ -475,15 +520,20 @@ export default function Stage({
           const yTail = Math.max(-20, yOf(n.end));
           if (yTail > H) continue;
           const bc = dead ? "#555555" : c;
+          const ca = n.holding ? 1 : coverAlpha(yHead);
+          if (ca <= 0 && coverAlpha(yTail) <= 0) continue;
+          g.globalAlpha = n.holding ? 1 : Math.max(ca, coverAlpha(yTail) * 0.6);
           drawHoldBody(g, skin, x, yHead, yTail, laneW, bc, dead ? 0.25 : n.holding ? 0.85 : 0.6);
-          g.globalAlpha = dead ? 0.35 : 1;
-          drawHead(g, skin, x, yHead, laneW, dead ? "#666666" : c);
+          g.globalAlpha = (dead ? 0.35 : 1) * ca;
+          if (g.globalAlpha > 0) drawHead(g, skin, x, yHead, laneW, dead ? "#666666" : c);
           g.globalAlpha = 1;
         } else {
           if (n.head && n.head !== "miss") continue;
           const y = yOf(n.t);
           if (y > H + 20) continue;
-          g.globalAlpha = n.head === "miss" ? 0.3 : 1;
+          const ca = n.head === "miss" ? 0.3 : coverAlpha(y);
+          if (ca <= 0) continue;
+          g.globalAlpha = ca;
           drawHead(g, skin, x, y, laneW, c);
           g.globalAlpha = 1;
         }
@@ -640,21 +690,32 @@ export default function Stage({
           g.fillText(s.text, 0, 0);
         }
         g.restore();
-        // 빠르게/늦게 친 정도: 퍼펙트 안이어도 20ms 넘게 어긋나면 표시
-        const ms = lastJudge.diff !== undefined ? Math.round(lastJudge.diff * 1000) : 0;
-        if (!miss && Math.abs(ms) > FAST_SLOW_MS) {
-          const early = ms < 0;
-          g.font = "800 15px ui-monospace, SFMono-Regular, Menlo, monospace";
-          g.fillStyle = early ? "#60A5FA" : "#FB923C";
-          g.fillText(`${early ? "FAST" : "SLOW"} ${early ? "" : "+"}${ms}ms`, W / 2, jy - 36);
-        }
       }
       if (engine.combo >= 2) {
         // 콤보가 오를 때마다 살짝 튀어오름
         const bump = Math.max(0, 1 - (t - comboAt) / 0.12);
-        g.fillStyle = "rgba(255,255,255,0.9)";
+        // 콤보가 쌓일수록 색이 달라짐: 흰 → 하늘 → 초록 → 노랑 → 주황 → 200부터 무지개
+        const cc = engine.combo;
+        const comboColor =
+          cc >= 200
+            ? `hsl(${Math.round((t * 160) % 360)} 95% 70%)`
+            : cc >= 100
+              ? "#FB923C"
+              : cc >= 50
+                ? "#FDE047"
+                : cc >= 25
+                  ? "#4ADE80"
+                  : cc >= 10
+                    ? "#7DF9FF"
+                    : "rgba(255,255,255,0.9)";
+        g.fillStyle = comboColor;
         g.font = `900 ${Math.round(64 + 14 * bump)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        if (cc >= 50) {
+          g.shadowColor = comboColor;
+          g.shadowBlur = cc >= 200 ? 24 : 14;
+        }
         g.fillText(String(engine.combo), W / 2, H * 0.4 + 58 - 4 * bump);
+        g.shadowBlur = 0;
         g.font = "700 12px ui-monospace, monospace";
         g.fillStyle = "rgba(255,255,255,0.45)";
         g.fillText("COMBO", W / 2, H * 0.4 + 98);
@@ -711,7 +772,8 @@ export default function Stage({
         ap: engine.allPerfect,
         fast,
         slow,
-        avgMs: diffN >= 10 ? Math.round((diffSum / diffN) * 1000) : null,
+        ...timingOf(diffs),
+        taps: calibration ? taps : undefined,
       });
     };
     // 화면용 부드러운 시계: 오디오 시계(currentTime)는 오디오 버퍼 단위(수~십 ms)로 뚝뚝 끊겨 올라서
@@ -729,7 +791,7 @@ export default function Stage({
     const frame = () => {
       if (!running) return;
       const t = smoothNow();
-      engine.update(t - live.judge / 1000); // 지나간 노트 미스 처리도 판정 싱크 기준
+      engine.update(t - live.judge / 1000); // 지나간 노트 미스 처리도 타격 싱크 기준
       for (const e of engine.events) {
         lastJudge = e;
         if (e.tick) {
@@ -738,10 +800,7 @@ export default function Stage({
           comboAt = e.at;
           continue;
         }
-        if (e.diff !== undefined && e.judge !== "miss") {
-          diffSum += e.diff;
-          diffN++;
-        }
+        if (e.diff !== undefined && e.judge !== "miss") diffs.push(e.diff);
         if (e.diff !== undefined && e.judge !== "miss" && Math.abs(e.diff * 1000) > FAST_SLOW_MS) {
           if (e.diff < 0) fast++;
           else slow++;
@@ -765,7 +824,7 @@ export default function Stage({
         }
       }
       engine.events.length = 0;
-      if (engine.dead) return fail(t);
+      if (engine.dead && !calibration) return fail(t);
       draw(t);
       if (engine.done && t > Math.max(engine.lastTime + 1.2, songEnd)) return finish();
       raf = requestAnimationFrame(frame);
@@ -801,7 +860,18 @@ export default function Stage({
       raf = requestAnimationFrame(tick);
     };
 
-    const press = (lane: number) => {
+    /**
+     * 입력 이벤트가 실제로 발생한 시각(event.timeStamp)을 곡 시간으로.
+     * 핸들러가 늦게 돌아도(프레임 사이 대기, GC 등) 누른 순간 기준으로 판정하려고.
+     * 시계 대응은 화면 시계(smoothNow)와 같은 clockBase를 씀. 값이 이상하면 지금 시각으로.
+     */
+    const eventTime = (stamp: number) => {
+      const cur = now();
+      if (clockBase === null || !Number.isFinite(stamp)) return cur;
+      const t = stamp / 1000 + clockBase;
+      return t <= cur + 0.005 && cur - t < 0.2 ? t : cur;
+    };
+    const press = (lane: number, stamp = NaN) => {
       if (!running) return;
       if (live.hit > 0) {
         const src = ctx.createBufferSource();
@@ -809,11 +879,19 @@ export default function Stage({
         src.connect(hitGain);
         src.start();
       }
-      engine.press(lane, now() - live.judge / 1000);
+      const t = eventTime(stamp);
+      if (calibration) {
+        let bi = -1;
+        for (let i = 0; i < noteTimes.length; i++)
+          if (bi < 0 || Math.abs(t - noteTimes[i]) < Math.abs(t - noteTimes[bi])) bi = i;
+        const d = t - noteTimes[bi];
+        if (bi >= CAL_SKIP && Math.abs(d) <= 0.25) taps.push(Math.round(d * 1000));
+      }
+      engine.press(lane, t - live.judge / 1000);
     };
-    const release = (lane: number) => {
+    const release = (lane: number, stamp = NaN) => {
       if (!running) return;
-      engine.release(lane, now() - live.judge / 1000);
+      engine.release(lane, eventTime(stamp) - live.judge / 1000);
     };
 
     // 재개 카운트다운 (멈춘 화면 위에 3·2·1, 끝나면 음악 재개)
@@ -872,7 +950,7 @@ export default function Stage({
     const apply = (p: Partial<LiveSettings>) => {
       Object.assign(live, p);
       if (p.speed !== undefined) vis = visibleSec(live.speed);
-      if (p.music !== undefined) musicGain.gain.value = live.music;
+      if (p.music !== undefined && !calibration) musicGain.gain.value = live.music;
       if (p.hit !== undefined) hitGain.gain.value = live.hit * 0.9;
     };
     ctrl.current = { pause, resume, apply };
@@ -900,11 +978,11 @@ export default function Stage({
       const lane = KEY_CODES.indexOf(e.code);
       if (lane < 0) return;
       e.preventDefault();
-      if (!e.repeat) press(lane);
+      if (!e.repeat) press(lane, e.timeStamp);
     };
     const onKeyUp = (e: KeyboardEvent) => {
       const lane = KEY_CODES.indexOf(e.code);
-      if (lane >= 0) release(lane);
+      if (lane >= 0) release(lane, e.timeStamp);
     };
     const laneAt = (clientX: number) => {
       const r = canvas.getBoundingClientRect();
@@ -915,14 +993,14 @@ export default function Stage({
       e.preventDefault();
       const lane = laneAt(e.clientX);
       lanePointer.set(e.pointerId, lane);
-      press(lane);
+      press(lane, e.timeStamp);
     };
     const onPointerUp = (e: PointerEvent) => {
       const lane = lanePointer.get(e.pointerId);
       if (lane === undefined) return;
       lanePointer.delete(e.pointerId);
       // 같은 레인을 다른 손가락이 아직 누르고 있으면 유지
-      if (![...lanePointer.values()].includes(lane)) release(lane);
+      if (![...lanePointer.values()].includes(lane)) release(lane, e.timeStamp);
     };
     const onVisibility = () => {
       if (document.hidden) pause();
@@ -1000,18 +1078,22 @@ export default function Stage({
                 onMinus={() => change({ speed: clamp(round1(liveUi.speed - 0.1), 1, 8) })}
                 onPlus={() => change({ speed: clamp(round1(liveUi.speed + 0.1), 1, 8) })}
               />
-              <PauseRow
-                label="음악 싱크"
-                value={`${liveUi.offset > 0 ? "+" : ""}${liveUi.offset}ms`}
-                onMinus={() => change({ offset: clamp(liveUi.offset - 1, -400, 400) })}
-                onPlus={() => change({ offset: clamp(liveUi.offset + 1, -400, 400) })}
-              />
-              <PauseRow
-                label="판정 싱크"
-                value={`${liveUi.judge > 0 ? "+" : ""}${liveUi.judge}ms`}
-                onMinus={() => change({ judge: clamp(liveUi.judge - 1, -400, 400) })}
-                onPlus={() => change({ judge: clamp(liveUi.judge + 1, -400, 400) })}
-              />
+              {!calibration && (
+                <>
+                  <PauseRow
+                    label="음악 싱크"
+                    value={`${liveUi.offset > 0 ? "+" : ""}${liveUi.offset}ms`}
+                    onMinus={() => change({ offset: clamp(liveUi.offset - 1, -400, 400) })}
+                    onPlus={() => change({ offset: clamp(liveUi.offset + 1, -400, 400) })}
+                  />
+                  <PauseRow
+                    label="타격 싱크"
+                    value={`${liveUi.judge > 0 ? "+" : ""}${liveUi.judge}ms`}
+                    onMinus={() => change({ judge: clamp(liveUi.judge - 1, -400, 400) })}
+                    onPlus={() => change({ judge: clamp(liveUi.judge + 1, -400, 400) })}
+                  />
+                </>
+              )}
               <PauseSlider
                 label="음악 볼륨"
                 value={liveUi.music}

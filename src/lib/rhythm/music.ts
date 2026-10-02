@@ -1,7 +1,15 @@
 /**
- * 리듬게임 곡 데이터. 저작권 걱정 없이 직접 작곡한 곡을 16분음표 격자 위의 이벤트로 정의하고,
- * 소리(synth.ts)와 채보(chart.ts)가 같은 이벤트에서 나오게 해서 박자가 정확히 맞도록 한다.
+ * 리듬게임 곡 데이터.
+ *  - 음원 곡: AI 자작곡 mp3 + 미리 분석해 둔 고정 채보(JSON)
+ *  - 신스 곡(지금은 없음): 16분음표 격자 이벤트로 작곡 → synth.ts가 소리를, chart.ts가 채보를 같은 이벤트에서 만듦.
+ *    작곡 엔진(build/SongSpec)은 나중에 다시 쓸 수 있게 남겨 둠.
  */
+
+import type { Chart, Difficulty } from "./chart";
+import jiljuData from "@/data/rhythm/jilju.json";
+import natsuData from "@/data/rhythm/natsukasumi.json";
+import rinkakuData from "@/data/rhythm/rinkaku.json";
+import newdimData from "@/data/rhythm/newdim.json";
 
 export type Kind =
   | "kick"
@@ -15,7 +23,9 @@ export type Kind =
   | "gtr"
   | "lead"
   | "arp"
-  | "pad";
+  | "pad"
+  /** 노이즈 스윕(드롭 직전 긴장감). 채보에는 안 들어감 */
+  | "riser";
 
 export interface MusicEvent {
   /** 곡 시작부터 16분음표 단위 위치 */
@@ -31,8 +41,9 @@ export interface MusicEvent {
 
 export interface SoundSet {
   /** supersaw: 톱니파 여러 개를 살짝 어긋나게 겹친 두꺼운 리드
-   *  piano: 리드·아르페지오·베이스를 전부 피아노 음색으로 */
-  lead: OscillatorType | "supersaw" | "piano";
+   *  piano: 리드·아르페지오·베이스를 전부 피아노 음색으로
+   *  gtrlead: 디스토션 걸린 리드 기타 (밴드 사운드) */
+  lead: OscillatorType | "supersaw" | "piano" | "gtrlead";
   arp: OscillatorType;
   /** 리드 딜레이 길이(16분음표 수) */
   delaySteps: number;
@@ -40,6 +51,12 @@ export interface SoundSet {
   leadGain?: number;
   /** 드럼 음량 배율 (기본 1) */
   drums?: number;
+  /** 피아노 리드 위에 슈퍼쏘 신스를 얇게 겹침 (클래식 + EDM) */
+  layer?: boolean;
+  /** 사이드체인: 킥마다 패드·아르페지오·베이스가 눌렸다 올라옴 (펌핑) */
+  pump?: boolean;
+  /** 밝은 톤: 저음·디스토션을 줄이고 고역을 열어서 가볍게 (K-팝 밴드) */
+  bright?: boolean;
 }
 
 export interface Song {
@@ -55,6 +72,16 @@ export interface Song {
   sound: SoundSet;
   color: string;
   desc: string;
+  /** 첫 박 시각(초). 직접 넣은 음악처럼 0초에 박이 시작하지 않을 때 */
+  beatOffset?: number;
+  /** 화면에 보여줄 BPM (12/8·셔플 곡은 분석 비트가 점4분음표라 1.5배로 환산). 없으면 bpm */
+  bpmLabel?: number;
+  /** 사용자가 넣은 음악 (랭킹 없음) */
+  custom?: boolean;
+  /** 음원 파일로 재생하는 곡 (신스 렌더 대신 이 파일을 불러옴) */
+  audio?: string;
+  /** 음원 곡의 고정 채보 (미리 분석해 둔 것 — 모두 같은 채보로 쳐서 랭킹이 공정함) */
+  charts?: Record<Difficulty, Chart>;
 }
 
 // ───────────────────────── 작곡용 헬퍼 ─────────────────────────
@@ -109,6 +136,10 @@ interface Section {
   lead?: string[];
   /** 피아노 페달: true면 전부, "acc"면 반주(베이스·아르페지오)만 마디 끝까지 울림 */
   pedal?: boolean | "acc";
+  /** 구간 끝 n마디 동안 노이즈 라이저 (다음 구간 드롭 예고) */
+  riser?: number;
+  /** 하이햇을 16분으로 (x = 세게, o = 여리게) */
+  hat16?: boolean;
 }
 
 interface SongSpec {
@@ -122,6 +153,9 @@ interface SongSpec {
   color: string;
   desc: string;
 }
+
+/** 16분 하이햇 패턴 (x = 세게, o = 여리게) — Section.hat16 */
+const HAT16 = "xoxoxoxoxoxoxoxo";
 
 const drumAt = (d: Drum | undefined, bar: number) =>
   d === undefined ? "" : typeof d === "string" ? d : d[bar % d.length];
@@ -146,7 +180,7 @@ function build(spec: SongSpec): Song {
         ["kick", sec.kick],
         ["snare", sec.snare],
         ["clap", sec.clap],
-        ["hat", sec.hat],
+        ["hat", sec.hat16 ? HAT16 : sec.hat],
         ["ohat", sec.ohat],
         ["crash", sec.crash],
       ];
@@ -217,6 +251,10 @@ function build(spec: SongSpec): Song {
           events.push({ step: base + n.at, kind: "lead", midi: n.midi + tr, len: n.len, vel: 1 });
       }
     }
+    if (sec.riser) {
+      const from = (bar0 + sec.bars - sec.riser) * 16;
+      events.push({ step: from, kind: "riser", len: sec.riser * 16, vel: 1 });
+    }
     if (sec.pedal)
       for (let i = secStart; i < events.length; i++) {
         const k = events[i].kind;
@@ -243,299 +281,73 @@ function build(spec: SongSpec): Song {
   };
 }
 
-// ───────────────────────── 공용 드럼 패턴 ─────────────────────────
+// ───────────────────────── 음원 곡 (tunee.ai AI 자작곡) ─────────────────────────
+// 채보는 '내 음악' 분석기로 미리 뽑아 JSON으로 고정 (모두 같은 채보 → 랭킹 공정).
 
-const FOUR = "x...x...x...x...";
-const BACK = "....x.......x...";
-const ROCK_KICK = "x.....x...x.....";
-const HAT8 = "x.x.x.x.x.x.x.x.";
-const CRASH1 = "x...............";
-const FILL_SN = "........x.x.xxxx";
-const FILL_TOM = "........xxxxxxxx";
+interface AudioSongData {
+  bpm: number;
+  /** 표시용 BPM (셔플 곡은 1.5배) */
+  bpmLabel?: number;
+  beatOffset: number;
+  duration: number;
+  charts: Record<string, { level: number; units: number; notes: number[][] }>;
+}
 
-// ───────────────────────── 곡: Moonlight (베토벤 월광 소나타 3악장 리믹스) ─────────────────────────
-// 원곡(1801)은 퍼블릭 도메인, 편곡은 직접. 3악장 Presto 아르페지오 + 1악장 테마 인용 브레이크.
+function audioSong(
+  id: string,
+  title: string,
+  audio: string,
+  data: AudioSongData,
+  extra: { color: string; desc: string }
+): Song {
+  const charts = Object.fromEntries(
+    Object.entries(data.charts).map(([d, c]) => [
+      d,
+      {
+        level: c.level,
+        units: c.units,
+        notes: c.notes.map(([t, lane, end]) => (end ? { t, lane, end } : { t, lane })),
+      },
+    ])
+  ) as Record<Difficulty, Chart>;
+  const beatSec = 60 / data.bpm;
+  return {
+    id,
+    title,
+    bpm: data.bpm,
+    bpmLabel: data.bpmLabel,
+    bars: Math.ceil(data.duration / (beatSec * 4)),
+    duration: data.duration,
+    events: [],
+    sections: [[0, ""]],
+    sound: { lead: "sine", arp: "sine", delaySteps: 0 },
+    beatOffset: data.beatOffset,
+    audio,
+    charts,
+    ...extra,
+  };
+}
 
-const CSm = ["c#2", "c#4", "e4", "g#4"];
-const CSmB = ["b1", "c#4", "e4", "g#4"];
-const GS7 = ["g#1", "b#3", "d#4", "f#4"];
-const GS = ["g#1", "g#3", "b#3", "d#4"];
-const GSm = ["g#1", "g#3", "b3", "d#4"];
-const A3 = ["a1", "a3", "c#4", "e4"];
-const FSm3 = ["f#1", "f#3", "a3", "c#4"];
-const E3 = ["e2", "e3", "g#3", "b3"];
-const B3 = ["b1", "b3", "d#4", "f#4"];
+const JILJU = audioSong("jilju", "질주주의보", "/audio/jilju.mp3", jiljuData, {
+  color: "#38BDF8",
+  desc: "170 BPM · K-POP ROCK · AI 자작곡 (tunee.ai)",
+});
+const NATSU = audioSong("natsukasumi", "夏霞のあと", "/audio/natsukasumi.mp3", natsuData, {
+  color: "#F9A8D4",
+  desc: "119 BPM · J-ROCK / INDIE POP · AI 자작곡 (tunee.ai)",
+});
 
-const prestoCm1 = "c#4 e4 g#4 c#5 e4 g#4 c#5 e5 g#4 c#5 e5 g#5 c#5 e5 g#5 c#6";
-const prestoCm2 = "c#5 e5 g#5 c#6 e5 g#5 c#6 e6 . . c#6 - . . c#6 -";
-const prestoG1 = "b#3 d#4 f#4 g#4 d#4 f#4 g#4 b#4 f#4 g#4 b#4 d#5 g#4 b#4 d#5 f#5";
-const prestoG2 = "g#4 b#4 d#5 g#5 b#4 d#5 g#5 b#5 . . g#5 - . . g#5 -";
-const prestoA = "a3 c#4 e4 a4 c#4 e4 a4 c#5 e4 a4 c#5 e5 a4 c#5 e5 a5";
-const prestoFm = "f#3 a3 c#4 f#4 a3 c#4 f#4 a4 c#4 f#4 a4 c#5 f#4 a4 c#5 f#5";
-const prestoGend = "g#3 b#3 d#4 g#4 b#3 d#4 g#4 b#4 d#4 g#4 b#4 d#5 . . g#5 -";
-const presto = [prestoCm1, prestoCm2, prestoG1, prestoG2, prestoCm1, prestoA, prestoFm, prestoGend];
-const prestoChords = [CSm, CSm, GS7, GS7, CSm, A3, FSm3, GS];
+const RINKAKU = audioSong("rinkaku", "名前のない輪郭", "/audio/rinkaku.mp3", rinkakuData, {
+  color: "#FBBF24",
+  desc: "163 BPM · J-ROCK (12/8) · AI 자작곡 (tunee.ai)",
+});
 
-const moonTheme2 = [
-  "g#5 - - - f#5 - e5 - d#5 - e5 - f#5 - - -",
-  "d#5 - - - c#5 - b4 - a4 - b4 - c#5 - - -",
-  "e5 - - - d#5 - c#5 - b4 - c#5 - e5 - g#5 -",
-  "f#5 - - - - - d#5 - - - - - . . . .",
-  "c#6 - - - b5 - a5 - g#5 - a5 - b5 - - -",
-  "b5 - - - a5 - g#5 - f#5 - g#5 - e5 - - -",
-  "a5 - - - g#5 - f#5 - e5 - f#5 - a5 - c#6 -",
-  "b#5 - - - - - - - g#5 - - - . . . .",
-];
-const theme2Chords = [E3, B3, CSm, GSm, A3, E3, FSm3, GS];
+const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimData, {
+  color: "#C084FC",
+  desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
+});
 
-// 1악장(Adagio sostenuto) 멜로디: 셋잇단 반주는 16분음표로 바꿔 흐르게
-const adagio = [
-  ". . . . . . . . . . . . . . . .",
-  ". . . . . . . . . . . . . . . .",
-  ". . . . . . . . . . . . g#4 - - g#4",
-  "g#4 - - - - - - - g#4 - - g#4 g#4 - - -",
-  "g#4 - - - - - - - g#4 - - g#4 g#4 - - -",
-  "g#4 - - - - - - - a4 - - - g#4 - - -",
-  "f#4 - - - - - - - b4 - - - e4 - - -",
-  "d#4 - - - - - - - - - - - . . . .",
-];
+export const SONGS: Song[] = [JILJU, NATSU, RINKAKU, NEWDIM];
 
-const MOON: SongSpec = {
-  id: "moonlight",
-  title: "Moonlight",
-  bpm: 160,
-  color: "#A5B4FC",
-  desc: "160 BPM · 베토벤 월광 3악장 리믹스",
-  chords: prestoChords,
-  sound: { lead: "piano", arp: "triangle", delaySteps: 3, drums: 0.42 },
-  sections: [
-    {
-      name: "Intro",
-      pedal: true,
-      bars: 2,
-      chords: [CSm, CSm],
-      bass: "root",
-      lead: [prestoCm1, prestoCm2],
-    },
-    {
-      name: "Presto",
-      pedal: true,
-      bars: 8,
-      chords: prestoChords,
-      kick: ROCK_KICK,
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-      bass: "octave",
-      lead: presto,
-    },
-    {
-      name: "Theme",
-      pedal: "acc",
-      bars: 8,
-      chords: theme2Chords,
-      kick: FOUR,
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-      bass: "octave",
-      arp: 1,
-      lead: moonTheme2,
-    },
-    {
-      name: "Adagio",
-      pedal: true,
-      bars: 8,
-      chords: [CSm, CSmB, A3, GS7, CSm, CSmB, A3, GS7],
-      kick: [
-        "x...............",
-        "",
-        "x...............",
-        "",
-        "x.......x.......",
-        "x.......x.......",
-        "x.......x.......",
-        "x...x...x...x...",
-      ],
-      arp: 1,
-      arpVel: 0.7,
-      bass: "root",
-      lead: adagio,
-    },
-    {
-      name: "Build",
-      pedal: true,
-      bars: 4,
-      chords: [GS7, GS7, GS7, GS7],
-      kick: FOUR,
-      snare: ["x...x...x...x...", "x.x.x.x.x.x.x.x.", "x.x.x.x.x.x.x.x.", "xxxxxxxxxxxxxxxx"],
-      hat: HAT8,
-      tom: ["", "", "", FILL_TOM],
-      bass: "pulse",
-      lead: [prestoG1, prestoG2, prestoG1, prestoGend],
-    },
-    {
-      name: "Presto",
-      pedal: true,
-      bars: 8,
-      chords: prestoChords,
-      kick: FOUR,
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-      bass: "octave",
-      lead: presto,
-    },
-    {
-      name: "Theme",
-      pedal: "acc",
-      bars: 8,
-      chords: theme2Chords,
-      kick: FOUR,
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-      tom: ["", "", "", "", "", "", "", FILL_TOM],
-      bass: "octave",
-      arp: 1,
-      lead: moonTheme2,
-    },
-    {
-      name: "Outro",
-      pedal: true,
-      bars: 2,
-      chords: [CSm, CSm],
-      kick: ["x.......x.......", "x..............."],
-      crash: [CRASH1, CRASH1],
-      bass: "half",
-      lead: ["c#5 - - - . . . . c#5 - - - . . . .", "c#4 - - - - - - - - - - - - - - -"],
-    },
-  ],
-};
-
-// ───────────────────────── 곡: Flight of the Bumblebee (림스키코르사코프 「왕벌의 비행」 리믹스) ─────────────────────────
-// 원곡(1900)은 퍼블릭 도메인, 편곡은 직접. 쉬지 않고 이어지는 반음계 16분음표가 핵심.
-
-const Am = ["a1", "a3", "c4", "e4"];
-const E7 = ["e2", "g#3", "b3", "d4"];
-const Dm = ["d2", "d4", "f4", "a4"];
-const F = ["f1", "f3", "a3", "c4"];
-
-// 도입: 높은 E에서 반음씩 흘러내림
-const beeIntro = [
-  "e6 d#6 d6 c#6 d6 c#6 c6 b5 c6 b5 a#5 a5 g#5 g5 f#5 f5",
-  "e5 d#5 d5 c#5 d5 c#5 c5 b4 c5 b4 a#4 a4 g#4 g4 f#4 f4",
-];
-// 주제: A에서 반음 내려갔다 돌아오는 붕붕거림
-const beeA1 = "a5 g#5 g5 f#5 f5 a#5 a5 g#5 a5 g#5 g5 f#5 f5 f#5 g5 g#5";
-const beeA2 = "a5 g#5 g5 f#5 g5 f#5 f5 e5 f5 e5 d#5 d5 c#5 c5 b4 a#4";
-const beeA3 = "a4 g#4 g4 f#4 f4 a#4 a4 g#4 a4 g#4 g4 f#4 f4 f#4 g4 g#4";
-const beeA4 = "a4 a#4 b4 c5 c#5 d5 d#5 e5 f5 f#5 g5 g#5 a5 - . .";
-const beeA = [beeA1, beeA1, beeA2, beeA3, beeA1, beeA1, beeA2, beeA4];
-const beeAChords = [Am, Am, E7, Am, Am, Am, E7, Am];
-// 4도 위(D)로 옮긴 주제
-const beeB1 = "d6 c#6 c6 b5 a#5 d#6 d6 c#6 d6 c#6 c6 b5 a#5 b5 c6 c#6";
-const beeB2 = "d6 c#6 c6 b5 c6 b5 a#5 a5 a#5 a5 g#5 g5 f#5 f5 e5 d#5";
-const beeB3 = "d5 c#5 c5 b4 a#4 d#5 d5 c#5 d5 c#5 c5 b4 a#4 b4 c5 c#5";
-const beeRun = "e5 f5 f#5 g5 g#5 a5 a#5 b5 c6 c#6 d6 d#6 e6 - - -";
-const beeB = [beeB1, beeB1, beeB2, beeB3, beeA1, beeA1, beeA2, beeRun];
-const beeBChords = [Dm, Dm, Dm, Dm, Am, Am, E7, E7];
-// 날갯짓 트릴 + 긴 음 (숨 돌리는 구간)
-const beeBuzz = [
-  "e5 f5 e5 f5 e5 f5 e5 f5 e5 f5 e5 f5 e5 - - -",
-  "d#5 e5 d#5 e5 d#5 e5 d#5 e5 d#5 e5 d#5 e5 d#5 - - -",
-  "a5 - - - - - - - g#5 - - - - - - -",
-  "g5 - - - f#5 - - - f5 - - - e5 - - -",
-];
-// 끝: 반음씩 기어올라 A로 착지
-const beeFinal = [
-  "f4 f#4 g4 g#4 a4 a#4 b4 c5 c#5 d5 d#5 e5 f5 f#5 g5 g#5",
-  "a5 a#5 b5 c6 c#6 d6 d#6 e6 . . e6 . . e6 . .",
-  beeA1,
-  "a5 g#5 g5 f#5 f5 e5 d#5 d5 c#5 c5 b4 a#4 a4 g#4 g4 f#4",
-];
-
-const BEE: SongSpec = {
-  id: "bumblebee",
-  title: "Flight of the Bumblebee",
-  bpm: 150,
-  color: "#FACC15",
-  desc: "150 BPM · 림스키코르사코프 왕벌의 비행 리믹스",
-  chords: beeAChords,
-  sound: { lead: "piano", arp: "triangle", delaySteps: 3, drums: 0.42 },
-  sections: [
-    { name: "Intro", bars: 2, chords: [Am, E7], lead: beeIntro },
-    {
-      name: "Theme",
-      pedal: "acc",
-      bars: 8,
-      chords: beeAChords,
-      kick: FOUR,
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-      bass: "pulse",
-      lead: beeA,
-    },
-    {
-      name: "Rise",
-      pedal: "acc",
-      bars: 8,
-      chords: beeBChords,
-      kick: ROCK_KICK,
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-      bass: "octave",
-      lead: beeB,
-    },
-    {
-      name: "Buzz",
-      bars: 4,
-      pedal: "acc",
-      chords: [Am, E7, F, E7],
-      kick: ["x.......x.......", "x.......x.......", "x...............", "x...x...x...x..."],
-      bass: "root",
-      arp: 2,
-      arpVel: 0.9,
-      lead: beeBuzz,
-    },
-    {
-      name: "Theme",
-      pedal: "acc",
-      bars: 8,
-      chords: beeAChords,
-      kick: FOUR,
-      snare: [BACK, BACK, BACK, BACK, BACK, BACK, BACK, FILL_SN],
-      hat: HAT8,
-      crash: [CRASH1, "", "", "", CRASH1, "", "", ""],
-      tom: ["", "", "", "", "", "", "", FILL_TOM],
-      bass: "octave",
-      lead: beeA,
-    },
-    {
-      name: "Final",
-      pedal: "acc",
-      bars: 4,
-      chords: [E7, E7, Am, E7],
-      kick: FOUR,
-      snare: [BACK, "x.x.x.x.x.x.x.x.", BACK, "xxxxxxxxxxxxxxxx"],
-      hat: HAT8,
-      crash: [CRASH1, "", CRASH1, ""],
-      bass: "pulse",
-      lead: beeFinal,
-    },
-    {
-      name: "Outro",
-      bars: 2,
-      pedal: true,
-      chords: [Am, Am],
-      kick: ["x.......x.......", "x..............."],
-      crash: [CRASH1, CRASH1],
-      bass: "half",
-      lead: ["a5 . e5 . c5 . a4 . a5 - - - - - - -", "a4 - - - - - - - - - - - . . . ."],
-    },
-  ],
-};
-
-export const SONGS: Song[] = [build(MOON), build(BEE)];
+// 작곡 엔진 외부 노출 (지금은 안 쓰지만 신스 곡을 다시 넣을 때 사용)
+export { build, type SongSpec };

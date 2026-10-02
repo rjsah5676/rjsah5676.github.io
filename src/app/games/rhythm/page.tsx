@@ -5,7 +5,7 @@ import { pageMeta } from "@/lib/seo";
 export const metadata = pageMeta({
   title: "리듬게임",
   description:
-    "4키(DFJK) 리듬게임. 베토벤 월광 3악장·림스키코르사코프 왕벌의 비행 피아노 리믹스, 쉬움~매우 어려움 4단계, 롱노트, 노트 속도·싱크 조절, HP·롱노트 콤보, 모바일 터치 지원.",
+    "4키(DFJK) 리듬게임. AI 자작곡(질주주의보·夏霞のあと) + 내 mp3를 넣어 자동 채보로 플레이, 쉬움~매우 어려움 4단계, 롱노트, 노트 속도·싱크 조절, HP·롱노트 콤보, 모바일 터치 지원.",
   path: "/games/rhythm/",
 });
 

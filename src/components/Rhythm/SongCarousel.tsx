@@ -3,12 +3,16 @@
 import { useRef } from "react";
 import type { StaticImageData } from "next/image";
 import type { Song } from "@/lib/rhythm/music";
-import moonCover from "@/img/rhythm/moonlight.svg";
-import beeCover from "@/img/rhythm/bumblebee.svg";
+import jiljuCover from "@/img/rhythm/jilju.jpg";
+import natsuCover from "@/img/rhythm/natsukasumi.jpg";
+import rinkakuCover from "@/img/rhythm/rinkaku.jpg";
+import newdimCover from "@/img/rhythm/newdim.jpg";
 
 export const COVERS: Record<string, StaticImageData> = {
-  moonlight: moonCover,
-  bumblebee: beeCover,
+  jilju: jiljuCover,
+  natsukasumi: natsuCover,
+  rinkaku: rinkakuCover,
+  newdim: newdimCover,
 };
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;

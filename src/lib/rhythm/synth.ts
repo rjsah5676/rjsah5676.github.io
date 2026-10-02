@@ -41,14 +41,58 @@ export async function renderChunk(
   const noise = makeNoise(ctx);
   const chip = song.sound.lead === "square";
   const piano = song.sound.lead === "piano";
+  // 밝은 톤(K-팝 밴드): 저음·디스토션을 줄이고 고역을 열어 가볍고 반짝이게
+  const bright = !!song.sound.bright;
 
   const bus = ctx.createGain();
   bus.gain.value = 0.8;
-  bus.connect(ctx.destination);
+  // 마스터: 살짝 눌러서(소프트 클립) 드럼이 커져도 안 깨지게
+  const master = ctx.createWaveShaper();
+  {
+    const c = new Float32Array(2048);
+    for (let i = 0; i < c.length; i++) {
+      const x = (i / (c.length - 1)) * 2 - 1;
+      c[i] = Math.tanh(x * 1.3) / Math.tanh(1.3);
+    }
+    master.curve = c;
+    master.oversample = "2x";
+  }
+  bus.connect(master).connect(ctx.destination);
   // 드럼은 따로 모아서 곡마다 음량 조절
   const drumBus = ctx.createGain();
   drumBus.gain.value = song.sound.drums ?? 1;
   drumBus.connect(bus);
+  // 사이드체인 펌핑: 킥마다 눌렸다가 올라오는 버스 (패드·아르페지오·베이스·기타가 지나감)
+  const pump = ctx.createGain();
+  pump.gain.value = 1;
+  pump.connect(bus);
+  const duck: AudioNode = song.sound.pump ? pump : bus;
+  if (song.sound.pump)
+    for (const e of events)
+      if (e.kind === "kick" && e.vel >= 0.9) {
+        const t = e.step * stepSec - t0;
+        pump.gain.setValueAtTime(0.35, Math.max(0, t));
+        pump.gain.linearRampToValueAtTime(1, t + stepSec * 2.6);
+      }
+  // 짧은 스테레오 잔향 (스네어·클랩·피아노 공간감)
+  const ir = ctx.createBuffer(2, Math.floor(SR * 1.4), SR);
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c);
+    let seed = 99 + c * 1000;
+    for (let i = 0; i < d.length; i++) {
+      seed = (seed * 16807) % 2147483647;
+      const tt = i / SR;
+      d[i] = ((seed / 2147483647) * 2 - 1) * Math.exp(-tt * 3.2) * (tt < 0.012 ? tt / 0.012 : 1);
+    }
+  }
+  const verb = ctx.createConvolver();
+  verb.buffer = ir;
+  const verbOut = ctx.createGain();
+  verbOut.gain.value = 0.12;
+  verb.connect(verbOut).connect(bus);
+  const snareVerb = ctx.createGain();
+  snareVerb.gain.value = 0.5;
+  snareVerb.connect(verb);
 
   // 리드·아르페지오용 스테레오 딜레이 (L 한 번, R 두 번 늦게)
   const send = ctx.createGain();
@@ -81,10 +125,14 @@ export async function renderChunk(
   const ohatF = filter("highpass", 7000, 0.7, drumBus);
   const snareF = filter("highpass", 1400, 0.7, drumBus);
   const clapF = filter("bandpass", 1500, 1.2, drumBus);
-  const padF = filter("lowpass", 1300, 1);
-  const arpF = filter("lowpass", 3200, 1);
+  const padF = filter("lowpass", bright ? 2800 : 1300, bright ? 0.7 : 1, duck);
+  const arpF = filter("lowpass", 3200, 1, duck);
   const leadF = filter("lowpass", chip ? 5000 : 3400, 1);
-  const bassF = filter("lowpass", 850, 3);
+  const bassF = filter("lowpass", bright ? 1400 : 850, bright ? 1.5 : 3, duck);
+  const subF = filter("lowpass", 160, 0.7, duck);
+  // 피아노 위에 얇게 겹치는 슈퍼쏘 (어두운 로우패스로 몸통만)
+  const layerF = filter("lowpass", 2200, 0.8, duck);
+  const riserF = filter("bandpass", 400, 1.4, bus);
   const arpSend = ctx.createGain();
   arpSend.gain.value = 0.35;
   arpF.connect(arpSend).connect(send);
@@ -92,8 +140,8 @@ export async function renderChunk(
   // 디스토션은 음압이 확 커져서 멜로디 밑으로 깔리게 크게 줄임
   const gtrOut = ctx.createGain();
   gtrOut.gain.value = 0.26;
-  gtrOut.connect(bus);
-  const gtrF = filter("lowpass", 3000, 0.8, gtrOut);
+  gtrOut.connect(duck);
+  const gtrF = filter("lowpass", bright ? 5200 : 3000, 0.8, gtrOut);
   const shaper = ctx.createWaveShaper();
   const curve = new Float32Array(1024);
   for (let i = 0; i < curve.length; i++) {
@@ -103,12 +151,38 @@ export async function renderChunk(
   shaper.curve = curve;
   shaper.oversample = "2x";
   const gtrIn = ctx.createGain();
-  gtrIn.gain.value = 0.9;
+  gtrIn.gain.value = bright ? 0.45 : 0.9;
   gtrIn.connect(shaper).connect(gtrF);
   const crashF = filter("highpass", 5000, 0.5, drumBus);
   const leadSend = ctx.createGain();
   leadSend.gain.value = 0.6;
   leadF.connect(leadSend).connect(send);
+  // 리드 기타: 톱니 2개(살짝 어긋남) → 더 센 디스토션 → 로우패스, 딜레이로 공간감
+  const leadGtrOut = ctx.createGain();
+  leadGtrOut.gain.value = 0.2 * (song.sound.leadGain ?? 1);
+  leadGtrOut.connect(bus);
+  leadGtrOut.connect(leadSend);
+  const leadGtrF = filter("lowpass", bright ? 6500 : 2600, bright ? 0.6 : 1.2, leadGtrOut);
+  // 밝은 톤은 저음을 걷어내서 묵직함을 없앰
+  const leadGtrHp = bright ? filter("highpass", 320, 0.7, leadGtrF) : leadGtrF;
+  const leadShaper = ctx.createWaveShaper();
+  {
+    const c = new Float32Array(1024);
+    for (let i = 0; i < c.length; i++) {
+      const x = (i / (c.length - 1)) * 2 - 1;
+      c[i] = Math.tanh(x * (bright ? 3.5 : 9)) * 0.75;
+    }
+    leadShaper.curve = c;
+    leadShaper.oversample = "4x";
+  }
+  const leadGtrIn = ctx.createGain();
+  leadGtrIn.gain.value = bright ? 0.9 : 1.2;
+  leadGtrIn.connect(leadShaper).connect(leadGtrHp);
+  // 반짝이 레이어: 리드 한 옥타브 위 삼각파 (밝은 톤일 때만)
+  const sparkleF = filter("lowpass", 9000, 0.7, bus);
+  const sparkleSend = ctx.createGain();
+  sparkleSend.gain.value = 0.5;
+  sparkleF.connect(sparkleSend).connect(send);
 
   const gainEnv = (
     t: number,
@@ -174,25 +248,11 @@ export async function renderChunk(
   // 음 높이별로 미리 계산한 피아노 샘플(piano.ts)을 틀고, 건반을 뗄 때(또는 페달을 뗄 때) 댐퍼로 줄인다.
   let pianoIn: AudioNode = bus;
   if (piano) {
-    // 공간감: 짧은 스테레오 잔향 (좌우 다른 노이즈로 만든 임펄스)
-    const ir = ctx.createBuffer(2, Math.floor(SR * 1.8), SR);
-    for (let c = 0; c < 2; c++) {
-      const d = ir.getChannelData(c);
-      let seed = 99 + c * 1000;
-      for (let i = 0; i < d.length; i++) {
-        seed = (seed * 16807) % 2147483647;
-        const tt = i / SR;
-        d[i] = ((seed / 2147483647) * 2 - 1) * Math.exp(-tt * 2.8) * (tt < 0.015 ? tt / 0.015 : 1);
-      }
-    }
-    const verb = ctx.createConvolver();
-    verb.buffer = ir;
-    const verbOut = ctx.createGain();
-    verbOut.gain.value = 0.1;
-    verb.connect(verbOut).connect(bus);
     const pIn = ctx.createGain();
     pIn.connect(bus);
-    pIn.connect(verb);
+    const pVerb = ctx.createGain();
+    pVerb.gain.value = 0.8;
+    pIn.connect(pVerb).connect(verb);
     pianoIn = pIn;
   }
   const barSec = stepSec * 16;
@@ -223,19 +283,23 @@ export async function renderChunk(
     const v = e.vel;
     switch (e.kind) {
       case "kick": {
+        // 몸통: 180→45Hz 빠른 피치 드롭 + 서브가 길게
         const o = ctx.createOscillator();
-        o.frequency.setValueAtTime(150, t);
-        o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
+        o.frequency.setValueAtTime(180, t);
+        o.frequency.exponentialRampToValueAtTime(45, t + 0.09);
         const g = ctx.createGain();
-        g.gain.setValueAtTime(0.95 * v, t);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+        g.gain.setValueAtTime(1.0 * v, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
         o.connect(g).connect(drumBus);
         o.start(t);
-        o.stop(t + 0.45);
+        o.stop(t + 0.52);
+        // 어택: 2ms 클릭 (비터가 닿는 소리) — 작은 스피커에서도 킥이 들리게
+        noiseHit(t, 0.35 * v, snareF, 0.012);
         break;
       }
       case "snare": {
-        noiseHit(t, 0.62 * v, snareF, 0.18);
+        noiseHit(t, 0.7 * v, snareF, 0.19);
+        noiseHit(t, 0.3 * v, snareVerb, 0.12);
         const o = ctx.createOscillator();
         o.type = "triangle";
         o.frequency.setValueAtTime(200, t);
@@ -249,23 +313,46 @@ export async function renderChunk(
         break;
       }
       case "clap":
-        for (const d of [0, 0.011, 0.022]) noiseHit(t + d, 0.22 * v, clapF, 0.1 + d * 3);
+        for (const d of [0, 0.011, 0.022]) noiseHit(t + d, 0.26 * v, clapF, 0.1 + d * 3);
+        noiseHit(t + 0.022, 0.25 * v, snareVerb, 0.15);
         break;
+      case "riser": {
+        // 노이즈가 점점 커지며 밴드패스가 400Hz → 6kHz로 올라감
+        const sr0 = ctx.createBufferSource();
+        sr0.buffer = noise;
+        sr0.loop = true;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.28, t + dur);
+        g.gain.setValueAtTime(0.0001, t + dur + 0.01);
+        riserF.frequency.setValueAtTime(400, t);
+        riserF.frequency.exponentialRampToValueAtTime(6000, t + dur);
+        sr0.connect(g).connect(riserF);
+        sr0.start(t);
+        sr0.stop(t + dur + 0.02);
+        break;
+      }
       case "hat":
-        noiseHit(t, 0.15 * v, hatF, 0.035);
+        noiseHit(t, (bright ? 0.22 : 0.15) * v, hatF, 0.035);
         break;
       case "ohat":
-        noiseHit(t, 0.08 * v, ohatF, 0.22);
+        noiseHit(t, (bright ? 0.12 : 0.08) * v, ohatF, 0.22);
         break;
       case "bass":
-        if (piano) {
+        if (piano && !song.sound.layer) {
           pianoNote(e.midi!, t, pianoOff(e, t, dur), 0.16 * v);
           break;
         }
-        tone("sawtooth", e.midi!, t, dur * 0.85, 0.3 * v, bassF, { rel: 0.05 });
+        // 톱니 베이스 + 서브 사인 (몸통)
+        tone("sawtooth", e.midi!, t, dur * 0.85, 0.26 * v, bassF, { rel: 0.05 });
+        tone("sine", e.midi!, t, dur * 0.9, (bright ? 0.12 : 0.3) * v, subF, { rel: 0.06 });
         break;
       case "pad":
-        tone("sawtooth", e.midi!, t, dur, 0.035, padF, { detune: 9, a: 0.35, rel: 0.6 });
+        tone("sawtooth", e.midi!, t, dur, bright ? 0.045 : 0.035, padF, {
+          detune: 9,
+          a: 0.35,
+          rel: 0.6,
+        });
         break;
       case "arp":
         if (piano) {
@@ -285,8 +372,25 @@ export async function renderChunk(
         );
         break;
       case "lead":
-        if (piano) pianoNote(e.midi!, t, pianoOff(e, t, dur), 0.8 * (song.sound.leadGain ?? 1));
-        else if (song.sound.lead === "supersaw") {
+        if (piano) {
+          pianoNote(e.midi!, t, pianoOff(e, t, dur), 0.8 * (song.sound.leadGain ?? 1));
+          if (song.sound.layer && e.len >= 1) {
+            // 슈퍼쏘를 얇게 겹쳐서 피아노에 전기 느낌 + 두께
+            const g = gainEnv(t, 0.03, 0.012, Math.max(0, dur * 0.9 - 0.012), 0.1, layerF);
+            const end = t + dur + 0.15;
+            for (const d of [-12, 0, 12]) osc("sawtooth", hz(e.midi!), t, end, g, d);
+          }
+        } else if (song.sound.lead === "gtrlead") {
+          // 피킹 어택 짧게, 음 길이만큼 유지 (디스토션이 서스테인을 길게 만듦)
+          const g = gainEnv(t, 0.9, 0.004, Math.max(0, dur * 0.95 - 0.004), 0.06, leadGtrIn);
+          const end = t + dur + 0.1;
+          osc("sawtooth", hz(e.midi!), t, end, g, -6);
+          osc("sawtooth", hz(e.midi!), t, end, g, 6);
+          // 피킹 노이즈 (아주 짧게)
+          noiseHit(t, 0.05, leadGtrIn, 0.012);
+          if (bright)
+            tone("triangle", e.midi! + 12, t, dur * 0.9, 0.05, sparkleF, { a: 0.006, rel: 0.08 });
+        } else if (song.sound.lead === "supersaw") {
           // 톱니파 5개를 조금씩 어긋나게 겹쳐 두껍게 (애니송 리드)
           const g = gainEnv(
             t,

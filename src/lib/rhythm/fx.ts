@@ -5,13 +5,18 @@
 
 // ───────────────────────── 타격음 ─────────────────────────
 
-export type HitSound = "thud" | "pebble" | "clack" | "wood";
+export type HitSound = "wood" | "soft" | "tock" | "thump" | "glass";
 
+/**
+ * 타격음: 음악을 덮지 않게 은은하지만, 친 순간은 확실히 느껴지게.
+ * 고음 금속성·잔향은 빼고 어택만 또렷하게 → 전부 60~100ms 안에 사라지는 짧고 둥근 소리.
+ */
 export const HIT_SOUNDS: { key: HitSound; label: string }[] = [
-  { key: "thud", label: "북소리" },
-  { key: "pebble", label: "조약돌" },
-  { key: "clack", label: "다그닥" },
   { key: "wood", label: "우드블록" },
+  { key: "soft", label: "소프트" },
+  { key: "tock", label: "톡" },
+  { key: "thump", label: "툭" },
+  { key: "glass", label: "틱" },
 ];
 
 /** 상태 변수 필터(밴드패스) – 노이즈를 원하는 음역만 남길 때 */
@@ -36,54 +41,24 @@ function noiseGen(seed: number) {
 }
 
 const LEN: Record<HitSound, number> = {
-  thud: 0.14,
-  pebble: 0.09,
-  clack: 0.1,
   wood: 0.12,
+  soft: 0.07,
+  tock: 0.09,
+  thump: 0.1,
+  glass: 0.07,
 };
 
-export function makeHitSound(ctx: BaseAudioContext, kind: HitSound = "thud") {
+export function makeHitSound(ctx: BaseAudioContext, kind: HitSound = "wood") {
   const sr = ctx.sampleRate;
   const len = Math.floor(sr * LEN[kind]);
   const buf = ctx.createBuffer(1, len, sr);
   const d = buf.getChannelData(0);
   const rnd = noiseGen(7);
   const TAU = 2 * Math.PI;
+  /** 1ms 어택 — 바로 0→최대면 '틱' 하는 날카로운 클릭이 생겨서 */
+  const atk = (t: number) => Math.min(1, t / 0.001);
 
-  if (kind === "thud") {
-    // 190Hz → 70Hz로 빠르게 떨어지는 사인 + 뭉갠 노이즈 "퍽"
-    let lp = 0;
-    let lp2 = 0;
-    let phase = 0;
-    for (let i = 0; i < len; i++) {
-      const t = i / sr;
-      phase += (TAU * (70 + 120 * Math.exp(-t * 45))) / sr;
-      const body = Math.sin(phase) * Math.exp(-t * 26);
-      lp += (rnd() - lp) * 0.08;
-      lp2 += (lp - lp2) * 0.08;
-      d[i] = Math.tanh((body * 0.85 + lp2 * Math.exp(-t * 90) * 3) * 1.4) * 0.8;
-    }
-  } else if (kind === "pebble") {
-    // 리니어(밀키) 키보드 "톡": 둥근 저음 몸통 + 짧게 막힌 플라스틱 딸깍, 고음은 깎아서 부드럽게
-    const bp = svf(1900, 0.9, sr);
-    const bp2 = svf(620, 1.2, sr);
-    let lp = 0;
-    for (let i = 0; i < len; i++) {
-      const t = i / sr;
-      const n = rnd();
-      const click = bp(n).band * Math.exp(-t * 700) * 1.4;
-      const thock = bp2(n).band * Math.exp(-t * 160) * 1.1;
-      const body =
-        Math.sin(TAU * 380 * t) * Math.exp(-t * 110) * 0.55 +
-        Math.sin(TAU * 1050 * t) * Math.exp(-t * 260) * 0.2;
-      // 바닥 치고 올라오는 작은 두 번째 탁 (6ms 뒤)
-      const t2 = t - 0.006;
-      const bottom = t2 > 0 ? Math.sin(TAU * 520 * t2) * Math.exp(-t2 * 220) * 0.25 : 0;
-      const x = click + thock + body + bottom;
-      lp += (x - lp) * 0.45; // 살짝 먹먹하게
-      d[i] = Math.tanh(lp * 1.6) * 0.85;
-    }
-  } else if (kind === "wood") {
+  if (kind === "wood") {
     // 우드블록: 높은 공명 두 개가 빠르게 사그라듦
     for (let i = 0; i < len; i++) {
       const t = i / sr;
@@ -93,31 +68,49 @@ export function makeHitSound(ctx: BaseAudioContext, kind: HitSound = "thud") {
         rnd() * Math.exp(-t * 900) * 0.3;
       d[i] = Math.tanh(x * 1.2) * 0.75;
     }
-  } else {
-    // 다그닥: 키캡이 바닥 치는 "딱" + 곧바로 스태빌/키캡이 달그락 튀는 두 번째 "각"
-    // 조약돌보다 밝고 플라스틱 울림이 남는 소리
-    const hi = svf(3600, 0.5, sr);
-    const mid = svf(1650, 0.35, sr);
-    const hi2 = svf(4800, 0.5, sr);
-    const mid2 = svf(2300, 0.4, sr);
+  } else if (kind === "soft") {
+    // 소프트: 펠트 덮인 키를 살짝 누른 듯한 "톡" — 먹먹한 노이즈 + 아주 짧은 중음
+    let lp = 0;
+    let lp2 = 0;
     for (let i = 0; i < len; i++) {
       const t = i / sr;
-      const n = rnd();
-      // 첫 타: 바닥 치는 소리
-      let x =
-        hi(n).band * Math.exp(-t * 900) * 1.1 +
-        mid(n).band * Math.exp(-t * 180) * 0.9 +
-        Math.sin(TAU * 1180 * t) * Math.exp(-t * 140) * 0.35 +
-        Math.sin(TAU * 520 * t) * Math.exp(-t * 120) * 0.25;
-      // 두 번째 타(14ms 뒤): 조금 더 높고 약한 달그락
-      const t2 = t - 0.014;
-      if (t2 > 0) {
-        x +=
-          hi2(n).band * Math.exp(-t2 * 1100) * 0.7 +
-          mid2(n).band * Math.exp(-t2 * 260) * 0.5 +
-          Math.sin(TAU * 1560 * t2) * Math.exp(-t2 * 200) * 0.2;
-      }
-      d[i] = Math.tanh(x * 1.5) * 0.8;
+      lp += (rnd() - lp) * 0.22;
+      lp2 += (lp - lp2) * 0.35;
+      const x =
+        lp2 * Math.exp(-t * 240) * 2.2 + Math.sin(TAU * 1100 * t) * Math.exp(-t * 95) * 0.25;
+      d[i] = Math.tanh(x * 1.6 * atk(t)) * 0.7;
+    }
+  } else if (kind === "tock") {
+    // 톡: 우드블록보다 낮고 둥근 나무 소리, 고음 배음 없이
+    let lp = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      lp += (rnd() - lp) * 0.3;
+      const x =
+        Math.sin(TAU * 640 * t) * Math.exp(-t * 62) +
+        Math.sin(TAU * 1290 * t) * Math.exp(-t * 130) * 0.18 +
+        lp * Math.exp(-t * 500) * 0.35;
+      d[i] = Math.tanh(x * atk(t)) * 0.5;
+    }
+  } else if (kind === "thump") {
+    // 툭: 손가락으로 책상 두드리는 낮은 소리 — 음악 위에선 '느낌'으로 존재
+    let lp = 0;
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      phase += (TAU * (95 + 70 * Math.exp(-t * 60))) / sr;
+      lp += (rnd() - lp) * 0.12;
+      const x = Math.sin(phase) * Math.exp(-t * 38) + lp * Math.exp(-t * 260) * 0.9;
+      d[i] = Math.tanh(x * 1.3 * atk(t)) * 0.6;
+    }
+  } else {
+    // 틱: 작은 유리구슬 부딪히는 맑은 소리, 아주 짧고 작게
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const x =
+        Math.sin(TAU * 2650 * t) * Math.exp(-t * 115) * 0.7 +
+        Math.sin(TAU * 4100 * t) * Math.exp(-t * 200) * 0.15;
+      d[i] = x * atk(t) * 0.6;
     }
   }
   // 끝부분 클릭 방지
