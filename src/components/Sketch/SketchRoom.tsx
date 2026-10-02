@@ -3,10 +3,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import SketchCanvas from "@/components/Sketch/SketchCanvas";
 import SketchChat from "@/components/Sketch/SketchChat";
-import { hintOf, normalizeAnswer, pickWords } from "@/lib/sketch/words";
+import {
+  addSeen,
+  hintOf,
+  LEVEL_BONUS,
+  LEVEL_LABEL,
+  loadSeen,
+  normalizeAnswer,
+  pickChoices,
+} from "@/lib/sketch/words";
 import {
   backToWaiting,
   chooseWord,
+  claimHost,
+  kickPlayer,
+  remainingTurns,
   endTurn,
   getInvite,
   leaderOf,
@@ -25,7 +36,14 @@ import {
   subscribeWords,
   syncLobby,
   type SketchRoom as Room,
+  type TurnWords,
 } from "@/realtime/sketch";
+
+const LEVEL_STYLE = [
+  "bg-emerald-400/15 text-emerald-300",
+  "bg-sky-400/15 text-sky-300",
+  "bg-rose-400/15 text-rose-300",
+];
 
 const TURN_MODE_LABEL = { winner: "정답자가 다음 차례", order: "입장 순서대로" } as const;
 
@@ -60,9 +78,7 @@ export default function SketchRoom({
   const remaining = useRemaining(state.endsAt);
 
   // ── 그리는 사람: 제시어 (본인만 읽을 수 있는 노드) ──
-  const [words, setWords] = useState<{ turnId: string; choices?: string[]; word?: string } | null>(
-    null
-  );
+  const [words, setWords] = useState<TurnWords | null>(null);
   const amDrawer = state.drawer === uid;
   useEffect(() => {
     if (!amDrawer || !state.turnId) {
@@ -72,20 +88,25 @@ export default function SketchRoom({
     return subscribeWords(roomId, setWords);
   }, [roomId, amDrawer, state.turnId]);
 
-  const recentRef = useRef<string[]>([]);
+  // 후보: 쉬움·보통·어려움 하나씩 (이 방에서 나온 정답, 이 브라우저에서 최근 본 단어는 피함)
   useEffect(() => {
     if (!isDrawer || state.phase !== "choosing") return;
     if (words && words.turnId === state.turnId) return;
-    const choices = pickWords(3, recentRef.current);
+    const choices = pickChoices(new Set(Object.keys(room.used)), loadSeen());
     setChoices(roomId, state.turnId, choices).catch(() => {});
-  }, [isDrawer, state.phase, state.turnId, words, roomId]);
+  }, [isDrawer, state.phase, state.turnId, words, roomId, room.used]);
 
   const myWord = words?.turnId === state.turnId ? words.word : undefined;
 
-  const pick = (w: string) => {
-    recentRef.current = [...recentRef.current.slice(-30), w];
-    chooseWord(room, w, hintOf(w, 0)).catch(() => {});
+  const pick = (w: string, level: number) => {
+    addSeen(w);
+    chooseWord(room, w, hintOf(w, 0), level).catch(() => {});
   };
+
+  // 공개된 정답은 이 브라우저의 '최근 본 단어'에 추가 (다음 게임에서 덜 나오게)
+  useEffect(() => {
+    if (state.phase === "reveal" && state.reveal) addSeen(state.reveal);
+  }, [state.phase, state.reveal]);
 
   // ── 그리는 사람: 정답 판정 ──
   // 구독 콜백에서 최신 방 상태·제시어를 읽기 위한 ref
@@ -142,6 +163,19 @@ export default function SketchRoom({
     else if (state.phase === "reveal" && remaining <= 0) nextTurn(room).catch(() => {});
   }, [isLeader, room, state, remaining, roomId]);
 
+  // 방장이 나갔으면 리더가 방장 자리를 이어받음
+  useEffect(() => {
+    if (isLeader && meta.hostUid !== uid) claimHost(roomId, uid);
+  }, [isLeader, meta.hostUid, uid, roomId]);
+
+  // 방장: 강퇴 (한 번 더 눌러야 실행)
+  const [kickTarget, setKickTarget] = useState("");
+  useEffect(() => {
+    if (!kickTarget) return;
+    const t = setTimeout(() => setKickTarget(""), 3000);
+    return () => clearTimeout(t);
+  }, [kickTarget]);
+
   // 리더: 로비 요약 갱신
   const playerCount = players.length;
   useEffect(() => {
@@ -183,6 +217,7 @@ export default function SketchRoom({
   );
 
   const sec = Math.ceil(remaining / 1000);
+  const turnsLeft = remainingTurns(room);
   const timeRatio =
     state.phase === "drawing"
       ? remaining / (meta.drawTime * 1000)
@@ -197,7 +232,7 @@ export default function SketchRoom({
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="font-mono text-lg font-bold text-white">대기실</div>
         <p className="font-['Nanum_Gothic',sans-serif] text-sm text-white/60">
-          {players.length}/{meta.max}명 · {meta.drawTime}초 · {meta.rounds}바퀴 ·{" "}
+          {players.length}/{meta.max}명 · {meta.drawTime}초 · 한 사람당 {meta.rounds}번 ·{" "}
           {TURN_MODE_LABEL[meta.turnMode]}
           {meta.hints ? " · 힌트" : ""}
         </p>
@@ -220,16 +255,27 @@ export default function SketchRoom({
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="font-mono text-sm text-white/70">그릴 제시어를 고르세요 ({sec}초)</div>
         <div className="flex flex-wrap justify-center gap-2">
-          {(words?.turnId === state.turnId ? (words.choices ?? []) : []).map((w) => (
-            <button
-              key={w}
-              type="button"
-              onClick={() => pick(w)}
-              className="cursor-pointer rounded-xl border border-white/15 bg-[#1C1E24] px-5 py-3 font-['Nanum_Gothic',sans-serif] text-lg font-bold text-white transition-all hover:-translate-y-0.5 hover:border-[#6C63FF]"
-            >
-              {w}
-            </button>
-          ))}
+          {(words?.turnId === state.turnId ? (words.choices ?? []) : []).map((w, i) => {
+            const lv = words?.levels?.[i] ?? 0;
+            return (
+              <button
+                key={w}
+                type="button"
+                onClick={() => pick(w, lv)}
+                className="flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-white/15 bg-[#1C1E24] px-5 py-3 transition-all hover:-translate-y-0.5 hover:border-[#6C63FF]"
+              >
+                <span
+                  className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${LEVEL_STYLE[lv]}`}
+                >
+                  {LEVEL_LABEL[lv as 0 | 1 | 2]}
+                  {lv > 0 && ` ×${LEVEL_BONUS[lv as 0 | 1 | 2]}`}
+                </span>
+                <span className="font-['Nanum_Gothic',sans-serif] text-lg font-bold text-white">
+                  {w}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     ) : (
@@ -313,7 +359,9 @@ export default function SketchRoom({
         <span className="shrink-0 font-mono text-xs text-white/40">
           {state.phase === "waiting"
             ? "대기 중"
-            : `${Math.min(state.turnNo, state.totalTurns)}/${state.totalTurns}`}
+            : state.phase === "ended"
+              ? "게임 끝"
+              : `${state.turnNo}번째 · ${turnsLeft ? `${turnsLeft}턴 남음` : "마지막"}`}
         </span>
         <div className="min-w-0 flex-1 text-center font-['Nanum_Gothic',sans-serif]">
           {state.phase === "drawing" &&
@@ -323,7 +371,14 @@ export default function SketchRoom({
                 {myWord}
               </span>
             ) : (
-              <span className="text-xl font-bold tracking-[0.3em] text-white">{state.hint}</span>
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${LEVEL_STYLE[state.level] ?? LEVEL_STYLE[0]}`}
+                >
+                  {LEVEL_LABEL[state.level as 0 | 1 | 2] ?? ""}
+                </span>
+                <span className="text-xl font-bold tracking-[0.3em] text-white">{state.hint}</span>
+              </span>
             ))}
           {state.phase === "choosing" && (
             <span className="text-sm text-white/60">{state.drawerNick}님 차례</span>
@@ -384,9 +439,28 @@ export default function SketchRoom({
                     {p.nick}
                     {p.uid === uid && <span className="text-white/35"> (나)</span>}
                   </span>
-                  <span className="shrink-0 text-white/50">
-                    {got !== undefined && <span className="mr-1 text-emerald-300">+{got}</span>}
+                  <span className="flex shrink-0 items-center gap-1 text-white/50">
+                    {got !== undefined && <span className="text-emerald-300">+{got}</span>}
                     {sc}
+                    {isLeader && p.uid !== uid && (
+                      <button
+                        type="button"
+                        title="강퇴"
+                        onClick={() => {
+                          if (kickTarget === p.uid) {
+                            setKickTarget("");
+                            kickPlayer(room, p.uid).catch(() => {});
+                          } else setKickTarget(p.uid);
+                        }}
+                        className={`ml-0.5 cursor-pointer rounded px-1 transition-colors ${
+                          kickTarget === p.uid
+                            ? "bg-red-500/80 text-white"
+                            : "text-white/25 hover:bg-red-500/20 hover:text-red-300"
+                        }`}
+                      >
+                        {kickTarget === p.uid ? "강퇴?" : "✕"}
+                      </button>
+                    )}
                   </span>
                 </li>
               );

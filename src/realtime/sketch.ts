@@ -16,6 +16,7 @@ import {
 } from "firebase/database";
 import { rtdb } from "@/firebase";
 import { hashPassword, randomKey, WrongPasswordError } from "@/lib/roomLock";
+import { LEVEL_BONUS, normalizeAnswer } from "@/lib/sketch/words";
 
 export { WrongPasswordError };
 
@@ -27,6 +28,8 @@ export { WrongPasswordError };
  *  sketch/rooms/{room}/players    지금 접속 중인 사람 (끊기면 onDisconnect로 자동 삭제)
  *  sketch/rooms/{room}/scores     점수 (새로고침해도 유지)
  *  sketch/rooms/{room}/state      진행 상태 (phase, 그리는 사람, 마감 시각 …)
+ *  sketch/rooms/{room}/kicked     강퇴된 사람 (uid → 닉네임) — 규칙에서 재입장 막음
+ *  sketch/rooms/{room}/used       이 방에서 이미 나온 정답 (중복 출제 방지)
  *  sketch/strokes/{room}/{turn}   그림 조각 (그리는 동안 계속 추가)
  *  sketch/chat/{room}             채팅
  *  sketch/guesses/{room}          정답 시도 — 그리는 사람만 읽음 (답이 채팅에 노출되지 않게)
@@ -37,7 +40,8 @@ export { WrongPasswordError };
  *
  * 서버가 없어서 진행은 클라이언트가 나눠서 맡음
  *  - 그리는 사람: 제시어 선택, 정답 판정, 힌트, 시간 종료
- *  - 리더(가장 먼저 들어와 있는 사람): 게임 시작, 다음 차례, 그리는 사람이 나갔을 때 정리
+ *  - 리더(방장, 방장이 없으면 가장 먼저 들어와 있는 사람 → 방장을 이어받음):
+ *    게임 시작, 다음 차례, 그리는 사람이 나갔을 때 정리, 강퇴
  * 상태 변경은 turnId를 확인하는 트랜잭션이라 여러 명이 동시에 호출해도 한 번만 반영됨.
  */
 
@@ -70,7 +74,6 @@ export interface SketchState {
   phase: Phase;
   turnId: string;
   turnNo: number;
-  totalTurns: number;
   drawer: string;
   drawerNick: string;
   endsAt: number;
@@ -82,8 +85,10 @@ export interface SketchState {
   correct: Record<string, number>;
   /** 이번 차례 첫 정답자 (정답자 다음 차례 모드) */
   firstCorrect: string;
-  /** 지금까지 그린 횟수 */
+  /** 지금까지 그린 횟수 — 각자 rounds번 그리면 게임 끝 (중간에 들어온 사람도 자기 몫을 그림) */
   drawn: Record<string, number>;
+  /** 이번 제시어 난이도 (0 쉬움 · 1 보통 · 2 어려움) */
+  level: number;
 }
 
 export interface SketchRoom {
@@ -92,6 +97,8 @@ export interface SketchRoom {
   players: Record<string, SketchPlayer>;
   scores: Record<string, SketchScore>;
   state: SketchState;
+  kicked: Record<string, string>;
+  used: Record<string, true>;
 }
 
 export interface LobbyRoom {
@@ -163,7 +170,6 @@ const EMPTY_STATE: SketchState = {
   phase: "waiting",
   turnId: "",
   turnNo: 0,
-  totalTurns: 0,
   drawer: "",
   drawerNick: "",
   endsAt: 0,
@@ -172,6 +178,7 @@ const EMPTY_STATE: SketchState = {
   correct: {},
   firstCorrect: "",
   drawn: {},
+  level: 0,
 };
 
 function normalizeRoom(id: string, v: Record<string, unknown> | null): SketchRoom | null {
@@ -182,6 +189,8 @@ function normalizeRoom(id: string, v: Record<string, unknown> | null): SketchRoo
     players: (v.players as Record<string, SketchPlayer>) ?? {},
     scores: (v.scores as Record<string, SketchScore>) ?? {},
     state: { ...EMPTY_STATE, ...((v.state as Partial<SketchState>) ?? {}) },
+    kicked: (v.kicked as Record<string, string>) ?? {},
+    used: (v.used as Record<string, true>) ?? {},
   };
 }
 
@@ -192,8 +201,25 @@ export function orderedPlayers(room: SketchRoom): (SketchPlayer & { uid: string 
     .sort((a, b) => a.joinedAt - b.joinedAt || a.uid.localeCompare(b.uid));
 }
 
-/** 리더 = 가장 먼저 들어와 있는 사람 (방장이 나가면 자동으로 넘어감) */
-export const leaderOf = (room: SketchRoom) => orderedPlayers(room)[0]?.uid ?? "";
+/** 리더 = 방장. 방장이 나가 있으면 가장 먼저 들어와 있는 사람 (그 사람이 claimHost로 이어받음) */
+export const leaderOf = (room: SketchRoom) =>
+  room.players[room.meta.hostUid] ? room.meta.hostUid : (orderedPlayers(room)[0]?.uid ?? "");
+
+/** 방장이 나갔으면 리더가 방장 자리를 이어받음 (규칙: 기존 방장이 방에 없을 때만) */
+export async function claimHost(roomId: string, uid: string) {
+  await set(r(`rooms/${roomId}/meta/hostUid`), uid).catch(() => {});
+}
+
+/** 방장: 강퇴 — 자리·점수를 지우고 다시 못 들어오게 표시 */
+export async function kickPlayer(room: SketchRoom, target: string) {
+  const nick = room.players[target]?.nick ?? room.scores[target]?.nick ?? "?";
+  await update(r(`rooms/${room.id}`), {
+    [`kicked/${target}`]: nick,
+    [`players/${target}`]: null,
+    [`scores/${target}`]: null,
+  });
+  await systemChat(room.id, `${nick}님을 내보냈어요.`);
+}
 
 // ───────────── 로비 ─────────────
 
@@ -298,8 +324,9 @@ export async function joinRoom(roomId: string, uid: string, nick: string, rejoin
   );
 }
 
-export async function leaveRoom(roomId: string, uid: string) {
+export async function leaveRoom(roomId: string, uid: string, nick?: string) {
   const playerRef = r(`rooms/${roomId}/players/${uid}`);
+  if (nick) await systemChat(roomId, `${nick}님이 나갔어요.`);
   await onDisconnect(playerRef).cancel();
   await remove(playerRef);
   presenceRef = null;
@@ -358,14 +385,40 @@ export async function cleanupEmptyRoom(roomId: string) {
 
 const stateRef = (roomId: string) => r(`rooms/${roomId}/state`);
 
-/** 다음에 그릴 사람 */
-function nextDrawer(room: SketchRoom, current: string, firstCorrect: string): string {
-  const list = orderedPlayers(room).map((p) => p.uid);
-  if (list.length === 0) return "";
-  if (room.meta.turnMode === "winner" && firstCorrect && list.includes(firstCorrect))
+/** 아직 자기 몫(rounds번)을 다 안 그린, 지금 있는 사람들 */
+function pendingDrawers(room: SketchRoom, drawn: Record<string, number>) {
+  return orderedPlayers(room)
+    .map((p) => p.uid)
+    .filter((u) => (drawn[u] ?? 0) < room.meta.rounds);
+}
+
+/** 남은 차례 수 (지금 그리는 차례 제외) */
+export function remainingTurns(room: SketchRoom): number {
+  return orderedPlayers(room).reduce(
+    (n, p) => n + Math.max(0, room.meta.rounds - (room.state.drawn?.[p.uid] ?? 0)),
+    0
+  );
+}
+
+/** 다음에 그릴 사람 ("" = 모두 다 그림 → 게임 끝) */
+function nextDrawer(
+  room: SketchRoom,
+  current: string,
+  firstCorrect: string,
+  drawn: Record<string, number>
+): string {
+  const pending = pendingDrawers(room, drawn);
+  if (pending.length === 0) return "";
+  if (room.meta.turnMode === "winner" && firstCorrect && pending.includes(firstCorrect))
     return firstCorrect;
-  const i = list.indexOf(current);
-  return list[(i + 1) % list.length] ?? list[0];
+  // 입장 순서로 지금 사람 다음부터 돌면서 아직 덜 그린 사람
+  const all = orderedPlayers(room).map((p) => p.uid);
+  const start = all.indexOf(current);
+  for (let k = 1; k <= all.length; k++) {
+    const u = all[(start + k + all.length) % all.length];
+    if (pending.includes(u)) return u;
+  }
+  return pending[0];
 }
 
 function turnPatch(room: SketchRoom, drawer: string, turnNo: number) {
@@ -381,6 +434,7 @@ function turnPatch(room: SketchRoom, drawer: string, turnNo: number) {
     reveal: "",
     correct: {},
     firstCorrect: "",
+    level: 0,
   };
 }
 
@@ -396,25 +450,39 @@ export async function startGame(room: SketchRoom) {
     [`rooms/${room.id}/scores`]: scores,
     [`rooms/${room.id}/state`]: {
       ...patch,
-      totalTurns: list.length * room.meta.rounds,
       drawn: { [first]: 1 },
     },
     [`strokes/${room.id}`]: null,
     [`words/${room.id}`]: null,
     [`guesses/${room.id}`]: null,
   });
-  await systemChat(room.id, `게임 시작! ${list.length}명 · ${room.meta.rounds}바퀴`);
+  await systemChat(
+    room.id,
+    `게임 시작! 한 사람당 ${room.meta.rounds}번씩 그려요. 중간에 들어와도 같이 할 수 있어요.`
+  );
+}
+
+export interface TurnWords {
+  turnId: string;
+  choices?: string[];
+  levels?: number[];
+  word?: string;
 }
 
 /** 그리는 사람: 제시어 후보 저장 (본인만 읽을 수 있음) */
-export async function setChoices(roomId: string, turnId: string, choices: string[]) {
-  await set(r(`words/${roomId}`), { turnId, choices });
+export async function setChoices(
+  roomId: string,
+  turnId: string,
+  choices: { word: string; level: number }[]
+) {
+  await set(r(`words/${roomId}`), {
+    turnId,
+    choices: choices.map((c) => c.word),
+    levels: choices.map((c) => c.level),
+  });
 }
 
-export function subscribeWords(
-  roomId: string,
-  cb: (w: { turnId: string; choices?: string[]; word?: string } | null) => void
-) {
+export function subscribeWords(roomId: string, cb: (w: TurnWords | null) => void) {
   return onValue(
     r(`words/${roomId}`),
     (s) => cb(s.val()),
@@ -423,12 +491,18 @@ export function subscribeWords(
 }
 
 /** 그리는 사람: 제시어 선택 → 그리기 시작 */
-export async function chooseWord(room: SketchRoom, word: string, hint: string) {
+export async function chooseWord(room: SketchRoom, word: string, hint: string, level: number) {
   const { id, state } = room;
   await update(r(`words/${id}`), { word });
   await runTransaction(stateRef(id), (cur: SketchState | null) => {
     if (!cur || cur.turnId !== state.turnId || cur.phase !== "choosing") return;
-    return { ...cur, phase: "drawing", endsAt: serverNow() + room.meta.drawTime * 1000, hint };
+    return {
+      ...cur,
+      phase: "drawing",
+      endsAt: serverNow() + room.meta.drawTime * 1000,
+      hint,
+      level,
+    };
   });
 }
 
@@ -443,7 +517,9 @@ export async function setHint(roomId: string, turnId: string, hint: string) {
 export async function markCorrect(room: SketchRoom, guess: Guess) {
   const { id, state, meta } = room;
   const left = Math.max(0, state.endsAt - serverNow());
-  const pts = 50 + Math.round((50 * left) / (meta.drawTime * 1000));
+  const bonus = LEVEL_BONUS[state.level as 0 | 1 | 2] ?? 1;
+  const pts = Math.round((50 + (50 * left) / (meta.drawTime * 1000)) * bonus);
+  const drawerPts = Math.round(20 * bonus);
   let applied = false;
   await runTransaction(stateRef(id), (cur: SketchState | null) => {
     if (!cur || cur.turnId !== guess.turnId || cur.phase !== "drawing") return;
@@ -458,7 +534,10 @@ export async function markCorrect(room: SketchRoom, guess: Guess) {
   if (!applied) return;
   await Promise.all([
     runTransaction(r(`rooms/${id}/scores/${guess.uid}/score`), (v) => (Number(v) || 0) + pts),
-    runTransaction(r(`rooms/${id}/scores/${state.drawer}/score`), (v) => (Number(v) || 0) + 20),
+    runTransaction(
+      r(`rooms/${id}/scores/${state.drawer}/score`),
+      (v) => (Number(v) || 0) + drawerPts
+    ),
     push(r(`chat/${id}`), {
       uid: guess.uid,
       nick: guess.nick,
@@ -478,15 +557,23 @@ export async function endTurn(roomId: string, turnId: string, reveal: string) {
     ended = true;
     return { ...cur, phase: "reveal", reveal, endsAt: serverNow() + REVEAL_MS };
   });
-  if (ended)
-    await systemChat(roomId, reveal ? `정답은 「${reveal}」` : "이번 차례는 건너뛰었어요.");
+  if (!ended) return;
+  // 이 방에서 다시 안 나오게 기록 (공개된 뒤에 기록해야 미리 답이 새지 않음)
+  if (reveal) await set(r(`rooms/${roomId}/used/${usedKey(reveal)}`), true).catch(() => {});
+  await systemChat(roomId, reveal ? `정답은 「${reveal}」` : "이번 차례는 건너뛰었어요.");
 }
+
+/** used 노드 키 (RTDB 키에 못 쓰는 . # $ [ ] / 제거) */
+export const usedKey = (word: string) => normalizeAnswer(word).replace(/[.#$[\]/]/g, "_");
 
 /** 리더: 다음 차례 또는 게임 종료 */
 export async function nextTurn(room: SketchRoom) {
   const { id, state } = room;
-  const done = state.turnNo >= state.totalTurns || orderedPlayers(room).length < 2;
-  const drawer = done ? "" : nextDrawer(room, state.drawer, state.firstCorrect);
+  const drawer =
+    orderedPlayers(room).length < 2
+      ? ""
+      : nextDrawer(room, state.drawer, state.firstCorrect, state.drawn ?? {});
+  const done = !drawer;
   const patch = done ? null : turnPatch(room, drawer, state.turnNo + 1);
   let ok = false;
   await runTransaction(stateRef(id), (cur: SketchState | null) => {

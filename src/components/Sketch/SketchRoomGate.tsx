@@ -7,13 +7,14 @@ import {
   joinRoom,
   leaveRoom,
   subscribeRoom,
+  systemChat,
   unlockRoom,
   watchConnection,
   WrongPasswordError,
   type SketchRoom as Room,
 } from "@/realtime/sketch";
 
-type Gate = "loading" | "missing" | "password" | "full" | "joining" | "in";
+type Gate = "loading" | "missing" | "password" | "full" | "kicked" | "joining" | "in";
 
 /** 방 입장 전 확인: 존재 여부 → 비번(초대 링크면 생략) → 정원 → 입장 */
 export default function SketchRoomGate({
@@ -39,6 +40,10 @@ export default function SketchRoomGate({
 
   const tryJoin = async (r: Room) => {
     if (joinedRef.current) return;
+    if (r.kicked[uid]) {
+      setGate("kicked");
+      return;
+    }
     if (!r.players[uid] && Object.keys(r.players).length >= r.meta.max) {
       setGate("full");
       return;
@@ -46,8 +51,16 @@ export default function SketchRoomGate({
     joinedRef.current = true;
     setGate("joining");
     try {
+      const wasHere = !!r.players[uid];
       await joinRoom(roomId, uid, nick);
       setGate("in");
+      if (!wasHere)
+        systemChat(
+          roomId,
+          r.state.phase === "waiting" || r.state.phase === "ended"
+            ? `${nick}님이 들어왔어요.`
+            : `${nick}님이 게임 중에 참가했어요. 바로 맞히고, 한 사람당 ${r.meta.rounds}번씩 그릴 차례도 와요.`
+        );
     } catch (e) {
       console.error(e);
       joinedRef.current = false;
@@ -89,7 +102,7 @@ export default function SketchRoomGate({
     const off = watchConnection(roomId, uid, nick);
     return () => {
       off();
-      leaveRoom(roomId, uid).catch(() => {});
+      leaveRoom(roomId, uid, nick).catch(() => {});
     };
   }, [gate, roomId, uid, nick]);
 
@@ -119,6 +132,15 @@ export default function SketchRoomGate({
     </button>
   );
 
+  if (gate === "kicked" || (gate === "in" && room?.kicked[uid]))
+    return center(
+      <>
+        <p className="font-['Nanum_Gothic',sans-serif] text-white/60">
+          방장이 이 방에서 내보냈어요.
+        </p>
+        {backBtn}
+      </>
+    );
   if (gate === "in" && room)
     return <SketchRoom room={room} uid={uid} nick={nick} onLeave={onExit} />;
   if (gate === "missing")

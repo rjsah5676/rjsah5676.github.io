@@ -18,9 +18,9 @@ const seg = (on: boolean) =>
   }`;
 const PHASE_LABEL: Record<string, string> = {
   waiting: "대기 중",
-  choosing: "게임 중",
-  drawing: "게임 중",
-  reveal: "게임 중",
+  choosing: "게임 중 · 참가 가능",
+  drawing: "게임 중 · 참가 가능",
+  reveal: "게임 중 · 참가 가능",
   ended: "게임 끝",
 };
 
