@@ -8,6 +8,15 @@ import { CHESS_BOTS, type ChessBot } from "./chessBots";
 import { useStockfish } from "./useStockfish";
 import { replay, uciToMove, type Color } from "@/firestore/chessGame";
 import { SpeechBubble, useBotTalk } from "@/lib/botTalk";
+import { chessScore, clockLabel } from "@/lib/aiScore";
+import {
+  NEW_CLOCK,
+  RankBoard,
+  RankSubmit,
+  RankedToggle,
+  useTurnClock,
+  type TurnClock,
+} from "@/components/AIRank";
 
 const SAVE_KEY = "chess:ai";
 const COLOR_KO = { w: "백", b: "흑" } as const;
@@ -24,6 +33,9 @@ interface Saved {
   rating: number;
   moves: string[];
   resigned: boolean;
+  ranked?: boolean;
+  clock?: TurnClock;
+  submitted?: boolean;
 }
 
 /** 각 색이 잡은 상대 기물 + 점수 */
@@ -113,9 +125,22 @@ export default function ChessAIGame() {
   const [resigned, setResigned] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
+  const [ranked, setRanked] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [rankRefresh, setRankRefresh] = useState(0);
   const { bestMove, newGame } = useStockfish();
   const loaded = useRef(false);
 
+
+  const bot: ChessBot = CHESS_BOTS.find((b) => b.rating === rating) ?? CHESS_BOTS[2];
+  const game = useMemo(() => replay(moves ?? []), [moves]);
+  useMoveSound(moves ? moves.length : -1, chessPieces(game.fen()));
+  const end = moves ? endText(game, myColor) : null;
+  const over = !!end || resigned;
+  const aiColor: Color = myColor === "w" ? "b" : "w";
+  const myTurn = !!moves && !over && game.turn() === myColor;
+  const { clock, setClock, seconds } = useTurnClock(myTurn && !thinking);
+  // 이어하기 (저장 effect보다 먼저 와야 함)
   useEffect(() => {
     try {
       const v = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null") as Saved | null;
@@ -126,9 +151,13 @@ export default function ChessAIGame() {
         setRating(v.rating);
         setMoves(v.moves);
         setResigned(!!v.resigned);
+        setRanked(!!v.ranked);
+        setSubmitted(!!v.submitted);
+        if (v.clock) setClock(v.clock);
       }
     } catch {}
     loaded.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 마운트 1회
   }, []);
   useEffect(() => {
     if (!loaded.current) return;
@@ -136,19 +165,19 @@ export default function ChessAIGame() {
       if (moves)
         localStorage.setItem(
           SAVE_KEY,
-          JSON.stringify({ me: myColor, rating, moves, resigned } satisfies Saved)
+          JSON.stringify({
+            me: myColor,
+            rating,
+            moves,
+            resigned,
+            ranked,
+            clock,
+            submitted,
+          } satisfies Saved)
         );
       else localStorage.removeItem(SAVE_KEY);
     } catch {}
-  }, [moves, myColor, rating, resigned]);
-
-  const bot: ChessBot = CHESS_BOTS.find((b) => b.rating === rating) ?? CHESS_BOTS[2];
-  const game = useMemo(() => replay(moves ?? []), [moves]);
-  useMoveSound(moves ? moves.length : -1, chessPieces(game.fen()));
-  const end = moves ? endText(game, myColor) : null;
-  const over = !!end || resigned;
-  const aiColor: Color = myColor === "w" ? "b" : "w";
-  const myTurn = !!moves && !over && game.turn() === myColor;
+  }, [moves, myColor, rating, resigned, ranked, submitted, clock]);
 
   // AI 차례
   const len = moves?.length ?? -1;
@@ -224,6 +253,8 @@ export default function ChessAIGame() {
       const c: Color = me === "r" ? (Math.random() < 0.5 ? "w" : "b") : me;
       setMyColor(c);
       setResigned(false);
+      setSubmitted(false);
+      setClock(NEW_CLOCK);
       newGame();
       setMoves([]);
       say("greet");
@@ -277,9 +308,15 @@ export default function ChessAIGame() {
             </button>
           ))}
         </div>
-        <button type="button" onClick={start} className={`${primaryBtn} mt-5 w-full py-2 text-sm`}>
-          {bot.emoji} {bot.name}({bot.rating})와 대국 시작
+        <div className="mt-4">
+          <RankedToggle on={ranked} onChange={setRanked} />
+        </div>
+        <button type="button" onClick={start} className={`${primaryBtn} mt-4 w-full py-2 text-sm`}>
+          {bot.emoji} {bot.name}({bot.rating})와 {ranked ? "랭킹전" : "대국"} 시작
         </button>
+        <div className="mt-4">
+          <RankBoard coll="chess_ai_rankings" oppLabel={(o) => o} refresh={rankRefresh} />
+        </div>
       </div>
     );
   }
@@ -315,6 +352,10 @@ export default function ChessAIGame() {
         {game.inCheck() && <span className="ml-2 text-red-400">체크!</span>}
       </>
     );
+
+  const myMoves = myColor === "w" ? Math.ceil(moves.length / 2) : Math.floor(moves.length / 2);
+  const lead = caps.points[myColor] - caps.points[aiColor];
+  const won = !resigned && end?.head === "승리!";
 
   const pairs: [string, string | undefined][] = [];
   for (let i = 0; i < history.length; i += 2) pairs.push([history[i], history[i + 1]]);
@@ -354,16 +395,35 @@ export default function ChessAIGame() {
       <div className="flex w-full max-w-[560px] flex-col gap-3 lg:w-72">
         <div className="rounded-xl border border-white/10 bg-[#1C1E24] px-4 py-3 font-['Nanum_Gothic',sans-serif] text-sm text-white/80">
           {status}
+          {ranked && (
+            <div className="mt-1 font-mono text-[11px] text-[#FDE047]/80">
+              🏆 랭킹전 · ⏱ {clockLabel(seconds)} · {myMoves}수
+            </div>
+          )}
         </div>
+        {ranked && won && (
+          <RankSubmit
+            coll="chess_ai_rankings"
+            result={chessScore(rating, lead, myMoves, seconds)}
+            entry={{ opp: String(rating), moves: myMoves, seconds, lead: Math.max(0, lead) }}
+            done={submitted}
+            onSaved={() => {
+              setSubmitted(true);
+              setRankRefresh((n) => n + 1);
+            }}
+          />
+        )}
         <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            disabled={thinking || moves.length === 0}
-            onClick={undo}
-            className={btn}
-          >
-            ↶ 무르기
-          </button>
+          {!ranked && (
+            <button
+              type="button"
+              disabled={thinking || moves.length === 0}
+              onClick={undo}
+              className={btn}
+            >
+              ↶ 무르기
+            </button>
+          )}
           {!over &&
             (confirmResign ? (
               <>

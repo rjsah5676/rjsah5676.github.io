@@ -283,11 +283,12 @@ export default function JanggiRoomView({
   const moves = room?.moves;
   const variant = room?.variant ?? "";
   const game = useMemo(() => replay(moves ?? [], variant), [moves, variant]);
+  const banned = useMemo(() => game.banned(), [game]);
   const notation = useMemo(() => {
     const g = new Janggi(parseVariant(variant));
     return (moves ?? []).map((m) => {
       const d = describeMove(g.bd, m);
-      g.move(m);
+      g.move(m, true);
       return d;
     });
   }, [moves, variant]);
@@ -304,7 +305,7 @@ export default function JanggiRoomView({
       return { fen: room?.fen ?? "", last: room?.moves.at(-1) };
     const g = Janggi.fromFen(room.fen);
     try {
-      g.move(pending.uci);
+      g.move(pending.uci, true);
       return { fen: g.fen(), last: pending.uci };
     } catch {
       return { fen: room.fen, last: room.moves.at(-1) };
@@ -314,7 +315,8 @@ export default function JanggiRoomView({
   useMoveSound(
     room && display.fen ? room.moves.length + (display.fen !== room.fen ? 1 : 0) : -1,
     janggiPieces(display.fen),
-    display.last === "pass"
+    display.last === "pass",
+    0.85
   );
 
   const clock = room ? liveClock(room, now) : { w: 0, b: 0 };
@@ -471,6 +473,11 @@ export default function JanggiRoomView({
       <>
         {me ? (turn === me ? "내 차례" : "상대 차례") : `${COLOR_KO[turn]} 차례`}
         {game.inCheck() && <span className="ml-2 font-bold text-red-400">장군!</span>}
+        {turn === me && banned.length > 0 && (
+          <span className="mt-1 block text-[11px] text-amber-200/70">
+            반복수 금지: 같은 국면을 세 번 만드는 수는 둘 수 없어요
+          </span>
+        )}
       </>
     );
   }
@@ -523,6 +530,7 @@ export default function JanggiRoomView({
               lastMove={display.last}
               onMove={onMove}
               hangul={hangul}
+              banned={banned}
             />
             {paused && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/60 p-4 text-center">

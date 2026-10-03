@@ -149,10 +149,18 @@ const LEVEL: Record<Level, AIConfig> = {
 };
 
 /** 다음 수 고르기 ("pass" 가능). 둘 수 있는 수가 없으면 null */
-export function chooseMove(board: Int8Array, c: Color, level: Level | AIConfig): string | null {
+export function chooseMove(
+  board: Int8Array,
+  c: Color,
+  level: Level | AIConfig,
+  banned: string[] = []
+): string | null {
   const bd = Int8Array.from(board);
-  const legal = legalMoves(bd, c);
-  if (!legal.length) return "pass";
+  const all = legalMoves(bd, c);
+  if (!all.length) return "pass";
+  // 반복수 제외. 남는 수가 없으면 쉬기 (쉬기도 막혔으면 엔진이 막지 않으므로 아무 수)
+  const legal = all.filter((m) => !banned.includes(encode(m)));
+  if (!legal.length) return banned.includes("pass") ? encode(all[0]) : "pass";
   const cfg = typeof level === "string" ? LEVEL[level] : level;
   if (Math.random() < cfg.blunder) return encode(legal[Math.floor(Math.random() * legal.length)]);
 

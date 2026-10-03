@@ -17,6 +17,15 @@ import {
 } from "@/lib/janggi/engine";
 import { DEFAULT_JANGGI_BOT, JANGGI_BOTS, type JanggiBot } from "./janggiBots";
 import { SpeechBubble, useBotTalk } from "@/lib/botTalk";
+import { clockLabel, janggiScore } from "@/lib/aiScore";
+import {
+  NEW_CLOCK,
+  RankBoard,
+  RankSubmit,
+  RankedToggle,
+  useTurnClock,
+  type TurnClock,
+} from "@/components/AIRank";
 
 const SAVE_KEY = "janggi:ai";
 
@@ -30,6 +39,9 @@ interface Saved {
   s: Settings;
   moves: string[];
   resigned: boolean;
+  ranked?: boolean;
+  clock?: TurnClock;
+  submitted?: boolean;
 }
 
 const btn =
@@ -82,30 +94,11 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
   const [resigned, setResigned] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
+  const [ranked, setRanked] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [rankRefresh, setRankRefresh] = useState(0);
   const ask = useJanggiAI();
   const loaded = useRef(false);
-
-  // 이어하기
-  useEffect(() => {
-    try {
-      const v = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null") as Saved | null;
-      if (v?.s && Array.isArray(v.moves)) {
-        if (!JANGGI_BOTS.some((b) => b.id === v.s.bot)) v.s.bot = DEFAULT_JANGGI_BOT; // 예전 저장값
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- 저장된 대국 복원 (마운트 1회)
-        setSettings(v.s);
-        setMoves(v.moves);
-        setResigned(!!v.resigned);
-      }
-    } catch {}
-    loaded.current = true;
-  }, []);
-  useEffect(() => {
-    if (!loaded.current) return;
-    try {
-      if (moves) localStorage.setItem(SAVE_KEY, JSON.stringify({ s: settings, moves, resigned }));
-      else localStorage.removeItem(SAVE_KEY);
-    } catch {}
-  }, [settings, moves, resigned]);
 
   const setup = useMemo(
     () =>
@@ -115,13 +108,44 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     [settings]
   );
   const game = useMemo(() => Janggi.replay(moves ?? [], setup), [moves, setup]);
-  useMoveSound(moves ? moves.length : -1, janggiPieces(game.fen()), moves?.at(-1) === "pass");
+  useMoveSound(moves ? moves.length : -1, janggiPieces(game.fen()), moves?.at(-1) === "pass", 0.85);
   const end = moves ? game.end() : null;
   const over = !!end || resigned;
   const ai: Color = settings.me === "w" ? "b" : "w";
   const bot: JanggiBot = JANGGI_BOTS.find((b) => b.id === settings.bot) ?? JANGGI_BOTS[2];
   const { speech, say } = useBotTalk(bot.lines);
   const myTurn = !!moves && !over && game.turn() === settings.me;
+  const { clock, setClock, seconds } = useTurnClock(myTurn && !thinking);
+  // 이어하기 (저장 effect보다 먼저 와야 함)
+  useEffect(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null") as Saved | null;
+      if (v?.s && Array.isArray(v.moves)) {
+        if (!JANGGI_BOTS.some((b) => b.id === v.s.bot)) v.s.bot = DEFAULT_JANGGI_BOT; // 예전 저장값
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- 저장된 대국 복원 (마운트 1회)
+        setSettings(v.s);
+        setMoves(v.moves);
+        setResigned(!!v.resigned);
+        setRanked(!!v.ranked);
+        setSubmitted(!!v.submitted);
+        if (v.clock) setClock(v.clock);
+      }
+    } catch {}
+    loaded.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 마운트 1회
+  }, []);
+  const banned = useMemo(() => game.banned(), [game]);
+  useEffect(() => {
+    if (!loaded.current) return;
+    try {
+      if (moves)
+        localStorage.setItem(
+          SAVE_KEY,
+          JSON.stringify({ s: settings, moves, resigned, ranked, clock, submitted } satisfies Saved)
+        );
+      else localStorage.removeItem(SAVE_KEY);
+    } catch {}
+  }, [settings, moves, resigned, ranked, clock, submitted]);
 
   // AI 차례면 계산
   const movesLen = moves?.length ?? -1;
@@ -131,7 +155,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- AI 계산 시작 표시
     setThinking(true);
     const started = performance.now();
-    ask(game.bd, ai, bot.ai).then((mv) => {
+    ask(game.bd, ai, bot.ai, banned).then((mv) => {
       // 너무 빨리 두면 정신없어서 최소 0.4초
       const wait = Math.max(0, 400 - (performance.now() - started));
       setTimeout(() => {
@@ -185,7 +209,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     const g = new Janggi(setup);
     return (moves ?? []).map((m) => {
       const d = describeMove(g.bd, m);
-      g.move(m);
+      g.move(m, true);
       return d;
     });
   }, [moves, setup]);
@@ -234,6 +258,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
               ))}
             </div>
           </div>
+          <RankedToggle on={ranked} onChange={setRanked} />
           <Seg
             label="내 상차림"
             value={settings.mySetup}
@@ -250,13 +275,23 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
             type="button"
             onClick={() => {
               setResigned(false);
+              setSubmitted(false);
+              setClock(NEW_CLOCK);
               setMoves([]);
               say("greet");
             }}
             className={`${primaryBtn} py-2 text-sm`}
           >
-            {bot.emoji} {bot.name}({bot.rank})와 대국 시작
+            {bot.emoji} {bot.name}({bot.rank})와 {ranked ? "랭킹전" : "대국"} 시작
           </button>
+          <RankBoard
+            coll="janggi_ai_rankings"
+            oppLabel={(o) => {
+              const b = JANGGI_BOTS.find((x) => x.id === o);
+              return b ? `${b.name}(${b.rank})` : o;
+            }}
+            refresh={rankRefresh}
+          />
         </div>
       </div>
     );
@@ -302,8 +337,17 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
       <>
         {myTurn ? "내 차례" : `${SIDE_KO[game.turn()]} 차례`}
         {game.inCheck() && <span className="ml-2 font-bold text-red-400">장군!</span>}
+        {myTurn && banned.length > 0 && (
+          <span className="mt-1 block text-[11px] text-amber-200/70">
+            반복수 금지: 같은 국면을 세 번 만드는 수는 둘 수 없어요
+          </span>
+        )}
       </>
     );
+
+  const myMoves = settings.me === "w" ? Math.ceil(moves.length / 2) : Math.floor(moves.length / 2);
+  const lead = Math.round((game.score(settings.me) - game.score(ai)) * 10) / 10;
+  const won = !resigned && !!end && (end.result === "1-0" ? "w" : "b") === settings.me;
 
   return (
     <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
@@ -324,6 +368,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
           lastMove={moves.at(-1)}
           onMove={(mv) => setMoves((m) => (m ? [...m, mv] : m))}
           hangul={hangul}
+          banned={banned}
         />
         <SideBar
           color={bottom}
@@ -338,16 +383,35 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
       <div className="flex w-full max-w-[520px] flex-col gap-3 lg:w-72">
         <div className="rounded-xl border border-white/10 bg-[#1C1E24] px-4 py-3 font-['Nanum_Gothic',sans-serif] text-sm text-white/80">
           {status}
+          {ranked && (
+            <div className="mt-1 font-mono text-[11px] text-[#FDE047]/80">
+              🏆 랭킹전 · ⏱ {clockLabel(seconds)} · {myMoves}수
+            </div>
+          )}
         </div>
+        {ranked && won && end && (
+          <RankSubmit
+            coll="janggi_ai_rankings"
+            result={janggiScore(bot.base, lead, myMoves, seconds, end.reason === "checkmate")}
+            entry={{ opp: bot.id, moves: myMoves, seconds, lead: Math.max(0, lead) }}
+            done={submitted}
+            onSaved={() => {
+              setSubmitted(true);
+              setRankRefresh((n) => n + 1);
+            }}
+          />
+        )}
         <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            disabled={thinking || moves.length === 0}
-            onClick={undo}
-            className={btn}
-          >
-            ↶ 무르기
-          </button>
+          {!ranked && (
+            <button
+              type="button"
+              disabled={thinking || moves.length === 0}
+              onClick={undo}
+              className={btn}
+            >
+              ↶ 무르기
+            </button>
+          )}
           <button
             type="button"
             disabled={!myTurn || thinking || !game.canPass()}

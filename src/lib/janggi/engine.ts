@@ -304,13 +304,54 @@ export interface PieceInfo {
   color: Color;
 }
 
+/** 같은 국면(판 + 차례)을 이 횟수째 만드는 수는 반복수로 금지 */
+export const REPEAT_LIMIT = 3;
+
 export class Janggi {
   bd: Int8Array;
   moveList: string[] = [];
   private turnColor: Color = "w";
+  /** 지금까지 나온 국면별 횟수 (반복수 금지용) */
+  private seen = new Map<string, number>();
 
   constructor(setup?: { w?: Setup; b?: Setup }) {
     this.bd = startBoard(setup?.w, setup?.b);
+    this.remember();
+  }
+
+  private remember() {
+    const k = this.fen();
+    this.seen.set(k, (this.seen.get(k) ?? 0) + 1);
+  }
+
+  /** 이 수를 두면 나오는 국면이 이미 (REPEAT_LIMIT-1)번 나왔나 */
+  private repeats(m: number | "pass"): boolean {
+    const next = this.turnColor === "w" ? "b" : "w";
+    if (m === "pass")
+      return (this.seen.get(`${Array.from(this.bd).join(",")} ${next}`) ?? 0) >= REPEAT_LIMIT - 1;
+    const from = Math.floor(m / 90),
+      to = m % 90;
+    const cap = this.bd[to];
+    this.bd[to] = this.bd[from];
+    this.bd[from] = 0;
+    const k = `${Array.from(this.bd).join(",")} ${next}`;
+    this.bd[from] = this.bd[to];
+    this.bd[to] = cap;
+    return (this.seen.get(k) ?? 0) >= REPEAT_LIMIT - 1;
+  }
+
+  /**
+   * 반복수라서 못 두는 수들 ("pass" 포함 가능).
+   * 둘 수 있는 게 전부 반복수면 막지 않음 (갇혀서 못 두는 일이 없게).
+   */
+  banned(): string[] {
+    const all = legalMoves(this.bd, this.turnColor);
+    const out = all.filter((m) => this.repeats(m)).map(encode);
+    const passOk = !this.inCheck();
+    const passBanned = passOk && this.repeats("pass");
+    if (passBanned) out.push("pass");
+    const options = all.length + (passOk ? 1 : 0);
+    return out.length >= options ? [] : out;
   }
 
   /** fen()으로 만든 문자열에서 판·차례만 복원 (기보는 비어 있음 — 화면 표시용) */
@@ -320,12 +361,15 @@ export class Janggi {
     const arr = cells.split(",").map(Number);
     if (arr.length === 90) g.bd = Int8Array.from(arr);
     g.turnColor = turn === "b" ? "b" : "w";
+    g.seen = new Map();
+    g.remember();
     return g;
   }
 
+  /** 기보 재생 — 이미 둔 수는 반복수 검사 안 함 (규칙 추가 전 기보 호환) */
   static replay(moves: string[], setup?: { w?: Setup; b?: Setup }) {
     const g = new Janggi(setup);
-    for (const m of moves) g.move(m);
+    for (const m of moves) g.move(m, true);
     return g;
   }
 
@@ -352,29 +396,38 @@ export class Janggi {
     return inCheck(this.bd, c);
   }
 
+  /** 둘 수 있는 수 (반복수 제외) */
   legal(): string[] {
-    return legalMoves(this.bd, this.turnColor).map(encode);
+    const ban = new Set(this.banned());
+    return legalMoves(this.bd, this.turnColor)
+      .map(encode)
+      .filter((m) => !ban.has(m));
   }
 
   /** 이 칸 기물이 갈 수 있는 칸 이름들 */
   targetsFrom(square: string): string[] {
     const from = parseSq(square);
+    const ban = new Set(this.banned());
     return legalMoves(this.bd, this.turnColor)
-      .filter((m) => Math.floor(m / 90) === from)
+      .filter((m) => Math.floor(m / 90) === from && !ban.has(encode(m)))
       .map((m) => sqName(m % 90));
   }
 
   canPass() {
-    return !this.inCheck();
+    return !this.inCheck() && !this.banned().includes("pass");
   }
 
   /** 불법수면 throw */
-  move(mv: string) {
+  move(mv: string, allowRepeat = false) {
     if (mv === "pass") {
-      if (!this.canPass()) throw new Error("장군을 받은 상태에서는 쉴 수 없습니다.");
+      if (this.inCheck()) throw new Error("장군을 받은 상태에서는 쉴 수 없습니다.");
+      if (!allowRepeat && this.repeats("pass") && this.banned().includes("pass"))
+        throw new Error("반복수는 둘 수 없습니다.");
     } else {
       const m = decode(mv);
       if (!legalMoves(this.bd, this.turnColor).includes(m)) throw new Error("둘 수 없는 수입니다.");
+      if (!allowRepeat && this.repeats(m) && this.banned().includes(mv))
+        throw new Error("반복수는 둘 수 없습니다.");
       const from = Math.floor(m / 90),
         to = m % 90;
       this.bd[to] = this.bd[from];
@@ -382,6 +435,7 @@ export class Janggi {
     }
     this.moveList.push(mv);
     this.turnColor = this.turnColor === "w" ? "b" : "w";
+    this.remember();
   }
 
   score(c: Color) {

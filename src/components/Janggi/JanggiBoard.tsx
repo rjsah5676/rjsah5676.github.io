@@ -80,6 +80,7 @@ export default function JanggiBoard({
   lastMove,
   onMove,
   hangul = false,
+  banned,
 }: {
   fen: string;
   /** 아래쪽에 올 진영 */
@@ -88,6 +89,8 @@ export default function JanggiBoard({
   lastMove?: string;
   onMove: (mv: string) => void;
   hangul?: boolean;
+  /** 반복수라 못 두는 수 (판만으로는 기보를 몰라서 밖에서 받음) */
+  banned?: string[];
 }) {
   const game = useMemo(() => Janggi.fromFen(fen), [fen]);
   const board = useMemo(() => game.board(), [game]);
@@ -100,8 +103,11 @@ export default function JanggiBoard({
     setSelected(null);
   }
   const targets = useMemo(
-    () => (selected && canMove ? new Set(game.targetsFrom(selected)) : new Set<string>()),
-    [selected, canMove, game]
+    () =>
+      selected && canMove
+        ? new Set(game.targetsFrom(selected).filter((t) => !banned?.includes(selected + t)))
+        : new Set<string>(),
+    [selected, canMove, game, banned]
   );
 
   const flip = orientation === "b";

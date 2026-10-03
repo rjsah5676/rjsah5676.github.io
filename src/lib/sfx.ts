@@ -35,34 +35,84 @@ function env(c: AudioContext, peak: number, attack: number, decay: number, at = 
   return g;
 }
 
-/** 나무판에 기물 놓는 "탁" — 짧은 노이즈 클릭 + 낮은 공명. capture면 조금 더 묵직하게 두 번 */
-export function playPiece(kind: "move" | "capture" = "move", vol = 1) {
+/**
+ * 나무판에 기물 놓는 "딱!" — 모달 합성.
+ * 아주 짧은 타격(임펄스)이 나무의 고유 진동수 몇 개를 울리고 수십 ms 안에 사라짐.
+ * 낮은 음이 길게 남으면 북소리처럼 들려서, 저음은 아주 짧게만 넣음.
+ */
+type Mode = [freq: number, amp: number, decayMs: number];
+const CLACK: Mode[] = [
+  [1180, 1, 38],
+  [1730, 0.75, 30],
+  [2690, 0.55, 22],
+  [3610, 0.35, 16],
+  [5230, 0.2, 10],
+  [210, 0.35, 9], // 판이 살짝 울리는 몸통 (짧게)
+];
+const CAPTURE: Mode[] = [
+  [1320, 1, 32],
+  [2010, 0.85, 26],
+  [3050, 0.6, 18],
+  [4420, 0.4, 12],
+  [6100, 0.25, 8],
+  [190, 0.4, 10],
+];
+
+const bufCache = new Map<string, AudioBuffer>();
+function clackBuffer(c: AudioContext, kind: "move" | "capture", scale: number): AudioBuffer {
+  const key = `${kind}:${scale}:${c.sampleRate}`;
+  const hit = bufCache.get(key);
+  if (hit) return hit;
+  const sr = c.sampleRate;
+  const len = Math.floor(sr * 0.16);
+  const buf = c.createBuffer(1, len, sr);
+  const d = buf.getChannelData(0);
+  const modes = kind === "capture" ? CAPTURE : CLACK;
+  // 두 번 부딪히는 소리 (잡을 땐 기물끼리 한 번 더)
+  const hits =
+    kind === "capture"
+      ? [
+          [0, 1],
+          [0.028, 0.55],
+        ]
+      : [[0, 1]];
+  for (const [at, gain] of hits) {
+    const off = Math.floor(at * sr);
+    for (const [f0, amp, decay] of modes) {
+      const f = f0 * scale;
+      const k = 1000 / (decay * sr);
+      const w = (2 * Math.PI * f) / sr;
+      const ph = Math.random() * Math.PI * 2;
+      for (let i = 0; off + i < len; i++) {
+        const e = Math.exp(-i * k);
+        if (e < 0.001) break;
+        d[off + i] += gain * amp * e * Math.sin(w * i + ph);
+      }
+    }
+    // 타격 순간의 "틱" (1.5ms 노이즈)
+    const n = Math.floor(sr * 0.0015);
+    for (let i = 0; i < n && off + i < len; i++)
+      d[off + i] += gain * 0.9 * (Math.random() * 2 - 1) * (1 - i / n);
+  }
+  // 정규화
+  let peak = 0;
+  for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(d[i]));
+  if (peak > 0) for (let i = 0; i < len; i++) d[i] /= peak;
+  bufCache.set(key, buf);
+  return buf;
+}
+
+/** 기물 놓는 소리. scale은 음높이 배율 (장기 알은 크고 두꺼워서 조금 낮게) */
+export function playPiece(kind: "move" | "capture" = "move", vol = 1, scale = 1) {
   const c = ac();
   if (!c) return;
-  const hit = (at: number, pitch: number, amp: number) => {
-    // 딱 소리
-    const n = c.createBufferSource();
-    n.buffer = noise(c);
-    const bp = c.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.value = pitch * 6;
-    bp.Q.value = 1.2;
-    n.connect(bp).connect(env(c, 0.5 * amp * vol, 0.002, 0.05, at));
-    n.start(at, Math.random() * 0.5, 0.08);
-    // 나무 울림
-    const o = c.createOscillator();
-    o.type = "sine";
-    o.frequency.setValueAtTime(pitch, at);
-    o.frequency.exponentialRampToValueAtTime(pitch * 0.7, at + 0.1);
-    o.connect(env(c, 0.35 * amp * vol, 0.003, 0.12, at));
-    o.start(at);
-    o.stop(at + 0.15);
-  };
-  const t = c.currentTime;
-  if (kind === "capture") {
-    hit(t, 190, 1);
-    hit(t + 0.07, 150, 1.1);
-  } else hit(t, 230 + Math.random() * 30, 1);
+  const src = c.createBufferSource();
+  src.buffer = clackBuffer(c, kind, scale);
+  src.playbackRate.value = 0.96 + Math.random() * 0.08; // 매번 살짝 다르게
+  const g = c.createGain();
+  g.gain.value = 0.55 * vol;
+  src.connect(g).connect(c.destination);
+  src.start();
 }
 
 /** 깃발 꽂기 "톡" (뽑을 땐 음이 내려감) */

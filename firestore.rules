@@ -100,6 +100,32 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // 체스·장기 AI 랭킹 모드 (이긴 판만, 점수는 클라이언트 계산 — 범위만 검사)
+    function validAIRank(maxScore) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'score', 'opp', 'moves', 'seconds', 'lead', 'createdAt'])
+          && d.keys().hasAll(['name', 'score', 'opp', 'moves', 'seconds', 'lead', 'createdAt'])
+          && validRankName()
+          && d.name.size() <= 12
+          && d.score is int && d.score > 0 && d.score <= maxScore
+          && d.opp is string && d.opp.size() <= 20
+          && d.moves is int && d.moves >= 2 && d.moves <= 1000
+          && d.seconds is int && d.seconds >= 0 && d.seconds <= 86400
+          && d.lead is number && d.lead >= 0 && d.lead <= 100
+          && d.createdAt == request.time;
+    }
+    match /chess_ai_rankings/{entryId} {
+      allow read: if true;
+      allow create: if validAIRank(150000)
+                    && request.resource.data.opp in ['400', '800', '1200', '1600', '2000', '2400'];
+      allow update, delete: if isAdmin();
+    }
+    match /janggi_ai_rankings/{entryId} {
+      allow read: if true;
+      allow create: if validAIRank(70000);
+      allow update, delete: if isAdmin();
+    }
+
     // 스케치 퀴즈 (메뉴에서 내림) - 기존 데이터 읽기만 허용, 새 쓰기는 차단
     match /sketch_user/{entryId} {
       allow read: if true;
