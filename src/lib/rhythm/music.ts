@@ -353,7 +353,7 @@ const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimD
 // 보스곡: 매우 어려움은 기본 채보 위에 센 마디마다 16분 연타·정박/뒷박 동시치기·프레이즈 끝 32분 연타를 더함
 const MONARCH = audioSong("monarch", "Monarch's Fall", "/audio/monarch.mp3", monarchData, {
   color: "#EF4444",
-  desc: "150 BPM · BOSS · AI 자작곡",
+  desc: "150 BPM · AI 자작곡",
   boss: true,
 });
 

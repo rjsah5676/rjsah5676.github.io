@@ -142,19 +142,34 @@ export default function Stage({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [paused, setPaused] = useState(false);
   // 일시정지 화면에 보여줄 지금까지의 타이밍 (결과 화면과 같은 계산)
-  const [pauseTiming, setPauseTiming] = useState<{ avgMs: number | null; n: number }>({
+  const [pauseTiming, setPauseTiming] = useState<{
+    avgMs: number | null;
+    n: number;
+    applied?: number;
+  }>({
     avgMs: null,
     n: 0,
   });
+  /** 일시정지 화면의 '싱크 적용': 결과 화면 자동 보정과 같은 규칙 (한 번에 최대 ±120ms) */
+  const applyPauseSync = () => {
+    if (pauseTiming.avgMs === null) return;
+    const to = clamp(liveUi.judge + clamp(pauseTiming.avgMs, -120, 120), -400, 400);
+    change({ judge: to });
+    ctrl.current.resetTiming();
+    setPauseTiming({ avgMs: null, n: 0, applied: to });
+  };
   // 일시정지·재개를 effect 밖(버튼)에서도 부르기 위해
   const ctrl = useRef<{
     pause: () => void;
     resume: () => void;
     apply: (p: Partial<LiveSettings>) => void;
+    /** 지금까지 친 타이밍 기록 비우기 (싱크를 바꾼 뒤 새로 재려고) */
+    resetTiming: () => void;
   }>({
     pause: () => {},
     resume: () => {},
     apply: () => {},
+    resetTiming: () => {},
   });
   // 일시정지 화면에서 보여줄 현재 설정값
   const [liveUi, setLiveUi] = useState<LiveSettings>({
@@ -975,7 +990,14 @@ export default function Stage({
       if (p.music !== undefined && !calibration) musicGain.gain.value = live.music;
       if (p.hit !== undefined) hitGain.gain.value = live.hit * 0.9;
     };
-    ctrl.current = { pause, resume, apply };
+    ctrl.current = {
+      pause,
+      resume,
+      apply,
+      resetTiming: () => {
+        diffs.length = 0;
+      },
+    };
 
     const onKeyDown = (e: KeyboardEvent) => {
       // 플레이 중엔 스페이스·PageDown 등으로 페이지가 스크롤되지 않게 (일시정지 중엔 버튼·슬라이더 조작용으로 둠)
@@ -1099,21 +1121,41 @@ export default function Stage({
           <div className="flex w-full max-w-sm flex-col items-center gap-2.5">
             <p className="font-mono text-lg font-bold text-white">일시정지</p>
             {!calibration && (
-              <p className="mb-1 font-mono text-xs text-white/50">
-                {pauseTiming.avgMs === null ? (
-                  "타이밍 기록이 아직 적어요 (10개부터)"
+              <div className="mb-1 flex flex-col items-center gap-1.5 font-mono text-xs text-white/50">
+                {pauseTiming.applied !== undefined ? (
+                  <p>
+                    타격 싱크를{" "}
+                    <b className="text-white">
+                      {pauseTiming.applied > 0 ? "+" : ""}
+                      {pauseTiming.applied}ms
+                    </b>
+                    로 맞췄어요. 이후 입력부터 다시 재요.
+                  </p>
+                ) : pauseTiming.avgMs === null ? (
+                  <p>타이밍 기록이 아직 적어요 (10개부터)</p>
                 ) : (
                   <>
-                    지금까지 평균{" "}
-                    <b className={pauseTiming.avgMs === 0 ? "text-white" : "text-[#FBBF24]"}>
-                      {pauseTiming.avgMs > 0 ? "+" : ""}
-                      {pauseTiming.avgMs}ms{" "}
-                      {pauseTiming.avgMs > 0 ? "늦음" : pauseTiming.avgMs < 0 ? "빠름" : "정확"}
-                    </b>{" "}
-                    · 입력 {pauseTiming.n}개
+                    <p>
+                      지금까지 평균{" "}
+                      <b className={pauseTiming.avgMs === 0 ? "text-white" : "text-[#FBBF24]"}>
+                        {pauseTiming.avgMs > 0 ? "+" : ""}
+                        {pauseTiming.avgMs}ms{" "}
+                        {pauseTiming.avgMs > 0 ? "늦음" : pauseTiming.avgMs < 0 ? "빠름" : "정확"}
+                      </b>{" "}
+                      · 입력 {pauseTiming.n}개
+                    </p>
+                    {pauseTiming.avgMs !== 0 && (
+                      <button
+                        type="button"
+                        onClick={applyPauseSync}
+                        className="cursor-pointer rounded-full bg-[#6C63FF] px-3.5 py-1 font-mono text-xs font-bold text-white hover:bg-[#5b52f0]"
+                      >
+                        타격 싱크에 적용
+                      </button>
+                    )}
                   </>
                 )}
-              </p>
+              </div>
             )}
             <div className="w-full rounded-xl border border-white/10 bg-[#1C1E24]/90 p-3.5">
               <PauseRow
