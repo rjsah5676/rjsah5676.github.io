@@ -58,6 +58,9 @@ export default function StudyImportPage() {
         return cur && changed ? [{ id: cur.id, seed: { ...s, section } }] : [];
       });
 
+  const addTitles = new Set(toAdd.map((x) => x.title));
+  const redateTitles = new Set(toRedate.map((r) => r.seed.title));
+
   const run = async () => {
     const ok = await modal.confirm({
       title: "일괄 등록",
@@ -121,30 +124,7 @@ export default function StudyImportPage() {
         {STUDY_SEED.length}개
       </p>
 
-      <ul className="mb-6 overflow-hidden rounded-xl border border-white/10">
-        {STUDY_SEED.map((s, i) => {
-          const dup = !!findExisting(s);
-          return (
-            <li
-              key={s.title}
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm ${i > 0 ? "border-t border-white/5" : ""}`}
-            >
-              <span className="w-24 flex-shrink-0 font-mono text-xs text-[#8B84FF]">
-                {s.category}
-              </span>
-              <span className="flex-1 truncate font-['Nanum_Gothic',sans-serif] text-white/80">
-                {s.title}
-              </span>
-              <span className="hidden flex-shrink-0 font-mono text-[11px] text-white/35 sm:inline">
-                {s.date.split(" ")[0]}
-              </span>
-              {dup && <span className="font-mono text-[11px] text-amber-300/70">이미 있음</span>}
-            </li>
-          );
-        })}
-      </ul>
-
-      <label className="mb-6 flex cursor-pointer items-center gap-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/70">
+      <label className="mb-4 flex cursor-pointer items-center gap-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/70">
         <input
           type="checkbox"
           checked={replaceAll}
@@ -159,20 +139,49 @@ export default function StudyImportPage() {
         type="button"
         disabled={running || existing === null || (toAdd.length === 0 && toRedate.length === 0)}
         onClick={run}
-        className="cursor-pointer rounded-full bg-[#6C63FF] px-6 py-2.5 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0] disabled:cursor-not-allowed disabled:opacity-40"
+        className="mb-6 cursor-pointer rounded-full bg-[#6C63FF] px-6 py-2.5 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {running
           ? "진행 중…"
           : replaceAll
             ? "삭제 후 등록"
-            : `${toAdd.length}개 등록 · ${toRedate.length}개 날짜 맞춤`}
+            : `${toAdd.length}개 등록 · ${toRedate.length}개 갱신`}
       </button>
 
       {log.length > 0 && (
-        <pre className="mt-8 max-h-72 overflow-auto rounded-xl border border-white/10 bg-[#1C1E24] p-4 font-mono text-xs leading-6 text-white/60">
+        <pre className="mb-6 max-h-72 overflow-auto rounded-xl border border-white/10 bg-[#1C1E24] p-4 font-mono text-xs leading-6 text-white/60">
           {log.join("\n")}
         </pre>
       )}
+
+      <ul className="thin-scroll max-h-[60vh] overflow-y-auto rounded-xl border border-white/10">
+        {STUDY_SEED.map((s, i) => {
+          const status = addTitles.has(s.title)
+            ? { text: "새 글", cls: "text-emerald-300/80" }
+            : redateTitles.has(s.title)
+              ? { text: "갱신", cls: "text-sky-300/80" }
+              : { text: "그대로", cls: "text-white/25" };
+          return (
+            <li
+              key={s.title}
+              className={`flex items-center gap-3 px-4 py-2.5 text-sm ${i > 0 ? "border-t border-white/5" : ""}`}
+            >
+              <span className="w-24 flex-shrink-0 font-mono text-xs text-[#8B84FF]">
+                {s.category}
+              </span>
+              <span className="flex-1 truncate font-['Nanum_Gothic',sans-serif] text-white/80">
+                {s.title}
+              </span>
+              <span className="hidden flex-shrink-0 font-mono text-[11px] text-white/35 sm:inline">
+                {s.date.split(" ")[0]}
+              </span>
+              <span className={`w-10 flex-shrink-0 text-right font-mono text-[11px] ${status.cls}`}>
+                {status.text}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
