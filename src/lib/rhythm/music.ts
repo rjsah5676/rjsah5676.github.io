@@ -10,6 +10,7 @@ import jiljuData from "@/data/rhythm/jilju.json";
 import natsuData from "@/data/rhythm/natsukasumi.json";
 import rinkakuData from "@/data/rhythm/rinkaku.json";
 import newdimData from "@/data/rhythm/newdim.json";
+import monarchData from "@/data/rhythm/monarch.json";
 
 export type Kind =
   | "kick"
@@ -78,6 +79,8 @@ export interface Song {
   bpmLabel?: number;
   /** 사용자가 넣은 음악 (랭킹 없음) */
   custom?: boolean;
+  /** 보스곡: 곡 선택에서 BOSS 표시 */
+  boss?: boolean;
   /** 음원 파일로 재생하는 곡 (신스 렌더 대신 이 파일을 불러옴) */
   audio?: string;
   /** 음원 곡의 고정 채보 (미리 분석해 둔 것 — 모두 같은 채보로 쳐서 랭킹이 공정함) */
@@ -298,7 +301,7 @@ function audioSong(
   title: string,
   audio: string,
   data: AudioSongData,
-  extra: { color: string; desc: string }
+  extra: { color: string; desc: string; boss?: boolean }
 ): Song {
   const charts = Object.fromEntries(
     Object.entries(data.charts).map(([d, c]) => [
@@ -347,7 +350,14 @@ const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimD
   desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
 });
 
-export const SONGS: Song[] = [JILJU, NATSU, RINKAKU, NEWDIM];
+// 보스곡: 매우 어려움은 기본 채보 위에 센 마디마다 16분 연타·정박/뒷박 동시치기·프레이즈 끝 32분 연타를 더함
+const MONARCH = audioSong("monarch", "Monarch's Fall", "/audio/monarch.mp3", monarchData, {
+  color: "#EF4444",
+  desc: "150 BPM · BOSS · AI 자작곡",
+  boss: true,
+});
+
+export const SONGS: Song[] = [JILJU, NATSU, RINKAKU, NEWDIM, MONARCH];
 
 // 작곡 엔진 외부 노출 (지금은 안 쓰지만 신스 곡을 다시 넣을 때 사용)
 export { build, type SongSpec };
