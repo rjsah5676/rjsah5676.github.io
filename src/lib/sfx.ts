@@ -102,17 +102,46 @@ function clackBuffer(c: AudioContext, kind: "move" | "capture", scale: number): 
   return buf;
 }
 
+/**
+ * 실제 녹음 파일이 있으면 그걸 씀: public/audio/sfx/piece-move.mp3, piece-capture.mp3
+ * (없거나 못 읽으면 위의 합성음으로)
+ */
+const samples = new Map<string, Promise<AudioBuffer | null>>();
+function sample(c: AudioContext, kind: "move" | "capture") {
+  const url = `/audio/sfx/piece-${kind}.mp3`;
+  let p = samples.get(url);
+  if (!p) {
+    p = fetch(url)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
+      .then((b) => c.decodeAudioData(b))
+      .catch(() => null);
+    samples.set(url, p);
+  }
+  return p;
+}
+
 /** 기물 놓는 소리. scale은 음높이 배율 (장기 알은 크고 두꺼워서 조금 낮게) */
 export function playPiece(kind: "move" | "capture" = "move", vol = 1, scale = 1) {
   const c = ac();
   if (!c) return;
-  const src = c.createBufferSource();
-  src.buffer = clackBuffer(c, kind, scale);
-  src.playbackRate.value = 0.96 + Math.random() * 0.08; // 매번 살짝 다르게
-  const g = c.createGain();
-  g.gain.value = 0.55 * vol;
-  src.connect(g).connect(c.destination);
-  src.start();
+  void sample(c, kind).then((rec) => {
+    const src = c.createBufferSource();
+    src.buffer = rec ?? clackBuffer(c, kind, scale);
+    // 매번 살짝 다르게 (녹음 파일은 장기일 때 조금 낮게)
+    src.playbackRate.value = (rec ? scale ** 0.5 : 1) * (0.97 + Math.random() * 0.06);
+    const g = c.createGain();
+    g.gain.value = (rec ? 0.9 : 0.55) * vol;
+    src.connect(g).connect(c.destination);
+    src.start();
+  });
+}
+
+/** 첫 착수 때 늦지 않게 미리 받아 둠 */
+export function preloadPieceSounds() {
+  const c = ac();
+  if (!c) return;
+  void sample(c, "move");
+  void sample(c, "capture");
 }
 
 /** 깃발 꽂기 "톡" (뽑을 땐 음이 내려감) */
@@ -128,6 +157,36 @@ export function playFlag(on: boolean, vol = 1) {
   o.connect(env(c, 0.3 * vol, 0.004, 0.11, t));
   o.start(t);
   o.stop(t + 0.14);
+}
+
+/** 칸 열기 "톡" — 짧고 부드러운 물방울 소리 */
+export function playReveal(vol = 1) {
+  const c = ac();
+  if (!c) return;
+  const t = c.currentTime;
+  const o = c.createOscillator();
+  o.type = "sine";
+  o.frequency.setValueAtTime(980, t);
+  o.frequency.exponentialRampToValueAtTime(620, t + 0.05);
+  o.connect(env(c, 0.28 * vol, 0.003, 0.07, t));
+  o.start(t);
+  o.stop(t + 0.09);
+}
+
+/** 좌우 동시 클릭(자동 열기) "또로롱" — 올라가는 짧은 3음 */
+export function playChord(vol = 1) {
+  const c = ac();
+  if (!c) return;
+  const t0 = c.currentTime;
+  [660, 880, 1175].forEach((f, i) => {
+    const t = t0 + i * 0.045;
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(f, t);
+    o.connect(env(c, 0.2 * vol, 0.003, 0.08, t));
+    o.start(t);
+    o.stop(t + 0.1);
+  });
 }
 
 /** 지뢰 폭발 "콰광" — 저역 노이즈 + 떨어지는 저음 */

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { playPiece } from "@/lib/sfx";
+import { playPiece, preloadPieceSounds } from "@/lib/sfx";
 
 /**
  * 수가 하나 늘 때마다 "탁" (기물 수가 줄었으면 잡는 소리).
@@ -7,6 +7,12 @@ import { playPiece } from "@/lib/sfx";
  */
 export function useMoveSound(ply: number, pieces: number, silent = false, pitch = 1) {
   const prev = useRef({ ply, pieces });
+  // 첫 터치/클릭 때 녹음 파일 미리 받기 (오디오는 사용자 입력 뒤에만 켜짐)
+  useEffect(() => {
+    const go = () => preloadPieceSounds();
+    window.addEventListener("pointerdown", go, { once: true });
+    return () => window.removeEventListener("pointerdown", go);
+  }, []);
   useEffect(() => {
     const p = prev.current;
     if (p.ply >= 0 && ply === p.ply + 1 && !silent)

@@ -5,8 +5,7 @@ import GameHeader from "@/components/GameHeader";
 import { useScrollToGame } from "@/hooks/useScrollToGame";
 import { useState, useEffect, useRef } from "react";
 import { getTopRankings, addRanking, type MineRanking } from "@/firestore/minesweeperRankings";
-import clickSoundSrc from "@/sounds/melongame/bbyong.mp3";
-import { playExplosion, playFlag } from "@/lib/sfx";
+import { playChord, playExplosion, playFlag, playReveal } from "@/lib/sfx";
 import endBgmSrc from "@/sounds/melongame/endbgm.mp3";
 import "@/css/minesweeper.css";
 import { generateNoGuessBoard } from "./noGuess";
@@ -43,10 +42,8 @@ export default function Minesweeper() {
   const MINES = 99;
 
   // new Audio(...)도 브라우저 API라 렌더 중이 아니라 ref에 지연 생성해서 사용.
-  const clickAudioRef = useRef<HTMLAudioElement | null>(null);
   const endBgmAudioRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
-    clickAudioRef.current = new Audio(clickSoundSrc);
     endBgmAudioRef.current = new Audio(endBgmSrc);
     endBgmAudioRef.current.volume = 0.6;
   }, []);
@@ -146,8 +143,6 @@ export default function Minesweeper() {
   const handleLeftClick = (r: number, c: number) => {
     if (gameOver || visible[r][c] || flagged[r][c]) return;
 
-    clickAudioRef.current?.play();
-
     if (!initialized) {
       // 찍기(50:50) 없이 논리만으로 끝까지 풀리는 판만 생성
       const { board: newBoard } = generateNoGuessBoard(r, c, ROWS, COLS, MINES);
@@ -171,15 +166,17 @@ export default function Minesweeper() {
 
       setVisible(newVisible);
       setInitialized(true);
+      playReveal();
       return;
     }
 
     const newVisible = visible.map((row) => [...row]);
     if (board[r][c] === -1) {
-      setGameOver(true);
+      setGameOver(true); // 소리는 폭발음만
       newVisible[r][c] = true;
     } else {
       floodFill(r, c, newVisible);
+      playReveal();
     }
     setVisible(newVisible);
     checkWin(newVisible);
@@ -239,6 +236,7 @@ export default function Minesweeper() {
           }
         }
       }
+      playChord();
       setVisible(newVisible);
       checkWin(newVisible);
     }
@@ -312,6 +310,7 @@ export default function Minesweeper() {
           }
         }
       }
+      playChord();
       setVisible(newVisible);
       checkWin(newVisible);
     }

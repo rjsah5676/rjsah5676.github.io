@@ -163,8 +163,14 @@ export default function Nav() {
                   type="button"
                   aria-label={`${g.label} 하위 메뉴`}
                   aria-expanded={isOpen}
-                  onClick={() => setOpen((o) => (o === g.key ? null : g.key))}
-                  className="cursor-pointer py-3 pr-2 pl-1 text-white/35 transition-colors hover:text-white min-[400px]:pr-2.5 sm:pr-3.5"
+                  onClick={() => {
+                    // PC는 마우스 올리기로 열리니 클릭은 무시 (터치 기기에서만 토글)
+                    if (hoverable()) return;
+                    setOpen((o) => (o === g.key ? null : g.key));
+                  }}
+                  className={`cursor-pointer py-3 pr-2 pl-1 transition-colors min-[400px]:pr-2.5 sm:pr-3.5 [@media(hover:hover)_and_(pointer:fine)]:cursor-default ${
+                    isOpen ? "text-[#8B84FF]" : "text-white/35"
+                  }`}
                 >
                   <Chevron open={isOpen} />
                 </button>
