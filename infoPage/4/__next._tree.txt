@@ -1,4 +1,4 @@
-:HL["/_next/static/chunks/05k54upxw06cm.css","style"]
+:HL["/_next/static/chunks/1p92xii6d0vnr.css","style"]
 :HL["https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Jua&family=Nanum+Gothic&family=Nanum+Gothic+Coding:wght@400;700&display=swap","style"]
 :HL["/_next/static/media/github.416pdeob057z9.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"infoPage","param":null,"prefetchHints":4192,"slots":{"children":{"name":"idx","param":{"type":"d","key":"4","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"ZK8xnNGlpsW42zyMENMj5"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"infoPage","param":null,"prefetchHints":4192,"slots":{"children":{"name":"idx","param":{"type":"d","key":"4","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"x8FEVsXZXIXylbshYBOA-"}
