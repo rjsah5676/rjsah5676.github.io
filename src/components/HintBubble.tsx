@@ -117,6 +117,22 @@ export default function HintBubble({
   }, [storageKey, device, maxShows, delay, duration, active]);
 
   const visible = show && !hidden;
+  // 안 보일 땐 DOM에서 빼서(사라지는 애니메이션 뒤) 폭 0 — 숨은 말풍선이 화면 밖으로 삐져나와
+  // 모바일 뷰포트가 늘어나는 걸 막음
+  const [inDom, setInDom] = useState(false);
+  useEffect(() => {
+    if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 보이는 동안만 DOM에
+      setInDom(true);
+      return;
+    }
+    const t = setTimeout(() => setInDom(false), 520);
+    return () => clearTimeout(t);
+  }, [visible]);
+  // 바깥 상자는 폭 0으로 두고(화면 밖으로 삐져나와 가로 스크롤·모바일 뷰포트 늘어남 방지),
+  // 가운데 정렬(-translate-x-1/2)은 안쪽 상자에서 함
+  const centered = className.includes("-translate-x-1/2");
+  const base = centered ? "translateX(-50%)" : "";
 
   // 화면 가장자리 근처에 뜨면 화면 밖으로 나가지 않게 안쪽으로 밀어줌 (꼬리는 원래 자리를 가리키게 반대로 이동)
   // 화면보다 넓으면 줄바꿈 허용
@@ -132,10 +148,14 @@ export default function HintBubble({
     const el = bubbleRef.current;
     if (!wrap || !el) return;
     const measure = () => {
-      const vw = document.documentElement.clientWidth;
+      // 모바일에서 뭔가 삐져나와 레이아웃 뷰포트가 늘어났어도 실제 화면 폭 기준으로
+      const vw = Math.min(
+        document.documentElement.clientWidth,
+        window.visualViewport?.width ?? Infinity
+      );
       const M = 8;
       const prev = { t: wrap.style.transform, w: el.style.width, ws: el.style.whiteSpace };
-      wrap.style.transform = "none";
+      wrap.style.transform = base || "none";
       el.style.width = "";
       el.style.whiteSpace = "";
       let r = el.getBoundingClientRect();
@@ -155,35 +175,38 @@ export default function HintBubble({
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [visible, touch]);
+  }, [visible, touch, inDom, base]);
 
   return (
-    <div className={`pointer-events-none z-40 ${className}`} aria-live="polite">
-      <div
-        ref={shiftRef}
-        style={{ transform: fit.shift ? `translateX(${fit.shift}px)` : undefined }}
-      >
+    <div className={`pointer-events-none z-40 w-0 ${className}`} aria-live="polite">
+      {inDom && (
         <div
-          ref={bubbleRef}
-          role="status"
-          data-tail={tail}
-          style={
-            {
-              width: fit.width ?? undefined,
-              whiteSpace: fit.width ? "normal" : undefined,
-              "--hint-shift": `${-fit.shift}px`,
-            } as CSSProperties
-          }
-          onClick={() => setShow(false)}
-          className={`hint-bubble relative rounded-xl border border-[#6C63FF]/40 bg-[#1C1E24] px-3 py-2 font-['Nanum_Gothic',sans-serif] text-xs whitespace-nowrap text-white/85 shadow-[0_8px_30px_-6px_rgba(108,99,255,0.5)] transition-all duration-500 ${
-            visible
-              ? "pointer-events-auto translate-x-0 translate-y-0 cursor-pointer opacity-100"
-              : `opacity-0 ${HIDE[tail]}`
-          }`}
+          ref={shiftRef}
+          className="w-max"
+          style={{ transform: `${base} translateX(${fit.shift}px)`.trim() || undefined }}
         >
-          {touch && mobile ? mobile : children}
+          <div
+            ref={bubbleRef}
+            role="status"
+            data-tail={tail}
+            style={
+              {
+                width: fit.width ?? undefined,
+                whiteSpace: fit.width ? "normal" : undefined,
+                "--hint-shift": `${-fit.shift}px`,
+              } as CSSProperties
+            }
+            onClick={() => setShow(false)}
+            className={`hint-bubble relative rounded-xl border border-[#6C63FF]/40 bg-[#1C1E24] px-3 py-2 font-['Nanum_Gothic',sans-serif] text-xs whitespace-nowrap text-white/85 shadow-[0_8px_30px_-6px_rgba(108,99,255,0.5)] transition-all duration-500 ${
+              visible
+                ? "pointer-events-auto translate-x-0 translate-y-0 cursor-pointer opacity-100"
+                : `opacity-0 ${HIDE[tail]}`
+            }`}
+          >
+            {touch && mobile ? mobile : children}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

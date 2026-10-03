@@ -110,7 +110,8 @@ export default function Modal({
   if (!mounted || !open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+    // 모바일(sm 미만)은 아래에서 올라오는 시트: 가로는 화면 꽉 차게, 세로는 최대 92dvh 안에서 스크롤
+    <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-4">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm [animation:modal-fade_150ms_ease-out]"
         onClick={closeOnBackdrop ? () => onCloseRef.current("backdrop") : undefined}
@@ -122,7 +123,7 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        className={`thin-scroll relative max-h-[88dvh] w-full ${SIZE[size]} overflow-y-auto rounded-2xl border border-white/10 bg-[#1C1E24] p-6 shadow-2xl outline-none [animation:modal-pop_180ms_ease-out] sm:p-7`}
+        className={`thin-scroll modal-panel relative max-h-[92dvh] w-full ${SIZE[size]} overflow-x-hidden overflow-y-auto rounded-t-2xl border border-white/10 bg-[#1C1E24] px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] break-words shadow-2xl outline-none sm:max-h-[88dvh] sm:rounded-2xl sm:p-7`}
       >
         {closeButton && (
           <button

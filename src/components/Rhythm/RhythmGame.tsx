@@ -673,7 +673,7 @@ export default function RhythmGame() {
         >
           <div className="w-full max-w-md rounded-2xl border border-[#6C63FF]/40 bg-[#1C1E24] p-6 text-center shadow-2xl">
             <div className="text-3xl">🎧</div>
-            <p className="mt-2 font-mono text-base font-bold whitespace-nowrap text-white sm:text-lg">
+            <p className="mt-2 font-mono text-base font-bold break-keep text-white sm:text-lg">
               플레이 전에 싱크부터 맞춰주세요
             </p>
             <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed break-keep text-white/70">

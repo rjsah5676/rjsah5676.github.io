@@ -20,6 +20,8 @@ body {
 /* 모달이 열려 스크롤이 잠길 때 스크롤바 자리가 사라지며 화면이 옆으로 밀리지 않게 자리를 늘 잡아 둠 */
 html {
   scrollbar-gutter: stable;
+  /* 가로로 삐져나온 요소가 있어도 가로 스크롤·모바일 뷰포트 늘어남이 생기지 않게 */
+  overflow-x: clip;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -48,6 +50,20 @@ html {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.97);
+  }
+}
+@keyframes modal-sheet {
+  from {
+    transform: translateY(100%);
+  }
+}
+/* 모바일은 아래에서 올라오는 시트, 넓은 화면은 가운데서 톡 */
+.modal-panel {
+  animation: modal-sheet 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (min-width: 640px) {
+  .modal-panel {
+    animation: modal-pop 180ms ease-out;
   }
 }
 

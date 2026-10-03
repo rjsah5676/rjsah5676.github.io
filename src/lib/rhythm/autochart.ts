@@ -12,10 +12,12 @@
  *  - 세기가 확 커지는 마디(드롭·코러스 진입)의 첫 노트는 동시치기
  *  - 빠른 연속 노트는 왼손(D F)·오른손(J K)을 번갈아 치게 배치
  *  - 같은 프레이즈가 반복되면(마디의 타격 배치가 같으면) 같은 노트 배치를 다시 씀 → 외워서 치는 재미
+ *  - 타격이 고르게 이어지는 구간(스트림)은 계단·연타·트릴 같은 익숙한 패턴으로 깔아 줌 (patterns.ts)
  */
 import type { Analysis, Onset } from "./analyze";
 import { FPS, gridPos } from "./analyze";
 import { finishChart, type Chart, type Difficulty, type Note } from "./chart";
+import { assignPatterns, relaneStreams, type PatternCtx } from "./patterns";
 
 interface AutoRule {
   /** 목표 초당 노트 수 (곡에 타격이 그만큼 없으면 그보다 적게) */
@@ -70,6 +72,24 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     holdBeats: 1.25,
   },
 };
+
+/** 마지막 makeAutoChart가 쓴 패턴 설정 (보스 채보처럼 노트를 덧입힌 뒤 relaneWithPatterns로 다시 깔 때) */
+let lastPatternCtx: (PatternCtx & { cenOf: (t: number) => number }) | null = null;
+function nearestCen(an: Analysis, t: number) {
+  let best = 0;
+  let bd = Infinity;
+  for (const o of an.onsets) {
+    const d = Math.abs(o.t - t);
+    if (d < bd) {
+      bd = d;
+      best = o.cen;
+    }
+  }
+  return best;
+}
+export function relaneWithPatterns(notes: Note[]) {
+  if (lastPatternCtx) relaneStreams(notes, lastPatternCtx, lastPatternCtx.cenOf);
+}
 
 const posKind = (o: Onset, div: number) => (o.grid < 0 ? 4 : gridPos(o.grid, div));
 
@@ -238,6 +258,23 @@ export function makeAutoChart(
     if (dir !== 0 && j - i + 1 >= 3) for (let k = i; k <= j; k++) stairs.set(k, dir);
     i = j - i + 1 >= 3 ? j + 1 : i + 1;
   }
+  // 2.5) 스트림 패턴 (계단·연타·트릴…) — 고정 시드라 같은 곡은 늘 같은 채보
+  let seed = (Math.round(an.bpm * 100) + diff.length * 7919) >>> 0;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const patCtx: PatternCtx = {
+    diff,
+    beatSec,
+    jackGap: R.jackGap,
+    chords: R.chord !== null,
+    barOf,
+    intensity: (b) => intensity[Math.max(0, Math.min(nBars - 1, b))],
+    rnd,
+  };
+  const patterned = assignPatterns(
+    picked.map((o) => ({ t: o.t, cen: o.cen, count: 1 })),
+    patCtx
+  );
+
   const notes: Note[] = [];
   const laneLast = [-Infinity, -Infinity, -Infinity, -Infinity];
   let prevLane = -1;
@@ -255,7 +292,9 @@ export function makeAutoChart(
       else if (picked[k].cen === o.cen && k < i) below++;
     }
     let want = total ? Math.min(3, Math.floor((below / total) * 4)) : 1;
-    const dir = stairs.get(i);
+    const patLanes = patterned.get(i) ?? null;
+    if (patLanes) want = patLanes[0];
+    const dir = patLanes ? undefined : stairs.get(i);
     if (dir && prevLane >= 0) {
       want = prevLane + dir;
       if (want < 0 || want > 3) want = prevLane - dir;
@@ -273,6 +312,7 @@ export function makeAutoChart(
       }
     if (
       !dir &&
+      !patLanes &&
       prev &&
       prev2 &&
       o.t - prev.t <= beatSec / 4 + 0.01 &&
@@ -294,6 +334,16 @@ export function makeAutoChart(
     prevLane = want;
     laneLast[want] = o.t;
     notes.push({ t: o.t, lane: want });
+
+    // 패턴이 준 동시치기 짝
+    if (patLanes && patLanes.length === 2) {
+      const l2 = patLanes[1] === want ? patLanes[0] : patLanes[1];
+      if (l2 !== want && o.t - laneLast[l2] >= R.jackGap) {
+        notes.push({ t: o.t, lane: l2 });
+        laneLast[l2] = o.t;
+        continue;
+      }
+    }
 
     // 3) 동시치기 — 규칙 자리 + 구간 진입(드롭·코러스) 첫 노트
     const entry =
@@ -366,6 +416,9 @@ export function makeAutoChart(
     const end = next - Math.max(beatSec * 0.25, 0.12);
     if (end - n.t >= 0.4) n.end = end;
   }
+
+  // 스크립트(보스 패턴 덧입히기)에서 덧입힌 뒤 다시 패턴을 깔 수 있게
+  lastPatternCtx = { ...patCtx, cenOf: (t) => nearestCen(an, t) };
 
   const shift = shiftMs / 1000;
   if (shift)

@@ -52,7 +52,7 @@ const dry = argv.includes("--dry");
 
 // ── src/lib/rhythm의 TS를 임시 폴더에 JS로 옮겨서 불러옴 ──
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rhythm-chart-"));
-for (const n of ["analyze", "autochart", "chart"]) {
+for (const n of ["analyze", "autochart", "chart", "patterns"]) {
   const src = fs.readFileSync(path.join(ROOT, "src/lib/rhythm", `${n}.ts`), "utf8");
   let out = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -62,7 +62,7 @@ for (const n of ["analyze", "autochart", "chart"]) {
 }
 const load = (n) => import(pathToFileURL(path.join(tmp, `${n}.mjs`)).href);
 const { analyzeAudio, displayBpm, SR } = await load("analyze");
-const { makeAutoChart } = await load("autochart");
+const { makeAutoChart, relaneWithPatterns } = await load("autochart");
 const { finishChart } = await load("chart");
 
 // ── 음원 → 22.05kHz 모노 PCM (분석기가 쓰는 OfflineAudioContext는 이 데이터를 돌려주는 가짜로) ──
@@ -179,6 +179,8 @@ function bossChart(P) {
         for (let s = 0; s < P.burstSub; s++) add(t0 + (s * (t1 - t0)) / P.burstSub);
     }
   }
+  // 덧입힌 노트까지 포함해서 계단·연타 같은 패턴으로 레인을 다시 깖
+  relaneWithPatterns(notes);
   return finishChart(notes, "expert");
 }
 
