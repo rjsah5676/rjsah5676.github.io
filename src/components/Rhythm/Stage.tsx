@@ -57,6 +57,8 @@ export const CAL_SKIP = 4;
  * 20개 이상 쳤고, 중앙값 주변으로 절반 이상이 ±25ms 안에 모여 있으면(MAD ≤ 25ms)
  * 실수로 흔들린 게 아니라 기기·손 버릇으로 늘 그만큼 어긋난 것으로 봄.
  */
+const SCROLL_KEYS = new Set(["Space", "PageUp", "PageDown", "Home", "End"]);
+
 function timingOf(diffs: number[]): { avgMs: number | null; steady: boolean } {
   if (diffs.length < 10) return { avgMs: null, steady: false };
   const ms = diffs.map((d) => d * 1000).sort((a, b) => a - b);
@@ -139,6 +141,11 @@ export default function Stage({
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [paused, setPaused] = useState(false);
+  // 일시정지 화면에 보여줄 지금까지의 타이밍 (결과 화면과 같은 계산)
+  const [pauseTiming, setPauseTiming] = useState<{ avgMs: number | null; n: number }>({
+    avgMs: null,
+    n: 0,
+  });
   // 일시정지·재개를 effect 밖(버튼)에서도 부르기 위해
   const ctrl = useRef<{
     pause: () => void;
@@ -920,6 +927,7 @@ export default function Stage({
         // 카운트다운 중에 다시 Esc → 일시정지로 돌아감
         resuming = false;
         cancelAnimationFrame(raf);
+        setPauseTiming({ avgMs: timingOf(diffs).avgMs, n: diffs.length });
         setPaused(true);
         return;
       }
@@ -930,6 +938,7 @@ export default function Stage({
       const t = now();
       for (let l = 0; l < 4; l++) if (engine.pressed[l]) engine.release(l, t);
       ctx.suspend();
+      setPauseTiming({ avgMs: timingOf(diffs).avgMs, n: diffs.length });
       setPaused(true);
     };
     const resume = () => {
@@ -969,6 +978,11 @@ export default function Stage({
     ctrl.current = { pause, resume, apply };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      // 플레이 중엔 스페이스·PageDown 등으로 페이지가 스크롤되지 않게 (일시정지 중엔 버튼·슬라이더 조작용으로 둠)
+      if ((running || resuming) && SCROLL_KEYS.has(e.code)) {
+        e.preventDefault();
+        return;
+      }
       if (e.code === "Escape") {
         e.preventDefault();
         if (running || resuming) pause();
@@ -1083,7 +1097,24 @@ export default function Stage({
       {paused && (
         <div className="absolute inset-0 flex items-center justify-center overflow-y-auto rounded-xl bg-black/75 p-4 backdrop-blur-sm">
           <div className="flex w-full max-w-sm flex-col items-center gap-2.5">
-            <p className="mb-1 font-mono text-lg font-bold text-white">일시정지</p>
+            <p className="font-mono text-lg font-bold text-white">일시정지</p>
+            {!calibration && (
+              <p className="mb-1 font-mono text-xs text-white/50">
+                {pauseTiming.avgMs === null ? (
+                  "타이밍 기록이 아직 적어요 (10개부터)"
+                ) : (
+                  <>
+                    지금까지 평균{" "}
+                    <b className={pauseTiming.avgMs === 0 ? "text-white" : "text-[#FBBF24]"}>
+                      {pauseTiming.avgMs > 0 ? "+" : ""}
+                      {pauseTiming.avgMs}ms{" "}
+                      {pauseTiming.avgMs > 0 ? "늦음" : pauseTiming.avgMs < 0 ? "빠름" : "정확"}
+                    </b>{" "}
+                    · 입력 {pauseTiming.n}개
+                  </>
+                )}
+              </p>
+            )}
             <div className="w-full rounded-xl border border-white/10 bg-[#1C1E24]/90 p-3.5">
               <PauseRow
                 label="노트 속도"
