@@ -334,8 +334,6 @@ export default function Stage({
     let lastJudge: { judge: Judge; at: number; diff?: number; tick?: boolean } | null = null;
     let shownScore = 0;
     let speedToastAt = -10;
-    let syncToastAt = -10;
-    let syncToastText = "";
     let fast = 0;
     let slow = 0;
     const diffs: number[] = [];
@@ -372,24 +370,6 @@ export default function Stage({
       for (let i = 0; i < diffs.length; i++) diffs[i] -= real / 1000;
       onSettings({ judge: to });
       setLiveUi((v) => ({ ...v, judge: to }));
-      syncToastText = `싱크 자동 보정 ${real > 0 ? "+" : ""}${real}ms`;
-      syncToastAt = performance.now() / 1000;
-    };
-    /** 자동 싱크 보정됐을 때 잠깐 뜨는 작은 알림. 노트가 지나는 자리를 가리지 않게 가장자리에 */
-    const drawSyncToast = (x: number, y: number, align: "left" | "center") => {
-      const age = performance.now() / 1000 - syncToastAt;
-      if (age >= 2.2) return;
-      g.save();
-      g.globalAlpha = age < 1.7 ? 0.95 : ((2.2 - age) / 0.5) * 0.95;
-      g.textAlign = align;
-      g.textBaseline = "middle";
-      g.font = "700 11px 'Nanum Gothic', sans-serif";
-      const tw = g.measureText(syncToastText).width + 20;
-      g.fillStyle = "rgba(108,99,255,0.4)";
-      roundRectFill(g, align === "left" ? x - 10 : x - tw / 2, y - 11, tw, 22, 11);
-      g.fillStyle = "#fff";
-      g.fillText(syncToastText, x, y);
-      g.restore();
     };
     const hitBuf = makeHitSound(ctx, hitSound);
     const hitGain = ctx.createGain();
@@ -519,8 +499,6 @@ export default function Stage({
       g.fillStyle = "rgba(255,255,255,0.35)";
       g.font = `600 11px ${mono}`;
       g.fillText(`SPEED x${live.speed.toFixed(1)}`, lx, H - 40);
-      // 자동 싱크 보정 알림: 넓은 화면에선 왼쪽 패널 아래(기어를 안 가림)
-      drawSyncToast(lx, H - 70, "left");
 
       // 오른쪽: 점수판
       const rx = gx + W + 24;
@@ -850,7 +828,6 @@ export default function Stage({
         g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.22);
         g.globalAlpha = 1;
       }
-      if (gx < 150) drawSyncToast(10, 36, "left");
       drawCountdown(g, cd, t + leadIn, W, H);
       g.restore();
     };

@@ -93,7 +93,7 @@ function SyncConcept() {
   );
 }
 
-/** 플레이 중 자동 싱크 토스트 */
+/** 플레이 중 자동 싱크: 늦게 치던 게 조용히 PERFECT로 */
 function AutoSyncMock() {
   return (
     <div className="flex w-full max-w-sm flex-col items-center font-mono">
@@ -109,8 +109,9 @@ function AutoSyncMock() {
         <div className="absolute bottom-[21px] left-[27%] h-2.5 w-[21%] rounded bg-[#7DF9FF]" />
         <div className="absolute bottom-14 left-[52%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/70" />
         <div className="absolute top-4 left-[2%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/40" />
-        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 rounded-full bg-[#6C63FF]/50 px-3 py-1 font-['Nanum_Gothic',sans-serif] text-[11px] font-bold whitespace-nowrap text-white">
-          싱크 자동 보정 +12ms
+        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 font-mono text-[11px] whitespace-nowrap text-white/60">
+          <span className="text-[#FB923C]">SLOW</span> →{" "}
+          <span className="text-[#7DF9FF]">PERFECT</span>
         </div>
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#7DF9FF]">
           PERFECT
@@ -433,7 +434,7 @@ export const RHYTHM_GUIDE: GuideDoc = {
       items: [
         <>
           <B>자동 싱크</B>(기본 켜짐): 치는 동안 타이밍이 계속 한쪽으로 쏠리면 타격 싱크를 조금씩
-          옮겨요. 실수 몇 번엔 안 움직이고, 화면에 &quot;싱크 자동 보정 +12ms&quot;처럼 알려줘요.
+          옮겨요. 실수 몇 번엔 안 움직이고, 화면에 따로 알림은 안 떠요(일시정지·결과 화면에서 확인).
         </>,
         <>
           <B>음악 싱크</B>: 소리가 귀에 늦게 도착하는 만큼(블루투스 이어폰 등). 타격 싱크가 손 지연

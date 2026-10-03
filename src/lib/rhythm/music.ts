@@ -84,7 +84,7 @@ export interface Song {
   boss?: boolean;
   /** 음원 파일로 재생하는 곡 (신스 렌더 대신 이 파일을 불러옴) */
   audio?: string;
-  /** 음원 곡의 고정 채보 (미리 분석해 둔 것 — 모두 같은 채보로 쳐서 랭킹이 공정함). 나이트메어는 보스곡만 */
+  /** 음원 곡의 고정 채보 (미리 분석해 둔 것 — 모두 같은 채보로 쳐서 랭킹이 공정함). 나이트메어는 보스곡과 일부 곡만 */
   charts?: Partial<Record<Difficulty, Chart>>;
 }
 
@@ -346,6 +346,7 @@ const RINKAKU = audioSong("rinkaku", "名前のない輪郭", "/audio/rinkaku.mp
   desc: "163 BPM · J-ROCK (12/8) · AI 자작곡 (tunee.ai)",
 });
 
+// 보스곡은 아니지만 나이트메어(Lv17)가 있음: --boss '{"loud":0.55,"full":0.85,"burstEvery":8}'
 const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimData, {
   color: "#C084FC",
   desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",

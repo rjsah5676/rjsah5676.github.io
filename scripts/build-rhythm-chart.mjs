@@ -14,6 +14,7 @@
  *   --stats           패턴을 얼마나 다양하게 썼는지 출력
  *
  * 예) Monarch's Fall : npm run rhythm-chart -- monarch --bpm-label 150 --boss '{}'
+ *     New Dimension   : npm run rhythm-chart -- newdim --boss '{"loud":0.55,"full":0.85,"burstEvery":8}'  (나이트메어 Lv17)
  *     Maximum Velocity: npm run rhythm-chart -- velocity --bpm-label 180 --hard-slots \
  *       --boss '{"loudSub":3,"fullSub":6,"chordFull":3,"burstSub":12,"burstEvery":2}'
  */
