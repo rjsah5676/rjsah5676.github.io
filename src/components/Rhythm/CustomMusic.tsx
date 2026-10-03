@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { analyzeAudio, displayBpm, rescaleTempo, type Analysis } from "@/lib/rhythm/analyze";
 import { DIFFICULTIES, type Chart, type Difficulty } from "@/lib/rhythm/chart";
-import { makeHitSound } from "@/lib/rhythm/fx";
-import HoldButton from "./HoldButton";
 
 /** 사용자가 넣은 곡 (메모리에만 — 새로고침하면 다시 골라야 함) */
 export interface CustomTrack {
@@ -13,40 +11,19 @@ export interface CustomTrack {
   buffer: AudioBuffer;
   analysis: Analysis;
   /** 곡별 채보 보정(ms, +면 노트가 늦게) — 이 브라우저에 곡별로 저장 */
-  shiftMs: number;
 }
 
-const SHIFT_KEY = "rhythm_custom_shift";
 const MAX_BYTES = 40 * 1024 * 1024;
 const MAX_SEC = 12 * 60;
-const PREVIEW_SEC = 30;
 
 const btn =
   "cursor-pointer rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs whitespace-nowrap text-white/70 transition-colors hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
-const stepBtn =
-  "h-8 w-8 shrink-0 cursor-pointer rounded-full border border-white/15 font-mono text-sm text-white/70 hover:border-[#6C63FF]/60 hover:text-white";
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const hashOf = (s: string) =>
   ([...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0).toString(
     36
   );
-
-function loadShift(key: string) {
-  try {
-    const all = JSON.parse(localStorage.getItem(SHIFT_KEY) ?? "{}") as Record<string, number>;
-    return Number(all[key]) || 0;
-  } catch {
-    return 0;
-  }
-}
-function saveShift(key: string, ms: number) {
-  try {
-    const all = JSON.parse(localStorage.getItem(SHIFT_KEY) ?? "{}") as Record<string, number>;
-    all[key] = ms;
-    localStorage.setItem(SHIFT_KEY, JSON.stringify(all));
-  } catch {}
-}
 
 export default function CustomMusic({
   track,
@@ -92,7 +69,6 @@ export default function CustomMusic({
         name: file.name.replace(/\.[^.]+$/, ""),
         buffer,
         analysis,
-        shiftMs: loadShift(key),
       });
     } catch (e) {
       console.error(e);
@@ -104,83 +80,6 @@ export default function CustomMusic({
     } finally {
       setBusy(null);
     }
-  };
-
-  // ── 미리듣기: 음악 + 노트마다 클릭음 (같은 오디오 시계로 예약해서 기기 지연과 무관하게 비교 가능) ──
-  const [preview, setPreview] = useState<{ from: number; startedAt: number } | null>(null);
-  const [from, setFrom] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-  const nodesRef = useRef<AudioScheduledSourceNode[]>([]);
-  const ctxRef = useRef<AudioContext | null>(null);
-  const stopPreview = () => {
-    for (const n of nodesRef.current)
-      try {
-        n.stop();
-      } catch {}
-    nodesRef.current = [];
-    setPreview(null);
-  };
-  const playPreview = async (at: number) => {
-    if (!track || !charts) return;
-    stopPreview();
-    const ctx = await getCtx();
-    ctxRef.current = ctx;
-    const t0 = ctx.currentTime + 0.12;
-    const music = ctx.createBufferSource();
-    music.buffer = track.buffer;
-    const mg = ctx.createGain();
-    mg.gain.value = 0.75;
-    music.connect(mg).connect(ctx.destination);
-    music.start(t0, at, PREVIEW_SEC);
-    const nodes: AudioScheduledSourceNode[] = [music];
-    const click = makeHitSound(ctx, "wood");
-    const cg = ctx.createGain();
-    cg.gain.value = 0.9;
-    cg.connect(ctx.destination);
-    for (const n of charts[diff].notes) {
-      if (n.t < at || n.t > at + PREVIEW_SEC) continue;
-      const s = ctx.createBufferSource();
-      s.buffer = click;
-      s.connect(cg);
-      s.start(t0 + n.t - at);
-      nodes.push(s);
-    }
-    music.onended = () => {
-      if (nodesRef.current[0] === music) setPreview(null);
-    };
-    nodesRef.current = nodes;
-    setPreview({ from: at, startedAt: t0 });
-  };
-  useEffect(() => {
-    if (!preview) return;
-    let raf = 0;
-    const loop = () => {
-      const ctx = ctxRef.current;
-      if (ctx) setElapsed(Math.max(0, ctx.currentTime - preview.startedAt));
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [preview]);
-  // 화면 나갈 때 정지
-  useEffect(() => () => nodesRef.current.forEach((n) => n.stop?.()), []);
-
-  // 보정값·난이도·템포가 바뀌면 듣던 위치에서 다시
-  const restartKey = `${track?.shiftMs}:${diff}:${track?.analysis.bpm}`;
-  const lastKey = useRef(restartKey);
-  useEffect(() => {
-    if (lastKey.current === restartKey) return;
-    lastKey.current = restartKey;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 설정이 바뀌면 미리듣기를 다시 예약
-    if (preview) playPreview(preview.from + elapsed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 설정이 바뀐 순간에만
-  }, [restartKey]);
-
-  const setShift = (ms: number) => {
-    if (!track) return;
-    const v = Math.max(-200, Math.min(200, Math.round(ms)));
-    saveShift(track.key, v);
-    onTrack({ ...track, shiftMs: v });
   };
 
   // ───────── 파일 고르기 전 ─────────
@@ -288,14 +187,7 @@ export default function CustomMusic({
             </span>
           </p>
         </div>
-        <button
-          type="button"
-          className={btn}
-          onClick={() => {
-            stopPreview();
-            onTrack(null);
-          }}
-        >
+        <button type="button" className={btn} onClick={() => onTrack(null)}>
           다른 파일
         </button>
       </div>
@@ -346,77 +238,9 @@ export default function CustomMusic({
         </div>
       )}
 
-      {/* 정확도 확인 */}
-      <div className="mt-4 rounded-2xl border border-white/10 bg-[#1C1E24] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="font-mono text-sm font-bold text-white">채보 미리듣기</p>
-          <p className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/40">
-            노트 위치에 &apos;딱&apos; 소리가 나요. 드럼과 같이 들리면 정확한 거예요.
-          </p>
-        </div>
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => (preview ? stopPreview() : playPreview(from))}
-            className="h-9 w-9 shrink-0 cursor-pointer rounded-full bg-[#6C63FF] font-mono text-sm text-white hover:bg-[#5b52f0]"
-            aria-label={preview ? "정지" : "재생"}
-          >
-            {preview ? "■" : "▶"}
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={Math.max(0, a.duration - 5)}
-            step={1}
-            value={preview ? Math.min(a.duration, preview.from + elapsed) : from}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setFrom(v);
-              if (preview) playPreview(v);
-            }}
-            aria-label="미리듣기 위치"
-            className="min-w-0 flex-1 accent-[#6C63FF]"
-          />
-          <span className="w-20 text-right font-mono text-xs text-white/60">
-            {fmt(preview ? preview.from + elapsed : from)} / {fmt(a.duration)}
-          </span>
-        </div>
-
-        <label className="mt-4 block font-mono text-xs text-white/50">
-          이 곡 채보 보정 (ms) · 딱 소리가 드럼보다 늦으면 −, 빠르면 +
-        </label>
-        <div className="mt-1.5 flex items-center gap-2">
-          <HoldButton className={stepBtn} onStep={() => setShift(track.shiftMs - 5)}>
-            −
-          </HoldButton>
-          <input
-            type="range"
-            min={-200}
-            max={200}
-            step={5}
-            value={track.shiftMs}
-            onChange={(e) => setShift(Number(e.target.value))}
-            className="min-w-0 flex-1 accent-[#6C63FF]"
-          />
-          <HoldButton className={stepBtn} onStep={() => setShift(track.shiftMs + 5)}>
-            +
-          </HoldButton>
-          <span className="w-12 text-right font-mono text-sm text-white">
-            {track.shiftMs > 0 ? "+" : ""}
-            {track.shiftMs}
-          </span>
-        </div>
-        <p className="mt-1 font-mono text-[10px] text-white/30">
-          기기 싱크는 오른쪽 &apos;음악 싱크&apos;에서 따로 맞춰요. 이 값은 이 곡에만 적용돼요.
-        </p>
-      </div>
-
       <button
         type="button"
-        onClick={() => {
-          stopPreview();
-          onStart();
-        }}
+        onClick={onStart}
         disabled={starting || !charts}
         className="mt-5 w-full cursor-pointer rounded-full bg-[#22D3EE] py-3 font-mono text-base font-bold text-[#0b0c10] transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
       >

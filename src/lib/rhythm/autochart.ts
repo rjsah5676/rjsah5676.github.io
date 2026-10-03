@@ -164,7 +164,7 @@ export interface AutoTweak {
 }
 
 /**
- * @param shiftMs 사용자가 미리듣기로 맞춘 곡별 보정 (+면 노트가 늦게)
+ * @param shiftMs 곡별 보정(ms, +면 노트가 늦게) — 지금은 안 씀(0)
  */
 export function makeAutoChart(
   an: Analysis,

@@ -174,8 +174,7 @@ export default function RhythmGame() {
       track
         ? (makeAutoCharts(
             track.analysis,
-            DIFFICULTIES.map((d) => d.key),
-            track.shiftMs
+            DIFFICULTIES.map((d) => d.key)
           ) as Record<Difficulty, ReturnType<typeof makeChart>>)
         : null,
     [track]
