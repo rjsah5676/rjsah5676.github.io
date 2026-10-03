@@ -46,14 +46,9 @@ export interface Result {
   steady: boolean;
   /** HP가 바닥나서 중간에 끝남 */
   failed: boolean;
-  /** 싱크 맞추기: 누를 때마다 가장 가까운 노트와의 차이(ms, 판정과 무관하게 ±250ms 안) */
-  taps?: number[];
   /** 자동 싱크가 이 판 동안 타격 싱크를 움직인 합계(ms) */
   autoJudge: number;
 }
-
-/** 싱크 맞추기에서 처음 몇 개는 박자 잡는 중이라 뺌 */
-export const CAL_SKIP = 4;
 
 /**
  * 친 타이밍(초) 목록 → 중앙값(ms)과 "고르게 쏠렸는지".
@@ -127,8 +122,6 @@ interface Props {
   onRestart: () => void;
   /** ms, 판정만 옮김(+면 늦게 쳐도 맞게). 노트가 보이는 위치는 그대로 */
   judgeOffset: number;
-  /** 타격 싱크 맞추기 모드: 음악 없이 노트만 보고 침. HP로 안 죽고, 누른 타이밍(타격 싱크 적용 전)을 모아서 돌려줌 */
-  calibration?: boolean;
   /** 플레이 중 친 타이밍을 보고 타격 싱크를 알아서 조금씩 맞춤 */
   autoSync?: boolean;
 }
@@ -150,7 +143,6 @@ export default function Stage({
   onFinish,
   onQuit,
   onRestart,
-  calibration = false,
   autoSync = false,
   judgeOffset,
 }: Props) {
@@ -306,7 +298,7 @@ export default function Stage({
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     const musicGain = ctx.createGain();
-    musicGain.gain.value = calibration ? 0 : live.music;
+    musicGain.gain.value = live.music;
     src.connect(musicGain).connect(ctx.destination);
     const startAt = ctx.currentTime + leadIn;
     src.start(startAt);
@@ -347,8 +339,6 @@ export default function Stage({
     let fast = 0;
     let slow = 0;
     const diffs: number[] = [];
-    const taps: number[] = [];
-    const noteTimes = chart.notes.map((n) => n.t);
     // 자동 싱크: 레인별 노트 시각(정렬) + 입력마다 같은 레인 가장 가까운 노트와의 차이(초, 타격 싱크 적용 후)
     const laneNotes: number[][] = [[], [], [], []];
     for (const n of chart.notes) laneNotes[n.lane].push(n.t);
@@ -384,6 +374,22 @@ export default function Stage({
       setLiveUi((v) => ({ ...v, judge: to }));
       syncToastText = `싱크 자동 보정 ${real > 0 ? "+" : ""}${real}ms`;
       syncToastAt = performance.now() / 1000;
+    };
+    /** 자동 싱크 보정됐을 때 잠깐 뜨는 작은 알림. 노트가 지나는 자리를 가리지 않게 가장자리에 */
+    const drawSyncToast = (x: number, y: number, align: "left" | "center") => {
+      const age = performance.now() / 1000 - syncToastAt;
+      if (age >= 2.2) return;
+      g.save();
+      g.globalAlpha = age < 1.7 ? 0.95 : ((2.2 - age) / 0.5) * 0.95;
+      g.textAlign = align;
+      g.textBaseline = "middle";
+      g.font = "700 11px 'Nanum Gothic', sans-serif";
+      const tw = g.measureText(syncToastText).width + 20;
+      g.fillStyle = "rgba(108,99,255,0.4)";
+      roundRectFill(g, align === "left" ? x - 10 : x - tw / 2, y - 11, tw, 22, 11);
+      g.fillStyle = "#fff";
+      g.fillText(syncToastText, x, y);
+      g.restore();
     };
     const hitBuf = makeHitSound(ctx, hitSound);
     const hitGain = ctx.createGain();
@@ -513,6 +519,8 @@ export default function Stage({
       g.fillStyle = "rgba(255,255,255,0.35)";
       g.font = `600 11px ${mono}`;
       g.fillText(`SPEED x${live.speed.toFixed(1)}`, lx, H - 40);
+      // 자동 싱크 보정 알림: 넓은 화면에선 왼쪽 패널 아래(기어를 안 가림)
+      drawSyncToast(lx, H - 70, "left");
 
       // 오른쪽: 점수판
       const rx = gx + W + 24;
@@ -594,7 +602,7 @@ export default function Stage({
       }
       // 가림 옵션: y(0=위, judgeY=판정선) 위치에 따른 투명도
       const coverAlpha = (y: number) => {
-        if (coverMode === "none" || calibration) return 1;
+        if (coverMode === "none") return 1;
         const r = y / judgeY; // 0 위 → 1 판정선
         if (coverMode === "fade") return r < 0.55 ? 1 : Math.max(0, 1 - (r - 0.55) / 0.3);
         // 서든: 위쪽 30%만 가리고 아래 70%는 보임 (반응 시간은 남기면서 미리 읽기만 막음)
@@ -842,20 +850,7 @@ export default function Stage({
         g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.22);
         g.globalAlpha = 1;
       }
-      // 자동 싱크 보정됐을 때 잠깐 표시
-      const yAge = performance.now() / 1000 - syncToastAt;
-      if (yAge < 1.6) {
-        g.globalAlpha = yAge < 1.2 ? 0.95 : ((1.6 - yAge) / 0.4) * 0.95;
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.font = "700 12px 'Nanum Gothic', sans-serif";
-        const tw = g.measureText(syncToastText).width + 28;
-        g.fillStyle = "rgba(108,99,255,0.35)";
-        roundRectFill(g, W / 2 - tw / 2, H * 0.3 - 14, tw, 28, 14);
-        g.fillStyle = "#fff";
-        g.fillText(syncToastText, W / 2, H * 0.3);
-        g.globalAlpha = 1;
-      }
+      if (gx < 150) drawSyncToast(10, 36, "left");
       drawCountdown(g, cd, t + leadIn, W, H);
       g.restore();
     };
@@ -882,7 +877,6 @@ export default function Stage({
         fast,
         slow,
         ...timingOf(diffs),
-        taps: calibration ? taps : undefined,
         autoJudge,
       });
     };
@@ -934,7 +928,7 @@ export default function Stage({
         }
       }
       engine.events.length = 0;
-      if (engine.dead && !calibration) return fail(t);
+      if (engine.dead) return fail(t);
       draw(t);
       if (engine.done && t > Math.max(engine.lastTime + 1.2, songEnd)) return finish();
       raf = requestAnimationFrame(frame);
@@ -990,16 +984,9 @@ export default function Stage({
         src.start();
       }
       const t = eventTime(stamp);
-      if (calibration) {
-        let bi = -1;
-        for (let i = 0; i < noteTimes.length; i++)
-          if (bi < 0 || Math.abs(t - noteTimes[i]) < Math.abs(t - noteTimes[bi])) bi = i;
-        const d = t - noteTimes[bi];
-        if (bi >= CAL_SKIP && Math.abs(d) <= 0.25) taps.push(Math.round(d * 1000));
-      }
       const tj = t - live.judge / 1000;
       engine.press(lane, tj);
-      if (autoSync && !calibration) {
+      if (autoSync) {
         const d = nearestDiff(lane, tj);
         if (d !== null) {
           syncTaps.push(d);
@@ -1086,7 +1073,7 @@ export default function Stage({
     const apply = (p: Partial<LiveSettings>) => {
       Object.assign(live, p);
       if (p.speed !== undefined) vis = visibleSec(live.speed);
-      if (p.music !== undefined && !calibration) musicGain.gain.value = live.music;
+      if (p.music !== undefined) musicGain.gain.value = live.music;
       if (p.hit !== undefined) hitGain.gain.value = live.hit * 0.9;
     };
     ctrl.current = {
@@ -1222,7 +1209,7 @@ export default function Stage({
         <div className="absolute inset-0 flex items-center justify-center overflow-y-auto rounded-xl bg-black/75 p-4 backdrop-blur-sm">
           <div className="flex w-full max-w-sm flex-col items-center gap-2.5">
             <p className="font-mono text-lg font-bold text-white">일시정지</p>
-            {!calibration && (
+            {true && (
               <div className="mb-1 flex items-center gap-4 rounded-xl border border-white/10 bg-[#1C1E24]/90 px-4 py-2 font-mono">
                 <span
                   className="text-3xl font-black"
@@ -1240,7 +1227,7 @@ export default function Stage({
                 </span>
               </div>
             )}
-            {!calibration && (
+            {true && (
               <div className="mb-1 flex flex-col items-center gap-1.5 font-mono text-xs text-white/50">
                 {autoSync ? (
                   <p className="text-center leading-relaxed">
@@ -1298,22 +1285,20 @@ export default function Stage({
                 onMinus={() => change({ speed: clamp(round1(liveUi.speed - 0.1), 1, 8) })}
                 onPlus={() => change({ speed: clamp(round1(liveUi.speed + 0.1), 1, 8) })}
               />
-              {!calibration && (
-                <>
-                  <PauseRow
-                    label="음악 싱크"
-                    value={`${liveUi.offset > 0 ? "+" : ""}${liveUi.offset}ms`}
-                    onMinus={() => change({ offset: clamp(liveUi.offset - 1, -400, 400) })}
-                    onPlus={() => change({ offset: clamp(liveUi.offset + 1, -400, 400) })}
-                  />
-                  <PauseRow
-                    label="타격 싱크"
-                    value={`${liveUi.judge > 0 ? "+" : ""}${liveUi.judge}ms`}
-                    onMinus={() => change({ judge: clamp(liveUi.judge - 1, -400, 400) })}
-                    onPlus={() => change({ judge: clamp(liveUi.judge + 1, -400, 400) })}
-                  />
-                </>
-              )}
+              <PauseRow
+                label="음악 싱크"
+                value={`${liveUi.offset > 0 ? "+" : ""}${liveUi.offset}ms`}
+                disabled={autoSync}
+                onMinus={() => change({ offset: clamp(liveUi.offset - 1, -400, 400) })}
+                onPlus={() => change({ offset: clamp(liveUi.offset + 1, -400, 400) })}
+              />
+              <PauseRow
+                label="타격 싱크"
+                value={`${liveUi.judge > 0 ? "+" : ""}${liveUi.judge}ms`}
+                disabled={autoSync}
+                onMinus={() => change({ judge: clamp(liveUi.judge - 1, -400, 400) })}
+                onPlus={() => change({ judge: clamp(liveUi.judge + 1, -400, 400) })}
+              />
               <PauseSlider
                 label="음악 볼륨"
                 value={liveUi.music}
@@ -1479,20 +1464,26 @@ function PauseRow({
   value,
   onMinus,
   onPlus,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onMinus: () => void;
   onPlus: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2 py-1">
       <span className="w-20 shrink-0 font-mono text-xs text-white/55">{label}</span>
-      <HoldButton className={stepBtn} onStep={onMinus}>
+      <HoldButton className={stepBtn} onStep={onMinus} disabled={disabled}>
         −
       </HoldButton>
-      <span className="flex-1 text-center font-mono text-sm text-white">{value}</span>
-      <HoldButton className={stepBtn} onStep={onPlus}>
+      <span
+        className={`flex-1 text-center font-mono text-sm ${disabled ? "text-white/50" : "text-white"}`}
+      >
+        {value}
+      </span>
+      <HoldButton className={stepBtn} onStep={onPlus} disabled={disabled}>
         +
       </HoldButton>
     </div>

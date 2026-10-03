@@ -5,7 +5,6 @@ import melonPop from "@/img/guide/melon-pop.webp";
 import melonHud from "@/img/guide/melon-hud.webp";
 import rhythmSelect from "@/img/guide/rhythm-select.webp";
 import rhythmPlay from "@/img/guide/rhythm-play.webp";
-import syncTwo from "@/img/guide/sync-2.webp";
 import rhythmSettings from "@/img/guide/rhythm-settings.webp";
 import chessSetup from "@/img/guide/chess-setup.webp";
 import chessHint from "@/img/guide/chess-hint.webp";
@@ -359,12 +358,16 @@ export const RHYTHM_GUIDE: GuideDoc = {
     },
     {
       title: "직접 맞추고 싶다면",
-      image: syncTwo,
+      visual: (
+        <Poster
+          emoji="🎚️"
+          chips={["자동 싱크 끄기", "음악 싱크: 소리가 늦게 들리면 +", "타격 싱크: 늘 늦게 치면 +"]}
+        />
+      ),
       body: (
         <>
-          설정의 <B>수동으로 맞추기</B>: 1단계 노트 속도 → 2단계 음악 없이 노트만 보고 치기(타격
-          싱크) → 3단계 노트가 선에 닿는 순간과 딸깍 소리가 맞도록 −/+(음악 싱크). 자동 싱크를 꺼
-          두면 판 끝에 맞출지 물어봐요.
+          설정에서 <B>자동 싱크</B>를 끄면 음악 싱크·타격 싱크 슬라이더가 열려요. 일시정지 화면에서
+          지금까지 평균이 몇 ms 늦었는지 보고 맞추면 돼요.
         </>
       ),
     },
@@ -440,8 +443,8 @@ export const RHYTHM_GUIDE: GuideDoc = {
           <B>타격 싱크</B>: 내 손이 늘 늦거나 빠르게 누르는 버릇. 늘 늦게 친다 싶으면 +.
         </>,
         <>
-          <B>수동으로 맞추기</B>: 1단계 노트 속도 → 2단계 노트만 보고 치기(타격 싱크) → 3단계 소리와
-          노트 맞추기(음악 싱크, −/+). 자동 싱크를 끄면 판 끝에 맞출지 물어봐요.
+          직접 맞추려면 자동 싱크를 끄고 두 슬라이더를 움직여요. 일시정지 화면에 지금까지 평균이
+          보여요.
         </>,
       ],
     },

@@ -2,14 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SONGS, type Song } from "@/lib/rhythm/music";
-import {
-  DIFFICULTIES,
-  finishChart,
-  makeChart,
-  type Chart,
-  type Difficulty,
-} from "@/lib/rhythm/chart";
-import { renderMetronome, renderSong } from "@/lib/rhythm/synth";
+import { DIFFICULTIES, makeChart, type Chart, type Difficulty } from "@/lib/rhythm/chart";
+import { renderSong } from "@/lib/rhythm/synth";
 import { splitSync } from "@/lib/rhythm/autosync";
 import {
   drawHead,
@@ -20,14 +14,7 @@ import {
   type HitSound,
   type Skin,
 } from "@/lib/rhythm/fx";
-import Stage, {
-  CAL_SKIP,
-  COVERS_OPT,
-  visibleSec,
-  type Cover,
-  type LiveSettings,
-  type Result,
-} from "./Stage";
+import Stage, { COVERS_OPT, type Cover, type LiveSettings, type Result } from "./Stage";
 import SongCarousel from "./SongCarousel";
 import HoldButton from "./HoldButton";
 import { RankingBoard, SubmitRanking } from "./RankingBoard";
@@ -116,11 +103,6 @@ async function audio() {
   if (sharedCtx.state !== "running") await sharedCtx.resume();
   return sharedCtx;
 }
-const latencyOf = (ctx: AudioContext) =>
-  ((ctx as AudioContext & { outputLatency?: number }).outputLatency ?? 0) + (ctx.baseLatency ?? 0);
-
-/** 이보다 작은 쏠림은 그냥 둠 (PERFECT 판정 폭이 ±33ms라 10ms 안쪽은 체감 차이가 거의 없음) */
-const AUTO_SYNC_MIN = 10;
 const signed = (n: number) => `${n > 0 ? "+" : ""}${n}`;
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
@@ -129,7 +111,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const btn =
   "cursor-pointer rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs whitespace-nowrap text-white/70 transition-colors hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
 const stepBtn =
-  "h-8 w-8 shrink-0 cursor-pointer rounded-full border border-white/15 font-mono text-sm text-white/70 hover:border-[#6C63FF]/60 hover:text-white";
+  "h-8 w-8 shrink-0 cursor-pointer rounded-full border border-white/15 font-mono text-sm text-white/70 hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
 
 const seg = (on: boolean) =>
   `cursor-pointer rounded-full px-2.5 py-1 font-mono text-[11px] whitespace-nowrap transition-colors ${
@@ -152,37 +134,7 @@ async function previewHit(kind: HitSound, volume: number) {
   } catch {}
 }
 
-type Screen = "select" | "play" | "result" | "calibrate" | "calplay";
-
-// ───────── 싱크 맞추기 ─────────
-const CAL_BEATS = 32;
-const CAL_BPM = 100;
-const CAL_MIN = 8;
-/** 싱크 맞추기 단계: 노트 속도 → 타격 싱크(노트만 보고) → 음악 싱크(소리만 듣고) */
-type CalStep = "speed" | "visual" | "audio";
-
-/** 실제 게임 화면에서 쓰는 싱크 맞추기용 곡: 딸깍 소리 32번, D D D D F F F F J J J J K K K K × 2 */
-let calCache: Promise<{ buffer: AudioBuffer; song: Song; chart: Chart }> | null = null;
-function loadCalibration() {
-  calCache ??= renderMetronome(CAL_BEATS, CAL_BPM).then(({ buffer, times }) => ({
-    buffer,
-    chart: finishChart(times.map((t, i) => ({ t, lane: Math.floor(i / 4) % 4 }))),
-    song: {
-      id: "calibrate",
-      title: "싱크 맞추기",
-      bpm: CAL_BPM,
-      bars: CAL_BEATS / 4 + 1,
-      duration: buffer.duration,
-      events: [],
-      sections: [[0, ""]],
-      sound: { lead: "sine", arp: "sine", delaySteps: 0 },
-      color: "#6C63FF",
-      desc: "",
-      beatOffset: times[0],
-    },
-  }));
-  return calCache;
-}
+type Screen = "select" | "play" | "result";
 
 export default function RhythmGame() {
   const [screen, setScreen] = useState<Screen>("select");
@@ -212,40 +164,7 @@ export default function RhythmGame() {
     /** 랜덤 레인 배치용 (판마다 새로) */
     seed: number;
   } | null>(null);
-  const [result, setResult] = useState<
-    | (Result & {
-        newBest: boolean;
-        /** 이번 판 타이밍으로 제안하는 타격 싱크 (물어보고 적용) */
-        autoSync: { from: number; to: number } | null;
-      })
-    | null
-  >(null);
-  const [syncDecision, setSyncDecision] = useState<"yes" | "no" | null>(null);
-  // 싱크 맞추기 2단계(타격 싱크): 실제 게임 화면을 음악 없이 돌리고, 끝나면 누른 타이밍을 받음
-  const [cal, setCal] = useState<{
-    ctx: AudioContext;
-    buffer: AudioBuffer;
-    song: Song;
-    chart: Chart;
-    round: number;
-  } | null>(null);
-  const [calTaps, setCalTaps] = useState<number[] | null>(null);
-  const [calStep, setCalStep] = useState<CalStep>("speed");
-  const startVisualCal = async () => {
-    try {
-      const ctx = await audio();
-      const c = await loadCalibration();
-      setCal((p) => ({ ctx, ...c, round: (p?.round ?? 0) + 1 }));
-      setScreen("calplay");
-    } catch {
-      setErr("이 브라우저에서 오디오를 재생할 수 없습니다.");
-    }
-  };
-  const leaveCalibration = () => {
-    setCalTaps(null);
-    setCalStep("speed");
-    setScreen("select");
-  };
+  const [result, setResult] = useState<(Result & { newBest: boolean }) | null>(null);
 
   // 기본 곡 / 내 음악(직접 넣은 파일)
   const [mode, setMode] = useState<"builtin" | "custom">("builtin");
@@ -387,30 +306,16 @@ export default function RhythmGame() {
       }
       // 늘 비슷하게 늦거나 빠르면(steady) 그만큼 타격 싱크를 옮기자고 제안 — 한 번에 최대 ±120ms
       // (죽은 판은 타이밍이 엉망이라 제안 안 함)
-      // 자동 싱크가 켜져 있으면 치는 동안 이미 맞췄으니 묻지 않음
-      let autoSync: { from: number; to: number } | null = null;
-      if (
-        !settings.autoSync &&
-        !r.failed &&
-        r.steady &&
-        r.avgMs !== null &&
-        Math.abs(r.avgMs) >= AUTO_SYNC_MIN
-      ) {
-        const from = settings.judge;
-        const to = clamp(from + clamp(r.avgMs, -120, 120), -400, 400);
-        if (to !== from) autoSync = { from, to };
-      }
       // 자동 싱크: 타격 싱크가 손 지연으로 보기 큰 범위를 넘었으면 넘는 몫을 음악 싱크로 (합은 그대로라 판정은 안 바뀜)
       setSettings((s) => {
         if (!s.autoSync) return s;
         const sp = splitSync(s.judge, s.offset);
         return sp.judge === s.judge ? s : { ...s, ...sp };
       });
-      setResult({ ...r, newBest, autoSync });
-      setSyncDecision(null);
+      setResult({ ...r, newBest });
       setScreen("result");
     },
-    [best, settings.judge, settings.autoSync]
+    [best]
   );
 
   // 플레이 중(일시정지 화면·속도 단축키)에 바꾼 설정 저장
@@ -472,51 +377,6 @@ export default function RhythmGame() {
     );
   }
 
-  if (screen === "calplay" && cal) {
-    return (
-      <Stage
-        key={`cal${cal.round}`}
-        calibration
-        song={cal.song}
-        diff="easy"
-        chart={cal.chart}
-        buffer={cal.buffer}
-        ctx={cal.ctx}
-        speed={settings.speed}
-        offset={0}
-        judgeOffset={0}
-        hitVolume={settings.hit}
-        musicVolume={0}
-        onSettings={({ speed }) => speed !== undefined && onLiveSettings({ speed })}
-        hitSound={settings.hitSound}
-        skin={settings.skin}
-        cover="none"
-        onFinish={(r) => {
-          setCalTaps(r.taps ?? []);
-          setScreen("calibrate");
-        }}
-        onQuit={() => setScreen("calibrate")}
-        onRestart={() => setCal((p) => p && { ...p, round: p.round + 1 })}
-      />
-    );
-  }
-
-  if (screen === "calibrate") {
-    return (
-      <Calibrate
-        settings={settings}
-        onChange={(p) => setSettings((s) => ({ ...s, ...p }))}
-        skin={settings.skin}
-        step={calStep}
-        onStep={setCalStep}
-        visualTaps={calTaps}
-        onStartVisual={startVisualCal}
-        onDone={leaveCalibration}
-        onCancel={leaveCalibration}
-      />
-    );
-  }
-
   if (screen === "result" && result) {
     const d = DIFFICULTIES.find((x) => x.key === result.diff)!;
     const rankColor = result.rank.startsWith("S")
@@ -567,43 +427,6 @@ export default function RhythmGame() {
               치는 동안 싱크를 자동으로 <b className="text-white">{signed(result.autoJudge)}ms</b>{" "}
               맞췄어요 · 지금 음악 {signed(settings.offset)} / 타격 {signed(settings.judge)}ms
             </p>
-          )}
-          {result.autoSync && (
-            <div className="mt-3 w-full rounded-xl border border-[#6C63FF]/30 bg-[#6C63FF]/10 px-3 py-2.5 text-left font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/75">
-              {syncDecision === "yes" ? (
-                <>타격 싱크를 {signed(result.autoSync.to)}ms로 맞췄어요.</>
-              ) : syncDecision === "no" ? (
-                <>타격 싱크를 그대로({signed(result.autoSync.from)}ms) 뒀어요.</>
-              ) : (
-                <>
-                  이번 판은 대부분 <b className="text-white">{signed(result.avgMs!)}ms</b>{" "}
-                  {result.avgMs! > 0 ? "늦게" : "빠르게"} 쳤어요. 타격 싱크를{" "}
-                  <b className="text-white">
-                    {signed(result.autoSync.from)} → {signed(result.autoSync.to)}ms
-                  </b>
-                  로 맞출까요?
-                  <span className="mt-2 flex gap-1.5">
-                    <button
-                      type="button"
-                      className="cursor-pointer rounded-full bg-[#6C63FF] px-3 py-1 font-mono text-[11px] font-bold text-white hover:bg-[#5b52f0]"
-                      onClick={() => {
-                        setSettings((s) => ({ ...s, judge: result.autoSync!.to }));
-                        setSyncDecision("yes");
-                      }}
-                    >
-                      맞추기
-                    </button>
-                    <button
-                      type="button"
-                      className={`${btn} px-3 py-1 text-[11px]`}
-                      onClick={() => setSyncDecision("no")}
-                    >
-                      그대로 두기
-                    </button>
-                  </span>
-                </>
-              )}
-            </div>
           )}
           <div className="mt-5 grid w-full grid-cols-4 gap-2 font-mono text-xs">
             {(
@@ -822,7 +645,7 @@ export default function RhythmGame() {
               <div className="mt-0.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-snug text-white/50">
                 {settings.autoSync
                   ? "치는 동안 타이밍을 보고 알아서 맞춰요. 그냥 플레이하면 돼요."
-                  : "꺼짐 · 아래 값을 직접 맞추거나 '수동으로 맞추기'를 써요."}
+                  : "꺼짐 · 아래 두 값을 직접 맞춰요."}
               </div>
             </div>
             <button
@@ -849,6 +672,7 @@ export default function RhythmGame() {
           <div className="mt-1.5 flex items-center gap-2">
             <HoldButton
               className={stepBtn}
+              disabled={settings.autoSync}
               onStep={() => setSettings((s) => ({ ...s, offset: clamp(s.offset - 1, -400, 400) }))}
             >
               −
@@ -859,11 +683,13 @@ export default function RhythmGame() {
               max={400}
               step={1}
               value={settings.offset}
+              disabled={settings.autoSync}
               onChange={(e) => setSettings((s) => ({ ...s, offset: Number(e.target.value) }))}
-              className="min-w-0 flex-1 accent-[#6C63FF]"
+              className="min-w-0 flex-1 accent-[#6C63FF] disabled:opacity-40"
             />
             <HoldButton
               className={stepBtn}
+              disabled={settings.autoSync}
               onStep={() => setSettings((s) => ({ ...s, offset: clamp(s.offset + 1, -400, 400) }))}
             >
               +
@@ -878,6 +704,7 @@ export default function RhythmGame() {
           <div className="mt-1.5 flex items-center gap-2">
             <HoldButton
               className={stepBtn}
+              disabled={settings.autoSync}
               onStep={() => setSettings((s) => ({ ...s, judge: clamp(s.judge - 1, -400, 400) }))}
             >
               −
@@ -888,11 +715,13 @@ export default function RhythmGame() {
               max={400}
               step={1}
               value={settings.judge}
+              disabled={settings.autoSync}
               onChange={(e) => setSettings((s) => ({ ...s, judge: Number(e.target.value) }))}
-              className="min-w-0 flex-1 accent-[#6C63FF]"
+              className="min-w-0 flex-1 accent-[#6C63FF] disabled:opacity-40"
             />
             <HoldButton
               className={stepBtn}
+              disabled={settings.autoSync}
               onStep={() => setSettings((s) => ({ ...s, judge: clamp(s.judge + 1, -400, 400) }))}
             >
               +
@@ -902,13 +731,10 @@ export default function RhythmGame() {
             </span>
           </div>
           <div className="mt-2 flex gap-1.5">
-            <button type="button" className={btn} onClick={() => setScreen("calibrate")}>
-              수동으로 맞추기
-            </button>
             <button
               type="button"
               className={btn}
-              disabled={settings.offset === 0 && settings.judge === 0}
+              disabled={settings.autoSync || (settings.offset === 0 && settings.judge === 0)}
               onClick={() => setSettings((s) => ({ ...s, offset: 0, judge: 0 }))}
             >
               초기화
@@ -919,12 +745,12 @@ export default function RhythmGame() {
             {settings.autoSync ? (
               <>
                 자동 싱크가 켜져 있으면 두 값은 알아서 채워져요. 블루투스처럼 소리가 많이 늦는 것도
-                몇 마디 안에 따라잡아요.
+                몇 마디 안에 따라잡아요. 직접 만지려면 자동 싱크를 끄세요.
               </>
             ) : (
               <>
-                &apos;수동으로 맞추기&apos;에서 두 값을 차례로 맞춰요. 타격 싱크는 한 판이 끝날
-                때마다 친 타이밍을 보고 맞출지 물어봐요.
+                음악 싱크: 소리가 화면보다 늦게 들리면 +. 타격 싱크: 늘 늦게 친다 싶으면 +. 일시정지
+                화면에서 지금까지 평균을 볼 수 있어요.
               </>
             )}
           </p>
@@ -1054,483 +880,6 @@ export default function RhythmGame() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ───────────────────────── 싱크 맞추기 ─────────────────────────
-
-const medianOf = (list: number[]) => {
-  const used = list.filter((d) => Math.abs(d) <= 150);
-  return used.length >= CAL_MIN
-    ? { med: [...used].sort((a, b) => a - b)[Math.floor(used.length / 2)], used }
-    : { med: null, used };
-};
-
-/** 입력 분포 막대: 가운데 선이 딱 맞은 것 */
-function TapStrip({ taps }: { taps: number[] }) {
-  return (
-    <div className="relative mx-auto mt-4 h-7 w-full max-w-sm rounded bg-white/5">
-      <div className="absolute inset-y-0 left-1/2 w-px bg-white/40" />
-      {taps.map((d, i) => (
-        <div
-          key={i}
-          className="absolute top-1.5 h-4 w-0.5 rounded bg-[#7DF9FF]/70"
-          style={{ left: `${50 + (Math.max(-150, Math.min(150, d)) / 150) * 50}%` }}
-        />
-      ))}
-      <span className="absolute -bottom-4 left-0 text-[9px] text-white/30">빠름</span>
-      <span className="absolute right-0 -bottom-4 text-[9px] text-white/30">늦음</span>
-    </div>
-  );
-}
-
-/** 1단계: 노트 속도 미리보기 — 고른 속도로 노트가 계속 내려옴 (게임과 같은 2.4초/속도 공식) */
-function SpeedPreview({
-  speed,
-  skin,
-  large = false,
-}: {
-  speed: number;
-  skin: Skin;
-  /** PC: 실제 플레이 기어와 같은 크기(폭 440) */
-  large?: boolean;
-}) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const speedRef = useRef(speed);
-  useEffect(() => {
-    speedRef.current = speed;
-  }, [speed]);
-  useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
-    // 큰 쪽은 Stage와 같은 공식 (기어 폭 440, 높이는 화면에 맞춰 420~760)
-    const W = large ? 440 : 240;
-    const H = large ? Math.max(420, Math.min(window.innerHeight - 170, 760)) : 300;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    c.width = W * dpr;
-    c.height = H * dpr;
-    c.style.width = `${W}px`;
-    c.style.height = `${H}px`;
-    const g = c.getContext("2d")!;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const lw = W / 4;
-    const judgeY = large ? H - 92 : H - 36;
-    const cols = laneColors(skin, "#6C63FF");
-    // 100BPM 8분음표마다 노트, 레인은 0 1 2 3 2 1 반복
-    const gap = 0.3;
-    const laneOf = (k: number) => [0, 1, 2, 3, 2, 1][((k % 6) + 6) % 6];
-    const t0 = performance.now() / 1000;
-    let raf = 0;
-    const draw = () => {
-      raf = requestAnimationFrame(draw);
-      const t = performance.now() / 1000 - t0;
-      const vis = visibleSec(speedRef.current);
-      g.fillStyle = "#0E1015";
-      g.fillRect(0, 0, W, H);
-      g.fillStyle = "rgba(255,255,255,0.05)";
-      for (let l = 1; l < 4; l++) g.fillRect(l * lw, 0, 1, H);
-      g.fillStyle = "rgba(255,255,255,0.8)";
-      g.fillRect(0, judgeY - 1, W, 2);
-      const first = Math.floor(t / gap);
-      for (let k = first; k * gap < t + vis + 0.2; k++) {
-        const y = judgeY - ((k * gap - t) / vis) * judgeY;
-        if (y > judgeY + 10) continue;
-        drawHead(g, skin, laneOf(k) * lw, y, lw, cols[laneOf(k)]);
-      }
-      if (large) {
-        // 키 바닥 (Stage와 같은 모양)
-        g.fillStyle = "#0B0C10";
-        g.fillRect(0, judgeY + 2, W, H - judgeY - 2);
-        for (let l = 0; l < 4; l++) {
-          g.fillStyle = "#15171D";
-          g.fillRect(l * lw + 3, judgeY + 14, lw - 6, H - judgeY - 20);
-        }
-      }
-      g.font = `${large ? 16 : 11}px monospace`;
-      g.textAlign = "center";
-      g.fillStyle = "rgba(255,255,255,0.35)";
-      ["D", "F", "J", "K"].forEach((k, l) =>
-        g.fillText(k, l * lw + lw / 2, large ? judgeY + 52 : H - 14)
-      );
-    };
-    draw();
-    return () => cancelAnimationFrame(raf);
-  }, [skin, large]);
-  return <canvas ref={ref} className="mx-auto block rounded-xl border border-white/10" />;
-}
-
-/**
- * 3단계: 소리와 노트 맞추기 — 딸깍 소리가 반복되고, 같은 시각에 노트가 판정선에 닿게 그린다.
- * 화면은 게임과 같은 공식(오디오 시계 − 출력 지연 − 음악 싱크)으로 그리므로, 소리와 노트가
- * 맞아 보이는 음악 싱크 값이 곧 게임에서 맞는 값. 손으로 치지 않으니 반응 속도 버릇이 섞이지 않음.
- */
-function AvSyncCal({
-  offset,
-  onChange,
-  speed,
-  skin,
-}: {
-  offset: number;
-  onChange: (ms: number) => void;
-  speed: number;
-  skin: Skin;
-}) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const offsetRef = useRef(offset);
-  const speedRef = useRef(speed);
-  useEffect(() => {
-    offsetRef.current = offset;
-  }, [offset]);
-  useEffect(() => {
-    speedRef.current = speed;
-  }, [speed]);
-  const [playing, setPlaying] = useState(false);
-
-  useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
-    let raf = 0;
-    let src: AudioBufferSourceNode | null = null;
-    let alive = true;
-    (async () => {
-      const ctx = await audio();
-      const { buffer, times } = await renderMetronome(16, CAL_BPM);
-      if (!alive) return;
-      const dur = buffer.duration;
-      src = ctx.createBufferSource();
-      src.buffer = buffer;
-      src.loop = true;
-      src.connect(ctx.destination);
-      const t0 = ctx.currentTime + 0.1;
-      src.start(t0);
-      setPlaying(true);
-
-      const W = 240;
-      const H = 300;
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      c.width = W * dpr;
-      c.height = H * dpr;
-      c.style.width = `${W}px`;
-      c.style.height = `${H}px`;
-      const g = c.getContext("2d")!;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const lw = W / 4;
-      const judgeY = H - 36;
-      const cols = laneColors(skin, "#6C63FF");
-      const laneOf = (k: number) => ((k % 4) + 4) % 4;
-      const draw = () => {
-        raf = requestAnimationFrame(draw);
-        // 게임의 now()와 같은 공식
-        const now = ctx.currentTime - t0 - latencyOf(ctx) - offsetRef.current / 1000;
-        const vis = visibleSec(speedRef.current);
-        g.fillStyle = "#0E1015";
-        g.fillRect(0, 0, W, H);
-        g.fillStyle = "rgba(255,255,255,0.05)";
-        for (let l = 1; l < 4; l++) g.fillRect(l * lw, 0, 1, H);
-        // 소리 나는 순간 판정선이 번쩍 (소리 시각 = 화면 시각이 맞을 때 노트가 선에 닿는 순간)
-        let flash = 0;
-        const loopT = ((now % dur) + dur) % dur;
-        for (const ti of times) {
-          const d = Math.min(
-            Math.abs(loopT - ti),
-            Math.abs(loopT - ti - dur),
-            Math.abs(loopT - ti + dur)
-          );
-          if (d < 0.08) flash = Math.max(flash, 1 - d / 0.08);
-        }
-        g.fillStyle = `rgba(255,255,255,${0.6 + 0.4 * flash})`;
-        g.fillRect(0, judgeY - 1 - flash * 2, W, 2 + flash * 4);
-        // 노트: 소리 시각마다 (루프라서 앞뒤 한 바퀴씩)
-        for (let k = -1; k <= 1; k++)
-          times.forEach((ti, i) => {
-            const t = ti + k * dur;
-            if (t < now - 0.3 || t > now + vis + 0.2) return;
-            const y = judgeY - ((t - now) / vis) * judgeY;
-            drawHead(g, skin, laneOf(i) * lw, y, lw, cols[laneOf(i)]);
-          });
-        g.font = "11px monospace";
-        g.textAlign = "center";
-        g.fillStyle = "rgba(255,255,255,0.35)";
-        ["D", "F", "J", "K"].forEach((kname, l) => g.fillText(kname, l * lw + lw / 2, H - 14));
-      };
-      draw();
-    })();
-    return () => {
-      alive = false;
-      cancelAnimationFrame(raf);
-      try {
-        src?.stop();
-      } catch {}
-    };
-  }, [skin]);
-
-  const set = (v: number) => onChange(clamp(Math.round(v), -400, 400));
-  return (
-    <div className="mt-5 flex flex-col items-center gap-4">
-      <canvas ref={ref} className="rounded-xl border border-white/10" />
-      <div className="flex items-center gap-2">
-        <button type="button" className={stepBtn} onClick={() => set(offset - 10)}>
-          −10
-        </button>
-        <HoldButton className={stepBtn} onStep={() => set(offsetRef.current - 1)}>
-          −
-        </HoldButton>
-        <span className="w-24 text-center font-mono text-2xl font-bold text-white tabular-nums">
-          {signed(offset)}
-          <span className="text-sm text-white/40">ms</span>
-        </span>
-        <HoldButton className={stepBtn} onStep={() => set(offsetRef.current + 1)}>
-          +
-        </HoldButton>
-        <button type="button" className={stepBtn} onClick={() => set(offset + 10)}>
-          +10
-        </button>
-      </div>
-      <p className="font-['Nanum_Gothic',sans-serif] text-xs text-white/40">
-        {playing ? "소리가 노트보다 늦게 들리면 + · 먼저 들리면 −" : "소리 준비 중…"}
-      </p>
-    </div>
-  );
-}
-
-/**
- * 싱크 맞추기 — 노트 속도 → 타격 싱크 → 음악 싱크 순서.
- *  2단계는 실제 게임 화면(Stage calibration 모드)에서 음악 없이 노트만 보고 침 → 눈·손·입력 지연
- *  3단계는 노트 없이 딸깍 소리만 듣고 침 → 2단계 값을 뺀 나머지가 소리 지연
- */
-function Calibrate({
-  settings,
-  onChange,
-  skin,
-  step,
-  onStep,
-  visualTaps,
-  onStartVisual,
-  onDone,
-  onCancel,
-}: {
-  settings: Settings;
-  onChange: (p: Partial<Settings>) => void;
-  skin: Skin;
-  step: CalStep;
-  onStep: (s: CalStep) => void;
-  visualTaps: number[] | null;
-  onStartVisual: () => void;
-  onDone: () => void;
-  onCancel: () => void;
-}) {
-  const { speed, offset, judge } = settings;
-  /** 2단계: 이 값으로 타격 싱크를 적용했음 */
-  const [judgeApplied, setJudgeApplied] = useState(false);
-
-  const vis = medianOf(visualTaps ?? []);
-  const judgeSuggest = vis.med === null ? null : clamp(vis.med, -400, 400);
-  // 들린 시각 기준 지연 − 손 지연 = 소리 지연. 현재 음악 싱크와 무관하게 절대값으로 나옴
-
-  const primary =
-    "cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm font-bold text-white hover:bg-[#5b52f0] disabled:cursor-not-allowed disabled:opacity-40";
-  const STEPS: [CalStep, string][] = [
-    ["speed", "1 노트 속도"],
-    ["visual", "2 타격 싱크"],
-    ["audio", "3 음악 싱크"],
-  ];
-
-  const stepsBar = (
-    <div className="mb-5 flex flex-wrap items-center justify-center gap-2 font-mono text-xs">
-      {STEPS.map(([k, t], i) => (
-        <span key={k} className="flex items-center gap-2">
-          {i > 0 && <span className="text-white/20">→</span>}
-          <span
-            className={`rounded-full px-3 py-1 ${
-              step === k ? "bg-[#6C63FF] text-white" : "bg-white/5 text-white/40"
-            }`}
-          >
-            {t}
-          </span>
-        </span>
-      ))}
-    </div>
-  );
-
-  // 1단계는 PC에서 실제 플레이 크기 미리보기를 오른쪽에 따로 둠 (모바일은 작은 미리보기)
-  if (step === "speed")
-    return (
-      <div className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-[#1C1E24] p-6 text-center select-none sm:p-8">
-        {stepsBar}
-        <div className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_440px] md:text-left">
-          <div>
-            <p className="font-mono text-lg font-bold text-white">1단계 · 노트 속도</p>
-            <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed text-white/60">
-              노트가 내려오는 속도를 먼저 정해요. 속도가 바뀌면 보이는 타이밍도 달라져서, 싱크는 이
-              속도 기준으로 맞춰요. <b className="text-white/85">눈으로 따라가기 편한 속도</b>로
-              고르세요 (보통 x3~x4).
-            </p>
-            <div className="my-6 md:hidden">
-              <SpeedPreview speed={speed} skin={skin} />
-            </div>
-            <div className="mx-auto mt-6 flex max-w-sm items-center gap-2 md:mx-0">
-              <button
-                type="button"
-                className={stepBtn}
-                onClick={() =>
-                  onChange({ speed: clamp(Math.round((speed - 0.5) * 10) / 10, 1, 8) })
-                }
-              >
-                −
-              </button>
-              <input
-                type="range"
-                min={1}
-                max={8}
-                step={0.1}
-                value={speed}
-                onChange={(e) => onChange({ speed: Number(e.target.value) })}
-                aria-label="노트 속도"
-                className="min-w-0 flex-1 accent-[#6C63FF]"
-              />
-              <button
-                type="button"
-                className={stepBtn}
-                onClick={() =>
-                  onChange({ speed: clamp(Math.round((speed + 0.5) * 10) / 10, 1, 8) })
-                }
-              >
-                +
-              </button>
-              <span className="w-10 text-right font-mono text-sm text-white">
-                x{speed.toFixed(1)}
-              </span>
-            </div>
-            <div className="mt-6 flex flex-wrap justify-center gap-2 md:justify-start">
-              <button type="button" className={primary} onClick={() => onStep("visual")}>
-                이 속도로 다음 →
-              </button>
-              <button type="button" className={`${btn} px-5 py-2 text-sm`} onClick={onCancel}>
-                취소
-              </button>
-            </div>
-          </div>
-          <div className="hidden md:block">
-            <SpeedPreview speed={speed} skin={skin} large />
-          </div>
-        </div>
-      </div>
-    );
-
-  return (
-    <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-[#1C1E24] p-6 text-center select-none sm:p-8">
-      {stepsBar}
-
-      {step === "visual" && (
-        <>
-          <p className="font-mono text-lg font-bold text-white">2단계 · 화면만 보고 치기</p>
-          <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed text-white/60">
-            <b className="text-white/85">음악 없이</b> 실제 게임 화면에서 노트만 내려와요. 노트가{" "}
-            <b className="text-white/85">판정선에 닿는 순간</b> 그 키를 누르세요. 노트 {CAL_BEATS}
-            개가 D D D D · F F F F · J J J J · K K K K 순서로 두 번 내려와요.
-          </p>
-          <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-xs text-white/35">
-            처음 {CAL_SKIP}개는 박자 잡는 용도라 빼고 계산해요 · HP가 0이 돼도 안 끝나요
-          </p>
-          {visualTaps && (
-            <div className="my-6 font-mono">
-              {judgeSuggest === null ? (
-                <p className="font-['Nanum_Gothic',sans-serif] text-sm text-amber-200/80">
-                  입력이 너무 적어요 ({vis.used.length}개). 노트마다 눌러주세요.
-                </p>
-              ) : (
-                <>
-                  <div className="text-xs text-white/40">추천 타격 싱크</div>
-                  <div className="text-5xl font-bold text-white">{signed(judgeSuggest)}ms</div>
-                  <div className="mt-1 text-xs text-white/40">
-                    노트보다 평균 {signed(vis.med!)}ms {vis.med! >= 0 ? "늦게" : "빠르게"} 쳤어요 ·
-                    입력 {vis.used.length}개
-                  </div>
-                  {judgeApplied && (
-                    <div className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-emerald-300">
-                      타격 싱크 {signed(judge)}ms 적용됨
-                    </div>
-                  )}
-                </>
-              )}
-              <TapStrip taps={vis.used} />
-            </div>
-          )}
-          <div className="mt-8 flex flex-wrap justify-center gap-2">
-            {!visualTaps ? (
-              <button type="button" className={primary} onClick={onStartVisual}>
-                시작
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className={primary}
-                  disabled={judgeSuggest === null}
-                  onClick={() => {
-                    onChange({ judge: judgeSuggest! });
-                    setJudgeApplied(true);
-                    onStep("audio");
-                  }}
-                >
-                  적용하고 다음 →
-                </button>
-                <button
-                  type="button"
-                  className={`${btn} px-5 py-2 text-sm`}
-                  onClick={onStartVisual}
-                >
-                  다시 측정
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              className={`${btn} px-5 py-2 text-sm`}
-              onClick={() => onStep("speed")}
-            >
-              ← 1단계
-            </button>
-            <button type="button" className={`${btn} px-5 py-2 text-sm`} onClick={onCancel}>
-              취소
-            </button>
-          </div>
-        </>
-      )}
-
-      {step === "audio" && (
-        <>
-          <p className="font-mono text-lg font-bold text-white">3단계 · 소리와 노트 맞추기</p>
-          <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed text-white/60">
-            노트가 <b className="text-white/85">선에 닿는 순간</b>과{" "}
-            <b className="text-white/85">딸깍 소리</b>가 딱 맞게 들릴 때까지 −/+를 눌러 맞추세요.
-            블루투스 이어폰처럼 소리가 늦게 나오면 +쪽으로. 치는 게 아니라{" "}
-            <b className="text-white/85">보고 듣기만</b> 하면 돼요.
-          </p>
-          <AvSyncCal
-            offset={offset}
-            onChange={(v) => onChange({ offset: v })}
-            speed={speed}
-            skin={skin}
-          />
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <button type="button" className={primary} onClick={onDone}>
-              이대로 완료
-            </button>
-            <button
-              type="button"
-              className={`${btn} px-5 py-2 text-sm`}
-              onClick={() => onStep("visual")}
-            >
-              ← 2단계
-            </button>
-            <button type="button" className={`${btn} px-5 py-2 text-sm`} onClick={onCancel}>
-              취소
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 }

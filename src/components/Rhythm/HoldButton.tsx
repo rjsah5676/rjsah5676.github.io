@@ -7,10 +7,12 @@ export default function HoldButton({
   className,
   onStep,
   children,
+  disabled = false,
 }: {
   className: string;
   onStep: () => void;
   children: React.ReactNode;
+  disabled?: boolean;
 }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepRef = useRef(onStep);
@@ -37,9 +39,10 @@ export default function HoldButton({
     <button
       type="button"
       className={className}
+      disabled={disabled}
       onPointerDown={(e) => {
         e.preventDefault();
-        start();
+        if (!disabled) start();
       }}
       onPointerUp={stop}
       onPointerLeave={stop}
@@ -47,7 +50,7 @@ export default function HoldButton({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          stepRef.current();
+          if (!disabled) stepRef.current();
         }
       }}
       onContextMenu={(e) => e.preventDefault()}

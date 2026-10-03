@@ -506,24 +506,3 @@ export async function renderSong(
   });
   return result;
 }
-
-/** 싱크 맞추기용 메트로놈: 120 BPM 클릭 n번 (첫 클릭은 1초 뒤) */
-export async function renderMetronome(
-  beats = 16,
-  bpm = 120
-): Promise<{ buffer: AudioBuffer; times: number[] }> {
-  const beat = 60 / bpm;
-  const times = Array.from({ length: beats }, (_, i) => 1 + i * beat);
-  const ctx = new OfflineAudioContext(1, Math.ceil((times[times.length - 1] + 1) * SR), SR);
-  times.forEach((t, i) => {
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.frequency.value = i % 4 === 0 ? 1760 : 1320;
-    g.gain.setValueAtTime(0.6, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
-    o.connect(g).connect(ctx.destination);
-    o.start(t);
-    o.stop(t + 0.07);
-  });
-  return { buffer: await ctx.startRendering(), times };
-}
