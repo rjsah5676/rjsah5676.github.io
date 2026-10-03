@@ -664,11 +664,10 @@ export default function RhythmGame() {
           <div className="w-full max-w-md rounded-2xl border border-[#6C63FF]/40 bg-[#1C1E24] p-6 text-center shadow-2xl">
             <div className="text-3xl">🎧</div>
             <p className="mt-2 font-mono text-base font-bold whitespace-nowrap text-white sm:text-lg">
-              플레이 전에 싱크부터 꼭 맞춰주세요!
+              플레이 전에 싱크부터 맞춰주세요
             </p>
-            <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed text-white/70">
-              싱크 안 맞추면 판정이 들쭉날쭉!
-              <br />꼭 맞추고 플레이해주세요!
+            <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed break-keep text-white/70">
+              기기·이어폰마다 소리 지연이 달라서, 안 맞추면 판정이 들쭉날쭉해요.
             </p>
             <div className="mt-5 flex justify-center gap-2">
               <button

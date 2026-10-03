@@ -166,8 +166,8 @@ export default function Stage({
   useEffect(() => {
     const canvas = canvasRef.current!;
     const wrap = wrapRef.current!;
-    // desynchronized: 합성기를 거치지 않고 바로 그려서 화면 지연을 한 프레임쯤 줄임 (지원 안 되면 무시됨)
-    const g = (canvas.getContext("2d", { desynchronized: true }) ?? canvas.getContext("2d"))!;
+    // desynchronized는 쓰지 않음: 모바일(특히 안드로이드)에서 화면이 찢어지고 깜빡임
+    const g = canvas.getContext("2d", { alpha: false })!;
     const beatSec = 60 / song.bpm;
     // 롱노트 누르는 동안 8분음표마다 콤보가 오름
     const engine = new Engine(chart, beatSec / 2);
@@ -201,14 +201,21 @@ export default function Stage({
       c.width = Math.round(CW * dpr);
       c.height = Math.round(H * dpr);
       const b = c.getContext("2d")!;
-      // 화면을 꽉 채우게(비율 유지) 크게 흐리게
-      const sc = Math.max(c.width / cover.naturalWidth, c.height / cover.naturalHeight) * 1.15;
+      // 흐림: 아주 작게 줄였다가 늘려 그림 (ctx.filter는 사파리 미지원이고 모바일에서 무거움)
+      const tiny = document.createElement("canvas");
+      tiny.width = 24;
+      tiny.height = Math.max(1, Math.round((24 * c.height) / c.width));
+      const tg = tiny.getContext("2d")!;
+      // 화면을 꽉 채우게(비율 유지)
+      const sc =
+        Math.max(tiny.width / cover.naturalWidth, tiny.height / cover.naturalHeight) * 1.15;
       const iw = cover.naturalWidth * sc;
       const ih = cover.naturalHeight * sc;
-      b.filter = `blur(${Math.round(22 * dpr)}px) saturate(1.3)`;
-      b.drawImage(cover, (c.width - iw) / 2, (c.height - ih) / 2, iw, ih);
-      b.filter = "none";
-      b.fillStyle = "rgba(8,9,13,0.66)";
+      tg.drawImage(cover, (tiny.width - iw) / 2, (tiny.height - ih) / 2, iw, ih);
+      b.imageSmoothingEnabled = true;
+      b.imageSmoothingQuality = "high";
+      b.drawImage(tiny, 0, 0, c.width, c.height);
+      b.fillStyle = "rgba(8,9,13,0.45)";
       b.fillRect(0, 0, c.width, c.height);
       backdrop = c;
     };
@@ -230,11 +237,16 @@ export default function Stage({
     cover.onload = makeBackdrop;
     cover.src = COVERS[song.id]?.src ?? "";
     const resize = () => {
-      dpr = Math.min(2, window.devicePixelRatio || 1);
-      CW = Math.min(wrap.clientWidth, 1100);
+      const nDpr = Math.min(2, window.devicePixelRatio || 1);
+      const nCW = Math.min(wrap.clientWidth, 1100);
+      const nH = Math.max(420, Math.min(window.innerHeight - 170, 760));
+      // 모바일은 주소창이 들어가고 나올 때마다 resize가 옴 → 크기가 그대로면 캔버스를 다시 만들지 않음
+      if (nDpr === dpr && nCW === CW && nH === H) return;
+      dpr = nDpr;
+      CW = nCW;
+      H = nH;
       W = Math.min(CW, 440);
       gx = Math.round((CW - W) / 2);
-      H = Math.max(420, Math.min(window.innerHeight - 170, 760));
       canvas.width = Math.round(CW * dpr);
       canvas.height = Math.round(H * dpr);
       canvas.style.width = `${CW}px`;
@@ -476,7 +488,8 @@ export default function Stage({
         g.globalAlpha = 1;
       }
       for (let l = 0; l < 4; l++) {
-        g.fillStyle = l % 2 ? "rgba(18,20,26,0.94)" : "rgba(16,18,23,0.94)";
+        // 살짝 비쳐서 레인 뒤로 곡 커버가 은은하게 보임
+        g.fillStyle = l % 2 ? "rgba(18,20,26,0.85)" : "rgba(16,18,23,0.85)";
         g.fillRect(l * laneW, 0, laneW, H);
         if (engine.pressed[l]) {
           const grad = g.createLinearGradient(0, judgeY, 0, judgeY - H * 0.5);
