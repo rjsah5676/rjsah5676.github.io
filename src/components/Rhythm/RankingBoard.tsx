@@ -1,5 +1,6 @@
 "use client";
 
+import { rankDateLabel } from "@/lib/rankDate";
 import { useEffect, useState } from "react";
 import {
   addRhythmRanking,
@@ -42,6 +43,9 @@ function List({ list, highlight }: { list: RhythmRanking[]; highlight?: string |
           ) : null}
           <span className="w-14 text-right text-white/40">{r.acc.toFixed(2)}%</span>
           <span className="w-20 text-right text-white">{r.score.toLocaleString("en-US")}</span>
+          <span className="hidden w-[3.75rem] text-right text-[11px] text-white/30 tabular-nums sm:inline">
+            {rankDateLabel(r.createdAt)}
+          </span>
         </li>
       ))}
     </ol>

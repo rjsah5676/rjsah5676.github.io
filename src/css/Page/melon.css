@@ -43,3 +43,47 @@
 .melon-pop {
   animation: melon-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
+
+/* 제목: 하얀 테두리 + 아래 그림자로 통통하게 */
+.melon-title {
+  text-shadow:
+    3px 3px 0 #fff,
+    -3px 3px 0 #fff,
+    3px -3px 0 #fff,
+    -3px -3px 0 #fff,
+    0 7px 0 rgba(124, 196, 90, 0.35);
+}
+
+/* 남은 시간 바: 사탕 줄무늬가 흘러감 */
+@keyframes melon-candy {
+  to {
+    background-position: 28px 0;
+  }
+}
+.melon-candy {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.35) 0 7px,
+    transparent 7px 14px
+  );
+  background-size: 28px 100%;
+  animation: melon-candy 0.8s linear infinite;
+}
+
+/* 10초 남았을 때 시간 글자 흔들림 */
+@keyframes melon-shake {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-8deg);
+  }
+  75% {
+    transform: rotate(8deg);
+  }
+}
+.melon-shake {
+  display: inline-block;
+  animation: melon-shake 0.5s ease-in-out infinite;
+}

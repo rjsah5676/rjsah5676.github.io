@@ -16,6 +16,7 @@ import bbyongSound from "@/sounds/melongame/bbyong.mp3";
 import bgmSound from "@/sounds/melongame/bgm.mp3";
 import endSound from "@/sounds/melongame/endbgm.mp3";
 import "@/css/Page/melon.css";
+import { rankDateLabel } from "@/lib/rankDate";
 import { getTopMelonScores, addMelonScore, type MelonScore } from "@/firestore/melonGame";
 import {
   CELL,
@@ -225,12 +226,12 @@ export default function MelonGame() {
       lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       lctx.clearRect(0, 0, W, H);
       const bg = lctx.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, "#14261C");
-      bg.addColorStop(1, "#0E1A14");
+      bg.addColorStop(0, "#F4FBEC");
+      bg.addColorStop(1, "#E7F6DA");
       lctx.fillStyle = bg;
       lctx.fillRect(0, 0, W, H);
       // 빈 칸 자리 표시
-      lctx.fillStyle = "rgba(255,255,255,0.035)";
+      lctx.fillStyle = "rgba(124,196,90,0.13)";
       for (let c = 0; c < COLS; c++)
         for (let r = 0; r < ROWS; r++) {
           lctx.beginPath();
@@ -272,9 +273,9 @@ export default function MelonGame() {
         const y = Math.min(d.ay, d.by);
         const w = Math.abs(d.bx - d.ax);
         const h = Math.abs(d.by - d.ay);
-        ctx.fillStyle = "rgba(250,204,21,0.14)";
+        ctx.fillStyle = "rgba(255,209,102,0.28)";
         ctx.fillRect(x, y, w, h);
-        ctx.strokeStyle = "rgba(250,204,21,0.9)";
+        ctx.strokeStyle = "#FFB23F";
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 4]);
         ctx.strokeRect(x, y, w, h);
@@ -294,7 +295,7 @@ export default function MelonGame() {
           const c1 = Math.min(COLS - 1, g.c1);
           const r1 = Math.min(ROWS - 1, g.r1);
           if (c1 >= c0 && r1 >= r0) {
-            ctx.fillStyle = `rgba(244,63,94,${0.22 * a})`;
+            ctx.fillStyle = `rgba(255,143,163,${0.35 * a})`;
             ctx.fillRect(
               PAD + c0 * CELL,
               PAD + r0 * CELL,
@@ -312,7 +313,7 @@ export default function MelonGame() {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         ctx.globalAlpha = 1 - p.age / p.life;
-        ctx.fillStyle = "#B6F36A";
+        ctx.fillStyle = p.r > 3 ? "#FF9EB5" : "#8EDB6A";
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
@@ -349,10 +350,11 @@ export default function MelonGame() {
         const k = f.age / 0.9;
         ctx.globalAlpha = 1 - k * k;
         ctx.font = `${Math.round(30 + (1 - k) * 6)}px Jua, sans-serif`;
-        ctx.lineWidth = 5;
-        ctx.strokeStyle = "rgba(10,30,18,0.85)";
+        ctx.lineWidth = 6;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "#FFFFFF";
         ctx.strokeText(f.text, f.x, f.y - k * 46);
-        ctx.fillStyle = "#FDE047";
+        ctx.fillStyle = "#FF8FA3";
         ctx.fillText(f.text, f.x, f.y - k * 46);
       }
       ctx.globalAlpha = 1;
@@ -532,8 +534,13 @@ export default function MelonGame() {
   const ratio = Math.max(0, Math.min(1, timeLeft / TIME_START));
   const low = phase === "play" && secLeft <= 10;
 
-  const btn =
-    "cursor-pointer rounded-full px-6 py-2.5 font-['Jua',sans-serif] text-lg transition-transform hover:-translate-y-0.5 disabled:cursor-default disabled:opacity-50";
+  // 귀여운 파스텔 톤: 크림 바탕 + 민트 판 + 통통한 버튼(아래 그림자)
+  const jua = "font-['Jua',sans-serif]";
+  const chunky =
+    "cursor-pointer rounded-full px-5 py-1.5 text-base sm:px-7 sm:py-2.5 sm:text-xl transition-transform active:translate-y-[3px] disabled:cursor-default disabled:opacity-50";
+  const greenBtn = `${chunky} ${jua} bg-[#7ED957] text-white shadow-[0_4px_0_#4FA834] hover:brightness-105 active:shadow-[0_1px_0_#4FA834]`;
+  const plainBtn = `${chunky} ${jua} bg-white text-[#6B8F4E] shadow-[0_4px_0_#CFE3BF] active:shadow-[0_1px_0_#CFE3BF]`;
+  const card = "rounded-[22px] border-[3px] border-[#D6EEC4] bg-[#FFFDF4]";
 
   return (
     <div className="mx-auto max-w-[920px] px-4 pt-6 pb-24">
@@ -543,92 +550,76 @@ export default function MelonGame() {
         className="mx-auto scroll-mt-[108px]"
         style={{ maxWidth: `max(320px, min(100%, calc((100svh - 250px) * ${W / H})))` }}
       >
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <div className="font-mono text-sm text-[#8B84FF]">멜론 게임</div>
-            <p className="mt-1 font-['Nanum_Gothic',sans-serif] text-sm text-white/50">
-              드래그로 묶은 숫자 합이 <b className="text-white/80">10</b> 또는{" "}
-              <b className="text-white/80">20</b>이면 터져요
-            </p>
-          </div>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setVolOpen((v) => !v)}
-              aria-label="볼륨"
-              aria-expanded={volOpen}
-              className="cursor-pointer rounded-full border border-white/10 bg-[#1C1E24] px-3 py-1.5 font-mono text-sm whitespace-nowrap text-white/70 hover:text-white"
-            >
-              {vol.bgm === 0 && vol.sfx === 0 ? "🔇" : "🔊"} 볼륨
-            </button>
-            {volOpen && (
-              <div className="absolute top-full right-0 z-30 mt-2 w-56 rounded-2xl border border-white/10 bg-[#1C1E24] p-4 shadow-2xl">
-                {(
-                  [
-                    ["bgm", "배경음악"],
-                    ["sfx", "효과음"],
-                  ] as const
-                ).map(([k, label]) => (
-                  <label key={k} className="mb-3 block last:mb-0">
-                    <span className="mb-1 flex justify-between font-mono text-xs text-white/50">
-                      {label}
-                      <span className="text-white/80">{Math.round(vol[k] * 100)}</span>
-                    </span>
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      value={vol[k]}
-                      onChange={(e) => setVol((v) => ({ ...v, [k]: Number(e.target.value) }))}
-                      className="w-full accent-[#9BE15D]"
-                    />
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 점수·시간 */}
-        <div className="mb-3 flex items-center gap-4 rounded-2xl border border-white/10 bg-[#1C1E24] px-4 py-3">
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-xs text-white/40">SCORE</span>
-            <span
-              key={score}
-              className="melon-bump font-['Jua',sans-serif] text-3xl text-[#B6F36A]"
-            >
+        {/* 점수·시간·볼륨 */}
+        <div className={`${card} relative mb-3 flex items-center gap-3 px-4 py-2.5 ${jua}`}>
+          <span className="text-2xl">🍈</span>
+          <div className="flex items-baseline gap-1.5">
+            <span key={score} className="melon-bump text-3xl text-[#5BB53C]">
               {score}
             </span>
+            <span className="text-sm text-[#A3B98F]">점</span>
           </div>
-          <div className="flex-1">
-            <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
-              <div
-                className={`h-full rounded-full transition-[width] duration-100 ease-linear ${
-                  low ? "bg-[#F43F5E]" : ratio < 0.35 ? "bg-[#FBBF24]" : "bg-[#9BE15D]"
-                }`}
-                style={{ width: `${(phase === "menu" ? 1 : ratio) * 100}%` }}
-              />
-            </div>
+          <div className="h-4 flex-1 overflow-hidden rounded-full bg-[#EAF4E0] p-[3px]">
+            <div
+              className={`melon-candy h-full rounded-full transition-[width] duration-100 ease-linear ${
+                low ? "bg-[#FF8FA3]" : ratio < 0.35 ? "bg-[#FFD166]" : "bg-[#8EDB6A]"
+              }`}
+              style={{ width: `${(phase === "menu" ? 1 : ratio) * 100}%` }}
+            />
           </div>
           <span
-            className={`w-12 text-right font-mono text-sm tabular-nums ${low ? "text-[#F43F5E]" : "text-white/60"}`}
+            className={`min-w-12 text-right text-lg whitespace-nowrap tabular-nums ${low ? "melon-shake text-[#FF6B8A]" : "text-[#6B8F4E]"}`}
           >
-            {phase === "menu" ? Math.round(TOTAL_SEC) : Math.ceil(secLeft)}s
+            {phase === "menu" ? Math.round(TOTAL_SEC) : Math.ceil(secLeft)}초
           </span>
           {phase === "play" && (
             <button
               type="button"
               onClick={quit}
-              className="cursor-pointer rounded-full border border-white/10 px-3 py-1 font-mono text-xs text-white/50 hover:text-white"
+              className="cursor-pointer rounded-full bg-[#F1F7EA] px-3 py-1 text-sm whitespace-nowrap text-[#8AA374] hover:text-[#5B7F3E]"
             >
-              그만하기
+              그만
             </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setVolOpen((v) => !v)}
+            aria-label="볼륨"
+            aria-expanded={volOpen}
+            className="cursor-pointer rounded-full bg-[#F1F7EA] px-2.5 py-1 text-base"
+          >
+            {vol.bgm === 0 && vol.sfx === 0 ? "🔇" : "🔊"}
+          </button>
+          {volOpen && (
+            <div className={`${card} absolute top-full right-0 z-30 mt-2 w-56 p-4 shadow-xl`}>
+              {(
+                [
+                  ["bgm", "🎵 배경음악"],
+                  ["sfx", "💥 효과음"],
+                ] as const
+              ).map(([k, label]) => (
+                <label key={k} className="mb-3 block last:mb-0">
+                  <span className="mb-1 flex justify-between text-sm text-[#6B8F4E]">
+                    {label}
+                    <span>{Math.round(vol[k] * 100)}</span>
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={vol[k]}
+                    onChange={(e) => setVol((v) => ({ ...v, [k]: Number(e.target.value) }))}
+                    className="w-full accent-[#7ED957]"
+                  />
+                </label>
+              ))}
+            </div>
           )}
         </div>
 
         {/* 판 */}
-        <div className="relative overflow-hidden rounded-3xl border border-[#9BE15D]/20 shadow-[0_30px_80px_-30px_rgba(155,225,93,0.35)]">
+        <div className="relative overflow-hidden rounded-[28px] border-4 border-[#9BDB7A] shadow-[0_6px_0_#7CC45A]">
           <canvas
             ref={canvasRef}
             onPointerDown={onDown}
@@ -641,21 +632,25 @@ export default function MelonGame() {
           />
 
           {phase === "menu" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0B140F]/80 p-4 text-center backdrop-blur-[2px]">
+            <div
+              className={`absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-[#FFFDF4]/80 p-3 sm:gap-3 sm:p-4 text-center ${jua}`}
+            >
               <img
                 src={tmMain.src}
                 alt=""
                 draggable={false}
-                className="melon-float h-[22%] min-h-16 w-auto drop-shadow-[0_12px_30px_rgba(155,225,93,0.35)]"
+                className="melon-float h-[22%] w-auto drop-shadow-[0_8px_0_rgba(124,196,90,0.35)]"
               />
-              <h1 className="font-['Jua',sans-serif] text-4xl text-[#B6F36A] sm:text-6xl">
-                멜론 게임
-              </h1>
+              <h1 className="melon-title text-3xl text-[#5BB53C] sm:text-7xl">멜론 게임</h1>
+              <p className="hidden text-[#8AA374] sm:block">
+                숫자 합이 <b className="text-[#FF8FA3]">10</b> 또는{" "}
+                <b className="text-[#FF8FA3]">20</b>이 되게 드래그!
+              </p>
               <button
                 type="button"
                 onClick={start}
                 disabled={!ready}
-                className={`${btn} bg-[#9BE15D] px-10 text-[#0E1A14] shadow-[0_10px_30px_-8px_rgba(155,225,93,0.8)]`}
+                className={`${greenBtn} mt-1 sm:px-10`}
               >
                 {ready ? "시작하기" : "불러오는 중…"}
               </button>
@@ -663,11 +658,13 @@ export default function MelonGame() {
           )}
 
           {phase === "over" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-[#0B140F]/85 p-4 text-center backdrop-blur-sm">
-              <div className="font-mono text-xs tracking-[0.3em] text-white/50">TIME UP</div>
-              <div className="melon-pop font-['Jua',sans-serif] text-6xl text-[#B6F36A] sm:text-7xl">
+            <div
+              className={`absolute inset-0 flex flex-col items-center justify-center gap-1 overflow-y-auto bg-[#FFFDF4]/85 p-3 sm:gap-2.5 sm:p-4 text-center ${jua}`}
+            >
+              <div className="text-base text-[#FF8FA3] sm:text-xl">끝났어요!</div>
+              <div className="melon-pop text-5xl text-[#5BB53C] sm:text-8xl">
                 {score}
-                <span className="ml-1 text-2xl text-white/60">점</span>
+                <span className="ml-1 text-2xl text-[#A3B98F]">점</span>
               </div>
               {qualifies && submitState !== "done" && (
                 <form
@@ -677,8 +674,8 @@ export default function MelonGame() {
                     submit();
                   }}
                 >
-                  <p className="font-['Nanum_Gothic',sans-serif] text-sm text-white/70">
-                    10위 안에 들었어요! 이름을 남겨주세요
+                  <p className="text-sm text-[#6B8F4E] sm:text-base">
+                    🎉 10위 안에 들었어요! 이름을 남겨주세요
                   </p>
                   <div className="flex gap-2">
                     <input
@@ -687,41 +684,29 @@ export default function MelonGame() {
                       autoFocus
                       onChange={(e) => setName(e.target.value)}
                       placeholder="1~9글자"
-                      className="w-36 rounded-full border border-white/15 bg-[#1C1E24] px-4 py-2 text-center text-white focus:border-[#9BE15D]/60 focus:outline-none"
+                      className="w-32 rounded-full border-[3px] border-[#D6EEC4] bg-white px-3 py-1 text-center text-base sm:w-36 sm:py-1.5 sm:text-lg text-[#4A7A33] placeholder:text-[#C2D6B2] focus:border-[#9BDB7A] focus:outline-none"
                     />
                     <button
                       type="submit"
                       disabled={!name.trim() || submitState === "sending"}
-                      className="cursor-pointer rounded-full bg-[#9BE15D] px-5 py-2 font-mono text-sm font-bold text-[#0E1A14] disabled:cursor-default disabled:opacity-40"
+                      className={`${greenBtn} sm:px-5 sm:py-1.5 sm:text-lg`}
                     >
                       {submitState === "sending" ? "등록 중" : "등록"}
                     </button>
                   </div>
                   {submitState === "error" && (
-                    <p className="font-mono text-xs text-[#F43F5E]">
-                      등록에 실패했어요. 다시 눌러주세요.
-                    </p>
+                    <p className="text-sm text-[#FF6B8A]">등록에 실패했어요. 다시 눌러주세요.</p>
                   )}
                 </form>
               )}
               {submitState === "done" && (
-                <p className="font-['Nanum_Gothic',sans-serif] text-sm text-[#B6F36A]">
-                  랭킹에 등록했어요!
-                </p>
+                <p className="text-base text-[#5BB53C]">랭킹에 등록했어요!</p>
               )}
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={start}
-                  className={`${btn} bg-[#9BE15D] text-[#0E1A14]`}
-                >
+              <div className="mt-1 flex gap-2 sm:mt-2 sm:gap-2.5">
+                <button type="button" onClick={start} className={greenBtn}>
                   다시하기
                 </button>
-                <button
-                  type="button"
-                  onClick={quit}
-                  className={`${btn} border border-white/15 text-white/80`}
-                >
+                <button type="button" onClick={quit} className={plainBtn}>
                   처음으로
                 </button>
               </div>
@@ -731,40 +716,48 @@ export default function MelonGame() {
       </div>
 
       {/* 랭킹·방법 */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <section className="rounded-2xl border border-white/10 bg-[#1C1E24] p-5">
-          <h2 className="mb-3 font-mono text-sm font-bold text-white">랭킹 TOP 10</h2>
+      <div className={`mt-7 grid gap-4 sm:grid-cols-2 ${jua}`}>
+        <section className={`${card} p-5`}>
+          <h2 className="mb-3 text-xl text-[#5BB53C]">🏆 랭킹 TOP 10</h2>
           {ranks === null ? (
-            <p className="font-mono text-xs text-white/30">불러오는 중…</p>
+            <p className="text-sm text-[#A3B98F]">불러오는 중…</p>
           ) : ranks.length === 0 ? (
-            <p className="font-mono text-xs text-white/30">아직 기록이 없어요</p>
+            <p className="text-sm text-[#A3B98F]">아직 기록이 없어요</p>
           ) : (
-            <ol className="flex flex-col gap-1.5">
+            <ol className="flex flex-col gap-1">
               {ranks.map((r, i) => (
-                <li key={i} className="flex items-center gap-3 font-mono text-sm">
-                  <span
-                    className={`w-6 text-right ${i === 0 ? "text-[#FDE047]" : i === 1 ? "text-[#E5E7EB]" : i === 2 ? "text-[#F59E0B]" : "text-white/35"}`}
-                  >
-                    {i + 1}
+                <li
+                  key={i}
+                  className={`flex items-center gap-3 rounded-xl px-2 py-1 text-base ${i < 3 ? "bg-[#F3FAEC]" : ""}`}
+                >
+                  <span className="w-7 text-center">
+                    {i < 3 ? (
+                      ["🥇", "🥈", "🥉"][i]
+                    ) : (
+                      <span className="text-[#B5C7A5]">{i + 1}</span>
+                    )}
                   </span>
-                  <span className="flex-1 truncate text-white/80">{r.name}</span>
-                  <span className="text-[#B6F36A]">{r.score}</span>
+                  <span className="flex-1 truncate text-[#5E7A48]">{r.name}</span>
+                  <span className="w-14 text-right text-[#5BB53C] tabular-nums">{r.score}점</span>
+                  <span className="w-[3.75rem] text-right text-xs text-[#B5C7A5] tabular-nums">
+                    {rankDateLabel(r.createdAt)}
+                  </span>
                 </li>
               ))}
             </ol>
           )}
         </section>
-        <section className="rounded-2xl border border-white/10 bg-[#1C1E24] p-5 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed text-white/60">
-          <h2 className="mb-3 font-mono text-sm font-bold text-white">게임 방법</h2>
-          <ul className="flex flex-col gap-1.5">
-            <li>· 드래그로 사각형을 그려 멜론을 묶어요</li>
-            <li>· 숫자 합이 10 또는 20이면 묶인 멜론이 터지고, 터진 개수만큼 점수</li>
-            <li>· 제한 시간은 약 2분, 10위 안에 들면 이름을 남길 수 있어요</li>
-            <li>· 모바일은 손가락으로 드래그</li>
+        <section className={`${card} p-5 text-base leading-relaxed text-[#6B8F4E]`}>
+          <h2 className="mb-3 text-xl text-[#5BB53C]">🍈 게임 방법</h2>
+          <ul className="flex flex-col gap-1">
+            <li>드래그로 멜론을 네모나게 묶어요</li>
+            <li>
+              숫자 합이 <b className="text-[#FF8FA3]">10</b> 또는{" "}
+              <b className="text-[#FF8FA3]">20</b>이면 펑! 터진 개수만큼 점수
+            </li>
+            <li>시간은 약 2분, 10위 안에 들면 이름을 남길 수 있어요</li>
           </ul>
-          <p className="mt-4 font-mono text-[11px] text-white/30">
-            개발 lee gm · 디자인 tae hb · 음악 lee sh
-          </p>
+          <p className="mt-4 text-xs text-[#B5C7A5]">개발 lee gm · 디자인 tae hb · 음악 lee sh</p>
         </section>
       </div>
     </div>

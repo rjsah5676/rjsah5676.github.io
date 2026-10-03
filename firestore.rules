@@ -28,6 +28,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // 랭킹 달성 일자: 없으면 통과(예전 클라이언트), 있으면 서버 시각(serverTimestamp)만
+    function validCreatedAt() {
+      return !('createdAt' in request.resource.data)
+          || request.resource.data.createdAt == request.time;
+    }
+
     // 랭킹 공통: 이름 1~20자
     function validRankName() {
       return request.resource.data.name is string
@@ -38,7 +44,8 @@ service cloud.firestore {
     // 지뢰찾기 랭킹 (클리어 시간, 초) - 비정상적으로 빠른/느린 기록 차단
     match /minesweeper_rankings/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasOnly(['name', 'time'])
+      allow create: if request.resource.data.keys().hasOnly(['name', 'time', 'createdAt'])
+                    && validCreatedAt()
                     && validRankName()
                     && request.resource.data.time is number
                     && request.resource.data.time >= 10
@@ -72,7 +79,8 @@ service cloud.firestore {
     // 반응속도 게임 랭킹 (5회 평균, ms) - 사람이 낼 수 없는 기록 차단
     match /reaction/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasOnly(['name', 'score'])
+      allow create: if request.resource.data.keys().hasOnly(['name', 'score', 'createdAt'])
+                    && validCreatedAt()
                     && validRankName()
                     && request.resource.data.score is number
                     && request.resource.data.score >= 80
@@ -83,7 +91,8 @@ service cloud.firestore {
     // 멜론게임 랭킹 (지운 멜론 수, 판 전체가 21x12=252개)
     match /score/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasOnly(['name', 'score'])
+      allow create: if request.resource.data.keys().hasOnly(['name', 'score', 'createdAt'])
+                    && validCreatedAt()
                     && validRankName()
                     && request.resource.data.score is int
                     && request.resource.data.score >= 0

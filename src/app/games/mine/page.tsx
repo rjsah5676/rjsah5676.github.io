@@ -1,5 +1,6 @@
 "use client";
 
+import RankList from "@/components/RankList";
 import { useState, useEffect, useRef } from "react";
 import { getTopRankings, addRanking, type MineRanking } from "@/firestore/minesweeperRankings";
 import clickSoundSrc from "@/sounds/melongame/bbyong.mp3";
@@ -328,13 +329,9 @@ export default function Minesweeper() {
         <div className="top-row">
           <div id="mine-left">
             <div id="mine-title">랭킹</div>
-            <ol>
-              {rankings.map((r, idx) => (
-                <li key={idx}>
-                  {r.name} - {r.time}s
-                </li>
-              ))}
-            </ol>
+            <RankList
+              rows={rankings.map((r) => ({ name: r.name, value: `${r.time}s`, date: r.createdAt }))}
+            />
           </div>
           <div id="mine-right">
             누르면 시작됩니다
