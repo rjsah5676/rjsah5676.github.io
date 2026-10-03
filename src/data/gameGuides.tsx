@@ -5,8 +5,6 @@ import melonPop from "@/img/guide/melon-pop.webp";
 import melonHud from "@/img/guide/melon-hud.webp";
 import rhythmSelect from "@/img/guide/rhythm-select.webp";
 import rhythmPlay from "@/img/guide/rhythm-play.webp";
-import syncPrompt from "@/img/guide/sync-prompt.webp";
-import syncOne from "@/img/guide/sync-1.webp";
 import syncTwo from "@/img/guide/sync-2.webp";
 import rhythmSettings from "@/img/guide/rhythm-settings.webp";
 import chessSetup from "@/img/guide/chess-setup.webp";
@@ -96,11 +94,11 @@ function SyncConcept() {
   );
 }
 
-/** 3단계 모습 (실제 화면을 단순화): 노트가 선에 닿을 때 딸깍, −/+로 맞추기 */
-function AvSyncMock() {
+/** 플레이 중 자동 싱크 토스트 */
+function AutoSyncMock() {
   return (
     <div className="flex w-full max-w-sm flex-col items-center font-mono">
-      <div className="relative h-32 w-40 overflow-hidden rounded-lg border border-white/10 bg-[#0E1015]">
+      <div className="relative h-36 w-44 overflow-hidden rounded-lg border border-white/10 bg-[#0E1015]">
         {[0, 1, 2, 3].map((l) => (
           <div
             key={l}
@@ -109,57 +107,36 @@ function AvSyncMock() {
           />
         ))}
         <div className="absolute right-0 bottom-6 left-0 h-0.5 bg-white" />
-        <div className="absolute bottom-[21px] left-[2%] h-2.5 w-[21%] rounded bg-[#7DF9FF]" />
-        <div className="absolute bottom-16 left-[27%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/60" />
-        <div className="absolute top-3 left-[52%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/40" />
-        <div className="absolute right-2 bottom-7 text-base">🔊</div>
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-xs text-white/70">
-        <span className="rounded-full border border-white/15 px-2 py-0.5">−10</span>
-        <span className="rounded-full border border-white/15 px-2 py-0.5">−</span>
-        <b className="w-16 text-center text-xl text-white">+24ms</b>
-        <span className="rounded-full border border-white/15 px-2 py-0.5">+</span>
-        <span className="rounded-full border border-white/15 px-2 py-0.5">+10</span>
-      </div>
-      <div className="mt-2 text-[11px] text-white/40">소리가 늦게 들리면 + · 먼저 들리면 −</div>
-    </div>
-  );
-}
-
-/** 결과 화면 자동 보정 제안 */
-function AutoSyncMock() {
-  return (
-    <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#1C1E24] p-4 text-center font-mono">
-      <div className="text-[11px] text-white/40">질주주의보 · 보통</div>
-      <div className="mt-1 text-5xl font-black text-[#FDE047]">S</div>
-      <div className="mt-3 rounded-lg bg-white/[0.04] p-3 text-xs leading-relaxed text-white/70">
-        늦게 쳤어요. 타격 싱크를 <b className="text-white">0 → +18ms</b>로 맞출까요?
-        <div className="mt-2 flex justify-center gap-1.5">
-          <span className="rounded-full bg-[#6C63FF] px-3 py-1 font-bold text-white">맞추기</span>
-          <span className="rounded-full border border-white/15 px-3 py-1 text-white/70">
-            그대로 두기
-          </span>
+        <div className="absolute bottom-[21px] left-[27%] h-2.5 w-[21%] rounded bg-[#7DF9FF]" />
+        <div className="absolute bottom-14 left-[52%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/70" />
+        <div className="absolute top-4 left-[2%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/40" />
+        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 rounded-full bg-[#6C63FF]/50 px-3 py-1 font-['Nanum_Gothic',sans-serif] text-[11px] font-bold whitespace-nowrap text-white">
+          싱크 자동 보정 +12ms
+        </div>
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#7DF9FF]">
+          PERFECT
         </div>
       </div>
+      <div className="mt-2 text-[11px] text-white/40">치는 동안 조금씩 · 몇 마디면 끝</div>
     </div>
   );
 }
 
-/** 일시정지 화면의 평균 타이밍 */
-function PauseSyncMock() {
+/** 자동 싱크가 두 값을 나누는 모습 */
+function SyncSplitMock() {
+  const row = "flex items-center justify-between rounded-lg bg-white/[0.04] px-3 py-2";
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-2 font-mono">
-      <div className="text-base font-bold text-white">일시정지</div>
-      <div className="text-xs text-white/50">
-        지금까지 평균 <b className="text-[#FBBF24]">+23ms 늦음</b> · 입력 48개
+    <div className="flex w-full max-w-xs flex-col gap-1.5 font-mono text-xs">
+      <div className="text-center text-[11px] text-white/45">늘 +140ms 늦게 쳤다면</div>
+      <div className={row}>
+        <span className="text-white/60">✋ 타격 싱크 (손)</span>
+        <b className="text-white">+40ms</b>
       </div>
-      <span className="rounded-full border border-[#FBBF24]/50 px-3 py-1 text-xs text-[#FDE68A]">
-        타격 싱크에 적용
-      </span>
-      <div className="mt-1 flex gap-1.5 text-[11px] text-white/60">
-        <span className="rounded-full border border-white/15 px-3 py-1">계속하기 (Esc)</span>
-        <span className="rounded-full border border-white/15 px-3 py-1">처음부터</span>
+      <div className={row}>
+        <span className="text-white/60">🎧 음악 싱크 (소리 지연)</span>
+        <b className="text-white">+100ms</b>
       </div>
+      <div className="text-center text-[11px] text-white/40">→ 노트 위치도 소리에 맞게 옮겨요</div>
     </div>
   );
 }
@@ -356,82 +333,38 @@ export const RHYTHM_GUIDE: GuideDoc = {
       body: (
         <>
           분명 맞게 쳤는데 GREAT·GOOD만 뜬다면 싱크가 안 맞은 거예요. 기기·이어폰마다 소리가 늦게
-          나와서 그래요. <B>처음 한 번, 1~2분</B>이면 맞출 수 있어요.
+          나오고, 손도 사람마다 조금씩 늦거든요. 걱정 마세요 — <B>알아서 맞춰 줘요.</B>
         </>
       ),
     },
     {
-      title: "처음 들어오면 안내가 떠요",
-      image: syncPrompt,
-      body: (
-        <>
-          <B>지금 맞추기</B>를 누르면 3단계로 차근차근 안내해요. 나중에 하고 싶으면 언제든 오른쪽
-          설정의 <B>싱크 맞추기</B> 버튼으로 다시 할 수 있어요.
-        </>
-      ),
-    },
-    {
-      title: "1단계 · 노트 속도 정하기",
-      image: syncOne,
-      body: (
-        <>
-          노트가 내려오는 속도부터 골라요. 오른쪽 미리보기를 보며 <B>눈으로 따라가기 편한 속도</B>로
-          (보통 x3~x4). 속도에 따라 타이밍 느낌이 달라져서 먼저 정해요.
-        </>
-      ),
-    },
-    {
-      title: "2단계 · 화면만 보고 치기",
-      image: syncTwo,
-      body: (
-        <>
-          <B>음악 없이</B> 노트만 내려와요. 선에 닿는 순간 누르기만 하면 내 손이 평균 몇 ms 늦거나
-          빠른지 재서 <B>타격 싱크</B>를 추천해 줘요. <B>적용하고 다음</B>을 누르세요.
-        </>
-      ),
-    },
-    {
-      title: "3단계 · 소리와 노트 맞추기",
-      visual: <AvSyncMock />,
-      body: (
-        <>
-          노트가 선에 닿는 순간 딸깍 소리가 나요. 치지 말고 보고 들으면서, 소리가 늦게 들리면 +,
-          먼저 들리면 −를 눌러 <B>딱 맞아 보일 때</B> 완료. 그 값이 <B>음악 싱크</B>예요.
-        </>
-      ),
-    },
-    {
-      title: "그 뒤로는 알아서 맞춰 줘요",
+      title: "그냥 치면 알아서 맞춰요",
       visual: <AutoSyncMock />,
       body: (
         <>
-          한 곡을 고르게 쳤는데 타이밍이 계속 한쪽으로 쏠리면, 결과 화면에서 <B>맞추기</B> 한 번으로
-          보정해 줘요. 한 번에 조금씩만 바꿔서 갑자기 어긋날 걱정 없어요.
+          <B>자동 싱크</B>가 기본으로 켜져 있어요. 치는 동안 내 타이밍이 계속 한쪽으로 쏠리면 조금씩
+          옮겨서 몇 마디 안에 맞춰요. 실수 몇 번엔 안 움직이니 그냥 플레이하세요.
         </>
       ),
     },
     {
-      title: "치다가도 바로 고칠 수 있어요",
-      visual: <PauseSyncMock />,
+      title: "블루투스도 알아서",
+      visual: <SyncSplitMock />,
       body: (
         <>
-          플레이 중 <K>Esc</K>로 멈추면 지금까지 평균이 몇 ms 늦었는지 보여요.{" "}
-          <B>타격 싱크에 적용</B>을 누르면 남은 부분부터 바로 반영돼요.
+          소리가 많이 늦으면 손 탓이 아니죠. 손으로 볼 수 있는 범위(±60ms)를 넘는 몫은 판이 끝날 때{" "}
+          <B>음악 싱크</B>로 옮겨서, 다음 판부터 노트가 소리에 맞게 내려와요.
         </>
       ),
     },
     {
-      title: "이럴 땐 다시 맞춰 주세요",
-      visual: (
-        <Poster
-          emoji="🎧"
-          chips={["이어폰·스피커를 바꿨을 때", "블루투스로 연결했을 때", "다른 기기로 할 때"]}
-        />
-      ),
+      title: "직접 맞추고 싶다면",
+      image: syncTwo,
       body: (
         <>
-          소리 나는 장치가 바뀌면 늦는 정도도 바뀌어요. 설정의 <B>싱크 맞추기</B>로 다시 하거나,
-          3단계(소리와 노트 맞추기)만 다시 해도 충분해요.
+          설정의 <B>수동으로 맞추기</B>: 1단계 노트 속도 → 2단계 음악 없이 노트만 보고 치기(타격
+          싱크) → 3단계 노트가 선에 닿는 순간과 딸깍 소리가 맞도록 −/+(음악 싱크). 자동 싱크를 꺼
+          두면 판 끝에 맞출지 물어봐요.
         </>
       ),
     },
@@ -496,22 +429,20 @@ export const RHYTHM_GUIDE: GuideDoc = {
       title: "싱크 맞추기",
       items: [
         <>
-          <B>음악 싱크</B>: 소리가 귀에 늦게 도착하는 만큼(블루투스 이어폰 등). 소리가 늦게 들리면
-          +.
+          <B>자동 싱크</B>(기본 켜짐): 치는 동안 타이밍이 계속 한쪽으로 쏠리면 타격 싱크를 조금씩
+          옮겨요. 실수 몇 번엔 안 움직이고, 화면에 &quot;싱크 자동 보정 +12ms&quot;처럼 알려줘요.
+        </>,
+        <>
+          <B>음악 싱크</B>: 소리가 귀에 늦게 도착하는 만큼(블루투스 이어폰 등). 타격 싱크가 손 지연
+          범위(±60ms)를 넘으면 넘는 몫을 판 끝에 여기로 옮겨 노트 위치도 소리에 맞춰요.
         </>,
         <>
           <B>타격 싱크</B>: 내 손이 늘 늦거나 빠르게 누르는 버릇. 늘 늦게 친다 싶으면 +.
         </>,
         <>
-          처음 순서: 안내창의 <B>지금 맞추기</B> → 1단계 노트 속도 → 2단계 화면만 보고 치기(타격
-          싱크) → 3단계 소리와 노트 맞추기(음악 싱크, −/+로 맞춤).
+          <B>수동으로 맞추기</B>: 1단계 노트 속도 → 2단계 노트만 보고 치기(타격 싱크) → 3단계 소리와
+          노트 맞추기(음악 싱크, −/+). 자동 싱크를 끄면 판 끝에 맞출지 물어봐요.
         </>,
-        <>
-          자동 보정: 한 곡을 고르게 쳤는데 평균이 10ms 넘게 한쪽으로 쏠리면 결과 화면에서 맞출지
-          물어봐요 (한 번에 최대 ±120ms).
-        </>,
-        <>일시정지 화면에서도 지금까지 평균을 보고 바로 타격 싱크에 적용할 수 있어요.</>,
-        <>이어폰·스피커·기기를 바꾸면 설정의 싱크 맞추기로 다시 맞춰 주세요.</>,
       ],
     },
     {

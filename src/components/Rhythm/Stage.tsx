@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Song } from "@/lib/rhythm/music";
 import type { Chart, Difficulty } from "@/lib/rhythm/chart";
 import { Engine, HP_MAX, rankOf, type Judge } from "@/lib/rhythm/engine";
+import { AUTO_SYNC, autoSyncStep } from "@/lib/rhythm/autosync";
 import { DIFFICULTIES } from "@/lib/rhythm/chart";
 import { COVERS } from "./SongCarousel";
 import HoldButton from "./HoldButton";
@@ -47,6 +48,8 @@ export interface Result {
   failed: boolean;
   /** 싱크 맞추기: 누를 때마다 가장 가까운 노트와의 차이(ms, 판정과 무관하게 ±250ms 안) */
   taps?: number[];
+  /** 자동 싱크가 이 판 동안 타격 싱크를 움직인 합계(ms) */
+  autoJudge: number;
 }
 
 /** 싱크 맞추기에서 처음 몇 개는 박자 잡는 중이라 뺌 */
@@ -126,6 +129,8 @@ interface Props {
   judgeOffset: number;
   /** 타격 싱크 맞추기 모드: 음악 없이 노트만 보고 침. HP로 안 죽고, 누른 타이밍(타격 싱크 적용 전)을 모아서 돌려줌 */
   calibration?: boolean;
+  /** 플레이 중 친 타이밍을 보고 타격 싱크를 알아서 조금씩 맞춤 */
+  autoSync?: boolean;
 }
 
 export default function Stage({
@@ -146,6 +151,7 @@ export default function Stage({
   onQuit,
   onRestart,
   calibration = false,
+  autoSync = false,
   judgeOffset,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -336,11 +342,49 @@ export default function Stage({
     let lastJudge: { judge: Judge; at: number; diff?: number; tick?: boolean } | null = null;
     let shownScore = 0;
     let speedToastAt = -10;
+    let syncToastAt = -10;
+    let syncToastText = "";
     let fast = 0;
     let slow = 0;
     const diffs: number[] = [];
     const taps: number[] = [];
     const noteTimes = chart.notes.map((n) => n.t);
+    // 자동 싱크: 레인별 노트 시각(정렬) + 입력마다 같은 레인 가장 가까운 노트와의 차이(초, 타격 싱크 적용 후)
+    const laneNotes: number[][] = [[], [], [], []];
+    for (const n of chart.notes) laneNotes[n.lane].push(n.t);
+    for (const l of laneNotes) l.sort((a, b) => a - b);
+    const lanePtr = [0, 0, 0, 0];
+    const syncTaps: number[] = [];
+    let syncSeen = 0; // 마지막으로 판단했을 때의 syncTaps 길이
+    let autoJudge = 0;
+    const nearestDiff = (lane: number, t: number): number | null => {
+      const arr = laneNotes[lane];
+      let i = lanePtr[lane];
+      while (i < arr.length && arr[i] < t - AUTO_SYNC.near) i++;
+      lanePtr[lane] = i;
+      let best: number | null = null;
+      for (let k = i; k < arr.length && arr[k] <= t + AUTO_SYNC.near; k++) {
+        const d = t - arr[k];
+        if (best === null || Math.abs(d) < Math.abs(best)) best = d;
+      }
+      return best;
+    };
+    const autoSyncTick = () => {
+      if (syncTaps.length - syncSeen < AUTO_SYNC.every) return;
+      syncSeen = syncTaps.length;
+      const real = autoSyncStep(syncTaps, live.judge);
+      if (real === 0) return;
+      const to = live.judge + real;
+      live.judge = to;
+      autoJudge += real;
+      // 지금까지 모은 기록도 새 싱크 기준으로 (남은 쏠림만 다음 판단에 쓰이게)
+      for (let i = 0; i < syncTaps.length; i++) syncTaps[i] -= real / 1000;
+      for (let i = 0; i < diffs.length; i++) diffs[i] -= real / 1000;
+      onSettings({ judge: to });
+      setLiveUi((v) => ({ ...v, judge: to }));
+      syncToastText = `싱크 자동 보정 ${real > 0 ? "+" : ""}${real}ms`;
+      syncToastAt = performance.now() / 1000;
+    };
     const hitBuf = makeHitSound(ctx, hitSound);
     const hitGain = ctx.createGain();
     hitGain.gain.value = live.hit * 0.9;
@@ -798,6 +842,20 @@ export default function Stage({
         g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.22);
         g.globalAlpha = 1;
       }
+      // 자동 싱크 보정됐을 때 잠깐 표시
+      const yAge = performance.now() / 1000 - syncToastAt;
+      if (yAge < 1.6) {
+        g.globalAlpha = yAge < 1.2 ? 0.95 : ((1.6 - yAge) / 0.4) * 0.95;
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.font = "700 12px 'Nanum Gothic', sans-serif";
+        const tw = g.measureText(syncToastText).width + 28;
+        g.fillStyle = "rgba(108,99,255,0.35)";
+        roundRectFill(g, W / 2 - tw / 2, H * 0.3 - 14, tw, 28, 14);
+        g.fillStyle = "#fff";
+        g.fillText(syncToastText, W / 2, H * 0.3);
+        g.globalAlpha = 1;
+      }
       drawCountdown(g, cd, t + leadIn, W, H);
       g.restore();
     };
@@ -825,6 +883,7 @@ export default function Stage({
         slow,
         ...timingOf(diffs),
         taps: calibration ? taps : undefined,
+        autoJudge,
       });
     };
     // 화면용 부드러운 시계: 오디오 시계(currentTime)는 오디오 버퍼 단위(수~십 ms)로 뚝뚝 끊겨 올라서
@@ -938,7 +997,15 @@ export default function Stage({
         const d = t - noteTimes[bi];
         if (bi >= CAL_SKIP && Math.abs(d) <= 0.25) taps.push(Math.round(d * 1000));
       }
-      engine.press(lane, t - live.judge / 1000);
+      const tj = t - live.judge / 1000;
+      engine.press(lane, tj);
+      if (autoSync && !calibration) {
+        const d = nearestDiff(lane, tj);
+        if (d !== null) {
+          syncTaps.push(d);
+          autoSyncTick();
+        }
+      }
     };
     const release = (lane: number, stamp = NaN) => {
       if (!running) return;
@@ -1028,6 +1095,8 @@ export default function Stage({
       apply,
       resetTiming: () => {
         diffs.length = 0;
+        syncTaps.length = 0;
+        syncSeen = 0;
       },
     };
 
@@ -1173,7 +1242,21 @@ export default function Stage({
             )}
             {!calibration && (
               <div className="mb-1 flex flex-col items-center gap-1.5 font-mono text-xs text-white/50">
-                {pauseTiming.applied !== undefined ? (
+                {autoSync ? (
+                  <p className="text-center leading-relaxed">
+                    <span className="text-[#A78BFA]">자동 싱크 켜짐</span> · 치는 동안 알아서 맞춰요
+                    {pauseTiming.avgMs !== null && (
+                      <>
+                        {" "}
+                        · 남은 쏠림{" "}
+                        <b className="text-white">
+                          {pauseTiming.avgMs > 0 ? "+" : ""}
+                          {pauseTiming.avgMs}ms
+                        </b>
+                      </>
+                    )}
+                  </p>
+                ) : pauseTiming.applied !== undefined ? (
                   <p>
                     타격 싱크를{" "}
                     <b className="text-white">

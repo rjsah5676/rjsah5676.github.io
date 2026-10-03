@@ -10,6 +10,7 @@ import {
   type Difficulty,
 } from "@/lib/rhythm/chart";
 import { renderMetronome, renderSong } from "@/lib/rhythm/synth";
+import { splitSync } from "@/lib/rhythm/autosync";
 import {
   drawHead,
   HIT_SOUNDS,
@@ -27,7 +28,6 @@ import Stage, {
   type LiveSettings,
   type Result,
 } from "./Stage";
-import HintBubble, { markHintSeen } from "@/components/HintBubble";
 import SongCarousel from "./SongCarousel";
 import HoldButton from "./HoldButton";
 import { RankingBoard, SubmitRanking } from "./RankingBoard";
@@ -44,8 +44,10 @@ interface Settings {
   speed: number;
   /** 음악 싱크(ms): 노트 화면+판정을 같이 옮김 — 소리가 화면보다 늦게 나오는 만큼 (블루투스 등) */
   offset: number;
-  /** 타격 싱크(ms): 판정만 옮김 — 노트를 보고 누르는 손·입력 지연. 한 판 끝날 때 자동으로 다듬음 */
+  /** 타격 싱크(ms): 판정만 옮김 — 노트를 보고 누르는 손·입력 지연. 자동 싱크가 치는 동안 다듬음 */
   judge: number;
+  /** 자동 싱크: 치는 동안 타격 싱크를 알아서 맞추고, 손 지연으로 보기 큰 몫은 판 끝에 음악 싱크로 옮김 */
+  autoSync: boolean;
   /** 타격음 볼륨 0~1 */
   hit: number;
   /** 음악 볼륨 0~1 */
@@ -159,13 +161,6 @@ const CAL_MIN = 8;
 /** 싱크 맞추기 단계: 노트 속도 → 타격 싱크(노트만 보고) → 음악 싱크(소리만 듣고) */
 type CalStep = "speed" | "visual" | "audio";
 
-/** 한 번이라도 싱크 맞추기에서 '적용'을 누른 브라우저 */
-const CALIBRATED_KEY = "rhythm_calibrated";
-const SYNC_HINT_KEY = "hint:rhythm-sync";
-/** '나중에'를 누른 시각 — 이 뒤로 하루 동안은 안내창을 안 띄움 (localStorage라 비우면 다시 뜸) */
-const SYNC_LATER_KEY = "rhythm_sync_later";
-const SYNC_LATER_MS = 24 * 60 * 60 * 1000;
-
 /** 실제 게임 화면에서 쓰는 싱크 맞추기용 곡: 딸깍 소리 32번, D D D D F F F F J J J J K K K K × 2 */
 let calCache: Promise<{ buffer: AudioBuffer; song: Song; chart: Chart }> | null = null;
 function loadCalibration() {
@@ -199,6 +194,7 @@ export default function RhythmGame() {
     speed: 3,
     offset: 0,
     judge: 0,
+    autoSync: true,
     hit: 0.3,
     music: 1,
     hitSound: "thump",
@@ -249,27 +245,6 @@ export default function RhythmGame() {
     setCalTaps(null);
     setCalStep("speed");
     setScreen("select");
-  };
-
-  // 싱크를 한 번도 안 맞춘 사람: 들어올 때 안내창('나중에'면 하루 뒤 다시) + 버튼 아래 말풍선
-  const [calibrated, setCalibrated] = useState(true);
-  const [syncPrompt, setSyncPrompt] = useState(false);
-  useEffect(() => {
-    try {
-      const done = localStorage.getItem(CALIBRATED_KEY) === "1";
-      /* eslint-disable react-hooks/set-state-in-effect -- 저장된 값 확인(마운트 1회) */
-      setCalibrated(done);
-      const later = Number(localStorage.getItem(SYNC_LATER_KEY) ?? 0);
-      if (!done && Date.now() - later > SYNC_LATER_MS) setSyncPrompt(true);
-      /* eslint-enable react-hooks/set-state-in-effect */
-    } catch {}
-  }, []);
-  const markCalibrated = () => {
-    setCalibrated(true);
-    markHintSeen(SYNC_HINT_KEY);
-    try {
-      localStorage.setItem(CALIBRATED_KEY, "1");
-    } catch {}
   };
 
   // 기본 곡 / 내 음악(직접 넣은 파일)
@@ -341,6 +316,7 @@ export default function RhythmGame() {
           speed: clamp(Number(s.speed) || 3, 1, 8),
           offset: clamp(Number(s.offset) || 0, -400, 400),
           judge: clamp(Number(s.judge) || 0, -400, 400),
+          autoSync: s.autoSync !== false,
           hit: typeof s.hit === "number" ? clamp(s.hit, 0, 1) : 0.3,
           music: typeof s.music === "number" ? clamp(s.music, 0, 1) : 1,
           hitSound: HIT_SOUNDS.some((h) => h.key === s.hitSound) ? s.hitSound : "thump",
@@ -411,17 +387,30 @@ export default function RhythmGame() {
       }
       // 늘 비슷하게 늦거나 빠르면(steady) 그만큼 타격 싱크를 옮기자고 제안 — 한 번에 최대 ±120ms
       // (죽은 판은 타이밍이 엉망이라 제안 안 함)
+      // 자동 싱크가 켜져 있으면 치는 동안 이미 맞췄으니 묻지 않음
       let autoSync: { from: number; to: number } | null = null;
-      if (!r.failed && r.steady && r.avgMs !== null && Math.abs(r.avgMs) >= AUTO_SYNC_MIN) {
+      if (
+        !settings.autoSync &&
+        !r.failed &&
+        r.steady &&
+        r.avgMs !== null &&
+        Math.abs(r.avgMs) >= AUTO_SYNC_MIN
+      ) {
         const from = settings.judge;
         const to = clamp(from + clamp(r.avgMs, -120, 120), -400, 400);
         if (to !== from) autoSync = { from, to };
       }
+      // 자동 싱크: 타격 싱크가 손 지연으로 보기 큰 범위를 넘었으면 넘는 몫을 음악 싱크로 (합은 그대로라 판정은 안 바뀜)
+      setSettings((s) => {
+        if (!s.autoSync) return s;
+        const sp = splitSync(s.judge, s.offset);
+        return sp.judge === s.judge ? s : { ...s, ...sp };
+      });
       setResult({ ...r, newBest, autoSync });
       setSyncDecision(null);
       setScreen("result");
     },
-    [best, settings.judge]
+    [best, settings.judge, settings.autoSync]
   );
 
   // 플레이 중(일시정지 화면·속도 단축키)에 바꾼 설정 저장
@@ -468,6 +457,7 @@ export default function RhythmGame() {
         speed={settings.speed}
         offset={settings.offset}
         judgeOffset={settings.judge}
+        autoSync={settings.autoSync}
         hitVolume={settings.hit}
         musicVolume={settings.music}
         onSettings={onLiveSettings}
@@ -521,10 +511,7 @@ export default function RhythmGame() {
         onStep={setCalStep}
         visualTaps={calTaps}
         onStartVisual={startVisualCal}
-        onDone={() => {
-          markCalibrated();
-          leaveCalibration();
-        }}
+        onDone={leaveCalibration}
         onCancel={leaveCalibration}
       />
     );
@@ -575,6 +562,12 @@ export default function RhythmGame() {
               </span>
             )}
           </p>
+          {settings.autoSync && result.autoJudge !== 0 && (
+            <p className="mt-3 w-full rounded-xl border border-[#6C63FF]/30 bg-[#6C63FF]/10 px-3 py-2 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/75">
+              치는 동안 싱크를 자동으로 <b className="text-white">{signed(result.autoJudge)}ms</b>{" "}
+              맞췄어요 · 지금 음악 {signed(settings.offset)} / 타격 {signed(settings.judge)}ms
+            </p>
+          )}
           {result.autoSync && (
             <div className="mt-3 w-full rounded-xl border border-[#6C63FF]/30 bg-[#6C63FF]/10 px-3 py-2.5 text-left font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/75">
               {syncDecision === "yes" ? (
@@ -675,47 +668,6 @@ export default function RhythmGame() {
         desc="DFJK 4키 리듬게임 · 내 mp3도 자동 채보"
         guide={RHYTHM_GUIDE}
       />
-      {syncPrompt && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-md rounded-2xl border border-[#6C63FF]/40 bg-[#1C1E24] p-6 text-center shadow-2xl">
-            <div className="text-3xl">🎧</div>
-            <p className="mt-2 font-mono text-base font-bold break-keep text-white sm:text-lg">
-              플레이 전에 싱크부터 맞춰주세요
-            </p>
-            <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed break-keep text-white/70">
-              기기·이어폰마다 소리 지연이 달라서, 안 맞추면 판정이 들쭉날쭉해요.
-            </p>
-            <div className="mt-5 flex justify-center gap-2">
-              <button
-                type="button"
-                className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm font-bold text-white hover:bg-[#5b52f0]"
-                onClick={() => {
-                  setSyncPrompt(false);
-                  setScreen("calibrate");
-                }}
-              >
-                지금 맞추기
-              </button>
-              <button
-                type="button"
-                className={`${btn} px-5 py-2 text-sm`}
-                onClick={() => {
-                  setSyncPrompt(false);
-                  try {
-                    localStorage.setItem(SYNC_LATER_KEY, String(Date.now()));
-                  } catch {}
-                }}
-              >
-                나중에
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <div className="mx-auto mb-6 flex w-fit overflow-hidden rounded-full border border-white/10 font-['Nanum_Gothic',sans-serif] text-sm">
         {(
           [
@@ -864,6 +816,33 @@ export default function RhythmGame() {
             </span>
           </div>
 
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-[#6C63FF]/25 bg-[#6C63FF]/[0.08] px-3 py-2.5">
+            <div className="min-w-0">
+              <div className="font-mono text-xs font-bold text-white">자동 싱크</div>
+              <div className="mt-0.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-snug text-white/50">
+                {settings.autoSync
+                  ? "치는 동안 타이밍을 보고 알아서 맞춰요. 그냥 플레이하면 돼요."
+                  : "꺼짐 · 아래 값을 직접 맞추거나 '수동으로 맞추기'를 써요."}
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.autoSync}
+              aria-label="자동 싱크"
+              onClick={() => setSettings((s) => ({ ...s, autoSync: !s.autoSync }))}
+              className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors ${
+                settings.autoSync ? "bg-[#6C63FF]" : "bg-white/15"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-[left] ${
+                  settings.autoSync ? "left-[22px]" : "left-0.5"
+                }`}
+              />
+            </button>
+          </div>
+
           <label className="mt-3 block font-mono text-xs text-white/50">
             음악 싱크 (ms) · 소리가 늦게 나오는 만큼 +
           </label>
@@ -923,32 +902,9 @@ export default function RhythmGame() {
             </span>
           </div>
           <div className="mt-2 flex gap-1.5">
-            {/* 말풍선이 버튼 바로 아래 가운데에 오도록 버튼만 감쌈 */}
-            <span className="relative">
-              <button
-                type="button"
-                className={
-                  calibrated
-                    ? btn
-                    : "cursor-pointer rounded-full bg-[#6C63FF] px-3 py-1.5 font-mono text-xs font-bold whitespace-nowrap text-white hover:bg-[#5b52f0]"
-                }
-                onClick={() => setScreen("calibrate")}
-              >
-                싱크 맞추기
-              </button>
-              {!calibrated && (
-                <HintBubble
-                  storageKey={SYNC_HINT_KEY}
-                  tail="top"
-                  delay={600}
-                  duration={9000}
-                  hidden={syncPrompt}
-                  className="absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2"
-                >
-                  처음이면 <b className="text-white">꼭</b> 싱크부터 맞춰주세요!
-                </HintBubble>
-              )}
-            </span>
+            <button type="button" className={btn} onClick={() => setScreen("calibrate")}>
+              수동으로 맞추기
+            </button>
             <button
               type="button"
               className={btn}
@@ -960,9 +916,17 @@ export default function RhythmGame() {
           </div>
 
           <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-[11px] leading-relaxed text-white/35">
-            &apos;싱크 맞추기&apos;에서 두 값을 차례로 맞춰요.
-            <br />
-            타격 싱크는 한 판이 끝날 때마다 친 타이밍을 보고 맞출지 물어봐요.
+            {settings.autoSync ? (
+              <>
+                자동 싱크가 켜져 있으면 두 값은 알아서 채워져요. 블루투스처럼 소리가 많이 늦는 것도
+                몇 마디 안에 따라잡아요.
+              </>
+            ) : (
+              <>
+                &apos;수동으로 맞추기&apos;에서 두 값을 차례로 맞춰요. 타격 싱크는 한 판이 끝날
+                때마다 친 타이밍을 보고 맞출지 물어봐요.
+              </>
+            )}
           </p>
 
           <label className="mt-4 block font-mono text-xs text-white/50">음악 볼륨</label>
