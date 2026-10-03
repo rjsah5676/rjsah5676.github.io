@@ -1,15 +1,15 @@
 import { B, K, type GuideDoc } from "@/components/GuideView";
-import JanggiMoves from "@/components/guide/JanggiMoves";
 import melonStart from "@/img/guide/melon-start.webp";
 import melonDrag from "@/img/guide/melon-drag.webp";
 import melonPop from "@/img/guide/melon-pop.webp";
 import melonHud from "@/img/guide/melon-hud.webp";
 import rhythmSelect from "@/img/guide/rhythm-select.webp";
 import rhythmPlay from "@/img/guide/rhythm-play.webp";
-import rhythmPause from "@/img/guide/rhythm-pause.webp";
+import syncPrompt from "@/img/guide/sync-prompt.webp";
+import syncOne from "@/img/guide/sync-1.webp";
+import syncTwo from "@/img/guide/sync-2.webp";
 import rhythmSettings from "@/img/guide/rhythm-settings.webp";
 import chessSetup from "@/img/guide/chess-setup.webp";
-import chessSelect from "@/img/guide/chess-select.webp";
 import chessHint from "@/img/guide/chess-hint.webp";
 import chessRanked from "@/img/guide/chess-ranked.webp";
 import janggiSetup from "@/img/guide/janggi-setup.webp";
@@ -59,6 +59,100 @@ function JudgeTable() {
       ))}
       <div className="mt-1 text-center text-[11px] text-white/45">
         S+ 97% · S 94% · A 90% · B 80% · C 70%
+      </div>
+    </div>
+  );
+}
+
+/** 싱크 두 가지 개념 */
+function SyncConcept() {
+  const card = "flex-1 rounded-xl border border-white/10 bg-white/[0.04] p-3 text-center";
+  return (
+    <div className="flex w-full max-w-md gap-2.5">
+      <div className={card}>
+        <div className="text-4xl">🎧</div>
+        <div className="mt-1.5 text-sm font-bold text-white">음악 싱크</div>
+        <div className="mt-1 text-[11px] leading-snug text-white/55">
+          소리가 귀에
+          <br />
+          늦게 도착하는 만큼
+        </div>
+      </div>
+      <div className={card}>
+        <div className="text-4xl">✋</div>
+        <div className="mt-1.5 text-sm font-bold text-white">타격 싱크</div>
+        <div className="mt-1 text-[11px] leading-snug text-white/55">
+          내 손이 늘
+          <br />
+          늦게·빠르게 누르는 만큼
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 3단계 결과 모습 (실제 화면을 단순화) */
+function AudioCalMock() {
+  const taps = [-18, 6, 22, 30, 14, 38, 26, 19, 33, 9, 28, 24];
+  return (
+    <div className="flex w-full max-w-sm flex-col items-center font-mono">
+      <div className="text-[11px] text-white/40">🔊 딸깍 · 딸깍 · 딸깍 …</div>
+      <div className="mt-3 text-[11px] text-white/40">추천 음악 싱크</div>
+      <div className="text-4xl font-bold text-white">+24ms</div>
+      <div className="relative mt-3 h-6 w-full rounded bg-white/5">
+        <div className="absolute inset-y-0 left-1/2 w-px bg-white/40" />
+        {taps.map((d, i) => (
+          <div
+            key={i}
+            className="absolute top-1 h-4 w-0.5 rounded bg-[#7DF9FF]/70"
+            style={{ left: `${50 + (d / 150) * 50}%` }}
+          />
+        ))}
+      </div>
+      <div className="mt-1 flex w-full justify-between text-[9px] text-white/30">
+        <span>빠름</span>
+        <span>늦음</span>
+      </div>
+      <div className="mt-3 rounded-full bg-[#6C63FF] px-4 py-1.5 text-xs font-bold text-white">
+        +24ms 적용하고 완료
+      </div>
+    </div>
+  );
+}
+
+/** 결과 화면 자동 보정 제안 */
+function AutoSyncMock() {
+  return (
+    <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#1C1E24] p-4 text-center font-mono">
+      <div className="text-[11px] text-white/40">질주주의보 · 보통</div>
+      <div className="mt-1 text-5xl font-black text-[#FDE047]">S</div>
+      <div className="mt-3 rounded-lg bg-white/[0.04] p-3 text-xs leading-relaxed text-white/70">
+        늦게 쳤어요. 타격 싱크를 <b className="text-white">0 → +18ms</b>로 맞출까요?
+        <div className="mt-2 flex justify-center gap-1.5">
+          <span className="rounded-full bg-[#6C63FF] px-3 py-1 font-bold text-white">맞추기</span>
+          <span className="rounded-full border border-white/15 px-3 py-1 text-white/70">
+            그대로 두기
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 일시정지 화면의 평균 타이밍 */
+function PauseSyncMock() {
+  return (
+    <div className="flex w-full max-w-sm flex-col items-center gap-2 font-mono">
+      <div className="text-base font-bold text-white">일시정지</div>
+      <div className="text-xs text-white/50">
+        지금까지 평균 <b className="text-[#FBBF24]">+23ms 늦음</b> · 입력 48개
+      </div>
+      <span className="rounded-full border border-[#FBBF24]/50 px-3 py-1 text-xs text-[#FDE68A]">
+        타격 싱크에 적용
+      </span>
+      <div className="mt-1 flex gap-1.5 text-[11px] text-white/60">
+        <span className="rounded-full border border-white/15 px-3 py-1">계속하기 (Esc)</span>
+        <span className="rounded-full border border-white/15 px-3 py-1">처음부터</span>
       </div>
     </div>
   );
@@ -223,20 +317,20 @@ export const RHYTHM_GUIDE: GuideDoc = {
         <>
           <K>←</K>
           <K>→</K> 곡, <K>↑</K>
-          <K>↓</K> 난이도, <K>Enter</K> 시작. <B>내 음악으로 플레이</B>에서 mp3를 넣으면 자동으로
-          채보를 만들어 줘요.
+          <K>↓</K> 난이도, <K>Enter</K> 시작. <B>내 음악으로 플레이</B>에 mp3를 넣으면 채보를
+          자동으로 만들어 줘요.
         </>
       ),
     },
     {
-      title: "판정선에서 누르기",
+      title: "선에 닿는 순간 누르기",
       image: rhythmPlay,
       body: (
         <>
-          노트가 아래 선에 닿는 순간 <K>D</K>
+          노트가 아래 하얀 선에 닿을 때 그 줄의 키를 눌러요. 왼쪽부터 <K>D</K>
           <K>F</K>
           <K>J</K>
-          <K>K</K>. 롱노트는 꼬리 끝까지 누르고 있어요. 모바일은 레인을 터치. <K>Esc</K> 일시정지.
+          <K>K</K>, 폰은 줄을 터치. 긴 노트는 끝날 때까지 꾹! <K>Esc</K>는 일시정지.
         </>
       ),
     },
@@ -245,18 +339,93 @@ export const RHYTHM_GUIDE: GuideDoc = {
       visual: <JudgeTable />,
       body: (
         <>
-          정확도는 PERFECT 100% · GREAT 70% · GOOD 40%. MISS가 나면 HP가 크게 깎이고, 바닥나면
-          FAILED. 미스 없이 끝내면 FC, 전부 PERFECT면 AP!
+          딱 맞으면 PERFECT. MISS가 나면 오른쪽 HP가 크게 줄고, 다 줄면 실패예요. 하나도 안 놓치면
+          FC, 전부 PERFECT면 AP!
         </>
       ),
     },
     {
-      title: "싱크 맞추기",
-      image: rhythmPause,
+      title: "싱크가 뭐예요?",
+      visual: <SyncConcept />,
       body: (
         <>
-          기기마다 소리가 늦게 나와요. 일시정지 화면에 이번 판 평균 타이밍이 나오고 버튼 하나로
-          적용돼요. 처음엔 꼭 한 번 맞춰 주세요.
+          분명 맞게 쳤는데 GREAT·GOOD만 뜬다면 싱크가 안 맞은 거예요. 기기·이어폰마다 소리가 늦게
+          나와서 그래요. <B>처음 한 번, 1~2분</B>이면 맞출 수 있어요.
+        </>
+      ),
+    },
+    {
+      title: "처음 들어오면 안내가 떠요",
+      image: syncPrompt,
+      body: (
+        <>
+          <B>지금 맞추기</B>를 누르면 3단계로 차근차근 안내해요. 나중에 하고 싶으면 언제든 오른쪽
+          설정의 <B>싱크 맞추기</B> 버튼으로 다시 할 수 있어요.
+        </>
+      ),
+    },
+    {
+      title: "1단계 · 노트 속도 정하기",
+      image: syncOne,
+      body: (
+        <>
+          노트가 내려오는 속도부터 골라요. 오른쪽 미리보기를 보며 <B>눈으로 따라가기 편한 속도</B>로
+          (보통 x3~x4). 속도에 따라 타이밍 느낌이 달라져서 먼저 정해요.
+        </>
+      ),
+    },
+    {
+      title: "2단계 · 화면만 보고 치기",
+      image: syncTwo,
+      body: (
+        <>
+          <B>음악 없이</B> 노트만 내려와요. 선에 닿는 순간 누르기만 하면 내 손이 평균 몇 ms 늦거나
+          빠른지 재서 <B>타격 싱크</B>를 추천해 줘요. <B>적용하고 다음</B>을 누르세요.
+        </>
+      ),
+    },
+    {
+      title: "3단계 · 소리만 듣고 치기",
+      visual: <AudioCalMock />,
+      body: (
+        <>
+          이번엔 <B>화면 없이</B> 딸깍 소리만 나요. 박자에 맞춰 아무 키나(스페이스도 OK) 누르면,
+          소리가 귀에 늦게 도착하는 만큼을 <B>음악 싱크</B>로 잡아 줘요. 적용하면 끝!
+        </>
+      ),
+    },
+    {
+      title: "그 뒤로는 알아서 맞춰 줘요",
+      visual: <AutoSyncMock />,
+      body: (
+        <>
+          한 곡을 고르게 쳤는데 타이밍이 계속 한쪽으로 쏠리면, 결과 화면에서 <B>맞추기</B> 한 번으로
+          보정해 줘요. 한 번에 조금씩만 바꿔서 갑자기 어긋날 걱정 없어요.
+        </>
+      ),
+    },
+    {
+      title: "치다가도 바로 고칠 수 있어요",
+      visual: <PauseSyncMock />,
+      body: (
+        <>
+          플레이 중 <K>Esc</K>로 멈추면 지금까지 평균이 몇 ms 늦었는지 보여요.{" "}
+          <B>타격 싱크에 적용</B>을 누르면 남은 부분부터 바로 반영돼요.
+        </>
+      ),
+    },
+    {
+      title: "이럴 땐 다시 맞춰 주세요",
+      visual: (
+        <Poster
+          emoji="🎧"
+          chips={["이어폰·스피커를 바꿨을 때", "블루투스로 연결했을 때", "다른 기기로 할 때"]}
+        />
+      ),
+      body: (
+        <>
+          소리 나는 장치가 바뀌면 늦는 정도도 바뀌어요. 설정의 <B>싱크 맞추기</B>로 다시 하거나,
+          3단계만 다시 해도 충분해요.
         </>
       ),
     },
@@ -265,8 +434,8 @@ export const RHYTHM_GUIDE: GuideDoc = {
       image: rhythmSettings,
       body: (
         <>
-          노트 속도, 싱크, 볼륨, 타격음, 스킨. <B>레인 배치</B>(미러·랜덤)와 <B>노트 가림</B>
-          (페이드·서든)은 실력 연습용이에요.
+          노트 속도·싱크·볼륨·타격음·스킨을 바꿀 수 있어요. <B>레인 배치</B>(미러·랜덤)와{" "}
+          <B>노트 가림</B>(페이드·서든)은 실력을 키우고 싶을 때 써 보세요.
         </>
       ),
     },
@@ -308,30 +477,35 @@ export const RHYTHM_GUIDE: GuideDoc = {
       title: "판정과 점수",
       items: [
         <>
-          <B>PERFECT</B> ±45ms · <B>GREAT</B> ±90ms · <B>GOOD</B> ±130ms, 그보다 늦으면 MISS.
+          <B>PERFECT</B> ±45ms · <B>GREAT</B> ±90ms · <B>GOOD</B> ±130ms, 그보다 벗어나면 MISS.
         </>,
         <>정확도는 PERFECT 100%, GREAT 70%, GOOD 40%로 쳐요. 점수는 최대 1,000,000점.</>,
         <>정확도에 따라 랭크: S+ 97% · S 94% · A 90% · B 80% · C 70%.</>,
         <>MISS 없이 끝내면 FC(풀콤보), 전부 PERFECT면 AP(올퍼펙트)!</>,
-      ],
-    },
-    {
-      icon: "❤️",
-      title: "HP",
-      items: [
-        <>MISS가 나면 HP가 크게 깎이고, GOOD도 조금 깎여요. 회복은 PERFECT 위주.</>,
-        <>HP가 바닥나면 그 자리에서 FAILED. 어려운 곡은 초반 연타 구간을 조심하세요.</>,
+        <>MISS가 나면 HP가 크게 깎이고 GOOD도 조금 깎여요. HP가 바닥나면 FAILED.</>,
       ],
     },
     {
       icon: "🎧",
-      title: "싱크 맞추기 (중요)",
+      title: "싱크 맞추기",
       items: [
-        <>기기·이어폰마다 소리가 늦게 나와요. 처음 한 번은 꼭 싱크를 맞춰 주세요.</>,
         <>
-          <B>음악 싱크</B>: 소리가 늦게 들리는 만큼 +. <B>타격 싱크</B>: 늘 늦게 친다 싶으면 +.
+          <B>음악 싱크</B>: 소리가 귀에 늦게 도착하는 만큼(블루투스 이어폰 등). 소리가 늦게 들리면
+          +.
         </>,
-        <>일시정지 화면에 이번 판 평균 타이밍이 나오고, 버튼 하나로 바로 적용할 수 있어요.</>,
+        <>
+          <B>타격 싱크</B>: 내 손이 늘 늦거나 빠르게 누르는 버릇. 늘 늦게 친다 싶으면 +.
+        </>,
+        <>
+          처음 순서: 안내창의 <B>지금 맞추기</B> → 1단계 노트 속도 → 2단계 화면만 보고 치기(타격
+          싱크) → 3단계 소리만 듣고 치기(음악 싱크).
+        </>,
+        <>
+          자동 보정: 한 곡을 고르게 쳤는데 평균이 10ms 넘게 한쪽으로 쏠리면 결과 화면에서 맞출지
+          물어봐요 (한 번에 최대 ±120ms).
+        </>,
+        <>일시정지 화면에서도 지금까지 평균을 보고 바로 타격 싱크에 적용할 수 있어요.</>,
+        <>이어폰·스피커·기기를 바꾸면 설정의 싱크 맞추기로 다시 맞춰 주세요.</>,
       ],
     },
     {
@@ -433,16 +607,6 @@ export const CHESS_GUIDE: GuideDoc = {
       ),
     },
     {
-      title: "기물 움직이기",
-      image: chessSelect,
-      body: (
-        <>
-          내 기물을 누르면 갈 수 있는 칸이 표시돼요. 끌어서 놓아도 돼요. 폰이 끝까지 가면 승진할
-          기물을 고르고, 캐슬링은 킹을 두 칸 옮기면 돼요.
-        </>
-      ),
-    },
-    {
       title: "💡 힌트",
       image: chessHint,
       body: (
@@ -468,15 +632,6 @@ export const CHESS_GUIDE: GuideDoc = {
   ),
   facts: ["🌐 온라인 대국", "🤖 AI 대국", "🏆 AI 랭킹전", "👀 관전"],
   sections: [
-    {
-      icon: "♟",
-      title: "조작",
-      items: [
-        <>내 기물을 누르면 갈 수 있는 칸이 표시돼요. 그 칸을 눌러 이동.</>,
-        <>폰이 끝까지 가면 퀸·룩·비숍·나이트 중 승진할 기물을 골라요.</>,
-        <>캐슬링은 킹을 두 칸 옮기면 돼요. 앙파상도 지원해요.</>,
-      ],
-    },
     { icon: "🌐", title: "온라인 대국", items: ONLINE_ROOM_ITEMS },
     {
       icon: "🤖",
@@ -522,43 +677,6 @@ export const JANGGI_GUIDE: GuideDoc = {
       ),
     },
     {
-      title: "궁·사 — 궁성 안에서 한 칸",
-      visual: <JanggiMoves piece="king" />,
-      body: (
-        <>궁성 밖으로는 못 나가요. 궁성의 대각선 선 위에서는 대각선으로도 한 칸 갈 수 있어요.</>
-      ),
-    },
-    {
-      title: "차 — 가장 강한 기물",
-      visual: <JanggiMoves piece="chariot" />,
-      body: <>가로·세로로 막힐 때까지 쭉. 궁성 안에선 대각선 선도 따라가요. 점수 13점.</>,
-    },
-    {
-      title: "포 — 하나를 넘어서",
-      visual: <JanggiMoves piece="cannon" />,
-      body: (
-        <>
-          반드시 기물 하나를 뛰어넘어야 움직이고 잡을 수 있어요(넘을 게 없으면 ✕). 포끼리는 넘지도
-          잡지도 못해요.
-        </>
-      ),
-    },
-    {
-      title: "마 — 한 칸 가고 대각선",
-      visual: <JanggiMoves piece="horse" />,
-      body: <>곧게 한 칸 간 뒤 대각선 한 칸. 첫 칸이 막히면(멱) 그쪽으로는 못 가요.</>,
-    },
-    {
-      title: "상 — 한 칸 가고 대각선 두 칸",
-      visual: <JanggiMoves piece="elephant" />,
-      body: <>곧게 한 칸, 이어서 대각선 두 칸. 가는 길 중간이 하나라도 막히면 못 가요.</>,
-    },
-    {
-      title: "졸·병 — 앞이나 옆으로",
-      visual: <JanggiMoves piece="soldier" />,
-      body: <>앞이나 옆으로 한 칸. 뒤로는 못 가요. 상대 궁성 안에서는 앞쪽 대각선도 가능해요.</>,
-    },
-    {
       title: "이기는 법과 특별 규칙",
       visual: <Poster emoji="📜" chips={["외통 = 승리", "한수쉼", "빅장", "반복수 금지"]} />,
       body: (
@@ -586,36 +704,12 @@ export const JANGGI_GUIDE: GuideDoc = {
   ],
   lead: (
     <>
-      우리 장기를 온라인으로 친구와, 또는 역사 속 위인 AI와 둬요. 처음이라면 아래 기물 이동부터
-      훑어보세요.
+      우리 장기를 온라인으로 친구와, 또는 역사 속 위인 AI와 둬요. 이 사이트에서 쓰는 규칙과 기능을
+      정리했어요.
     </>
   ),
   facts: ["🌐 온라인 대국", "🤖 위인 AI", "🏆 AI 랭킹전", "가 한글/漢 한자"],
   sections: [
-    {
-      icon: "🏯",
-      title: "기물 이동",
-      items: [
-        <>
-          <B>궁·사</B>: 궁성 안에서 한 칸씩 (궁성의 대각선 선을 따라 대각선도 가능).
-        </>,
-        <>
-          <B>차</B>: 가로·세로로 막힐 때까지 쭉. 궁성 안에선 대각선 선도 따라가요. 가장 강한 기물.
-        </>,
-        <>
-          <B>포</B>: 다른 기물 하나를 뛰어넘어 이동·공격. 포끼리는 넘거나 잡을 수 없어요.
-        </>,
-        <>
-          <B>마</B>: 한 칸 직진 후 한 칸 대각선. 첫 칸이 막히면 못 가요(멱).
-        </>,
-        <>
-          <B>상</B>: 한 칸 직진 후 두 칸 대각선. 가는 길이 막히면 못 가요.
-        </>,
-        <>
-          <B>졸·병</B>: 앞이나 옆으로 한 칸. 뒤로는 못 가요.
-        </>,
-      ],
-    },
     {
       icon: "📜",
       title: "규칙",
