@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const SITE_URL = "https://rjsah5676.github.io";
 export const SITE_NAME = "Gunmo's Dev Life";
 export const SITE_DESCRIPTION =
-  "풀스택 개발자 이건모(Gunmo Lee)의 포트폴리오. React·Next.js·Spring Boot 기반 프로젝트와 개인 공부 기록, 미니게임을 소개합니다.";
+  "풀스택 개발자 이건모(Gunmo Lee)의 포트폴리오. 프로젝트·개인 공부·회고 기록과 직접 만든 브라우저 게임(리듬게임·체스·스케치 퀴즈), 개발 도구를 담았습니다.";
 
 // 링크 공유 미리보기 이미지 (1200x630, public/og-image.png)
 export const OG_IMAGE = {
@@ -25,7 +25,12 @@ interface PageMetaOptions {
 
 // 하위 페이지에서 openGraph를 지정하면 루트 layout의 openGraph를 통째로 덮어쓰기 때문에
 // (얕은 병합) siteName/locale 등을 여기서 다시 채워줌.
-export function pageMeta({ title, description = SITE_DESCRIPTION, path, noindex }: PageMetaOptions): Metadata {
+export function pageMeta({
+  title,
+  description = SITE_DESCRIPTION,
+  path,
+  noindex,
+}: PageMetaOptions): Metadata {
   return {
     title,
     description,

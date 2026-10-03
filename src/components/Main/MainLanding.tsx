@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { STACK_COLORS } from "@/components/About/AboutLanding";
 import SiteLinks, { type SiteLink } from "@/components/SiteLinks";
+import { NAV_GROUPS } from "@/data/navMenu";
 
 // 메인: About(풀스크린 히어로)과 다르게 한 화면에 들어오는 벤토 그리드
 
@@ -19,13 +20,18 @@ const STACK = [
   "Firebase",
 ];
 
-// 상단 nav의 4개 메뉴와 같게
-const LINKS = [
-  { href: "/works/", label: "Project", desc: "프로젝트 · 공부 · 회고" },
-  { href: "/games/", label: "Games", desc: "직접 만든 브라우저 게임" },
-  { href: "/tools/", label: "Tools", desc: "일상 도구" },
-  { href: "/devtools/", label: "DevTools", desc: "개발 편의 도구" },
-];
+// 상단 nav 메뉴(NAV_GROUPS)에서 그대로 가져옴 — 메뉴가 늘거나 바뀌어도 따로 안 고쳐도 되게
+const SHORT_DESC: Record<string, string> = {
+  project: "프로젝트 · 공부 · 회고",
+  games: "직접 만든 브라우저 게임",
+  tools: "일상 도구",
+  devtools: "개발 편의 도구",
+};
+const LINKS = NAV_GROUPS.map((g) => ({
+  href: `${g.href}/`,
+  label: g.title,
+  desc: SHORT_DESC[g.key] ?? g.desc,
+}));
 
 const GREETING = "hello, world";
 
@@ -175,7 +181,7 @@ export default function MainLanding({ photo, sites }: { photo: string; sites: Si
 
         {/* 외부 링크 */}
         <Tile
-          i={9}
+          i={5 + LINKS.length}
           className="col-span-2 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 md:col-span-4"
         >
           <span className="font-mono text-xs text-white/35">elsewhere</span>

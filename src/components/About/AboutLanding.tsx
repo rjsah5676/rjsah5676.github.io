@@ -14,7 +14,7 @@ export interface AboutProject {
 
 // ───────────────────────── 데이터 ─────────────────────────
 
-const ROLES = ["풀스택 개발자", "Spring · Next.js", "끝까지 고치는 사람"];
+const ROLES = ["풀스택 개발자", "Spring · Next.js", "원인부터 찾는 사람"];
 
 const STACK_ROW_1 = [
   "Java",
@@ -75,7 +75,7 @@ const NUMBERS = [
 const TRAITS: { title: string; body: string; proof: { label: string; href: string }[] }[] = [
   {
     title: "끝까지 파고듭니다",
-    body: "새로고침하면 끊기는 음성 통화, 모바일 뒤로가기에 닫히지 않는 모달, 페이지를 떠나도 울리는 배경음악처럼 사용자가 한 번쯤 부딪힐 작은 틈을 찾아 원인까지 내려가 고칩니다.",
+    body: "새로고침하면 끊기는 음성 통화, 뒤로가기에 안 닫히는 모달처럼 사용자가 한 번쯤 부딪힐 작은 틈을 찾아 원인까지 내려가 고칩니다.",
     proof: [
       { label: "Oh! Sori 통화 복구", href: "/infoPage/11/" },
       { label: "이 사이트의 트러블슈팅", href: "/infoPage/4/" },
@@ -106,7 +106,7 @@ const TRAITS: { title: string; body: string; proof: { label: string; href: strin
   },
   {
     title: "오래 가꿉니다",
-    body: "2016년에 시작한 알고리즘 풀이, 2021년에 만든 이 사이트를 지금도 계속 고치고 있습니다. 한 번 만들고 끝내기보다 쓰면서 불편한 걸 찾아 다듬는 쪽이 제 방식입니다.",
+    body: "2016년에 시작한 알고리즘 풀이도, 2021년에 연 이 사이트도 아직 손보고 있습니다. 만들고 끝내기보다 쓰면서 불편한 걸 찾아 다듬습니다.",
     proof: [
       { label: "백준 풀이 정리", href: "/infoPage/5/" },
       { label: "Gunmo's Dev Life", href: "/infoPage/4/" },
@@ -144,7 +144,7 @@ const JOURNEY: { year: string; title: string; body: string }[] = [
   {
     year: "Now",
     title: "커머스 플랫폼 풀스택 개발",
-    body: "레거시 모놀리스, MSA, 프론트엔드를 넘나들며 기능을 만들고 고칩니다. 이 사이트도 Next.js·TypeScript로 옮겼습니다.",
+    body: "실무 기능을 만들면서, 틈틈이 이 사이트에 게임과 도구를 하나씩 더하고 있습니다.",
   },
 ];
 
@@ -169,7 +169,7 @@ const QA = [
   },
   {
     q: "일할 때 가장 중요하게 보는 건?",
-    a: "왜 그렇게 해야 하는지요. 근거가 납득되면 빠르게 움직이고, 아니면 끝까지 물어봅니다.",
+    a: "왜 그렇게 해야 하는지요. 근거가 납득되면 빠르게 움직이고, 아니면 납득될 때까지 묻습니다.",
   },
   {
     q: "앞으로 어떤 개발자가 되고 싶으세요?",
@@ -808,7 +808,7 @@ function Terminal() {
             <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]/70" />
             <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]/70" />
             <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]/70" />
-            <span className="ml-3 font-mono text-[11px] text-white/30">gunmo@dev-life: ~</span>
+            <span className="ml-3 font-mono text-[11px] text-white/30">C:\Gunmo — cmd</span>
           </div>
           <div className="overflow-x-auto p-5 font-mono text-[13px] leading-7 text-white/70 sm:text-sm">
             {FACTS.map((f, i) => (

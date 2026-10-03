@@ -169,7 +169,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/devtools/ddl-to-java",
         image: imgDdlToJava,
         label: "DDL → Java DTO",
-        desc: "CREATE TABLE로 DTO·resultMap·Mapper",
+        desc: "CREATE TABLE → DTO·resultMap·Mapper",
         icon: "🗄️",
       },
       {
@@ -190,7 +190,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/devtools/regex",
         image: imgRegex,
         label: "정규식 테스터",
-        desc: "검증 정규식 테스트·정규식 만들기·찾기/치환",
+        desc: "패턴 테스트·만들기·찾기/치환",
         icon: ".*",
       },
     ],

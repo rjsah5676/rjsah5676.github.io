@@ -80,7 +80,8 @@ export default function RetroBrowser({ posts }: { posts: StudyPostListItem[] }) 
       </div>
       <h1 className="mt-2 font-mono text-2xl font-bold text-white sm:text-3xl">{meta.label}</h1>
       <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed text-white/50">
-        {meta.desc} 문제 → 원인 → 해결 → 배운 점 순서로 기록합니다.
+        프로젝트에서 직접 겪은 문제를 <b className="text-white/70">문제 → 원인 → 해결 → 배운 점</b>{" "}
+        순서로 기록합니다.
       </p>
 
       <div className="mt-8 flex flex-col gap-3">

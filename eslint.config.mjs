@@ -12,8 +12,12 @@ const eslintConfig = defineConfig([
       "@next/next/no-img-element": "off",
       // 한국어/영어 텍스트에 따옴표/아포스트로피가 자주 섞여있어서 꺼둠
       "react/no-unescaped-entities": "off",
-      // 정리 안 된 변수/미사용 import는 일단 경고로만 (막지는 않음)
-      "no-unused-vars": "warn",
+      // 미사용 변수/import는 경고로만. 기본 규칙은 TS 함수 타입의 매개변수 이름까지 잡아서 TS 버전으로 대체
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       // 의존성 배열 관련도 경고로만 - 게임/캔버스 코드처럼 의도적으로 빼는 경우가 많음
       "react-hooks/exhaustive-deps": "warn",
       // eslint-plugin-react-hooks v7의 React Compiler 대비용 신규 규칙들 -

@@ -18,19 +18,6 @@ export const HIT_SOUNDS: { key: HitSound; label: string }[] = [
   { key: "tom", label: "4" },
 ];
 
-/** 상태 변수 필터(밴드패스) – 노이즈를 원하는 음역만 남길 때 */
-function svf(fc: number, q: number, sr: number) {
-  const f = 2 * Math.sin((Math.PI * Math.min(fc, sr / 6)) / sr);
-  let low = 0;
-  let band = 0;
-  return (x: number) => {
-    low += f * band;
-    const high = x - low - q * band;
-    band += f * high;
-    return { low, band, high };
-  };
-}
-
 function noiseGen(seed: number) {
   let s = seed;
   return () => {

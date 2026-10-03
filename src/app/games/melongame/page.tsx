@@ -34,8 +34,6 @@ let img_score: HTMLImageElement;
 let main_melon: HTMLImageElement;
 let imgFlag = [false, false, false, false, false, false, false, false, false];
 
-let stX: number, stY: number, endX: number, endY: number;
-
 let bbyong: HTMLAudioElement | undefined;
 let bgm: HTMLAudioElement | undefined;
 let end_bgm: HTMLAudioElement | undefined;
@@ -285,8 +283,6 @@ function test() {
       }
       const p = toCanvasPoint(canvas, me);
       canvasDraw(p.x, p.y);
-      stX = p.x;
-      stY = p.y;
       up_mouse_x = p.x - 100;
       up_mouse_y = p.y - 100;
       e_x = Math.max(up_mouse_x, down_mouse_x);
@@ -317,16 +313,11 @@ function test() {
       const p = toCanvasPoint(canvas, me);
       startX = p.x;
       startY = p.y;
-      stX = p.x;
-      stY = p.y;
       drag = true;
     }
 
-    function mUp(me: MouseEvent) {
+    function mUp() {
       if (time < 0) return;
-      const p = toCanvasPoint(canvas, me);
-      endX = p.x;
-      endY = p.y;
       drag = false;
       context.clearRect(0, 0, context.canvas.width, context.canvas.height);
       context.drawImage(hiddenCanvas, 0, 0);
@@ -366,10 +357,10 @@ function test() {
         down_mouse_y = p.y - 100;
       }
     };
-    canvas.onpointerup = (e) => {
+    canvas.onpointerup = () => {
       if (time < 0) return;
       else {
-        mUp(e);
+        mUp();
         let sum = 0;
         for (let i = Math.trunc(s_x / 40); i <= Math.trunc(e_x / 40); i++) {
           for (let j = Math.trunc(s_y / 40); j <= Math.trunc(e_y / 40); j++) {
@@ -423,7 +414,7 @@ export default function MelonGamePage() {
     if (!el) return;
     const cs = getComputedStyle(el);
     const w = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 시 1회 측정
+    // 마운트 시 1회 측정
     setScale(Math.min(1, w / c_width));
   }, []);
   const s = scale ?? 1;
