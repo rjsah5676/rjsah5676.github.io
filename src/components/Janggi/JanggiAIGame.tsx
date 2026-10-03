@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { janggiPieces, useMoveSound } from "@/hooks/useMoveSound";
 import JanggiBoard from "./JanggiBoard";
 import { END_REASON, SIDE_KO, SideBar } from "./JanggiParts";
 import { useJanggiAI } from "./useJanggiAI";
@@ -114,6 +115,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     [settings]
   );
   const game = useMemo(() => Janggi.replay(moves ?? [], setup), [moves, setup]);
+  useMoveSound(moves ? moves.length : -1, janggiPieces(game.fen()), moves?.at(-1) === "pass");
   const end = moves ? game.end() : null;
   const over = !!end || resigned;
   const ai: Color = settings.me === "w" ? "b" : "w";
@@ -381,7 +383,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
             {over ? "새 대국" : "설정으로"}
           </button>
         </div>
-        <div className="max-h-44 overflow-y-auto rounded-xl border border-white/10 bg-[#1C1E24] p-2 lg:max-h-72">
+        <div className="thin-scroll max-h-44 overflow-y-auto rounded-xl border border-white/10 bg-[#1C1E24] p-2 lg:max-h-72">
           {notation.length === 0 ? (
             <p className="py-3 text-center font-mono text-xs text-white/30">
               아직 둔 수가 없습니다

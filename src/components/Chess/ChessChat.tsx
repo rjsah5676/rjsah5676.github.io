@@ -82,7 +82,7 @@ export default function ChessChat({
           const el = e.currentTarget;
           stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
         }}
-        className="h-48 overflow-y-auto px-3 py-2 lg:h-56"
+        className="thin-scroll h-48 overflow-y-auto px-3 py-2 lg:h-56"
       >
         {list.length === 0 ? (
           <p className="pt-16 text-center font-mono text-xs text-white/25 lg:pt-20">

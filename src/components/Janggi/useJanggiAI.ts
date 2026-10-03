@@ -29,13 +29,17 @@ export function useJanggiAI() {
     };
   }, []);
 
-  return useCallback((board: Int8Array, color: Color, level: Level | AIConfig): Promise<string | null> => {
-    const w = worker.current;
-    if (!w) return new Promise((res) => setTimeout(() => res(chooseMove(board, color, level)), 30));
-    const id = ++seq.current;
-    return new Promise((res) => {
-      waiting.current.set(id, res);
-      w.postMessage({ id, board: Array.from(board), color, level });
-    });
-  }, []);
+  return useCallback(
+    (board: Int8Array, color: Color, level: Level | AIConfig): Promise<string | null> => {
+      const w = worker.current;
+      if (!w)
+        return new Promise((res) => setTimeout(() => res(chooseMove(board, color, level)), 30));
+      const id = ++seq.current;
+      return new Promise((res) => {
+        waiting.current.set(id, res);
+        w.postMessage({ id, board: Array.from(board), color, level });
+      });
+    },
+    []
+  );
 }

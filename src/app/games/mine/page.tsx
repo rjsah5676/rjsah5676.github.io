@@ -6,7 +6,7 @@ import { useScrollToGame } from "@/hooks/useScrollToGame";
 import { useState, useEffect, useRef } from "react";
 import { getTopRankings, addRanking, type MineRanking } from "@/firestore/minesweeperRankings";
 import clickSoundSrc from "@/sounds/melongame/bbyong.mp3";
-import flagSoundSrc from "@/sounds/melongame/bbyong.mp3";
+import { playExplosion, playFlag } from "@/lib/sfx";
 import endBgmSrc from "@/sounds/melongame/endbgm.mp3";
 import "@/css/minesweeper.css";
 import { generateNoGuessBoard } from "./noGuess";
@@ -44,11 +44,9 @@ export default function Minesweeper() {
 
   // new Audio(...)도 브라우저 API라 렌더 중이 아니라 ref에 지연 생성해서 사용.
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
-  const flagAudioRef = useRef<HTMLAudioElement | null>(null);
   const endBgmAudioRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
     clickAudioRef.current = new Audio(clickSoundSrc);
-    flagAudioRef.current = new Audio(flagSoundSrc);
     endBgmAudioRef.current = new Audio(endBgmSrc);
     endBgmAudioRef.current.volume = 0.6;
   }, []);
@@ -136,11 +134,14 @@ export default function Minesweeper() {
   };
 
   useEffect(() => {
-    if (gameOver && endBgmAudioRef.current) {
+    if (!gameOver) return;
+    // 지뢰를 밟으면 폭발음, 클리어면 엔딩 음악
+    if (!win) playExplosion();
+    else if (endBgmAudioRef.current) {
       endBgmAudioRef.current.currentTime = 0;
       endBgmAudioRef.current.play();
     }
-  }, [gameOver]);
+  }, [gameOver, win]);
 
   const handleLeftClick = (r: number, c: number) => {
     if (gameOver || visible[r][c] || flagged[r][c]) return;
@@ -187,7 +188,7 @@ export default function Minesweeper() {
   const handleRightClick = (e: React.MouseEvent, r: number, c: number) => {
     e.preventDefault();
     if (gameOver || visible[r][c]) return;
-    flagAudioRef.current?.play();
+    playFlag(!flagged[r][c]);
     const newFlagged = flagged.map((row) => [...row]);
     newFlagged[r][c] = !newFlagged[r][c];
     setFlagged(newFlagged);
@@ -260,7 +261,7 @@ export default function Minesweeper() {
         const newFlagged = flagged.map((row) => [...row]);
         newFlagged[r][c] = !newFlagged[r][c];
         setFlagged(newFlagged);
-        flagAudioRef.current?.play();
+        playFlag(newFlagged[r][c]);
         markHintSeen(HINT_KEY);
       }
     }, 600);

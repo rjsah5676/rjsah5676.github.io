@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { chessPieces, useMoveSound } from "@/hooks/useMoveSound";
 import { Chess } from "chess.js";
 import ChessBoard, { Piece } from "./ChessBoard";
 import { CHESS_BOTS, type ChessBot } from "./chessBots";
@@ -143,6 +144,7 @@ export default function ChessAIGame() {
 
   const bot: ChessBot = CHESS_BOTS.find((b) => b.rating === rating) ?? CHESS_BOTS[2];
   const game = useMemo(() => replay(moves ?? []), [moves]);
+  useMoveSound(moves ? moves.length : -1, chessPieces(game.fen()));
   const end = moves ? endText(game, myColor) : null;
   const over = !!end || resigned;
   const aiColor: Color = myColor === "w" ? "b" : "w";
@@ -388,7 +390,7 @@ export default function ChessAIGame() {
             {over ? "새 대국" : "상대 바꾸기"}
           </button>
         </div>
-        <div className="max-h-44 overflow-y-auto rounded-xl border border-white/10 bg-[#1C1E24] p-2 lg:max-h-72">
+        <div className="thin-scroll max-h-44 overflow-y-auto rounded-xl border border-white/10 bg-[#1C1E24] p-2 lg:max-h-72">
           {pairs.length === 0 ? (
             <p className="py-3 text-center font-mono text-xs text-white/30">
               아직 둔 수가 없습니다
