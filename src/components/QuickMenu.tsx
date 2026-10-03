@@ -92,7 +92,7 @@ export default function QuickMenu() {
   return (
     <div
       data-quickmenu
-      className="fixed top-[85%] right-[5%] z-[99999] m-auto h-[52px] w-[52px] text-white sm:h-[70px] sm:w-[70px]"
+      className="quick-menu-fab fixed top-[85%] right-[5%] z-[99999] m-auto h-[52px] w-[52px] text-white sm:h-[70px] sm:w-[70px]"
     >
       <div id="myMenu"></div>
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />

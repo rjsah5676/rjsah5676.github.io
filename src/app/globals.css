@@ -115,3 +115,8 @@ body {
     animation: none;
   }
 }
+
+/* 게임을 화면 가득 띄운 동안엔 떠 있는 퀵메뉴 버튼을 숨김 (판을 가림) */
+body.game-full .quick-menu-fab {
+  display: none;
+}

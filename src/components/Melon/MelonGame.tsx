@@ -242,6 +242,7 @@ export default function MelonGame() {
     const el = wrapRef.current;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    document.body.classList.add("game-full");
     const orient = screen.orientation as ScreenOrientation & {
       lock?: (o: string) => Promise<void>;
     };
@@ -256,6 +257,7 @@ export default function MelonGame() {
     return () => {
       document.removeEventListener("fullscreenchange", onFs);
       document.body.style.overflow = prev;
+      document.body.classList.remove("game-full");
       try {
         orient.unlock?.();
       } catch {}
