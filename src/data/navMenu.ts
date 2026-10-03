@@ -109,7 +109,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         href: "/games/janggi",
         image: imgJanggi,
-        label: "장기",
+        label: "온라인 장기",
         desc: "AI 대국(3단계)·온라인 대국",
         icon: "將",
       },
