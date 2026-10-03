@@ -11,6 +11,7 @@
  *   --boss '<json>'   보스곡: 나이트메어 난이도를 추가 (src/lib/rhythm/autochart의 NightmareTweak, {}면 기본값)
  *   --hard-slots      쉬움·보통·어려움을 한 단계 위 규칙으로 (보스곡용: 대략 Lv6 / 11 / 14)
  *   --dry             파일은 안 쓰고 난이도별 통계만 출력
+ *   --stats           패턴을 얼마나 다양하게 썼는지 출력
  *
  * 예) Monarch's Fall : npm run rhythm-chart -- monarch --bpm-label 150 --boss '{}'
  *     Maximum Velocity: npm run rhythm-chart -- velocity --bpm-label 180 --hard-slots \
@@ -103,7 +104,45 @@ const tweaks = hardSlots
     }
   : {};
 if (bossArg !== undefined) tweaks.nightmare = { nightmare: JSON.parse(bossArg) };
+// --stats: 난이도별로 어떤 패턴을 얼마나 썼는지 (다양성 점검)
+const stats = argv.includes("--stats");
+const picks = {};
+if (stats)
+  for (const d of diffs) {
+    picks[d] = [];
+    tweaks[d] = {
+      ...(tweaks[d] ?? {}),
+      onPick: (name, bar, len) => picks[d].push({ name, bar, len }),
+    };
+  }
 const charts = makeAutoCharts(a, diffs, 0, tweaks);
+if (stats)
+  for (const d of diffs) {
+    // 마지막 시도(재시도하면 여러 번 쌓임)만: 마디가 다시 0부터 시작하는 마지막 구간
+    const all = picks[d];
+    let start = 0;
+    for (let i = 1; i < all.length; i++) if (all[i].bar < all[i - 1].bar) start = i;
+    const list = all.slice(start);
+    const shape = (n) => n.replace(/['<]+$/, "");
+    const cnt = {};
+    // 새로 고른 모양(직전과 다른 모양)이 최근 4조각 안에 또 나온 비율 — 낮을수록 "아까 그 패턴" 느낌이 적음
+    let recentHit = 0;
+    let fresh = 0;
+    for (let i = 0; i < list.length; i++) {
+      const sh = shape(list[i].name);
+      cnt[sh] = (cnt[sh] ?? 0) + 1;
+      if (i > 0 && shape(list[i - 1].name) === sh) continue;
+      fresh++;
+      if (list.slice(Math.max(0, i - 4), i).some((x) => shape(x.name) === sh)) recentHit++;
+    }
+    const top = Object.entries(cnt)
+      .sort((x, y) => y[1] - x[1])
+      .slice(0, 6);
+    console.log(
+      `${d.padEnd(9)} 조각 ${list.length}  모양 ${Object.keys(cnt).length}종  새 모양 ${fresh}개 중 최근4 재등장 ${Math.round((recentHit / Math.max(1, fresh)) * 100)}%  ${top.map(([k, v]) => `${k}×${v}`).join(" ")}`
+    );
+    console.log("          " + list.map((x) => x.name).join(" "));
+  }
 
 // ── 통계 ──
 for (const [d, c] of Object.entries(charts)) {

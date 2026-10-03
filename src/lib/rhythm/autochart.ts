@@ -159,6 +159,8 @@ export interface AutoTweak {
   fill?: number;
   /** 다른 난이도의 규칙을 빌려 씀 (보스곡의 쉬움을 어려움 규칙 절반 밀도로 뽑는 식) */
   rule?: Difficulty;
+  /** 진단용: 패턴을 고를 때마다 (이름, 마디, 길이) */
+  onPick?: PatternCtx["onPick"];
 }
 
 /**
@@ -345,6 +347,7 @@ export function makeAutoChart(
     barOf,
     intensity: (b) => intensity[Math.max(0, Math.min(nBars - 1, b))],
     rnd,
+    onPick: tweak.onPick,
   };
   const patterned = assignPatterns(
     picked.map((o) => ({ t: o.t, cen: o.cen, count: 1 })),
@@ -470,7 +473,9 @@ export function makeAutoChart(
     }
   }
 
-  // 3.5) 프레이즈 반복: 마디 안 노트 배치(상대 시각)가 같은 마디는 먼저 나온 마디의 레인을 그대로
+  // 3.5) 프레이즈 반복: 마디 안 노트 배치(상대 시각)가 같은 마디는 먼저 나온 마디의 레인을 다시 씀
+  //      — 음악이 반복되면 손 모양도 반복(외워 치는 재미). 다만 그대로가 아니라 홀수 번째 반복은
+  //      좌우 반전으로, "같은 듯 다른" 변주가 되게 (사람 매퍼의 반복-변주 원칙)
   {
     const byBar = new Map<number, Note[]>();
     for (const n of notes) {
@@ -478,24 +483,30 @@ export function makeAutoChart(
       if (!byBar.has(b)) byBar.set(b, []);
       byBar.get(b)!.push(n);
     }
-    const seen = new Map<string, number[]>();
+    const seen = new Map<string, { lanes: number[]; n: number }>();
     for (const [b, list] of [...byBar.entries()].sort((x, y) => x[0] - y[0])) {
       list.sort((x, y) => x.t - y.t || x.lane - y.lane);
       const key = list
         .map((n) => Math.round(((n.t - bar0 - b * barSec) / beatSec) * an.div))
         .join(",");
-      const lanes = seen.get(key);
-      if (lanes && lanes.length === list.length && list.length >= 3) {
+      // 8분·16분으로 꽉 찬 마디는 리듬만으로는 다 똑같아 보여서(코러스 8마디가 전부 같은 키) 복사하면
+      // 같은 손 모양이 끝없이 반복됨 → 이런 마디는 복사하지 않고 패턴 다양성에 맡김.
+      // "프레이즈가 반복된다"고 볼 수 있는 건 리듬에 생김새가 있는(간격이 고르지 않은) 마디뿐
+      const ts = [...new Set(list.map((n) => n.t))];
+      const ivs = new Set(ts.slice(1).map((t, k) => Math.round((t - ts[k]) * 50)));
+      const uniform = ts.length >= 6 && ivs.size <= 1;
+      const hit = seen.get(key);
+      if (!uniform && hit && hit.lanes.length === list.length && list.length >= 3 && hit.n < 3) {
+        hit.n++;
+        const lanes = hit.n % 2 === 1 ? hit.lanes.map((l) => 3 - l) : hit.lanes;
         // 복사했을 때 같은 시각에 같은 레인이 겹치면(동시치기) 복사 안 함
         const clash = list.some((n, k) =>
           list.some((m, k2) => k2 !== k && m.t === n.t && lanes[k2] === lanes[k])
         );
         if (!clash) list.forEach((n, k) => (n.lane = lanes[k]));
-      } else if (list.length >= 3)
-        seen.set(
-          key,
-          list.map((n) => n.lane)
-        );
+      } else if (!uniform && list.length >= 3 && (!hit || hit.n >= 3))
+        // 처음 보는 리듬(또는 세 번 복사한 뒤)은 이 마디를 새 원본으로
+        seen.set(key, { lanes: list.map((n) => n.lane), n: 0 });
     }
   }
 
