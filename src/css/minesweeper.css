@@ -158,10 +158,24 @@
   color: #e7e7ea;
 }
 
+/* 모바일: 칸을 키우고(26px) 판은 안에서 밀어서·두 손가락으로 벌려서 봄 */
 @media (max-width: 768px) {
+  .mine-viewport {
+    width: 100%;
+    max-width: calc(100vw - 2rem);
+    max-height: 72dvh;
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
+  .mine-grid {
+    display: inline-block;
+  }
   .cell {
-    width: 14px;
-    height: 14px;
-    font-size: 10px;
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
   }
 }

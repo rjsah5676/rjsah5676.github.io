@@ -96,31 +96,32 @@ function SyncConcept() {
   );
 }
 
-/** 3단계 결과 모습 (실제 화면을 단순화) */
-function AudioCalMock() {
-  const taps = [-18, 6, 22, 30, 14, 38, 26, 19, 33, 9, 28, 24];
+/** 3단계 모습 (실제 화면을 단순화): 노트가 선에 닿을 때 딸깍, −/+로 맞추기 */
+function AvSyncMock() {
   return (
     <div className="flex w-full max-w-sm flex-col items-center font-mono">
-      <div className="text-[11px] text-white/40">🔊 딸깍 · 딸깍 · 딸깍 …</div>
-      <div className="mt-3 text-[11px] text-white/40">추천 음악 싱크</div>
-      <div className="text-4xl font-bold text-white">+24ms</div>
-      <div className="relative mt-3 h-6 w-full rounded bg-white/5">
-        <div className="absolute inset-y-0 left-1/2 w-px bg-white/40" />
-        {taps.map((d, i) => (
+      <div className="relative h-32 w-40 overflow-hidden rounded-lg border border-white/10 bg-[#0E1015]">
+        {[0, 1, 2, 3].map((l) => (
           <div
-            key={i}
-            className="absolute top-1 h-4 w-0.5 rounded bg-[#7DF9FF]/70"
-            style={{ left: `${50 + (d / 150) * 50}%` }}
+            key={l}
+            className="absolute top-0 bottom-0 w-px bg-white/10"
+            style={{ left: `${(l + 1) * 25}%` }}
           />
         ))}
+        <div className="absolute right-0 bottom-6 left-0 h-0.5 bg-white" />
+        <div className="absolute bottom-[21px] left-[2%] h-2.5 w-[21%] rounded bg-[#7DF9FF]" />
+        <div className="absolute bottom-16 left-[27%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/60" />
+        <div className="absolute top-3 left-[52%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/40" />
+        <div className="absolute right-2 bottom-7 text-base">🔊</div>
       </div>
-      <div className="mt-1 flex w-full justify-between text-[9px] text-white/30">
-        <span>빠름</span>
-        <span>늦음</span>
+      <div className="mt-3 flex items-center gap-2 text-xs text-white/70">
+        <span className="rounded-full border border-white/15 px-2 py-0.5">−10</span>
+        <span className="rounded-full border border-white/15 px-2 py-0.5">−</span>
+        <b className="w-16 text-center text-xl text-white">+24ms</b>
+        <span className="rounded-full border border-white/15 px-2 py-0.5">+</span>
+        <span className="rounded-full border border-white/15 px-2 py-0.5">+10</span>
       </div>
-      <div className="mt-3 rounded-full bg-[#6C63FF] px-4 py-1.5 text-xs font-bold text-white">
-        +24ms 적용하고 완료
-      </div>
+      <div className="mt-2 text-[11px] text-white/40">소리가 늦게 들리면 + · 먼저 들리면 −</div>
     </div>
   );
 }
@@ -390,12 +391,12 @@ export const RHYTHM_GUIDE: GuideDoc = {
       ),
     },
     {
-      title: "3단계 · 소리만 듣고 치기",
-      visual: <AudioCalMock />,
+      title: "3단계 · 소리와 노트 맞추기",
+      visual: <AvSyncMock />,
       body: (
         <>
-          이번엔 <B>화면 없이</B> 딸깍 소리만 나요. 박자에 맞춰 아무 키나(스페이스도 OK) 누르면,
-          소리가 귀에 늦게 도착하는 만큼을 <B>음악 싱크</B>로 잡아 줘요. 적용하면 끝!
+          노트가 선에 닿는 순간 딸깍 소리가 나요. 치지 말고 보고 들으면서, 소리가 늦게 들리면 +,
+          먼저 들리면 −를 눌러 <B>딱 맞아 보일 때</B> 완료. 그 값이 <B>음악 싱크</B>예요.
         </>
       ),
     },
@@ -430,7 +431,7 @@ export const RHYTHM_GUIDE: GuideDoc = {
       body: (
         <>
           소리 나는 장치가 바뀌면 늦는 정도도 바뀌어요. 설정의 <B>싱크 맞추기</B>로 다시 하거나,
-          3단계만 다시 해도 충분해요.
+          3단계(소리와 노트 맞추기)만 다시 해도 충분해요.
         </>
       ),
     },
@@ -503,7 +504,7 @@ export const RHYTHM_GUIDE: GuideDoc = {
         </>,
         <>
           처음 순서: 안내창의 <B>지금 맞추기</B> → 1단계 노트 속도 → 2단계 화면만 보고 치기(타격
-          싱크) → 3단계 소리만 듣고 치기(음악 싱크).
+          싱크) → 3단계 소리와 노트 맞추기(음악 싱크, −/+로 맞춤).
         </>,
         <>
           자동 보정: 한 곡을 고르게 쳤는데 평균이 10ms 넘게 한쪽으로 쏠리면 결과 화면에서 맞출지

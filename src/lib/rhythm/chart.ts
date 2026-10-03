@@ -307,29 +307,30 @@ export function makeChart(song: Song, diff: Difficulty): Chart {
   return finishChart(notes, diff);
 }
 
-/** 난이도별 레벨 범위: 쉬움 1~4 · 보통 5~10 · 어려움 11~13 · 매우 어려움 14+ */
-const LEVEL_BAND: Record<Difficulty, [number, number]> = {
-  easy: [1, 4],
-  normal: [5, 10],
-  hard: [11, 13],
-  expert: [14, 20],
-  nightmare: [17, 22],
-};
-/** 그 난이도에서 보통 나오는 밀도(초당 노트 + 최고 구간 가중) 범위 → 레벨 범위에 대응 */
-const DENSITY_BAND: Record<Difficulty, [number, number]> = {
-  easy: [1, 5],
-  normal: [3.5, 9],
-  hard: [7, 12],
-  expert: [9, 20],
-  nightmare: [12, 24],
-};
+/**
+ * 밀도(초당 노트 + 최고 구간 가중) → 레벨. 난이도와 상관없이 한 자로 잼
+ * (대략 쉬움 2~4 · 보통 5~8 · 어려움 10~12 · 매우 어려움 14~16 · 나이트메어 18+)
+ */
+const LEVEL_CURVE: [number, number][] = [
+  [0, 1],
+  [2, 2],
+  [5, 6],
+  [8.5, 11],
+  [12.5, 15],
+  [17, 18],
+  [24, 22],
+];
+export function levelOfDensity(density: number): number {
+  for (let i = 1; i < LEVEL_CURVE.length; i++) {
+    const [d0, l0] = LEVEL_CURVE[i - 1];
+    const [d1, l1] = LEVEL_CURVE[i];
+    if (density <= d1) return Math.round(l0 + ((density - d0) / (d1 - d0)) * (l1 - l0));
+  }
+  return LEVEL_CURVE[LEVEL_CURVE.length - 1][1];
+}
 
 /** 정렬 + 판정 단위 수 + 레벨 계산 (자동 채보에서도 같이 씀) */
-export function finishChart(
-  notes: Note[],
-  diff: Difficulty = "normal",
-  densityBand: [number, number] = DENSITY_BAND[diff]
-): Chart {
+export function finishChart(notes: Note[], diff: Difficulty = "normal"): Chart {
   notes.sort((a, b) => a.t - b.t || a.lane - b.lane);
   const units = notes.reduce((s, n) => s + (n.end ? 2 : 1), 0);
 
@@ -342,10 +343,14 @@ export function finishChart(
     peak = Math.max(peak, (i - j + 1) / 4);
   }
   const density = avg + peak * 0.45;
-  // 난이도 범위 안에서 밀도에 비례해 레벨을 매김 (매우 어려움은 위로 열려 있음)
-  const [l0, l1] = LEVEL_BAND[diff];
-  const [d0, d1] = densityBand;
-  const ratio = (density - d0) / (d1 - d0);
-  const level = Math.max(l0, Math.min(l1, Math.round(l0 + ratio * (l1 - l0))));
+  // 쉬움은 1~4, 나머지는 밀도 그대로 (난이도별 최저 레벨만 보장)
+  const floor: Record<Difficulty, number> = {
+    easy: 1,
+    normal: 4,
+    hard: 8,
+    expert: 12,
+    nightmare: 16,
+  };
+  const level = Math.max(floor[diff], Math.min(22, levelOfDensity(density)));
   return { notes, level, units };
 }

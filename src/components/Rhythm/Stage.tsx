@@ -57,6 +57,16 @@ export const CAL_SKIP = 4;
  * 20개 이상 쳤고, 중앙값 주변으로 절반 이상이 ±25ms 안에 모여 있으면(MAD ≤ 25ms)
  * 실수로 흔들린 게 아니라 기기·손 버릇으로 늘 그만큼 어긋난 것으로 봄.
  */
+/** 랭크 글자색 (결과 화면과 같은 색) */
+export const rankColorOf = (rank: string) =>
+  rank.startsWith("S")
+    ? "#FDE047"
+    : rank === "A"
+      ? "#4ADE80"
+      : rank === "B"
+        ? "#60A5FA"
+        : "#F87171";
+
 const SCROLL_KEYS = new Set(["Space", "PageUp", "PageDown", "Home", "End"]);
 
 function timingOf(diffs: number[]): { avgMs: number | null; steady: boolean } {
@@ -149,6 +159,12 @@ export default function Stage({
   }>({
     avgMs: null,
     n: 0,
+  });
+  // 일시정지 화면의 지금까지 점수·정확도·랭크
+  const [pauseStats, setPauseStats] = useState<{ score: number; acc: number; combo: number }>({
+    score: 0,
+    acc: 100,
+    combo: 0,
   });
   /** 일시정지 화면의 '싱크 적용': 결과 화면 자동 보정과 같은 규칙 (한 번에 최대 ±120ms) */
   const applyPauseSync = () => {
@@ -946,6 +962,7 @@ export default function Stage({
         resumeSeq++;
         cancelAnimationFrame(raf);
         setPauseTiming({ avgMs: timingOf(diffs).avgMs, n: diffs.length });
+        setPauseStats({ score: engine.score, acc: engine.accuracy, combo: engine.maxCombo });
         setPaused(true);
         return;
       }
@@ -957,6 +974,7 @@ export default function Stage({
       for (let l = 0; l < 4; l++) if (engine.pressed[l]) engine.release(l, t);
       ctx.suspend();
       setPauseTiming({ avgMs: timingOf(diffs).avgMs, n: diffs.length });
+      setPauseStats({ score: engine.score, acc: engine.accuracy, combo: engine.maxCombo });
       setPaused(true);
     };
     const resume = () => {
@@ -1135,6 +1153,24 @@ export default function Stage({
         <div className="absolute inset-0 flex items-center justify-center overflow-y-auto rounded-xl bg-black/75 p-4 backdrop-blur-sm">
           <div className="flex w-full max-w-sm flex-col items-center gap-2.5">
             <p className="font-mono text-lg font-bold text-white">일시정지</p>
+            {!calibration && (
+              <div className="mb-1 flex items-center gap-4 rounded-xl border border-white/10 bg-[#1C1E24]/90 px-4 py-2 font-mono">
+                <span
+                  className="text-3xl font-black"
+                  style={{ color: rankColorOf(rankOf(pauseStats.acc)) }}
+                >
+                  {rankOf(pauseStats.acc)}
+                </span>
+                <span className="flex flex-col text-xs text-white/55">
+                  <span className="text-base font-bold text-white tabular-nums">
+                    {pauseStats.score.toLocaleString("en-US")}
+                  </span>
+                  <span>
+                    정확도 {pauseStats.acc.toFixed(2)}% · 최대 콤보 {pauseStats.combo}
+                  </span>
+                </span>
+              </div>
+            )}
             {!calibration && (
               <div className="mb-1 flex flex-col items-center gap-1.5 font-mono text-xs text-white/50">
                 {pauseTiming.applied !== undefined ? (

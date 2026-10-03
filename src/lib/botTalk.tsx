@@ -54,16 +54,17 @@ export function useBotTalk(lines: Lines) {
  * 판 위에 겹쳐 띄워서(높이 0인 자리) 말풍선이 생기고 사라져도 판이 밀리지 않게, 클릭은 통과.
  */
 /**
- * AI 이름 줄의 오른쪽 빈자리에 뜨는 말풍선 (판을 가리지 않게).
- * 부모(이름 줄을 감싼 relative 요소) 높이 안에서 세로 가운데, 꼬리는 왼쪽(이름 쪽).
+ * AI 말풍선 (판을 가리지 않게). 넓은 화면은 이름 줄 오른쪽 빈자리에 겹쳐 띄우고,
+ * 좁은 화면은 이름 줄 아래 높이 고정 한 줄에 둔다. 꼬리는 왼쪽(이름 쪽).
  */
 export function SpeechBubble({ speech }: { speech: { text: string; n: number } | null }) {
   return (
-    <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex w-[62%] items-center justify-end sm:w-[58%]">
+    // 좁은 화면: 이름 줄 아래 한 줄(높이 고정 → 판이 안 밀림), 넓은 화면: 이름 줄 오른쪽 빈자리에 겹쳐서
+    <div className="pointer-events-none z-20 flex h-10 items-start justify-end sm:absolute sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[58%] sm:items-center">
       {speech && (
         <div
           key={speech.n}
-          className="bot-speech line-clamp-2 w-fit max-w-full rounded-2xl rounded-bl-sm border border-white/15 bg-[#24262E] px-3 py-1.5 font-['Nanum_Gothic',sans-serif] text-[12.5px] leading-snug break-keep text-white/90 shadow-xl"
+          className="bot-speech line-clamp-2 w-fit max-w-full rounded-2xl rounded-tl-sm border border-white/15 bg-[#24262E] sm:rounded-tl-2xl sm:rounded-bl-sm px-3 py-1.5 font-['Nanum_Gothic',sans-serif] text-[12.5px] leading-snug break-keep text-white/90 shadow-xl"
         >
           {speech.text}
         </div>

@@ -268,6 +268,12 @@ export default function Minesweeper() {
   const handleTouchEnd = () => {
     if (touchTimer) clearTimeout(touchTimer);
   };
+  // 손가락이 움직이거나(판 밀기) 두 손가락(확대)이면 꾹 누르기 취소 — 확대하다 깃발 꽂히는 일 방지
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const cancelLongPress = () => {
+    if (touchTimer) clearTimeout(touchTimer);
+    if (numberTouchTimer) clearTimeout(numberTouchTimer);
+  };
 
   const handleNumberLongPress = (r: number, c: number) => {
     if (!visible[r][c] || board[r][c] <= 0) return;
@@ -373,74 +379,93 @@ export default function Minesweeper() {
           <b className="text-white">우클릭</b>으로 깃발 · 숫자 위에서{" "}
           <b className="text-white">좌+우 동시 클릭</b>하면 주변이 열려요
         </HintBubble>
-        <div className="mine-grid">
-          {board.map((row, rIdx) => (
-            <div className="mine-row" key={rIdx}>
-              {row.map((cell, cIdx) => {
-                const isHighlighted =
-                  pressingCell &&
-                  Math.abs(pressingCell.row - rIdx) <= 1 &&
-                  Math.abs(pressingCell.col - cIdx) <= 1;
-                const isEven = (rIdx + cIdx) % 2 === 0;
-                const isOpen = visible[rIdx][cIdx];
-                return (
-                  <div
-                    key={cIdx}
-                    className={`cell ${isOpen ? "open" : ""} ${isEven ? "even" : ""} ${
-                      isHighlighted && !isOpen ? "highlight" : ""
-                    }`}
-                    onClick={() => handleLeftClick(rIdx, cIdx)}
-                    onContextMenu={(e) => handleRightClick(e, rIdx, cIdx)}
-                    onMouseDown={(e) => handleMouseDown(e, rIdx, cIdx)}
-                    onTouchStart={() => {
-                      if (visible[rIdx][cIdx] && board[rIdx][cIdx] > 0) {
-                        handleNumberTouchStart(rIdx, cIdx);
-                      } else {
-                        handleTouchStart(rIdx, cIdx);
-                      }
-                    }}
-                    onTouchEnd={() => {
-                      handleNumberTouchEnd();
-                      handleTouchEnd();
-                    }}
-                  >
-                    {flagged[rIdx][cIdx] ? (
-                      "🚩"
-                    ) : isOpen ? (
-                      cell === -1 ? (
-                        "💣"
-                      ) : cell ? (
-                        <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
-                          {cell}
-                        </span>
+        <div className="mine-viewport">
+          <div className="mine-grid">
+            {board.map((row, rIdx) => (
+              <div className="mine-row" key={rIdx}>
+                {row.map((cell, cIdx) => {
+                  const isHighlighted =
+                    pressingCell &&
+                    Math.abs(pressingCell.row - rIdx) <= 1 &&
+                    Math.abs(pressingCell.col - cIdx) <= 1;
+                  const isEven = (rIdx + cIdx) % 2 === 0;
+                  const isOpen = visible[rIdx][cIdx];
+                  return (
+                    <div
+                      key={cIdx}
+                      className={`cell ${isOpen ? "open" : ""} ${isEven ? "even" : ""} ${
+                        isHighlighted && !isOpen ? "highlight" : ""
+                      }`}
+                      onClick={() => handleLeftClick(rIdx, cIdx)}
+                      onContextMenu={(e) => handleRightClick(e, rIdx, cIdx)}
+                      onMouseDown={(e) => handleMouseDown(e, rIdx, cIdx)}
+                      onTouchStart={(e) => {
+                        if (e.touches.length > 1) {
+                          cancelLongPress();
+                          return;
+                        }
+                        touchStartPos.current = {
+                          x: e.touches[0].clientX,
+                          y: e.touches[0].clientY,
+                        };
+                        if (visible[rIdx][cIdx] && board[rIdx][cIdx] > 0) {
+                          handleNumberTouchStart(rIdx, cIdx);
+                        } else {
+                          handleTouchStart(rIdx, cIdx);
+                        }
+                      }}
+                      onTouchMove={(e) => {
+                        const p0 = touchStartPos.current;
+                        const t = e.touches[0];
+                        if (
+                          e.touches.length > 1 ||
+                          (p0 && t && Math.hypot(t.clientX - p0.x, t.clientY - p0.y) > 8)
+                        )
+                          cancelLongPress();
+                      }}
+                      onTouchEnd={() => {
+                        handleNumberTouchEnd();
+                        handleTouchEnd();
+                      }}
+                    >
+                      {flagged[rIdx][cIdx] ? (
+                        "🚩"
+                      ) : isOpen ? (
+                        cell === -1 ? (
+                          "💣"
+                        ) : cell ? (
+                          <span style={{ fontWeight: "bold" }} className={`number number-${cell}`}>
+                            {cell}
+                          </span>
+                        ) : (
+                          ""
+                        )
                       ) : (
                         ""
-                      )
-                    ) : (
-                      ""
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          {gameOver && (
-            <div className="message-overlay">
-              {win ? "🎉 클리어!" : "💥 펑 ㅋㅋ"}
-              <button
-                className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0]"
-                onClick={resetGame}
-              >
-                🔁 새 게임
-              </button>
-              <button
-                className="cursor-pointer rounded-full border border-white/20 px-5 py-2 font-mono text-sm text-white/85 transition-colors hover:text-white"
-                onClick={() => setRankOpen(true)}
-              >
-                🏆 랭킹
-              </button>
-            </div>
-          )}
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+            {gameOver && (
+              <div className="message-overlay">
+                {win ? "🎉 클리어!" : "💥 펑 ㅋㅋ"}
+                <button
+                  className="cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm text-white transition-colors hover:bg-[#5b52f0]"
+                  onClick={resetGame}
+                >
+                  🔁 새 게임
+                </button>
+                <button
+                  className="cursor-pointer rounded-full border border-white/20 px-5 py-2 font-mono text-sm text-white/85 transition-colors hover:text-white"
+                  onClick={() => setRankOpen(true)}
+                >
+                  🏆 랭킹
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

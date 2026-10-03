@@ -62,8 +62,7 @@ for (const n of ["analyze", "autochart", "chart", "patterns"]) {
 }
 const load = (n) => import(pathToFileURL(path.join(tmp, `${n}.mjs`)).href);
 const { analyzeAudio, displayBpm, SR } = await load("analyze");
-const { makeAutoChart } = await load("autochart");
-const { finishChart } = await load("chart");
+const { makeAutoCharts } = await load("autochart");
 
 // ── 음원 → 22.05kHz 모노 PCM (분석기가 쓰는 OfflineAudioContext는 이 데이터를 돌려주는 가짜로) ──
 const mp3 = path.join(ROOT, "public/audio", `${id}.mp3`);
@@ -92,24 +91,19 @@ console.log(
   `분석: ${a.bpm.toFixed(2)} BPM (표시 ${displayBpm(a).toFixed(1)}), 비트 ${a.beats.length}, 타격 ${a.onsets.length}, ${a.duration.toFixed(1)}초`
 );
 
-// ── 난이도별 채보 ──
-const charts = {};
-if (hardSlots) {
-  // [슬롯, 쓰는 규칙, 밀도 배율, 레벨 매기는 기준]
-  for (const [slot, rule, d, scale] of [
-    ["easy", "hard", 0.5, "normal"],
-    ["normal", "hard", 1, "hard"],
-    ["hard", "expert", 0.8, "expert"],
-  ])
-    charts[slot] = finishChart(
-      makeAutoChart(a, rule, 0, { density: d }).notes.map((n) => ({ ...n })),
-      scale
-    );
-} else for (const d of ["easy", "normal", "hard"]) charts[d] = makeAutoChart(a, d);
-if (!charts.expert) charts.expert = makeAutoChart(a, "expert");
-// 보스곡: 나이트메어 (매우 어려움은 다른 곡과 같은 규칙)
-if (bossArg !== undefined)
-  charts.nightmare = makeAutoChart(a, "nightmare", 0, { nightmare: JSON.parse(bossArg) });
+// ── 난이도별 채보 (아래 난이도보다 최소 3레벨 높아지게 밀도·채우기를 자동으로 올림) ──
+const diffs = ["easy", "normal", "hard", "expert"];
+if (bossArg !== undefined) diffs.push("nightmare");
+const tweaks = hardSlots
+  ? {
+      // 보스곡: 쉬움·보통·어려움을 한 단계 위 규칙으로
+      easy: { rule: "hard", density: 0.5 },
+      normal: { rule: "hard" },
+      hard: { rule: "expert", density: 0.8 },
+    }
+  : {};
+if (bossArg !== undefined) tweaks.nightmare = { nightmare: JSON.parse(bossArg) };
+const charts = makeAutoCharts(a, diffs, 0, tweaks);
 
 // ── 통계 ──
 for (const [d, c] of Object.entries(charts)) {

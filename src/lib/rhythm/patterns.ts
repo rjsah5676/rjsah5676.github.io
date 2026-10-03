@@ -43,8 +43,9 @@ export const PATTERNS: Pattern[] = [
   { name: "trill-", steps: [3, 2, 0, 1], w: 2, minLen: 4 },
   { name: "split", steps: [0, 2, 1, 3], dir: 1, w: 1.2, minLen: 4 },
   { name: "split-", steps: [3, 1, 2, 0], dir: -1, w: 1.2, minLen: 4 },
-  { name: "alt-L", steps: [0, 1], w: 1.2, minLen: 4 },
-  { name: "alt-R", steps: [2, 3], w: 1.2, minLen: 4 },
+  // 한 손 연타(D F D F…)는 길게 가면 싫어해서 짧게만, 길면 alt-switch(손 바꿔 가며)로
+  { name: "alt-L", steps: [0, 1], w: 0.6, minLen: 4 },
+  { name: "alt-R", steps: [2, 3], w: 0.6, minLen: 4 },
   { name: "alt-switch", steps: [0, 1, 0, 1, 2, 3, 2, 3], w: 2, minLen: 8 },
   {
     name: "wide",
@@ -198,7 +199,8 @@ function layStream(
 
     // 같은 패턴을 이어 갈까 (반복 = 외우는 재미)
     // 두 레인만 두드리는 연타는 한 마디 넘게 끌면 지루해서 금방 바꿈
-    const keepP = cur?.name.startsWith("alt-") && cur.name !== "alt-switch" ? 0.3 : 0.62;
+    const oneHand = (p: Pattern | null) => !!p && (p.name === "alt-L" || p.name === "alt-R");
+    const keepP = oneHand(cur) ? 0 : 0.62;
     const keep = cur && kept < 3 && allowed.includes(cur) && len >= cur.minLen && ctx.rnd() < keepP;
     kept = keep ? kept + 1 : 0;
     if (!keep) {
@@ -226,6 +228,8 @@ function layStream(
           break;
         }
       }
+      // 한 손 연타가 8개 넘게 이어지면 손을 바꿔 가며 (D F D F J K J K)
+      if (oneHand(cur) && len > 8) cur = PATTERNS.find((p) => p.name === "alt-switch")!;
       // 시작 위치: 바로 앞 칸(이미 정해진 레인)과 같은 레인·같은 손으로 시작하지 않게
       const prevLanes = prevOf(out, a);
       const n = cur.steps.length;

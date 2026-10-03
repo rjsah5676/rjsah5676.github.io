@@ -152,6 +152,13 @@ export interface AutoTweak {
   finePos?: number;
   /** 나이트메어 채우기 */
   nightmare?: NightmareTweak;
+  /**
+   * 격자 채우기 0~1 (어려움·매우 어려움·나이트메어): 곡에서 찾은 타격만으로 목표 밀도가 안 나올 때
+   * 센 마디에 8분(어려움)·16분(매우 어려움) 자리를 더함. 클수록 덜 센 마디까지 채움
+   */
+  fill?: number;
+  /** 다른 난이도의 규칙을 빌려 씀 (보스곡의 쉬움을 어려움 규칙 절반 밀도로 뽑는 식) */
+  rule?: Difficulty;
 }
 
 /**
@@ -163,7 +170,7 @@ export function makeAutoChart(
   shiftMs = 0,
   tweak: AutoTweak = {}
 ): Chart {
-  const base = AUTO_RULES[diff];
+  const base = AUTO_RULES[tweak.rule ?? diff];
   const R: AutoRule = {
     ...base,
     nps: base.nps * (tweak.density ?? 1),
@@ -278,6 +285,39 @@ export function makeAutoChart(
   }
   picked.sort((a, b) => a.t - b.t);
 
+  // 1.5) 격자 채우기 — 어려움은 센 마디를 8분으로, 매우 어려움은 아주 센 마디를 16분으로 (fill이 클수록 더 넓게)
+  if ((diff === "hard" || diff === "expert") && (tweak.fill ?? 0) > 0) {
+    // fill 1을 넘으면(1~1.6) 어지간한 마디까지 다 채움
+    const fill = Math.min(1.6, tweak.fill ?? 0);
+    const loudT = Math.max(0.05, 0.8 - 0.5 * fill);
+    const fullT = diff === "expert" ? Math.max(0.2, 0.95 - 0.45 * fill) : 2;
+    const have = picked.map((o) => o.t);
+    const beatT = (k: number) =>
+      k < an.beats.length
+        ? an.beats[k]
+        : an.beats[an.beats.length - 1] + (k - an.beats.length + 1) * beatSec;
+    const lastPick = picked.length ? picked[picked.length - 1].t : 0;
+    const added: Onset[] = [];
+    for (let k = 0; k < Math.ceil(an.duration / beatSec); k++) {
+      const t0 = beatT(k);
+      if (t0 > lastPick) break;
+      const I = intensity[Math.max(0, Math.min(nBars - 1, barOf(t0)))];
+      if (I < loudT) continue;
+      const sub = I >= fullT ? 4 : 2;
+      const t1 = beatT(k + 1);
+      for (let i = 0; i < sub; i++) {
+        const t = t0 + (i * (t1 - t0)) / sub;
+        if (tooClose(have, t, R.minGap)) continue;
+        let j = have.findIndex((x) => x > t);
+        if (j < 0) j = have.length;
+        have.splice(j, 0, t);
+        added.push({ t, s: 0.3, low: 0.3, mid: 0.3, high: 0.3, cen: nearestCen(an, t), grid: -1 });
+      }
+    }
+    picked.push(...added);
+    picked.sort((a, b) => a.t - b.t);
+  }
+
   // 2) 레인: 주변 4초 안에서 음색 높이 순위 → 0~3
   //    + 계단: 가까운(8분 이내) 타격 3개 이상이 음색 높이가 한 방향으로 흐르면 레인도 한 칸씩
   const stairs = new Map<number, 1 | -1>();
@@ -316,7 +356,13 @@ export function makeAutoChart(
     const nm = nightmareNotes(
       an,
       picked,
-      { ...NIGHTMARE_DEFAULT, ...tweak.nightmare },
+      {
+        ...NIGHTMARE_DEFAULT,
+        ...tweak.nightmare,
+        // 채우기가 클수록 덜 센 마디까지
+        loud: (tweak.nightmare?.loud ?? NIGHTMARE_DEFAULT.loud) - 0.3 * (tweak.fill ?? 0),
+        full: (tweak.nightmare?.full ?? NIGHTMARE_DEFAULT.full) - 0.3 * (tweak.fill ?? 0),
+      },
       {
         beatSec,
         barOf,
@@ -574,4 +620,35 @@ function nightmareNotes(
     prev = lanes;
   }
   return notes;
+}
+
+/** 난이도 사이 최소 레벨 차 */
+export const LEVEL_STEP = 3;
+
+/**
+ * 난이도별 채보를 한 번에 — 아래 난이도보다 레벨이 최소 LEVEL_STEP 높아질 때까지
+ * 밀도·격자 채우기를 조금씩 올려 가며 다시 뽑는다 (곡에 타격이 적어 두 난이도가 비슷해지는 걸 막음).
+ * @param diffs 만들 난이도 (보스곡·내 음악은 nightmare 포함)
+ */
+export function makeAutoCharts(
+  an: Analysis,
+  diffs: Difficulty[],
+  shiftMs = 0,
+  tweaks: Partial<Record<Difficulty, AutoTweak>> = {}
+): Partial<Record<Difficulty, Chart>> {
+  const out: Partial<Record<Difficulty, Chart>> = {};
+  let prevLevel = -Infinity;
+  for (const d of diffs) {
+    const base = tweaks[d] ?? {};
+    let chart = makeAutoChart(an, d, shiftMs, base);
+    for (let attempt = 1; attempt <= 8 && chart.level < prevLevel + LEVEL_STEP; attempt++)
+      chart = makeAutoChart(an, d, shiftMs, {
+        ...base,
+        density: (base.density ?? 1) * (1 + 0.12 * attempt),
+        fill: Math.min(1.6, (base.fill ?? 0) + attempt / 5),
+      });
+    out[d] = chart;
+    prevLevel = chart.level;
+  }
+  return out;
 }

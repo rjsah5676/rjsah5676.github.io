@@ -22,7 +22,6 @@ import {
 import Stage, {
   CAL_SKIP,
   COVERS_OPT,
-  KEY_CODES,
   visibleSec,
   type Cover,
   type LiveSettings,
@@ -35,7 +34,7 @@ import { RankingBoard, SubmitRanking } from "./RankingBoard";
 import GameHeader from "@/components/GameHeader";
 import { RHYTHM_GUIDE } from "@/data/gameGuides";
 import CustomMusic, { type CustomTrack } from "./CustomMusic";
-import { makeAutoChart } from "@/lib/rhythm/autochart";
+import { makeAutoCharts } from "@/lib/rhythm/autochart";
 import { displayBpm } from "@/lib/rhythm/analyze";
 
 const SETTINGS_KEY = "rhythm_settings";
@@ -279,8 +278,10 @@ export default function RhythmGame() {
   const customCharts = useMemo(
     () =>
       track
-        ? (Object.fromEntries(
-            DIFFICULTIES.map((d) => [d.key, makeAutoChart(track.analysis, d.key, track.shiftMs)])
+        ? (makeAutoCharts(
+            track.analysis,
+            DIFFICULTIES.map((d) => d.key),
+            track.shiftMs
           ) as Record<Difficulty, ReturnType<typeof makeChart>>)
         : null,
     [track]
@@ -1196,109 +1197,134 @@ function SpeedPreview({
 }
 
 /**
- * 3단계: 소리만 듣고 치기 — 딸깍 소리에 맞춰 아무 키나 누름.
- * 누른 시각 − 소리가 들린 시각 = (손 지연 + 아직 보정 안 된 소리 지연)이므로
- * 2단계에서 잰 타격 싱크를 빼면 음악 싱크가 나옴.
+ * 3단계: 소리와 노트 맞추기 — 딸깍 소리가 반복되고, 같은 시각에 노트가 판정선에 닿게 그린다.
+ * 화면은 게임과 같은 공식(오디오 시계 − 출력 지연 − 음악 싱크)으로 그리므로, 소리와 노트가
+ * 맞아 보이는 음악 싱크 값이 곧 게임에서 맞는 값. 손으로 치지 않으니 반응 속도 버릇이 섞이지 않음.
  */
-function AudioCal({
-  judge,
-  onTaps,
-  state,
-  onState,
+function AvSyncCal({
+  offset,
+  onChange,
+  speed,
+  skin,
 }: {
-  judge: number;
-  onTaps: (ms: number[]) => void;
-  state: "idle" | "playing" | "done";
-  onState: (s: "idle" | "playing" | "done") => void;
+  offset: number;
+  onChange: (ms: number) => void;
+  speed: number;
+  skin: Skin;
 }) {
-  const [count, setCount] = useState(0);
-  const run = useRef<{
-    ctx: AudioContext;
-    t0: number;
-    times: number[];
-    src: AudioBufferSourceNode;
-    taps: number[];
-  } | null>(null);
-
-  const begin = async () => {
-    try {
-      run.current?.src.stop();
-    } catch {}
-    const ctx = await audio();
-    const { buffer, times } = await renderMetronome(CAL_BEATS, CAL_BPM);
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    const t0 = ctx.currentTime + 0.15;
-    src.start(t0);
-    const r = { ctx, t0, times, src, taps: [] as number[] };
-    src.onended = () => {
-      if (run.current === r) {
-        onTaps(r.taps);
-        onState("done");
-      }
-    };
-    run.current = r;
-    setCount(0);
-    onState("playing");
-  };
+  const ref = useRef<HTMLCanvasElement>(null);
+  const offsetRef = useRef(offset);
+  const speedRef = useRef(speed);
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
-    const tap = () => {
-      const r = run.current;
-      if (!r) return;
-      // 들린 시각 = 예약 시각 + 출력 지연 (게임의 now()와 같은 공식)
-      const t = r.ctx.currentTime - r.t0 - latencyOf(r.ctx);
-      let bi = -1;
-      for (let i = 0; i < r.times.length; i++)
-        if (bi < 0 || Math.abs(r.times[i] - t) < Math.abs(r.times[bi] - t)) bi = i;
-      const d = t - r.times[bi];
-      if (bi < CAL_SKIP || Math.abs(d) > 0.25) return;
-      r.taps.push(Math.round(d * 1000));
-      setCount(r.taps.length);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.repeat || e.code === "Escape" || e.code === "Tab") return;
-      if (KEY_CODES.includes(e.code) || e.code === "Space") e.preventDefault();
-      tap();
-    };
-    const onPointer = (e: PointerEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("button, input")) return;
-      tap();
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("pointerdown", onPointer);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("pointerdown", onPointer);
-      try {
-        run.current?.src.stop();
-      } catch {}
-      run.current = null;
-    };
-  }, []);
+    const c = ref.current;
+    if (!c) return;
+    let raf = 0;
+    let src: AudioBufferSourceNode | null = null;
+    let alive = true;
+    (async () => {
+      const ctx = await audio();
+      const { buffer, times } = await renderMetronome(16, CAL_BPM);
+      if (!alive) return;
+      const dur = buffer.duration;
+      src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      src.connect(ctx.destination);
+      const t0 = ctx.currentTime + 0.1;
+      src.start(t0);
+      setPlaying(true);
 
+      const W = 240;
+      const H = 300;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      c.width = W * dpr;
+      c.height = H * dpr;
+      c.style.width = `${W}px`;
+      c.style.height = `${H}px`;
+      const g = c.getContext("2d")!;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const lw = W / 4;
+      const judgeY = H - 36;
+      const cols = laneColors(skin, "#6C63FF");
+      const laneOf = (k: number) => ((k % 4) + 4) % 4;
+      const draw = () => {
+        raf = requestAnimationFrame(draw);
+        // 게임의 now()와 같은 공식
+        const now = ctx.currentTime - t0 - latencyOf(ctx) - offsetRef.current / 1000;
+        const vis = visibleSec(speedRef.current);
+        g.fillStyle = "#0E1015";
+        g.fillRect(0, 0, W, H);
+        g.fillStyle = "rgba(255,255,255,0.05)";
+        for (let l = 1; l < 4; l++) g.fillRect(l * lw, 0, 1, H);
+        // 소리 나는 순간 판정선이 번쩍 (소리 시각 = 화면 시각이 맞을 때 노트가 선에 닿는 순간)
+        let flash = 0;
+        const loopT = ((now % dur) + dur) % dur;
+        for (const ti of times) {
+          const d = Math.min(
+            Math.abs(loopT - ti),
+            Math.abs(loopT - ti - dur),
+            Math.abs(loopT - ti + dur)
+          );
+          if (d < 0.08) flash = Math.max(flash, 1 - d / 0.08);
+        }
+        g.fillStyle = `rgba(255,255,255,${0.6 + 0.4 * flash})`;
+        g.fillRect(0, judgeY - 1 - flash * 2, W, 2 + flash * 4);
+        // 노트: 소리 시각마다 (루프라서 앞뒤 한 바퀴씩)
+        for (let k = -1; k <= 1; k++)
+          times.forEach((ti, i) => {
+            const t = ti + k * dur;
+            if (t < now - 0.3 || t > now + vis + 0.2) return;
+            const y = judgeY - ((t - now) / vis) * judgeY;
+            drawHead(g, skin, laneOf(i) * lw, y, lw, cols[laneOf(i)]);
+          });
+        g.font = "11px monospace";
+        g.textAlign = "center";
+        g.fillStyle = "rgba(255,255,255,0.35)";
+        ["D", "F", "J", "K"].forEach((kname, l) => g.fillText(kname, l * lw + lw / 2, H - 14));
+      };
+      draw();
+    })();
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+      try {
+        src?.stop();
+      } catch {}
+    };
+  }, [skin]);
+
+  const set = (v: number) => onChange(clamp(Math.round(v), -400, 400));
   return (
-    <div className="my-6">
-      {state === "playing" ? (
-        <div className="font-mono">
-          <div className="text-3xl font-bold text-white">🎧</div>
-          <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/70">
-            딸깍 소리에 맞춰 아무 키나 누르세요
-          </p>
-          <p className="mt-1 text-xs text-white/40">입력 {count}개</p>
-        </div>
-      ) : (
-        <button
-          type="button"
-          className="cursor-pointer rounded-full bg-[#6C63FF] px-6 py-2 font-mono text-sm font-bold text-white hover:bg-[#5b52f0]"
-          onClick={begin}
-        >
-          {state === "idle" ? "소리 듣기 시작" : "다시 측정"}
+    <div className="mt-5 flex flex-col items-center gap-4">
+      <canvas ref={ref} className="rounded-xl border border-white/10" />
+      <div className="flex items-center gap-2">
+        <button type="button" className={stepBtn} onClick={() => set(offset - 10)}>
+          −10
         </button>
-      )}
-      <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-        손 지연(타격 싱크 {signed(judge)}ms)은 빼고 계산해요
+        <HoldButton className={stepBtn} onStep={() => set(offsetRef.current - 1)}>
+          −
+        </HoldButton>
+        <span className="w-24 text-center font-mono text-2xl font-bold text-white tabular-nums">
+          {signed(offset)}
+          <span className="text-sm text-white/40">ms</span>
+        </span>
+        <HoldButton className={stepBtn} onStep={() => set(offsetRef.current + 1)}>
+          +
+        </HoldButton>
+        <button type="button" className={stepBtn} onClick={() => set(offset + 10)}>
+          +10
+        </button>
+      </div>
+      <p className="font-['Nanum_Gothic',sans-serif] text-xs text-white/40">
+        {playing ? "소리가 노트보다 늦게 들리면 + · 먼저 들리면 −" : "소리 준비 중…"}
       </p>
     </div>
   );
@@ -1331,17 +1357,12 @@ function Calibrate({
   onCancel: () => void;
 }) {
   const { speed, offset, judge } = settings;
-  const [audioTaps, setAudioTaps] = useState<number[] | null>(null);
-  const [audioState, setAudioState] = useState<"idle" | "playing" | "done">("idle");
   /** 2단계: 이 값으로 타격 싱크를 적용했음 */
   const [judgeApplied, setJudgeApplied] = useState(false);
 
   const vis = medianOf(visualTaps ?? []);
   const judgeSuggest = vis.med === null ? null : clamp(vis.med, -400, 400);
-  const aud = medianOf(audioTaps ?? []);
   // 들린 시각 기준 지연 − 손 지연 = 소리 지연. 현재 음악 싱크와 무관하게 절대값으로 나옴
-  const offsetSuggest = aud.med === null ? null : clamp(aud.med - judge, -400, 400);
-  const offsetTight = offsetSuggest !== null && Math.abs(offsetSuggest - offset) <= 8;
 
   const primary =
     "cursor-pointer rounded-full bg-[#6C63FF] px-5 py-2 font-mono text-sm font-bold text-white hover:bg-[#5b52f0] disabled:cursor-not-allowed disabled:opacity-40";
@@ -1516,55 +1537,23 @@ function Calibrate({
 
       {step === "audio" && (
         <>
-          <p className="font-mono text-lg font-bold text-white">3단계 · 소리만 듣고 치기</p>
+          <p className="font-mono text-lg font-bold text-white">3단계 · 소리와 노트 맞추기</p>
           <p className="mt-3 font-['Nanum_Gothic',sans-serif] text-sm leading-relaxed text-white/60">
-            이번엔 <b className="text-white/85">화면 없이</b> 딸깍 소리가 {CAL_BEATS}번 나요. 소리에
-            맞춰 <b className="text-white/85">아무 키나</b>(스페이스도 OK) 박자대로 누르세요.
-            블루투스 이어폰처럼 소리가 늦게 나오는 만큼이 여기서 잡혀요.
+            노트가 <b className="text-white/85">선에 닿는 순간</b>과{" "}
+            <b className="text-white/85">딸깍 소리</b>가 딱 맞게 들릴 때까지 −/+를 눌러 맞추세요.
+            블루투스 이어폰처럼 소리가 늦게 나오면 +쪽으로. 치는 게 아니라{" "}
+            <b className="text-white/85">보고 듣기만</b> 하면 돼요.
           </p>
-          <AudioCal
-            judge={judge}
-            state={audioState}
-            onState={setAudioState}
-            onTaps={(t) => setAudioTaps(t)}
+          <AvSyncCal
+            offset={offset}
+            onChange={(v) => onChange({ offset: v })}
+            speed={speed}
+            skin={skin}
           />
-          {audioState === "done" && (
-            <div className="mb-6 font-mono">
-              {offsetSuggest === null ? (
-                <p className="font-['Nanum_Gothic',sans-serif] text-sm text-amber-200/80">
-                  입력이 너무 적어요 ({aud.used.length}개). 소리마다 눌러주세요.
-                </p>
-              ) : (
-                <>
-                  <div className="text-xs text-white/40">추천 음악 싱크</div>
-                  <div className="text-5xl font-bold text-white">{signed(offsetSuggest)}ms</div>
-                  <div className="mt-1 text-xs text-white/40">
-                    소리보다 평균 {signed(aud.med!)}ms 늦게 눌렀고, 그중 손 지연 {signed(judge)}
-                    ms를 뺀 값 · 입력 {aud.used.length}개
-                  </div>
-                  {offsetTight && (
-                    <div className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-emerald-300">
-                      지금 음악 싱크({signed(offset)}ms)와 거의 같아요 — 딱 맞아요!
-                    </div>
-                  )}
-                </>
-              )}
-              <TapStrip taps={aud.used.map((d) => d - judge)} />
-            </div>
-          )}
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            {audioState === "done" && offsetSuggest !== null && (
-              <button
-                type="button"
-                className={primary}
-                onClick={() => {
-                  onChange({ offset: offsetSuggest });
-                  onDone();
-                }}
-              >
-                {offsetTight ? "완료" : `${signed(offsetSuggest)}ms 적용하고 완료`}
-              </button>
-            )}
+            <button type="button" className={primary} onClick={onDone}>
+              이대로 완료
+            </button>
             <button
               type="button"
               className={`${btn} px-5 py-2 text-sm`}
