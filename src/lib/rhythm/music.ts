@@ -11,6 +11,7 @@ import natsuData from "@/data/rhythm/natsukasumi.json";
 import rinkakuData from "@/data/rhythm/rinkaku.json";
 import newdimData from "@/data/rhythm/newdim.json";
 import monarchData from "@/data/rhythm/monarch.json";
+import velocityData from "@/data/rhythm/velocity.json";
 
 export type Kind =
   | "kick"
@@ -357,7 +358,14 @@ const MONARCH = audioSong("monarch", "Monarch's Fall", "/audio/monarch.mp3", mon
   boss: true,
 });
 
-export const SONGS: Song[] = [JILJU, NATSU, RINKAKU, NEWDIM, MONARCH];
+// 마지막 보스곡: 같은 방식에 16분(180 BPM 기준) 연타·동시치기를 더 촘촘하게
+const VELOCITY = audioSong("velocity", "Maximum Velocity", "/audio/velocity.mp3", velocityData, {
+  color: "#F472B6",
+  desc: "180 BPM · AI 자작곡",
+  boss: true,
+});
+
+export const SONGS: Song[] = [JILJU, NATSU, RINKAKU, NEWDIM, MONARCH, VELOCITY];
 
 // 작곡 엔진 외부 노출 (지금은 안 쓰지만 신스 곡을 다시 넣을 때 사용)
 export { build, type SongSpec };
