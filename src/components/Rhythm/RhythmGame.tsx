@@ -14,7 +14,13 @@ import {
   type HitSound,
   type Skin,
 } from "@/lib/rhythm/fx";
-import Stage, { COVERS_OPT, type Cover, type LiveSettings, type Result } from "./Stage";
+import Stage, {
+  COVERS_OPT,
+  PLAY_HISTORY_KEY,
+  type Cover,
+  type LiveSettings,
+  type Result,
+} from "./Stage";
 import SongCarousel from "./SongCarousel";
 import HoldButton from "./HoldButton";
 import { RankingBoard, SubmitRanking } from "./RankingBoard";
@@ -316,6 +322,20 @@ export default function RhythmGame() {
     },
     [best]
   );
+
+  // 플레이 화면 동안 같은 주소로 기록을 하나 쌓아 둠 → 모바일 뒤로가기가 페이지를 떠나지 않고
+  // Stage의 popstate(일시정지)로 감. 화면을 나갈 때 그 기록이 아직 맨 위면 back()으로 소비
+  useEffect(() => {
+    if (screen !== "play") return;
+    // StrictMode(dev)에서 mount→cleanup→mount가 바로 일어날 때 꼬이지 않게 한 틱 미룸
+    const timer = setTimeout(() => {
+      window.history.pushState({ ...window.history.state, [PLAY_HISTORY_KEY]: true }, "");
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      if (window.history.state?.[PLAY_HISTORY_KEY]) window.history.back();
+    };
+  }, [screen]);
 
   // 플레이 중(일시정지 화면·속도 단축키)에 바꾼 설정 저장
   const onLiveSettings = useCallback(

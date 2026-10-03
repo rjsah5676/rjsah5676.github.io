@@ -65,6 +65,19 @@ export const rankColorOf = (rank: string) =>
         ? "#60A5FA"
         : "#F87171";
 
+/**
+ * 모바일(터치)에서만 플레이 화면을 전체화면으로. 시작·재개 버튼을 누른 직후(사용자 동작 안)에 불러야 함.
+ * 아이폰 사파리처럼 요소 전체화면을 지원하지 않으면 그냥 넘어감
+ */
+function enterFullscreen(el: HTMLElement) {
+  if (document.fullscreenElement || !window.matchMedia("(pointer: coarse)").matches) return;
+  if (typeof el.requestFullscreen !== "function") return;
+  el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+}
+
+/** 플레이 화면에서 뒤로가기를 잡으려고 쌓는 히스토리 표시 */
+export const PLAY_HISTORY_KEY = "__rhythmPlay";
+
 const SCROLL_KEYS = new Set(["Space", "PageUp", "PageDown", "Home", "End"]);
 
 function timingOf(diffs: number[]): { avgMs: number | null; steady: boolean } {
@@ -275,7 +288,11 @@ export default function Stage({
     const resize = () => {
       const nDpr = Math.min(2, window.devicePixelRatio || 1);
       const nCW = Math.min(wrap.clientWidth, 1100);
-      const nH = Math.max(420, Math.min(window.innerHeight - 170, 760));
+      // 전체화면(모바일)이면 화면 높이를 다 씀
+      const nH =
+        document.fullscreenElement === wrap
+          ? window.innerHeight
+          : Math.max(420, Math.min(window.innerHeight - 170, 760));
       // 모바일은 주소창이 들어가고 나올 때마다 resize가 옴 → 크기가 그대로면 캔버스를 다시 만들지 않음
       if (nDpr === dpr && nCW === CW && nH === H) return;
       dpr = nDpr;
@@ -1120,6 +1137,20 @@ export default function Stage({
     const onVisibility = () => {
       if (document.hidden) pause();
     };
+    // 전체화면이 풀리면(안드로이드 뒤로가기는 먼저 전체화면을 끔) 일시정지, 크기는 다시 계산
+    const onFullscreen = () => {
+      resize();
+      if (!document.fullscreenElement && (running || resuming)) pause();
+    };
+    // 모바일 뒤로가기: 플레이 중이면 일시정지(기록을 다시 쌓아 다음 뒤로가기도 잡음), 일시정지 중이면 곡 선택으로.
+    // 처음 기록은 부모(RhythmGame)가 플레이 화면에 들어올 때 쌓음
+    const onPop = () => {
+      if (finished || failing) return;
+      if (running || resuming) {
+        pause();
+        window.history.pushState({ ...window.history.state, [PLAY_HISTORY_KEY]: true }, "");
+      } else onQuit();
+    };
     const noMenu = (e: Event) => e.preventDefault();
 
     window.addEventListener("keydown", onKeyDown);
@@ -1129,6 +1160,9 @@ export default function Stage({
     window.addEventListener("pointercancel", onPointerUp);
     canvas.addEventListener("contextmenu", noMenu);
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("popstate", onPop);
+    document.addEventListener("fullscreenchange", onFullscreen);
+    enterFullscreen(wrap);
     // 상단 고정 헤더에 가리지 않게 아래쪽에 맞추고, 레인 위에 뜨는 플로팅 메뉴는 잠깐 숨김
     wrap.scrollIntoView({ block: "end", behavior: "smooth" });
     const quickMenu = document.querySelector<HTMLElement>("[data-quickmenu]");
@@ -1161,6 +1195,9 @@ export default function Stage({
       window.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("contextmenu", noMenu);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("popstate", onPop);
+      document.removeEventListener("fullscreenchange", onFullscreen);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     };
     // 한 판 동안 설정은 고정 (재시작은 부모가 key를 바꿔 새로 마운트)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1288,7 +1325,14 @@ export default function Stage({
               />
             </div>
             <div className="mt-1 flex flex-wrap justify-center gap-2">
-              <button type="button" className={btn} onClick={() => ctrl.current.resume()}>
+              <button
+                type="button"
+                className={btn}
+                onClick={() => {
+                  if (wrapRef.current) enterFullscreen(wrapRef.current);
+                  ctrl.current.resume();
+                }}
+              >
                 계속하기 (Esc)
               </button>
               <button type="button" className={btn} onClick={onRestart}>
