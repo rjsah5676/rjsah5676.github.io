@@ -5,6 +5,7 @@ import "../css/floatstyle.css";
 import Top from "@/components/Top";
 import Header from "@/components/Header";
 import Nav from "@/components/Nav";
+import SiteSearch from "@/components/SiteSearch";
 import Footer from "@/components/Footer";
 import Contact from "@/components/Contact";
 import QuickMenu from "@/components/QuickMenu";
@@ -76,6 +77,7 @@ export default function RootLayout({
             <Top />
             <Header />
             <Nav />
+            <SiteSearch />
             {children}
             <Footer />
             <Contact />

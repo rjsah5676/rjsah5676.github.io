@@ -3,27 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_GROUPS } from "@/data/navMenu";
-import HintBubble, { markHintSeen } from "@/components/HintBubble";
+import { NAV_GROUPS, type NavGroup } from "@/data/navMenu";
+import { SearchIcon, openSiteSearch } from "@/components/SiteSearch";
 
-const NAV_HINT_KEY = "hint:nav-chevron";
+/**
+ * 상단 메뉴. 대제목을 누르면(PC는 올려도) 메뉴 바 아래로 넓은 패널이 열리고
+ * 하위 메뉴가 아이콘·설명 카드 격자로 나옴 → 항목이 늘어도 세로로 길게 늘어지지 않음.
+ * 전체 목록 페이지는 패널 안 '전체 보기'로, 빠른 이동은 오른쪽 검색(Ctrl/⌘ K)으로.
+ */
 
-// 모바일(좁은 폭)에서도 한 줄에 들어가도록 여백·글자 크기를 줄임
-const navItemClass =
-  "block px-1.5 py-3 font-mono text-[13px] text-white/60 transition-colors hover:text-white whitespace-nowrap min-[360px]:px-2 min-[400px]:px-2.5 sm:px-3 sm:text-sm";
-// 모바일: 메뉴 바 전체 폭 아래로 펼쳐지는 카드(2열) → 오른쪽 항목이 화면 밖으로 잘리지 않음
-// 데스크톱: 기존처럼 해당 항목 아래에 붙는 드롭다운
-const dropdownClass =
-  "absolute inset-x-3 top-full z-40 mt-1 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-[#1C1E24] p-2 shadow-xl sm:inset-x-auto sm:left-0 sm:mt-0 sm:flex sm:min-w-[180px] sm:flex-col sm:gap-0.5 sm:rounded-md sm:p-1.5";
-const dropdownLinkClass =
-  "rounded px-3 py-2.5 text-center font-mono text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white sm:py-2 sm:text-left sm:whitespace-nowrap";
+const trim = (p: string) => p.replace(/\/+$/, "") || "/";
 
-interface NavLinkItem {
-  href: string;
-  label: string;
-}
-
-function ChevronIcon({ open }: { open: boolean }) {
+function Chevron({ open }: { open: boolean }) {
   return (
     <svg
       viewBox="0 0 12 12"
@@ -31,103 +22,168 @@ function ChevronIcon({ open }: { open: boolean }) {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
+      aria-hidden="true"
     >
       <path d="M2.5 4.5L6 8L9.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-// 마우스 hover가 없는 터치 기기에서도 서브메뉴를 열 수 있게 클릭/탭 토글 방식으로 구현.
-function DropdownNavItem({
-  href,
-  label,
-  items,
-}: {
-  href: string;
-  label: string;
-  items: NavLinkItem[];
-}) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const pathname = usePathname().replace(/\/+$/, "");
-  // 현재 페이지가 이 메뉴 그룹(목록 페이지 포함) 안이면 강조 (헤더 archive/about 처럼)
-  const active = pathname === href || items.some((i) => pathname === i.href.replace(/\/+$/, ""));
-  const labelColor = active ? "!text-[#8B84FF]" : "";
-
-  useEffect(() => {
-    if (!open) return;
-    const onOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onOutside);
-    return () => document.removeEventListener("mousedown", onOutside);
-  }, [open]);
-
+function Panel({ group, path, onClose }: { group: NavGroup; path: string; onClose: () => void }) {
   return (
-    // 모바일에선 드롭다운이 nav(sticky) 기준으로 펼쳐지도록 relative를 sm 이상에서만
-    <div ref={wrapRef} className="flex items-center sm:relative">
-      {/* 이름은 하위 메뉴 목록(격자) 페이지 링크, 화살표로 드롭다운 펼침 */}
+    <div className="mx-auto flex max-w-4xl flex-col gap-3 px-3 py-3 sm:flex-row sm:gap-6 sm:px-6 sm:py-5">
+      <div className="hidden w-48 shrink-0 flex-col sm:flex">
+        <div className="font-mono text-lg font-bold text-white">{group.title}</div>
+        <p className="mt-1 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed break-keep text-white/45">
+          {group.desc}
+        </p>
+        <Link
+          href={`${group.href}/`}
+          onClick={onClose}
+          className="mt-auto pt-4 font-mono text-xs text-[#8B84FF] hover:text-white"
+        >
+          전체 보기 →
+        </Link>
+      </div>
+      <ul className="grid flex-1 grid-cols-2 gap-1.5 sm:gap-2 lg:grid-cols-3">
+        {group.items.map((it) => {
+          const on = path === trim(it.href);
+          return (
+            <li key={it.href}>
+              <Link
+                href={`${it.href}/`}
+                onClick={onClose}
+                className={`flex h-full items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors sm:px-3 sm:py-2.5 ${
+                  on
+                    ? "border-[#6C63FF]/50 bg-[#6C63FF]/15"
+                    : "border-white/5 bg-white/[0.03] hover:border-white/15 hover:bg-white/[0.06]"
+                }`}
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 font-mono text-sm sm:h-9 sm:w-9 sm:text-base">
+                  {it.icon}
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className={`block truncate font-['Nanum_Gothic',sans-serif] text-[13px] sm:text-sm ${on ? "text-white" : "text-white/85"}`}
+                  >
+                    {it.label}
+                  </span>
+                  <span className="hidden truncate font-['Nanum_Gothic',sans-serif] text-[11px] text-white/40 sm:block">
+                    {it.desc}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
       <Link
-        href={href}
-        onClick={() => setOpen(false)}
-        className={`${navItemClass} ${labelColor} !pr-0.5 sm:!pr-1`}
+        href={`${group.href}/`}
+        onClick={onClose}
+        className="self-end font-mono text-xs text-[#8B84FF] sm:hidden"
       >
-        {label}
+        {group.title} 전체 보기 →
       </Link>
-      <button
-        type="button"
-        aria-label={`${label} submenu`}
-        onClick={() => {
-          setOpen((o) => !o);
-          markHintSeen(NAV_HINT_KEY); // 한 번 펼쳐봤으면 안내 그만
-        }}
-        aria-expanded={open}
-        className="cursor-pointer py-3 pr-1.5 pl-0.5 text-white/40 transition-colors hover:text-white sm:px-1"
-      >
-        <ChevronIcon open={open} />
-      </button>
-      {open && (
-        <div className={`${dropdownClass} ${items.length === 1 ? "grid-cols-1" : ""}`}>
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={dropdownLinkClass}
-              onClick={() => setOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
 export default function Nav() {
+  const path = trim(usePathname());
+  const [open, setOpen] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const group = NAV_GROUPS.find((g) => g.key === open) ?? null;
+
+  // 페이지가 바뀌면 닫기
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 경로 변경 시 패널 닫기
+    setOpen(null);
+  }, [path]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpen(null);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  // PC: 마우스를 올리면 살짝 늦게 열고, 메뉴 영역을 벗어나면 닫음 (터치 기기는 탭으로만)
+  const hoverable = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const clearHover = () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = null;
+  };
+
   return (
-    <nav className="sticky top-14 z-30 border-b border-white/10 bg-[#121212]">
-      <div className="mx-auto flex max-w-4xl flex-nowrap items-center justify-center gap-x-0 px-1 sm:gap-x-1 sm:px-6">
-        {NAV_GROUPS.map((g) => (
-          <DropdownNavItem
-            key={g.key}
-            href={g.href}
-            label={g.label}
-            items={g.items.map(({ href, label }) => ({ href, label }))}
-          />
-        ))}
+    <nav
+      ref={navRef}
+      className="sticky top-14 z-30 border-b border-white/10 bg-[#121212]"
+      onMouseLeave={() => {
+        if (!hoverable()) return;
+        clearHover();
+        hoverTimer.current = setTimeout(() => setOpen(null), 180);
+      }}
+    >
+      <div className="mx-auto flex max-w-4xl items-center justify-center px-1 sm:px-6">
+        <div className="flex flex-1 items-center justify-center">
+          {NAV_GROUPS.map((g) => {
+            const active = path === trim(g.href) || g.items.some((i) => path === trim(i.href));
+            const isOpen = open === g.key;
+            return (
+              <button
+                key={g.key}
+                type="button"
+                aria-expanded={isOpen}
+                onClick={() => setOpen((o) => (o === g.key ? null : g.key))}
+                onMouseEnter={() => {
+                  if (!hoverable()) return;
+                  clearHover();
+                  hoverTimer.current = setTimeout(() => setOpen(g.key), open ? 0 : 120);
+                }}
+                className={`flex cursor-pointer items-center gap-1 px-2 py-3 font-mono text-[13px] whitespace-nowrap transition-colors min-[400px]:px-2.5 sm:px-3.5 sm:text-sm ${
+                  isOpen || active ? "text-[#8B84FF]" : "text-white/60 hover:text-white"
+                }`}
+              >
+                {g.label}
+                <span className="text-white/35">
+                  <Chevron open={isOpen} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(null);
+            openSiteSearch();
+          }}
+          aria-label="검색 (Ctrl+K)"
+          title="검색 (Ctrl+K)"
+          className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full p-2 text-white/50 transition-colors hover:text-white sm:border sm:border-white/10 sm:px-3 sm:py-1.5"
+        >
+          <SearchIcon className="h-4 w-4" />
+          <kbd className="hidden font-mono text-[11px] text-white/35 md:inline">Ctrl K</kbd>
+        </button>
       </div>
-      <HintBubble
-        storageKey={NAV_HINT_KEY}
-        tail="top"
-        maxShows={2}
-        delay={1500}
-        duration={5000}
-        className="absolute top-full left-1/2 mt-2 -translate-x-1/2"
-      >
-        이름을 누르면 <b className="text-white">전체 목록</b>, <b className="text-white">▾</b>를
-        누르면 하위 메뉴가 펼쳐져요
-      </HintBubble>
+      {group && (
+        <div
+          className="absolute inset-x-0 top-full max-h-[calc(100svh-120px)] overflow-y-auto border-b border-white/10 bg-[#16171C]/95 shadow-2xl backdrop-blur-md"
+          onMouseEnter={clearHover}
+        >
+          <Panel group={group} path={path} onClose={() => setOpen(null)} />
+        </div>
+      )}
     </nav>
   );
 }
