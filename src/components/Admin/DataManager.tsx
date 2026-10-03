@@ -104,6 +104,16 @@ const SOURCES: Source[] = [
     editable: false,
     note: "삭제 시 채팅·접속기록(하위 컬렉션)도 같이 삭제",
   },
+  {
+    key: "janggi",
+    label: "장기방",
+    group: "사이트",
+    path: () => "janggi_rooms",
+    columns: ["name", "status", "whiteName", "blackName", "result", "updatedAt"],
+    sort: ["updatedAt", "desc"],
+    editable: false,
+    note: "white = 초, black = 한 · 삭제 시 채팅·접속기록(하위 컬렉션)도 같이 삭제",
+  },
   ...["sketch_user", "sketch_user_room", "sketch_user_chat"].map<Source>((c) => ({
     key: c,
     label: c,
@@ -225,6 +235,7 @@ export default function DataManager() {
     setBusy(true);
     try {
       if (src.key === "chess") await removeChessRooms(ids);
+      else if (src.key === "janggi") await removeChessRooms(ids, "janggi_rooms");
       else await removeDocs(path, ids);
       setSelected(new Set());
       if (editing && ids.includes(editing.id)) setEditing(null);

@@ -6,6 +6,7 @@ import imgMelongame from "@/img/menu/melongame.jpg";
 import imgRspeed from "@/img/menu/rspeed.jpg";
 import imgMine from "@/img/menu/mine.jpg";
 import imgChess from "@/img/menu/chess.jpg";
+import imgJanggi from "@/img/menu/janggi.jpg";
 import imgRhythm from "@/img/menu/rhythm.jpg";
 import imgSketch from "@/img/menu/sketch.jpg";
 import imgLadder from "@/img/menu/ladder.jpg";
@@ -104,6 +105,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "온라인 체스",
         desc: "방 만들고 실시간 대국·관전",
         icon: "♟️",
+      },
+      {
+        href: "/games/janggi",
+        image: imgJanggi,
+        label: "장기",
+        desc: "AI 대국(3단계)·온라인 대국",
+        icon: "將",
       },
       {
         href: "/games/mine",

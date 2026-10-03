@@ -3,11 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import {
   CHAT_MAX,
-  sendChat,
-  subscribeChat,
+  sendChat as chessSend,
+  subscribeChat as chessSubscribe,
+  type BoardRoom,
   type ChatMessage,
-  type ChessRoom,
 } from "@/firestore/chessGame";
+
+/** 다른 대국 게임(장기)에서도 쓰도록 채팅 함수와 좌석 표시를 바꿔 끼울 수 있음 */
+export interface ChatApi {
+  subscribeChat: (roomId: string, cb: (list: ChatMessage[]) => void) => () => void;
+  sendChat: (roomId: string, uid: string, name: string, text: string) => Promise<void>;
+}
+const CHESS_MARKS = { white: ["♔ ", "백"], black: ["♚ ", "흑"] } as const;
 
 const fmtTime = (ms: number) => {
   const d = new Date(ms);
@@ -20,12 +27,18 @@ export default function ChessChat({
   uid,
   nick,
   canSend,
+  api = { subscribeChat: chessSubscribe, sendChat: chessSend },
+  marks = CHESS_MARKS,
 }: {
-  room: ChessRoom;
+  room: BoardRoom;
   uid: string;
   nick: string;
   canSend: boolean;
+  api?: ChatApi;
+  /** 좌석별 [이름 앞 표시, 툴팁] */
+  marks?: { white: readonly [string, string]; black: readonly [string, string] };
 }) {
+  const { subscribeChat, sendChat } = api;
   const [list, setList] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [err, setErr] = useState("");
@@ -33,7 +46,7 @@ export default function ChessChat({
   const stick = useRef(true); // 맨 아래를 보고 있을 때만 새 메시지에 자동 스크롤
   const lastSent = useRef(0);
 
-  useEffect(() => subscribeChat(room.id, setList), [room.id]);
+  useEffect(() => subscribeChat(room.id, setList), [room.id, subscribeChat]);
 
   useEffect(() => {
     const el = boxRef.current;
@@ -93,9 +106,9 @@ export default function ChessChat({
                           ? "text-white/45"
                           : "text-white/85"
                     }`}
-                    title={role === "white" ? "백" : role === "black" ? "흑" : "관전"}
+                    title={role === "spectator" ? "관전" : marks[role][1]}
                   >
-                    {role === "white" ? "♔ " : role === "black" ? "♚ " : ""}
+                    {role === "spectator" ? "" : marks[role][0]}
                     {m.name}
                   </span>
                   <span className="font-['Nanum_Gothic',sans-serif] text-white/80">{m.text}</span>

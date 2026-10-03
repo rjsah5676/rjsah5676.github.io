@@ -25,7 +25,15 @@ export const K = 1,
   R = 5,
   C = 6,
   P = 7;
-export const TYPE_NAME: Record<number, string> = { 1: "궁", 2: "사", 3: "상", 4: "마", 5: "차", 6: "포", 7: "졸" };
+export const TYPE_NAME: Record<number, string> = {
+  1: "궁",
+  2: "사",
+  3: "상",
+  4: "마",
+  5: "차",
+  6: "포",
+  7: "졸",
+};
 export const VALUE: Record<number, number> = { 1: 0, 2: 3, 3: 3, 4: 5, 5: 13, 6: 7, 7: 2 };
 export const HAN_BONUS = 1.5;
 export const MAX_PLIES = 200;
@@ -180,7 +188,11 @@ export function pseudoMoves(bd: Int8Array, c: Color, out: number[] = []): number
         if (isCorner(from)) {
           const mid = centerOf(from);
           const far = oppositeCorner(from);
-          if (bd[mid] !== 0 && Math.abs(bd[mid]) !== C && (bd[far] === 0 || (bd[far] * s < 0 && Math.abs(bd[far]) !== C)))
+          if (
+            bd[mid] !== 0 &&
+            Math.abs(bd[mid]) !== C &&
+            (bd[far] === 0 || (bd[far] * s < 0 && Math.abs(bd[far]) !== C))
+          )
             out.push(from * 90 + far);
         }
         break;
@@ -282,9 +294,10 @@ export const encode = (m: number) => sqName(Math.floor(m / 90)) + sqName(m % 90)
 export const decode = (mv: string) => parseSq(mv.slice(0, 2)) * 90 + parseSq(mv.slice(2, 4));
 
 // ── 대국 (기보를 쌓아가며 판 상태 유지) ──
-export type GameEnd =
-  | { result: "1-0" | "0-1"; reason: "checkmate" | "bikjang" | "passes" | "maxplies" }
-  | null;
+export type GameEnd = {
+  result: "1-0" | "0-1";
+  reason: "checkmate" | "bikjang" | "passes" | "maxplies";
+} | null;
 
 export interface PieceInfo {
   type: number;
@@ -298,6 +311,16 @@ export class Janggi {
 
   constructor(setup?: { w?: Setup; b?: Setup }) {
     this.bd = startBoard(setup?.w, setup?.b);
+  }
+
+  /** fen()으로 만든 문자열에서 판·차례만 복원 (기보는 비어 있음 — 화면 표시용) */
+  static fromFen(fen: string) {
+    const g = new Janggi();
+    const [cells, turn] = fen.split(" ");
+    const arr = cells.split(",").map(Number);
+    if (arr.length === 90) g.bd = Int8Array.from(arr);
+    g.turnColor = turn === "b" ? "b" : "w";
+    return g;
   }
 
   static replay(moves: string[], setup?: { w?: Setup; b?: Setup }) {

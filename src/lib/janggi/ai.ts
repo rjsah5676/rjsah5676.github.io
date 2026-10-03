@@ -37,7 +37,8 @@ function evaluate(bd: Int8Array): number {
     const f = fileOf(i);
     const r = rankOf(i);
     const adv = p > 0 ? 9 - r : r; // 자기 진영에서 얼마나 나왔나 (0~9)
-    if (t === P) v += adv >= 5 ? 0.4 + (Math.abs(4 - f) <= 1 ? 0.3 : 0) : 0; // 강 건넌 졸, 가운데면 더
+    if (t === P)
+      v += adv >= 5 ? 0.4 + (Math.abs(4 - f) <= 1 ? 0.3 : 0) : 0; // 강 건넌 졸, 가운데면 더
     else if (t === H) v += 0.25 * (2 - Math.abs(4 - f) / 2) + (adv >= 2 ? 0.2 : 0);
     else if (t === R) v += adv >= 3 ? 0.3 : 0;
     else if (t === C) v += adv >= 1 ? 0.15 : 0;
@@ -51,7 +52,14 @@ function ordered(bd: Int8Array, moves: number[]): number[] {
     .map((m) => {
       const victim = bd[m % 90];
       const attacker = Math.abs(bd[Math.floor(m / 90)]);
-      return { m, k: victim ? (Math.abs(victim) === K ? 1000 : VALUE[Math.abs(victim)] * 10 - attacker) : -100 };
+      return {
+        m,
+        k: victim
+          ? Math.abs(victim) === K
+            ? 1000
+            : VALUE[Math.abs(victim)] * 10 - attacker
+          : -100,
+      };
     })
     .sort((a, b) => b.k - a.k)
     .map((x) => x.m);
@@ -63,12 +71,22 @@ interface Ctx {
   stop: boolean;
 }
 
-function quiesce(bd: Int8Array, c: Color, alpha: number, beta: number, depth: number, ctx: Ctx): number {
+function quiesce(
+  bd: Int8Array,
+  c: Color,
+  alpha: number,
+  beta: number,
+  depth: number,
+  ctx: Ctx
+): number {
   const stand = (c === "w" ? 1 : -1) * evaluate(bd);
   if (stand >= beta) return stand;
   if (stand > alpha) alpha = stand;
   if (depth <= 0) return alpha;
-  const caps = ordered(bd, pseudoMoves(bd, c).filter((m) => bd[m % 90] !== 0));
+  const caps = ordered(
+    bd,
+    pseudoMoves(bd, c).filter((m) => bd[m % 90] !== 0)
+  );
   for (const m of caps) {
     const from = Math.floor(m / 90),
       to = m % 90;
@@ -85,7 +103,14 @@ function quiesce(bd: Int8Array, c: Color, alpha: number, beta: number, depth: nu
   return alpha;
 }
 
-function search(bd: Int8Array, c: Color, depth: number, alpha: number, beta: number, ctx: Ctx): number {
+function search(
+  bd: Int8Array,
+  c: Color,
+  depth: number,
+  alpha: number,
+  beta: number,
+  ctx: Ctx
+): number {
   if ((++ctx.nodes & 1023) === 0 && performance.now() > ctx.deadline) ctx.stop = true;
   if (ctx.stop) return 0;
   if (depth === 0) return quiesce(bd, c, alpha, beta, 4, ctx);

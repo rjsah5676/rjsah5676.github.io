@@ -1,0 +1,10 @@
+/// <reference lib="webworker" />
+import { chooseMove, type Level } from "./ai";
+import type { Color } from "./engine";
+
+// 어려움 난이도는 한 수에 1~2초 계산하므로 화면이 멈추지 않게 워커에서
+self.onmessage = (e: MessageEvent<{ id: number; board: number[]; color: Color; level: Level }>) => {
+  const { id, board, color, level } = e.data;
+  const mv = chooseMove(Int8Array.from(board), color, level);
+  (self as unknown as Worker).postMessage({ id, mv });
+};
