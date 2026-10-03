@@ -350,15 +350,17 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
   return (
     <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
       <div className="w-full max-w-[max(300px,min(520px,calc((100dvh-420px)*0.9)))]">
-        <SideBar
-          color={top}
-          name={`${bot.emoji} ${bot.name} · ${bot.rank}`}
-          captured={caps[bottom]}
-          score={game.score(top)}
-          active={!over && game.turn() === top}
-          hangul={hangul}
-        />
-        <SpeechBubble speech={speech} />
+        <div className="relative">
+          <SideBar
+            color={top}
+            name={`${bot.emoji} ${bot.name} · ${bot.rank}`}
+            captured={caps[bottom]}
+            score={game.score(top)}
+            active={!over && game.turn() === top}
+            hangul={hangul}
+          />
+          <SpeechBubble speech={speech} />
+        </div>
         <JanggiBoard
           fen={game.fen()}
           orientation={bottom}

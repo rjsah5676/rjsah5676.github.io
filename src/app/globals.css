@@ -139,7 +139,7 @@ body.game-full .quick-menu-fab {
 }
 .bot-speech {
   animation: bot-speech 0.25s ease-out;
-  transform-origin: top left;
+  transform-origin: bottom left;
 }
 
 /* 기보·채팅 등 작은 스크롤 영역용 얇은 스크롤바 */

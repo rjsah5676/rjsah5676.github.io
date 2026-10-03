@@ -364,15 +364,17 @@ export default function ChessAIGame() {
   return (
     <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
       <div className="w-full max-w-[max(300px,min(560px,calc(100dvh-420px)))]">
-        <Bar
-          label={`${bot.emoji} ${bot.name}`}
-          sub={String(bot.rating)}
-          color={aiColor}
-          caps={caps.list[aiColor]}
-          diff={caps.points[aiColor] - caps.points[myColor]}
-          active={!over && game.turn() === aiColor}
-        />
-        <SpeechBubble speech={speech} />
+        <div className="relative">
+          <Bar
+            label={`${bot.emoji} ${bot.name}`}
+            sub={String(bot.rating)}
+            color={aiColor}
+            caps={caps.list[aiColor]}
+            diff={caps.points[aiColor] - caps.points[myColor]}
+            active={!over && game.turn() === aiColor}
+          />
+          <SpeechBubble speech={speech} />
+        </div>
         <ChessBoard
           fen={game.fen()}
           orientation={myColor}

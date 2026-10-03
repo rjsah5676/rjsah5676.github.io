@@ -122,13 +122,14 @@ export function macroDaily(a: Pick<Amounts, "carb" | "protein" | "fat">) {
 }
 
 /**
- * 다이어트에 맞는 구성인지: 열량 중 단백질이 30% 이상, 탄수화물 35% 이하, 지방 45% 이하.
+ * 다이어트에 맞는 구성인지: 열량 중 단백질이 30% 이상이면서 탄수화물보다 많고, 탄수화물 40% 이하, 지방 45% 이하.
+ * (닭볶음: 단 43% · 탄 37% → 해당, 닭갈비: 지방 53% → 아님)
  * 열량이 아주 적거나(물·음료 등) 단백질 자체가 적으면 판단하지 않음.
  */
 export function isDietFriendly(a: Amounts): boolean {
   const r = macroRatio(a);
   if (!r || a.kcal < 30 || (a.protein ?? 0) < 5) return false;
-  return r.protein >= 0.3 && r.carb <= 0.35 && r.fat <= 0.45;
+  return r.protein >= 0.3 && r.protein > r.carb && r.carb <= 0.4 && r.fat <= 0.45;
 }
 
 export const fmt = (v: number | null, digits = 1) =>
