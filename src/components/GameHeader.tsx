@@ -219,7 +219,7 @@ function TopTicker({ top }: { top: TopEntry[] }) {
   return (
     <span
       key={i}
-      className="rank-tick hidden max-w-[12rem] truncate text-[11px] text-[#FDE68A]/70 @3xl:inline-block"
+      className="rank-tick hidden w-[10.5rem] truncate text-left text-[11px] text-[#FDE68A]/70 @3xl:inline-block"
     >
       {MEDAL[i % list.length]} {e.name} · {e.value}
     </span>
