@@ -92,6 +92,33 @@ export default function SiteSearch() {
     };
   }, [open]);
 
+  // 뒤로가기로 닫기 (모바일): 열 때 같은 주소로 기록을 하나 쌓고, popstate가 오면 닫음.
+  // 다른 방법으로 닫으면 쌓아 둔 기록을 history.back()으로 치움. 결과로 이동할 땐 그 기록을 replace로 덮어씀.
+  const pushedRef = useRef(false);
+  const navigatingRef = useRef(false);
+  useEffect(() => {
+    if (!open) return;
+    let closedByPop = false;
+    const onPop = () => {
+      closedByPop = true;
+      pushedRef.current = false;
+      setOpen(false);
+    };
+    // StrictMode(dev)에서 바로 언마운트·재마운트될 때 꼬이지 않게 한 틱 미룸
+    const timer = setTimeout(() => {
+      window.history.pushState({ ...window.history.state, __search: true }, "");
+      pushedRef.current = true;
+      window.addEventListener("popstate", onPop);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("popstate", onPop);
+      if (pushedRef.current && !closedByPop && !navigatingRef.current) window.history.back();
+      pushedRef.current = false;
+      navigatingRef.current = false;
+    };
+  }, [open]);
+
   const results = useMemo(() => {
     const k = norm(q);
     if (!k) return ENTRIES.filter((e) => e.group !== "site" && !e.label.endsWith(" 전체"));
@@ -109,8 +136,13 @@ export default function SiteSearch() {
 
   const go = (e: Entry | undefined) => {
     if (!e) return;
+    const href = e.href.endsWith("/") ? e.href : `${e.href}/`;
+    // 열 때 쌓은 기록 자리를 새 페이지로 바꿔서, 새 페이지에서 뒤로가기 한 번이면 원래 페이지로
+    if (pushedRef.current) {
+      navigatingRef.current = true;
+      router.replace(href);
+    } else router.push(href);
     setOpen(false);
-    router.push(e.href.endsWith("/") ? e.href : `${e.href}/`);
   };
 
   return (
