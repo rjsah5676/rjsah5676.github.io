@@ -10,6 +10,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "foods": "node scripts/build-foods.mjs",
+    "rhythm-chart": "node scripts/build-rhythm-chart.mjs",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
