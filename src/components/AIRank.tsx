@@ -162,13 +162,13 @@ export function RankSubmit({
   );
 }
 
-/** 1위 미리보기용 (헤더 랭킹 버튼) */
+/** 1~3위 미리보기용 (헤더 랭킹 버튼·시상대) */
 export function useAIRankTop(coll: AIRankColl) {
-  const [top, setTop] = useState<AIRankRow | null>(null);
+  const [top, setTop] = useState<AIRankRow[]>([]);
   useEffect(() => {
     let alive = true;
-    getAIRanks(coll, 1)
-      .then((r) => alive && setTop(r[0] ?? null))
+    getAIRanks(coll, 3)
+      .then((r) => alive && setTop(r))
       .catch(() => {});
     return () => {
       alive = false;
@@ -183,12 +183,15 @@ export function RankBoard({
   oppLabel,
   refresh = 0,
   bare = false,
+  skip = 0,
 }: {
   coll: AIRankColl;
   oppLabel: (opp: string) => string;
   refresh?: number;
   /** 모달 안처럼 테두리·제목 없이 */
   bare?: boolean;
+  /** 위쪽 몇 등 빼기 (시상대로 따로 보여 줄 때) */
+  skip?: number;
 }) {
   const [rows, setRows] = useState<AIRankRow[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -222,6 +225,7 @@ export function RankBoard({
             sub: `vs ${oppLabel(r.opp)} · ${r.moves}수 · ${clockLabel(r.seconds)}`,
             date: r.createdAt,
           }))}
+          skip={skip}
         />
       )}
     </div>

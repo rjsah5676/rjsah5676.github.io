@@ -15,7 +15,12 @@ import chessRanked from "@/img/guide/chess-ranked.webp";
 import janggiSetup from "@/img/guide/janggi-setup.webp";
 import janggiHint from "@/img/guide/janggi-hint.webp";
 import mineStart from "@/img/guide/mine-start.webp";
-import mineOpen from "@/img/guide/mine-open.webp";
+import skLobby from "@/img/guide/sk-lobby.webp";
+import skChoose from "@/img/guide/sk-choose.webp";
+import skDraw from "@/img/guide/sk-draw.webp";
+import skGuess from "@/img/guide/sk-guess.webp";
+import skCorrect from "@/img/guide/sk-correct.webp";
+import skReveal from "@/img/guide/sk-reveal.webp";
 
 /** 그림 대신: 큰 이모지 + 짧은 칩 몇 개 */
 function Poster({ emoji, chips }: { emoji: string; chips?: string[] }) {
@@ -525,6 +530,67 @@ export const RHYTHM_GUIDE: GuideDoc = {
 };
 
 export const SKETCH_GUIDE: GuideDoc = {
+  slides: [
+    {
+      title: "방 만들기",
+      image: skLobby,
+      body: (
+        <>
+          <B>+ 방 만들기</B>에서 인원, 그리는 시간, 한 사람당 그리는 횟수를 정해요. 비밀번호를
+          걸어도 <B>초대 링크</B>로 들어온 친구는 바로 입장!
+        </>
+      ),
+    },
+    {
+      title: "내 차례면 제시어 고르기",
+      image: skChoose,
+      body: (
+        <>
+          쉬움·보통·어려움 중 하나를 골라요. 어려운 제시어일수록 점수가 <B>×1.2, ×1.5</B>로 커져요.
+        </>
+      ),
+    },
+    {
+      title: "그림으로 설명하기",
+      image: skDraw,
+      body: (
+        <>
+          색, 굵기, 채우기, 지우개, 되돌리기를 쓸 수 있어요. 글자나 숫자를 쓰는 건 반칙! 그림만으로
+          맞히게 해 주세요.
+        </>
+      ),
+    },
+    {
+      title: "채팅으로 맞히기",
+      image: skGuess,
+      body: (
+        <>
+          떠오르는 답을 채팅창에 마구 던지세요. 맞힌 답은 다른 사람에게 안 보여요. 힌트를 켠 방은
+          시간이 지나면 첫 글자 → 초성 순으로 알려 줘요.
+        </>
+      ),
+    },
+    {
+      title: "정답! 점수는 이렇게",
+      image: skCorrect,
+      body: (
+        <>
+          빨리 맞힐수록 <B>20~100점</B>(× 난이도), <B>제일 먼저 맞히면 +30</B>. 그린 사람도 누가
+          맞힐 때마다 그 점수의 <B>절반</B>을 받아요.
+        </>
+      ),
+    },
+    {
+      title: "정답 공개, 다음 차례",
+      image: skReveal,
+      body: (
+        <>
+          시간이 끝나거나 모두 맞히면 정답이 공개되고 다음 사람이 그려요. 모두 정해진 횟수만큼
+          그리면 끝, 점수 1등이 우승!
+        </>
+      ),
+    },
+  ],
   lead: (
     <>
       한 사람이 제시어를 그림으로 그리면, 나머지가 채팅으로 정답을 맞히는 실시간 그림 퀴즈예요.
@@ -538,7 +604,10 @@ export const SKETCH_GUIDE: GuideDoc = {
       title: "시작하기",
       items: [
         <>닉네임을 정하고 방을 만들거나 목록에서 들어가요. 비밀번호를 걸면 비공개 방.</>,
-        <>방장이 그리는 시간, 한 사람당 그리는 횟수, 힌트 공개 여부, 차례 방식을 정해요.</>,
+        <>
+          방장이 인원, 그리는 시간, 한 사람당 그리는 횟수, 힌트 공개 여부, 다음에 그릴 사람(맞힌
+          사람/입장 순서)을 정해요.
+        </>,
         <>게임 중에 들어와도 바로 맞히기에 참여하고, 그릴 차례도 돌아와요.</>,
       ],
     },
@@ -546,17 +615,17 @@ export const SKETCH_GUIDE: GuideDoc = {
       icon: "🖌",
       title: "그리는 사람",
       items: [
-        <>쉬움·보통·어려움 제시어 중 하나를 골라요. 어려울수록 점수가 커요.</>,
+        <>쉬움·보통(×1.2)·어려움(×1.5) 제시어 중 하나를 골라요.</>,
         <>글자나 숫자를 직접 쓰는 건 반칙!</>,
-        <>누군가 맞히면 그린 사람도 보너스 점수를 받아요.</>,
+        <>누가 맞힐 때마다 그 사람이 얻은 점수(첫 정답 보너스 빼고)의 절반을 받아요.</>,
       ],
     },
     {
       icon: "💬",
       title: "맞히는 사람",
       items: [
-        <>정답을 채팅창에 입력해요. 정답은 다른 사람에게 보이지 않으니 안심하고 막 던져도 돼요.</>,
-        <>빨리 맞힐수록 점수가 커요 (남은 시간 비례).</>,
+        <>정답을 채팅창에 입력해요. 정답은 다른 사람에게 보이지 않아요.</>,
+        <>빨리 맞힐수록 20~100점 × 난이도 배율, 제일 먼저 맞히면 +30점.</>,
         <>힌트를 켠 방은 시간이 지나면 첫 글자 → 초성 순으로 공개돼요.</>,
       ],
     },
@@ -774,16 +843,6 @@ export const MINE_GUIDE: GuideDoc = {
         <>
           첫 칸은 항상 안전하고 주변이 넓게 열려요. 지뢰는 99개, 찍을 필요 없이 논리만으로 풀리는
           판만 나와요.
-        </>
-      ),
-    },
-    {
-      title: "숫자 = 주변 8칸의 지뢰 수",
-      image: mineOpen,
-      body: (
-        <>
-          닫힌 이웃 칸 수가 숫자와 같으면 전부 지뢰, 숫자만큼 깃발이 꽂혀 있으면 나머지는 전부
-          안전해요.
         </>
       ),
     },

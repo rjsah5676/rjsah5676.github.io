@@ -147,11 +147,12 @@ export default function RspeedPage() {
       desc="파란색이 되는 순간 클릭, 5회 평균"
       guide={REACTION_GUIDE}
       rank={{
-        teaser: list[0] ? `1위 ${list[0].name} · ${list[0].score}ms` : null,
+        top: list.slice(0, 3).map((r) => ({ name: r.name, value: `${r.score}ms` })),
         sub: "5회 평균",
         render: () => (
           <RankList
             rows={list.map((r) => ({ name: r.name, value: `${r.score}ms`, date: r.createdAt }))}
+            skip={3}
           />
         ),
       }}

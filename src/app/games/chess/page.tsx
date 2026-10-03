@@ -115,10 +115,14 @@ function ChessApp() {
         guide={CHESS_GUIDE}
         rank={{
           sub: "AI 랭킹전",
-          teaser: top
-            ? `1위 ${top.name} · vs ${chessOppLabel(top.opp)} ${pointsOf(top.score).toLocaleString()}`
-            : null,
-          render: () => <RankBoard coll="chess_ai_rankings" oppLabel={chessOppLabel} bare />,
+          top: top.map((r) => ({
+            name: r.name,
+            value: pointsOf(r.score).toLocaleString(),
+            sub: `vs ${chessOppLabel(r.opp)}`,
+          })),
+          render: () => (
+            <RankBoard coll="chess_ai_rankings" oppLabel={chessOppLabel} bare skip={3} />
+          ),
         }}
       />
       <div className="flex rounded-full border border-white/10 bg-[#1C1E24] p-1 w-fit">

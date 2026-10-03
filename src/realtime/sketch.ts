@@ -513,18 +513,29 @@ export async function setHint(roomId: string, turnId: string, hint: string) {
   });
 }
 
-/** 그리는 사람: 정답 처리 (점수는 남은 시간 비례 + 그린 사람 보너스) */
+/** 첫 정답자 추가 점수 */
+export const FIRST_BONUS = 30;
+
+/**
+ * 그리는 사람: 정답 처리.
+ * - 맞힌 사람: 빨리 맞힐수록 20~100점 × 제시어 난이도 배율, 첫 정답자는 +30
+ * - 그린 사람: 누가 맞힐 때마다 그 사람 점수(첫 정답 보너스 빼고)의 절반 — 잘 그려서 빨리 맞히게 할수록 이득
+ */
 export async function markCorrect(room: SketchRoom, guess: Guess) {
   const { id, state, meta } = room;
   const left = Math.max(0, state.endsAt - serverNow());
   const bonus = LEVEL_BONUS[state.level as 0 | 1 | 2] ?? 1;
-  const pts = Math.round((50 + (50 * left) / (meta.drawTime * 1000)) * bonus);
-  const drawerPts = Math.round(20 * bonus);
+  const base = Math.round((20 + (80 * left) / (meta.drawTime * 1000)) * bonus);
+  const drawerPts = Math.round(base / 2);
   let applied = false;
+  let pts = base;
+  let first = false;
   await runTransaction(stateRef(id), (cur: SketchState | null) => {
     if (!cur || cur.turnId !== guess.turnId || cur.phase !== "drawing") return;
     if (cur.correct?.[guess.uid] !== undefined) return;
     applied = true;
+    first = !cur.firstCorrect;
+    pts = base + (first ? FIRST_BONUS : 0);
     return {
       ...cur,
       correct: { ...(cur.correct ?? {}), [guess.uid]: pts },
@@ -541,7 +552,7 @@ export async function markCorrect(room: SketchRoom, guess: Guess) {
     push(r(`chat/${id}`), {
       uid: guess.uid,
       nick: guess.nick,
-      text: `${guess.nick}님이 정답을 맞혔어요! (+${pts})`,
+      text: `${guess.nick}님이 ${first ? "제일 먼저 " : ""}정답을 맞혔어요! (+${pts}${first ? " 🥇" : ""}) · 그린 사람 +${drawerPts}`,
       kind: "correct",
       ts: serverNow(),
     }),

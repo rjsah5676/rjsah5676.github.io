@@ -337,13 +337,14 @@ export default function Minesweeper() {
         className="w-full max-w-[848px]"
         guide={MINE_GUIDE}
         rank={{
-          teaser: rankings[0] ? `1위 ${rankings[0].name} · ${rankings[0].time}s` : null,
+          top: rankings.slice(0, 3).map((r) => ({ name: r.name, value: `${r.time}s` })),
           sub: "클리어 시간",
           open: rankOpen,
           onOpenChange: setRankOpen,
           render: () => (
             <RankList
               rows={rankings.map((r) => ({ name: r.name, value: `${r.time}s`, date: r.createdAt }))}
+              skip={3}
             />
           ),
         }}

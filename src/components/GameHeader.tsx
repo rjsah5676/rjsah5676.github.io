@@ -3,10 +3,19 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Modal from "@/components/Modal/Modal";
 import GuideView, { type GuideDoc } from "@/components/GuideView";
+import HintBubble, { markHintSeen } from "@/components/HintBubble";
+
+export interface TopEntry {
+  name: string;
+  /** 표시할 기록 (예: "132점", "45.2s") */
+  value: string;
+  /** 작은 설명 (예: "vs 이순신(5단)") */
+  sub?: string;
+}
 
 export interface RankSpec {
-  /** 버튼 옆 한 줄 (예: "1위 건모 · 132점") — PC에서만 보임 */
-  teaser?: string | null;
+  /** 1~3위: 버튼에서 돌아가며 보여 주고, 모달 맨 위에 시상대로 */
+  top?: TopEntry[] | null;
   /** 모달 제목 뒤에 붙는 말 (예: 곡 이름) */
   sub?: string;
   /** 모달 내용 (열릴 때만 그림) */
@@ -105,18 +114,34 @@ export default function GameHeader({
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {guide && (
-            <button
-              type="button"
-              onClick={() => setGuideOpen(true)}
-              className={`${pill} border-white/12 bg-white/[0.04] text-white/80 hover:border-white/30 hover:text-white`}
-            >
-              <span aria-hidden>📖</span>
-              <span className="@2xl:hidden">가이드</span>
-              <span className="hidden @2xl:inline">게임 가이드</span>
-              <span className="hidden text-white/35 @2xl:inline" aria-hidden>
-                ›
-              </span>
-            </button>
+            <span className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setGuideOpen(true);
+                  markHintSeen(`hint:guide:${en}`);
+                }}
+                className={`${pill} border-white/12 bg-white/[0.04] text-white/80 hover:border-white/30 hover:text-white`}
+              >
+                <span aria-hidden>📖</span>
+                <span className="@2xl:hidden">가이드</span>
+                <span className="hidden @2xl:inline">게임 가이드</span>
+                <span className="hidden text-white/35 @2xl:inline" aria-hidden>
+                  ›
+                </span>
+              </button>
+              <HintBubble
+                storageKey={`hint:guide:${en}`}
+                tail="top"
+                delay={700}
+                duration={6500}
+                maxShows={3}
+                className="absolute top-full left-1/2 z-30 mt-2 -translate-x-1/2"
+              >
+                처음이신가요? 👋 <b className="text-white">게임 가이드</b>에서 하는 법을 볼 수
+                있어요
+              </HintBubble>
+            </span>
           )}
           {rank && (
             <button
@@ -127,11 +152,7 @@ export default function GameHeader({
             >
               <span aria-hidden>🏆</span>
               <span className="hidden @sm:inline">랭킹</span>
-              {rank.teaser && (
-                <span className="hidden max-w-[11rem] truncate text-[11px] text-[#FDE68A]/60 @4xl:inline">
-                  {rank.teaser}
-                </span>
-              )}
+              {!!rank.top?.length && <TopTicker top={rank.top} />}
             </button>
           )}
         </div>
@@ -171,9 +192,76 @@ export default function GameHeader({
             </span>
           }
         >
-          {rankOpen && rank.render()}
+          {rankOpen && (
+            <>
+              {!!rank.top?.length && <Podium top={rank.top} />}
+              {rank.render()}
+            </>
+          )}
         </Modal>
       )}
     </header>
+  );
+}
+
+const MEDAL = ["🥇", "🥈", "🥉"];
+
+/** 랭킹 버튼 안: 1~3위를 몇 초마다 돌려 가며 (넓을 때만) */
+function TopTicker({ top }: { top: TopEntry[] }) {
+  const list = top.slice(0, 3);
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (list.length < 2) return;
+    const t = setInterval(() => setI((n) => (n + 1) % list.length), 2800);
+    return () => clearInterval(t);
+  }, [list.length]);
+  const e = list[i % list.length];
+  return (
+    <span
+      key={i}
+      className="rank-tick hidden max-w-[12rem] truncate text-[11px] text-[#FDE68A]/70 @3xl:inline-block"
+    >
+      {MEDAL[i % list.length]} {e.name} · {e.value}
+    </span>
+  );
+}
+
+/** 랭킹 모달 맨 위 시상대 (2위 · 1위 · 3위) */
+function Podium({ top }: { top: TopEntry[] }) {
+  const order = [1, 0, 2].filter((n) => top[n]);
+  const style = [
+    { h: "h-16", ring: "#FDE047", bg: "from-[#FDE047]/25" },
+    { h: "h-11", ring: "#D1D5DB", bg: "from-[#D1D5DB]/20" },
+    { h: "h-8", ring: "#F59E0B", bg: "from-[#D97706]/20" },
+  ];
+  return (
+    <div className="mb-4 flex items-end justify-center gap-2">
+      {order.map((n) => {
+        const e = top[n];
+        const st = style[n];
+        return (
+          <div key={n} className="flex w-1/3 max-w-[9.5rem] min-w-0 flex-col items-center">
+            <div className={`text-center ${n === 0 ? "rank-crown" : ""}`}>
+              <div className={n === 0 ? "text-3xl" : "text-2xl"}>{MEDAL[n]}</div>
+              <div className="mt-0.5 max-w-full truncate px-1 text-sm font-bold text-white">
+                {e.name}
+              </div>
+              <div className="font-mono text-xs tabular-nums" style={{ color: st.ring }}>
+                {e.value}
+              </div>
+              {e.sub && (
+                <div className="max-w-full truncate px-1 text-[10px] text-white/35">{e.sub}</div>
+              )}
+            </div>
+            <div
+              className={`mt-1.5 w-full rounded-t-lg border-x border-t bg-gradient-to-b to-transparent ${st.h} ${st.bg} flex items-start justify-center pt-1 font-mono text-xs font-bold text-white/60`}
+              style={{ borderColor: `${st.ring}66` }}
+            >
+              {n + 1}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

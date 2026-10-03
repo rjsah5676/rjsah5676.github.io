@@ -84,14 +84,10 @@ export default function SketchLobby({
 
   return (
     <div className="mx-auto max-w-3xl px-6 pt-6 pb-24">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="font-mono text-sm text-[#8B84FF]">games</div>
-          <h1 className="mt-1 font-mono text-2xl font-bold text-white">🎨 스케치 퀴즈</h1>
-          <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/50">
-            한 명이 그리고 나머지가 맞혀요. 최대 8명, 빨리 맞힐수록 점수가 높아요.
-          </p>
-        </div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="font-['Nanum_Gothic',sans-serif] text-sm text-white/50">
+          방을 만들거나 들어가서 같이 그려요 · 최대 8명
+        </p>
         <button
           type="button"
           onClick={() => setCreating((v) => !v)}

@@ -129,10 +129,14 @@ function JanggiApp() {
         guide={JANGGI_GUIDE}
         rank={{
           sub: "AI 랭킹전",
-          teaser: top
-            ? `1위 ${top.name} · vs ${janggiOppLabel(top.opp)} ${pointsOf(top.score).toLocaleString()}`
-            : null,
-          render: () => <RankBoard coll="janggi_ai_rankings" oppLabel={janggiOppLabel} bare />,
+          top: top.map((r) => ({
+            name: r.name,
+            value: pointsOf(r.score).toLocaleString(),
+            sub: `vs ${janggiOppLabel(r.opp)}`,
+          })),
+          render: () => (
+            <RankBoard coll="janggi_ai_rankings" oppLabel={janggiOppLabel} bare skip={3} />
+          ),
         }}
       />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
