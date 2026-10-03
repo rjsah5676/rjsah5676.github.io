@@ -19,7 +19,7 @@ export const DIFFICULTIES: { key: Difficulty; label: string; color: string }[] =
   { key: "expert", label: "매우 어려움", color: "#F43F5E" },
   { key: "nightmare", label: "나이트메어", color: "#A855F7" },
 ];
-/** 내장곡에서 이 난이도가 있는지 (나이트메어는 보스곡만) */
+/** 내장곡에서 이 난이도가 있는지 (나이트메어는 일부 곡만) */
 export const hasDifficulty = (
   charts: Partial<Record<Difficulty, Chart>> | undefined,
   d: Difficulty

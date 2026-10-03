@@ -4,8 +4,8 @@ import melonDrag from "@/img/guide/melon-drag.webp";
 import melonPop from "@/img/guide/melon-pop.webp";
 import melonHud from "@/img/guide/melon-hud.webp";
 import rhythmSelect from "@/img/guide/rhythm-select.webp";
-import rhythmPlay from "@/img/guide/rhythm-play.webp";
 import rhythmSettings from "@/img/guide/rhythm-settings.webp";
+import rhythmCustom from "@/img/guide/rhythm-custom.webp";
 import chessSetup from "@/img/guide/chess-setup.webp";
 import chessHint from "@/img/guide/chess-hint.webp";
 import chessRanked from "@/img/guide/chess-ranked.webp";
@@ -40,32 +40,6 @@ function Poster({ emoji, chips }: { emoji: string; chips?: string[] }) {
   );
 }
 
-/** 리듬게임 판정표 */
-function JudgeTable() {
-  const rows: [string, string, string][] = [
-    ["PERFECT", "±45ms", "#7DF9FF"],
-    ["GREAT", "±90ms", "#4ADE80"],
-    ["GOOD", "±130ms", "#FBBF24"],
-    ["MISS", "그 밖", "#F87171"],
-  ];
-  return (
-    <div className="flex w-full max-w-xs flex-col gap-1.5 font-mono">
-      {rows.map(([j, w, c]) => (
-        <div
-          key={j}
-          className="flex items-center justify-between rounded-lg bg-white/[0.04] px-4 py-2 text-sm"
-        >
-          <b style={{ color: c }}>{j}</b>
-          <span className="text-white/70">{w}</span>
-        </div>
-      ))}
-      <div className="mt-1 text-center text-[11px] text-white/45">
-        S+ 97% · S 94% · A 90% · B 80% · C 70%
-      </div>
-    </div>
-  );
-}
-
 /** 싱크 두 가지 개념 */
 function SyncConcept() {
   const card = "flex-1 rounded-xl border border-white/10 bg-white/[0.04] p-3 text-center";
@@ -89,54 +63,6 @@ function SyncConcept() {
           늦게·빠르게 누르는 만큼
         </div>
       </div>
-    </div>
-  );
-}
-
-/** 플레이 중 자동 싱크: 늦게 치던 게 조용히 PERFECT로 */
-function AutoSyncMock() {
-  return (
-    <div className="flex w-full max-w-sm flex-col items-center font-mono">
-      <div className="relative h-36 w-44 overflow-hidden rounded-lg border border-white/10 bg-[#0E1015]">
-        {[0, 1, 2, 3].map((l) => (
-          <div
-            key={l}
-            className="absolute top-0 bottom-0 w-px bg-white/10"
-            style={{ left: `${(l + 1) * 25}%` }}
-          />
-        ))}
-        <div className="absolute right-0 bottom-6 left-0 h-0.5 bg-white" />
-        <div className="absolute bottom-[21px] left-[27%] h-2.5 w-[21%] rounded bg-[#7DF9FF]" />
-        <div className="absolute bottom-14 left-[52%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/70" />
-        <div className="absolute top-4 left-[2%] h-2.5 w-[21%] rounded bg-[#7DF9FF]/40" />
-        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 font-mono text-[11px] whitespace-nowrap text-white/60">
-          <span className="text-[#FB923C]">SLOW</span> →{" "}
-          <span className="text-[#7DF9FF]">PERFECT</span>
-        </div>
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#7DF9FF]">
-          PERFECT
-        </div>
-      </div>
-      <div className="mt-2 text-[11px] text-white/40">치는 동안 조금씩 · 몇 마디면 끝</div>
-    </div>
-  );
-}
-
-/** 자동 싱크가 두 값을 나누는 모습 */
-function SyncSplitMock() {
-  const row = "flex items-center justify-between rounded-lg bg-white/[0.04] px-3 py-2";
-  return (
-    <div className="flex w-full max-w-xs flex-col gap-1.5 font-mono text-xs">
-      <div className="text-center text-[11px] text-white/45">늘 +140ms 늦게 쳤다면</div>
-      <div className={row}>
-        <span className="text-white/60">✋ 타격 싱크 (손)</span>
-        <b className="text-white">+40ms</b>
-      </div>
-      <div className={row}>
-        <span className="text-white/60">🎧 음악 싱크 (소리 지연)</span>
-        <b className="text-white">+100ms</b>
-      </div>
-      <div className="text-center text-[11px] text-white/40">→ 노트 위치도 소리에 맞게 옮겨요</div>
     </div>
   );
 }
@@ -300,30 +226,22 @@ export const RHYTHM_GUIDE: GuideDoc = {
         <>
           <K>←</K>
           <K>→</K> 곡, <K>↑</K>
-          <K>↓</K> 난이도, <K>Enter</K> 시작. BOSS 곡은 <B>나이트메어</B>까지 5단계.{" "}
-          <B>내 음악으로 플레이</B>에 mp3를 넣으면 채보를 자동으로 만들어 줘요.
-        </>
-      ),
-    },
-    {
-      title: "선에 닿는 순간 누르기",
-      image: rhythmPlay,
-      body: (
-        <>
-          노트가 아래 하얀 선에 닿을 때 그 줄의 키를 눌러요. 왼쪽부터 <K>D</K>
+          <K>↓</K> 난이도, <K>Enter</K> 시작. 쉬움부터 <B>나이트메어</B>까지 곡마다 4~5단계. 노트가
+          아래 하얀 선에 닿을 때 <K>D</K>
           <K>F</K>
           <K>J</K>
-          <K>K</K>, 폰은 줄을 터치. 긴 노트는 끝날 때까지 꾹! <K>Esc</K>는 일시정지.
+          <K>K</K>(폰은 터치), 긴 노트는 끝까지 꾹, <K>Esc</K>는 일시정지.
         </>
       ),
     },
     {
-      title: "판정과 랭크",
-      visual: <JudgeTable />,
+      title: "내 음악으로 플레이",
+      image: rhythmCustom,
       body: (
         <>
-          딱 맞으면 PERFECT. MISS가 나면 오른쪽 HP가 크게 줄고, 다 줄면 실패예요. 하나도 안 놓치면
-          FC, 전부 PERFECT면 AP!
+          <B>내 음악으로 플레이</B>에 mp3·wav·m4a를 끌어다 놓으면 드럼과 박자를 분석해서
+          쉬움~나이트메어 <B>5단계 채보를 자동으로</B> 만들어 줘요. 파일은 서버로 안 올라가고 이
+          브라우저에서만 돌아요. 랭킹엔 안 올라가지만 최고 기록은 남아요.
         </>
       ),
     },
@@ -333,27 +251,8 @@ export const RHYTHM_GUIDE: GuideDoc = {
       body: (
         <>
           분명 맞게 쳤는데 GREAT·GOOD만 뜬다면 싱크가 안 맞은 거예요. 기기·이어폰마다 소리가 늦게
-          나오고, 손도 사람마다 조금씩 늦거든요. 걱정 마세요 — <B>알아서 맞춰 줘요.</B>
-        </>
-      ),
-    },
-    {
-      title: "그냥 치면 알아서 맞춰요",
-      visual: <AutoSyncMock />,
-      body: (
-        <>
-          <B>자동 싱크</B>가 기본으로 켜져 있어요. 치는 동안 내 타이밍이 계속 한쪽으로 쏠리면 조금씩
-          옮겨서 몇 마디 안에 맞춰요. 실수 몇 번엔 안 움직이니 그냥 플레이하세요.
-        </>
-      ),
-    },
-    {
-      title: "블루투스도 알아서",
-      visual: <SyncSplitMock />,
-      body: (
-        <>
-          소리가 많이 늦으면 손 탓이 아니죠. 손으로 볼 수 있는 범위(±60ms)를 넘는 몫은 판이 끝날 때{" "}
-          <B>음악 싱크</B>로 옮겨서, 다음 판부터 노트가 소리에 맞게 내려와요.
+          나오고, 손도 사람마다 조금씩 늦거든요. <B>자동 싱크</B>가 기본으로 켜져 있어서 치는 동안
+          알아서 맞춰요 — 블루투스처럼 많이 늦는 것도 몇 마디면 따라잡으니 그냥 플레이하세요.
         </>
       ),
     },
@@ -373,11 +272,11 @@ export const RHYTHM_GUIDE: GuideDoc = {
       ),
     },
     {
-      title: "내 취향대로 설정",
+      title: "커스터마이징",
       image: rhythmSettings,
       body: (
         <>
-          노트 속도·싱크·볼륨·타격음·스킨을 바꿀 수 있어요. <B>레인 배치</B>(미러·랜덤)와{" "}
+          노트 속도·볼륨·타격음·노트 스킨을 바꿀 수 있어요. <B>레인 배치</B>(미러·랜덤)와{" "}
           <B>노트 가림</B>(페이드·서든)은 실력을 키우고 싶을 때 써 보세요.
         </>
       ),

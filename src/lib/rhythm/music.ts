@@ -80,11 +80,9 @@ export interface Song {
   bpmLabel?: number;
   /** 사용자가 넣은 음악 (랭킹 없음) */
   custom?: boolean;
-  /** 보스곡: 곡 선택에서 BOSS 표시 */
-  boss?: boolean;
   /** 음원 파일로 재생하는 곡 (신스 렌더 대신 이 파일을 불러옴) */
   audio?: string;
-  /** 음원 곡의 고정 채보 (미리 분석해 둔 것 — 모두 같은 채보로 쳐서 랭킹이 공정함). 나이트메어는 보스곡과 일부 곡만 */
+  /** 음원 곡의 고정 채보 (미리 분석해 둔 것 — 모두 같은 채보로 쳐서 랭킹이 공정함). 나이트메어는 일부 곡만 */
   charts?: Partial<Record<Difficulty, Chart>>;
 }
 
@@ -302,7 +300,7 @@ function audioSong(
   title: string,
   audio: string,
   data: AudioSongData,
-  extra: { color: string; desc: string; boss?: boolean }
+  extra: { color: string; desc: string }
 ): Song {
   const charts = Object.fromEntries(
     Object.entries(data.charts).map(([d, c]) => [
@@ -346,24 +344,22 @@ const RINKAKU = audioSong("rinkaku", "名前のない輪郭", "/audio/rinkaku.mp
   desc: "163 BPM · J-ROCK (12/8) · AI 자작곡 (tunee.ai)",
 });
 
-// 보스곡은 아니지만 나이트메어(Lv17)가 있음: --boss '{"loud":0.55,"full":0.85,"burstEvery":8}'
+// 나이트메어(Lv17)도 있음: --boss '{"loud":0.55,"full":0.85,"burstEvery":8}'
 const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimData, {
   color: "#C084FC",
   desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
 });
 
-// 보스곡: 나이트메어 난이도가 있음 — 센 마디마다 16분 연타·박마다 동시치기·프레이즈 끝 32분 연타, 레인은 전부 패턴
+// 나이트메어 난이도(센 마디마다 16분 연타·박마다 동시치기·프레이즈 끝 32분 연타, 레인은 전부 패턴
 const MONARCH = audioSong("monarch", "Monarch's Fall", "/audio/monarch.mp3", monarchData, {
   color: "#EF4444",
   desc: "150 BPM · AI 자작곡",
-  boss: true,
 });
 
-// 마지막 보스곡: 같은 방식에 180 BPM 16분 연타·2마디마다 32분 연타
+// 같은 방식에 180 BPM 16분 연타·2마디마다 32분 연타
 const VELOCITY = audioSong("velocity", "Maximum Velocity", "/audio/velocity.mp3", velocityData, {
   color: "#F472B6",
   desc: "180 BPM · AI 자작곡",
-  boss: true,
 });
 
 export const SONGS: Song[] = [JILJU, NATSU, RINKAKU, NEWDIM, MONARCH, VELOCITY];

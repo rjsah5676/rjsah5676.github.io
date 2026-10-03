@@ -213,7 +213,7 @@ export default function RhythmGame() {
     []
   );
   const song = isCustom ? customSong! : builtinSong;
-  // 고를 수 있는 난이도: 내 음악은 전부, 내장곡은 채보가 있는 것만 (나이트메어는 보스곡만)
+  // 고를 수 있는 난이도: 내 음악은 전부, 내장곡은 채보가 있는 것만 (나이트메어는 일부 곡만)
   const diffs = useMemo(
     () => (isCustom ? DIFFICULTIES : DIFFICULTIES.filter((d) => !!charts[builtinSong.id][d.key])),
     [isCustom, charts, builtinSong.id]

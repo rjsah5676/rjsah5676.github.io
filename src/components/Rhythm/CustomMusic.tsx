@@ -247,7 +247,7 @@ export default function CustomMusic({
         {err && <p className="mt-2 text-center font-mono text-xs text-red-300">{err}</p>}
         <ul className="mt-4 space-y-1 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/40">
           <li>• 파일은 서버로 올라가지 않아요. 이 브라우저 안에서만 분석하고 재생합니다.</li>
-          <li>• 드럼 소리와 박자를 분석해서 쉬움~매우 어려움 채보를 자동으로 만들어요.</li>
+          <li>• 드럼 소리와 박자를 분석해서 쉬움~나이트메어 5단계 채보를 자동으로 만들어요.</li>
           <li>• 직접 넣은 곡은 랭킹에 올라가지 않고, 최고 기록만 이 브라우저에 남아요.</li>
         </ul>
       </div>

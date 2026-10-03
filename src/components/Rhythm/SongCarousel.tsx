@@ -153,11 +153,6 @@ export default function SongCarousel({
                   draggable={false}
                   className="h-full w-full object-cover"
                 />
-                {s.boss && (
-                  <span className="absolute top-2.5 left-2.5 rounded-full bg-[#EF4444] px-2.5 py-0.5 font-mono text-[11px] font-black tracking-widest text-white shadow-[0_0_16px_rgba(239,68,68,0.8)]">
-                    BOSS
-                  </span>
-                )}
               </button>
             );
           })}
@@ -179,10 +174,7 @@ export default function SongCarousel({
           </button>
         </div>
         <div className="mt-4 text-center">
-          <div className="font-mono text-xl font-bold text-white">
-            {current.title}
-            {current.boss && <span className="ml-2 align-middle text-sm text-[#EF4444]">☠</span>}
-          </div>
+          <div className="font-mono text-xl font-bold text-white">{current.title}</div>
           <div className="mt-1 font-mono text-xs text-white/45">
             {current.desc} · {fmtTime(current.duration - 2.5)}
           </div>
