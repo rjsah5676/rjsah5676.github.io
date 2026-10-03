@@ -1,6 +1,8 @@
 "use client";
 
 import RankList from "@/components/RankList";
+import GameHeader from "@/components/GameHeader";
+import { useScrollToGame } from "@/hooks/useScrollToGame";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Faded from "@/components/Faded";
 import {
@@ -39,14 +41,7 @@ export default function RspeedPage() {
   const [submittedRank, setSubmittedRank] = useState<number | undefined>();
 
   const topRef = useRef<HTMLDivElement>(null);
-  // 처음 들어오면 사이트 헤더 아래에 묻히지 않게 게임 영역으로 내려줌
-  useEffect(() => {
-    const id = setTimeout(
-      () => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      350
-    );
-    return () => clearTimeout(id);
-  }, []);
+  useScrollToGame(topRef);
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 파란색이 실제로 그려지는 프레임 시각(performance.now 기준)
   const goAtRef = useRef<number | null>(null);
@@ -145,7 +140,7 @@ export default function RspeedPage() {
     }
   }
 
-  const header = <div className="mb-8 font-mono text-sm text-[#8B84FF]">반응속도 테스트</div>;
+  const header = <GameHeader title="Reaction" desc="파란색이 되는 순간 클릭, 5회 평균" />;
 
   if (phase === "done") {
     return (

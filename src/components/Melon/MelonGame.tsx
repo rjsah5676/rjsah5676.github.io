@@ -16,6 +16,8 @@ import bbyongSound from "@/sounds/melongame/bbyong.mp3";
 import bgmSound from "@/sounds/melongame/bgm.mp3";
 import endSound from "@/sounds/melongame/endbgm.mp3";
 import "@/css/Page/melon.css";
+import GameHeader from "@/components/GameHeader";
+import { useScrollToGame } from "@/hooks/useScrollToGame";
 import { rankDateLabel } from "@/lib/rankDate";
 import { getTopMelonScores, addMelonScore, type MelonScore } from "@/firestore/melonGame";
 import {
@@ -92,6 +94,7 @@ function loadVolume(): Volume {
 export default function MelonGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
+  useScrollToGame(topRef);
   const [phase, setPhase] = useState<Phase>("menu");
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIME_START);
@@ -165,18 +168,11 @@ export default function MelonGame() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 저장된 볼륨은 마운트 후에만 읽을 수 있음
     setVol(v);
 
-    // 처음 들어오면 사이트 헤더 아래에 묻히지 않게 게임 영역으로 내려줌
-    const scrollId = setTimeout(
-      () => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      350
-    );
-
     boardRef.current = createBoard(); // 메뉴 뒤에 깔리는 장식용 판
     layerDirty.current = true;
     loadRanks();
 
     return () => {
-      clearTimeout(scrollId);
       if (timerRef.current) clearTimeout(timerRef.current);
       const a = audio.current;
       if (a)
@@ -550,8 +546,9 @@ export default function MelonGame() {
       <div
         ref={topRef}
         className="mx-auto scroll-mt-[108px]"
-        style={{ maxWidth: `max(320px, min(100%, calc((100svh - 250px) * ${W / H})))` }}
+        style={{ maxWidth: `max(320px, min(100%, calc((100svh - 340px) * ${W / H})))` }}
       >
+        <GameHeader title="Melon" desc="합이 10·20이 되게 묶어 터뜨리는 2분 타임어택" />
         {/* 점수·시간·볼륨 */}
         <div className={`${card} relative mb-3 flex items-center gap-3 px-4 py-2.5 ${jua}`}>
           <span className="text-2xl">🍈</span>

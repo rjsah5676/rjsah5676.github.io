@@ -1,6 +1,8 @@
 "use client";
 
 import RankList from "@/components/RankList";
+import GameHeader from "@/components/GameHeader";
+import { useScrollToGame } from "@/hooks/useScrollToGame";
 import { useState, useEffect, useRef } from "react";
 import { getTopRankings, addRanking, type MineRanking } from "@/firestore/minesweeperRankings";
 import clickSoundSrc from "@/sounds/melongame/bbyong.mp3";
@@ -16,6 +18,8 @@ type Grid<T> = T[][];
 type Timer = ReturnType<typeof setTimeout>;
 
 export default function Minesweeper() {
+  const topRef = useRef<HTMLDivElement>(null);
+  useScrollToGame(topRef);
   // window.innerHeight/innerWidth를 useState 초기값으로 직접 넣으면 정적 export
   // 빌드(Node, window 없음) 중에 그대로 크래시남 -> 안전한 기본값으로 시작하고
   // 마운트 후 useEffect에서 실제 값으로 갱신.
@@ -324,30 +328,17 @@ export default function Minesweeper() {
   };
 
   return (
-    <div className="minesweeper">
-      <div className="top-info">
-        <div className="top-row">
-          <div id="mine-left">
-            <div id="mine-title">랭킹</div>
-            <RankList
-              rows={rankings.map((r) => ({ name: r.name, value: `${r.time}s`, date: r.createdAt }))}
-            />
-          </div>
-          <div id="mine-right">
-            누르면 시작됩니다
-            <br />총 지뢰는 {MINES}개입니다
-            <br />
-            클리어 시 랭킹 등록이 가능합니다.
-            <br />
-            모바일도 지원합니다. 꾹 누르면 여러 기능 가능
-            <br />
-          </div>
-        </div>
-        <div className="status-row" style={{ marginTop: "30px" }}>
-          <div className="status-box">⏱ {timer}s</div>
-          <div className="status-box">🚩 {remainingMines}</div>
-        </div>
+    <div className="minesweeper scroll-mt-[108px]" ref={topRef}>
+      <GameHeader
+        title="Minesweeper"
+        desc="지뢰 99개 고급 난이도, 클리어 시간 랭킹"
+        className="w-full max-w-[848px]"
+      />
+      <div className="status-row">
+        <div className="status-box">⏱ {timer}s</div>
+        <div className="status-box">🚩 {remainingMines}</div>
       </div>
+      <div style={{ height: 12 }} />
       <div className="relative">
         {/* 조작법 안내 (PC: 마우스 / 모바일: 꾹 누르기) */}
         <HintBubble
@@ -429,6 +420,25 @@ export default function Minesweeper() {
               </button>
             </div>
           )}
+        </div>
+      </div>
+      <div className="top-info" style={{ marginTop: "28px", marginBottom: 0 }}>
+        <div className="top-row">
+          <div id="mine-left">
+            <div id="mine-title">랭킹</div>
+            <RankList
+              rows={rankings.map((r) => ({ name: r.name, value: `${r.time}s`, date: r.createdAt }))}
+            />
+          </div>
+          <div id="mine-right">
+            누르면 시작됩니다
+            <br />총 지뢰는 {MINES}개입니다
+            <br />
+            클리어 시 랭킹 등록이 가능합니다.
+            <br />
+            모바일도 지원합니다. 꾹 누르면 여러 기능 가능
+            <br />
+          </div>
         </div>
       </div>
     </div>

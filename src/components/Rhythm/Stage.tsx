@@ -937,10 +937,13 @@ export default function Stage({
       { label: "1", from: 2, dur: 1, color: "#F43F5E", size: 110 },
     ];
 
+    // 재개 시도 번호: 카운트다운 도중·오디오 재개 대기 중에 다시 멈추면 이전 시도는 무시되게
+    let resumeSeq = 0;
     const pause = () => {
       if (resuming) {
-        // 카운트다운 중에 다시 Esc → 일시정지로 돌아감
+        // 카운트다운 중(또는 오디오 재개 대기 중)에 다시 Esc → 일시정지로 돌아감
         resuming = false;
+        resumeSeq++;
         cancelAnimationFrame(raf);
         setPauseTiming({ avgMs: timingOf(diffs).avgMs, n: diffs.length });
         setPaused(true);
@@ -960,20 +963,31 @@ export default function Stage({
       if (running || finished || resuming || failing) return;
       setPaused(false);
       resuming = true;
+      const seq = ++resumeSeq;
       const frozen = now(); // 오디오가 멈춰 있어서 시간도 그대로
       lastJudge = null; // 카운트다운 숫자와 겹치지 않게
+      // 시작 카운트다운(READY·3·2·1·GO) 도중에 멈췄으면 그 카운트다운이 이어지니 3·2·1을 또 띄우지 않음
+      const startCdEnd = cd[cd.length - 1].from + cd[cd.length - 1].dur;
+      const wait = frozen + leadIn < startCdEnd ? 0 : 3;
       const t0 = performance.now();
       const tick = () => {
-        if (!resuming) return;
+        if (!resuming || seq !== resumeSeq) return;
         const el = (performance.now() - t0) / 1000;
         draw(frozen);
-        g.save();
-        g.translate(gx, 0);
-        drawCountdown(g, RESUME_PHASES, el, W, H);
-        g.restore();
-        if (el >= 3) {
-          resuming = false;
+        if (wait > 0) {
+          g.save();
+          g.translate(gx, 0);
+          drawCountdown(g, RESUME_PHASES, el, W, H);
+          g.restore();
+        }
+        if (el >= wait) {
+          // resuming은 오디오가 실제로 다시 돌 때까지 유지 (그 사이 Esc가 재개를 또 부르지 않게)
           ctx.resume().then(() => {
+            if (seq !== resumeSeq || !resuming) {
+              ctx.suspend(); // 기다리는 사이 다시 멈춤
+              return;
+            }
+            resuming = false;
             running = true;
             raf = requestAnimationFrame(frame);
           });
@@ -1007,6 +1021,7 @@ export default function Stage({
       }
       if (e.code === "Escape") {
         e.preventDefault();
+        if (e.repeat) return; // 꾹 누르고 있으면 멈춤·재개가 연달아 일어나던 문제
         if (running || resuming) pause();
         else resume();
         return;

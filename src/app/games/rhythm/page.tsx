@@ -1,5 +1,6 @@
 import Faded from "@/components/Faded";
 import RhythmGame from "@/components/Rhythm/RhythmGame";
+import GameHeader from "@/components/GameHeader";
 import { pageMeta } from "@/lib/seo";
 
 export const metadata = pageMeta({
@@ -13,13 +14,7 @@ export default function RhythmPage() {
   return (
     <Faded>
       <div className="mx-auto max-w-5xl px-4 pt-12 pb-24 sm:px-6">
-        <div className="mb-6">
-          <div className="font-mono text-sm text-[#8B84FF]">games</div>
-          <h1 className="mt-1 font-mono text-2xl font-bold text-white">Rhythm</h1>
-          <p className="mt-2 font-['Nanum_Gothic',sans-serif] text-sm text-white/45">
-            DFJK 4키 리듬게임
-          </p>
-        </div>
+        <GameHeader title="Rhythm" desc="DFJK 4키 리듬게임" />
         <RhythmGame />
       </div>
     </Faded>
