@@ -11,13 +11,19 @@
  */
 import type { Kind, MusicEvent, Song } from "./music";
 
-export type Difficulty = "easy" | "normal" | "hard" | "expert";
+export type Difficulty = "easy" | "normal" | "hard" | "expert" | "nightmare";
 export const DIFFICULTIES: { key: Difficulty; label: string; color: string }[] = [
   { key: "easy", label: "쉬움", color: "#4ADE80" },
   { key: "normal", label: "보통", color: "#60A5FA" },
   { key: "hard", label: "어려움", color: "#F59E0B" },
   { key: "expert", label: "매우 어려움", color: "#F43F5E" },
+  { key: "nightmare", label: "나이트메어", color: "#A855F7" },
 ];
+/** 내장곡에서 이 난이도가 있는지 (나이트메어는 보스곡만) */
+export const hasDifficulty = (
+  charts: Partial<Record<Difficulty, Chart>> | undefined,
+  d: Difficulty
+) => !charts || !!charts[d];
 
 export interface Note {
   /** 판정 시각(초, 곡 시작 기준) */
@@ -92,6 +98,16 @@ const RULES: Record<Difficulty, Rule> = {
     maxPress: 3,
     fill: ["arp", "tom", "snare", "clap", "kick", "gtr"],
     chord: { kinds: ["crash", "kick", "snare", "clap"], prob: 0.8, onlyDownbeat: false },
+    notesDuringHold: true,
+  },
+  nightmare: {
+    grid: 1,
+    minGap: 0.055,
+    jackGap: 0.12,
+    holdMin: 4,
+    maxPress: 3,
+    fill: ["arp", "tom", "snare", "clap", "kick", "gtr"],
+    chord: { kinds: ["crash", "kick", "snare", "clap"], prob: 0.9, onlyDownbeat: false },
     notesDuringHold: true,
   },
 };
@@ -297,6 +313,7 @@ const LEVEL_BAND: Record<Difficulty, [number, number]> = {
   normal: [5, 10],
   hard: [11, 13],
   expert: [14, 20],
+  nightmare: [17, 22],
 };
 /** 그 난이도에서 보통 나오는 밀도(초당 노트 + 최고 구간 가중) 범위 → 레벨 범위에 대응 */
 const DENSITY_BAND: Record<Difficulty, [number, number]> = {
@@ -304,6 +321,7 @@ const DENSITY_BAND: Record<Difficulty, [number, number]> = {
   normal: [3.5, 9],
   hard: [7, 12],
   expert: [9, 20],
+  nightmare: [12, 24],
 };
 
 /** 정렬 + 판정 단위 수 + 레벨 계산 (자동 채보에서도 같이 씀) */

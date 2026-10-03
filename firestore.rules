@@ -56,7 +56,7 @@ service cloud.firestore {
     // 리듬게임 랭킹 - 곡·난이도별 서브컬렉션 (rhythm_rankings/{곡_난이도}/scores)
     match /rhythm_rankings/{chartId}/scores/{entryId} {
       allow read: if true;
-      allow create: if chartId.matches('^[a-z0-9-]+_(easy|normal|hard|expert)$')
+      allow create: if chartId.matches('^[a-z0-9-]+_(easy|normal|hard|expert|nightmare)$')
                     && request.resource.data.keys().hasOnly(['name', 'score', 'acc', 'maxCombo', 'fc', 'ap', 'createdAt'])
                     && request.resource.data.keys().hasAll(['name', 'score', 'acc', 'maxCombo', 'fc', 'ap', 'createdAt'])
                     && validRankName()

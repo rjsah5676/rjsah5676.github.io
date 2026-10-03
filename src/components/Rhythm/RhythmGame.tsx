@@ -195,7 +195,7 @@ export default function RhythmGame() {
   // 캐러셀 가상 위치 (곡 번호 = pos mod 곡 수)
   const [pos, setPos] = useState(0);
   const songIdx = mod(pos, SONGS.length);
-  const [diff, setDiff] = useState<Difficulty>("normal");
+  const [diffSel, setDiff] = useState<Difficulty>("normal");
   const [settings, setSettings] = useState<Settings>({
     speed: 3,
     offset: 0,
@@ -318,7 +318,16 @@ export default function RhythmGame() {
     []
   );
   const song = isCustom ? customSong! : builtinSong;
-  const chart = isCustom ? customCharts![diff] : charts[builtinSong.id][diff];
+  // 고를 수 있는 난이도: 내 음악은 전부, 내장곡은 채보가 있는 것만 (나이트메어는 보스곡만)
+  const diffs = useMemo(
+    () => (isCustom ? DIFFICULTIES : DIFFICULTIES.filter((d) => !!charts[builtinSong.id][d.key])),
+    [isCustom, charts, builtinSong.id]
+  );
+  // 나이트메어가 없는 곡으로 넘어오면 매우 어려움으로
+  const diff: Difficulty = diffs.some((d) => d.key === diffSel)
+    ? diffSel
+    : diffs[diffs.length - 1].key;
+  const chart = isCustom ? customCharts![diff] : charts[builtinSong.id][diff]!;
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
@@ -431,19 +440,19 @@ export default function RhythmGame() {
       } else if (screen === "result" && e.code === "Escape") setScreen("select");
       else if (screen === "select") {
         if (mode === "custom" && (e.code === "ArrowLeft" || e.code === "ArrowRight")) return;
-        const di = DIFFICULTIES.findIndex((d) => d.key === diff);
+        const di = diffs.findIndex((d) => d.key === diff);
         if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
           e.preventDefault();
           setPos((p) => p + (e.code === "ArrowLeft" ? -1 : 1));
         } else if (e.code === "ArrowUp" || e.code === "ArrowDown") {
           e.preventDefault();
-          setDiff(DIFFICULTIES[clamp(di + (e.code === "ArrowUp" ? -1 : 1), 0, 3)].key);
+          setDiff(diffs[clamp(di + (e.code === "ArrowUp" ? -1 : 1), 0, diffs.length - 1)].key);
         }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [screen, start, diff, mode]);
+  }, [screen, start, diff, diffs, mode]);
 
   if (screen === "play" && play) {
     return (
@@ -748,9 +757,11 @@ export default function RhythmGame() {
           </div>
         ) : (
           <div className="min-w-0">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {DIFFICULTIES.map((d) => {
-                const c = charts[song.id][d.key];
+            <div
+              className={`grid grid-cols-2 gap-2 ${diffs.length > 4 ? "sm:grid-cols-3" : "sm:grid-cols-4"}`}
+            >
+              {diffs.map((d) => {
+                const c = charts[song.id][d.key]!;
                 const b = best[`${song.id}:${d.key}`];
                 const on = d.key === diff;
                 return (

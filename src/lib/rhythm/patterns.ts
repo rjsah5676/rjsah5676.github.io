@@ -14,7 +14,7 @@
  * 8분·16분이 섞여 있어도 한 구간으로 보고 노트마다 한 칸씩 진행 — 리듬이 조금 달라도
  * 손 모양은 그대로라 외워 치기 좋다.
  */
-import type { Difficulty, Note } from "./chart";
+import type { Difficulty } from "./chart";
 
 /** 한 칸: 레인 하나 또는 동시치기 두 레인 */
 export type Step = number | [number, number];
@@ -123,7 +123,10 @@ function subdivision(g: number, beatSec: number): 1 | 2 | 4 {
 export function assignPatterns(slots: Slot[], ctx: PatternCtx): Map<number, number[]> {
   const out = new Map<number, number[]>();
   // 쉬움·보통은 노트가 띄엄띄엄이라 2박까지를 "이어진다"고 봄 (D _ F _ J _ K 도 계단으로 읽힘)
-  const maxGap = ctx.beatSec * (ctx.diff === "easy" || ctx.diff === "normal" ? 2.1 : 1.05);
+  // 나이트메어도 2박: 거의 모든 노트를 패턴 안에 넣기 위해
+  const maxGap =
+    ctx.beatSec *
+    (ctx.diff === "easy" || ctx.diff === "normal" || ctx.diff === "nightmare" ? 2.1 : 1.05);
   let i = 0;
   while (i < slots.length - 3) {
     let j = i;
@@ -164,6 +167,7 @@ function layStream(
 
   let cur: Pattern | null = null;
   let phase = 0;
+  let kept = 0; // 같은 패턴을 몇 마디째 이어 가는지 (3마디 넘기면 바꿈)
   for (const [a, b] of chunks) {
     const len = b - a + 1;
     // 이 조각의 가장 촘촘한 간격 기준으로 쓸 수 있는 패턴 (같은 레인 연타 간격 지키기)
@@ -172,7 +176,14 @@ function layStream(
     const sub = subdivision(g, ctx.beatSec);
     // 동시치기 패턴은 느린 간격에서만: 어려움·매우 어려움은 8분까지, 보통은 4분만
     const chordOk =
-      ctx.chords && (ctx.diff === "normal" ? sub === 1 : ctx.diff === "easy" ? false : sub <= 2);
+      ctx.chords &&
+      (ctx.diff === "normal"
+        ? sub === 1
+        : ctx.diff === "easy"
+          ? false
+          : ctx.diff === "nightmare"
+            ? true
+            : sub <= 2);
     const allowed = PATTERNS.filter(
       (p) => (!p.chord || chordOk) && reuseGap(p) * g >= ctx.jackGap - 1e-6
     );
@@ -188,7 +199,8 @@ function layStream(
     // 같은 패턴을 이어 갈까 (반복 = 외우는 재미)
     // 두 레인만 두드리는 연타는 한 마디 넘게 끌면 지루해서 금방 바꿈
     const keepP = cur?.name.startsWith("alt-") && cur.name !== "alt-switch" ? 0.3 : 0.62;
-    const keep = cur && allowed.includes(cur) && len >= cur.minLen && ctx.rnd() < keepP;
+    const keep = cur && kept < 3 && allowed.includes(cur) && len >= cur.minLen && ctx.rnd() < keepP;
+    kept = keep ? kept + 1 : 0;
     if (!keep) {
       const cands = allowed
         .filter((p) => len >= p.minLen && p !== cur)
@@ -196,6 +208,7 @@ function layStream(
           let w = p.w;
           if (p.dir && dir && p.dir !== dir) w *= 0.25; // 흐름과 반대 방향은 드물게
           if (p.chord) w *= 0.4 + 1.2 * I; // 동시치기는 센 구간에서
+          if (p.chord && sub === 4) w *= 0.35; // 16분 동시치기 연타는 드물게
           if (p.name.startsWith("alt") && sub === 4) w *= 1.4; // 16분은 연타가 제맛
           if (p.name.startsWith("stair") && len >= 8) w *= 1.3;
           return { p, w };
@@ -250,36 +263,5 @@ function layStream(
       );
       out.set(k, partner === undefined ? [main] : [main, partner]);
     }
-  }
-}
-
-/**
- * 이미 만들어진 노트 목록(보스 패턴처럼 덧입힌 뒤)의 레인을 스트림 패턴으로 다시 깐다.
- * 같은 시각 노트는 한 칸으로 묶고, 롱노트는 그대로 둔다(머리 레인만 패턴을 따름).
- */
-export function relaneStreams(notes: Note[], ctx: PatternCtx, cenOf?: (t: number) => number) {
-  const byT = new Map<number, Note[]>();
-  for (const n of notes) {
-    const k = Math.round(n.t * 1000) / 1000;
-    if (!byT.has(k)) byT.set(k, []);
-    byT.get(k)!.push(n);
-  }
-  const times = [...byT.keys()].sort((a, b) => a - b);
-  const slots: Slot[] = times.map((t) => ({
-    t,
-    cen: cenOf ? cenOf(t) : 0,
-    count: Math.min(2, byT.get(t)!.length),
-  }));
-  const assigned = assignPatterns(slots, ctx);
-  const laneLast = [-Infinity, -Infinity, -Infinity, -Infinity];
-  for (let i = 0; i < times.length; i++) {
-    const group = byT.get(times[i])!;
-    const lanes = assigned.get(i);
-    if (lanes && lanes.length >= group.length) {
-      // 롱노트가 걸쳐 있는 레인은 피함 (앞 롱노트의 꼬리 위)
-      const ok = lanes.every((l) => times[i] - laneLast[l] >= ctx.jackGap - 1e-6);
-      if (ok) group.forEach((n, k) => (n.lane = lanes[k]));
-    }
-    for (const n of group) laneLast[n.lane] = n.end ?? n.t;
   }
 }

@@ -32,7 +32,7 @@ interface Source {
   note?: string;
 }
 
-const DIFFS = ["easy", "normal", "hard", "expert"];
+const DIFFS = ["easy", "normal", "hard", "expert", "nightmare"];
 const RHYTHM_CHARTS = SONGS.flatMap((s) =>
   DIFFS.map((d) => ({ value: `${s.id}_${d}`, label: `${s.title} · ${d}` }))
 );

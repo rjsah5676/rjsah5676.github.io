@@ -17,7 +17,7 @@
 import type { Analysis, Onset } from "./analyze";
 import { FPS, gridPos } from "./analyze";
 import { finishChart, type Chart, type Difficulty, type Note } from "./chart";
-import { assignPatterns, relaneStreams, type PatternCtx } from "./patterns";
+import { assignPatterns, type PatternCtx } from "./patterns";
 
 interface AutoRule {
   /** 목표 초당 노트 수 (곡에 타격이 그만큼 없으면 그보다 적게) */
@@ -71,10 +71,47 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     chord: { every: 2, need: 0.6 },
     holdBeats: 1.25,
   },
+  // 나이트메어: 매우 어려움보다 촘촘하게 고른 뒤, 센 마디는 16분으로 꽉 채우고 패턴으로만 레인을 깖 (아래 nightmareNotes)
+  nightmare: {
+    nps: 11,
+    minGap: 0.05,
+    jackGap: 0.11,
+    pos: [1, 1, 0.95, 0.85, 0.5],
+    floor: 0.04,
+    chord: { every: 2, need: 0.6 },
+    holdBeats: 1.25,
+  },
 };
 
-/** 마지막 makeAutoChart가 쓴 패턴 설정 (보스 채보처럼 노트를 덧입힌 뒤 relaneWithPatterns로 다시 깔 때) */
-let lastPatternCtx: (PatternCtx & { cenOf: (t: number) => number }) | null = null;
+/** 나이트메어 채우기 설정 (곡별 손보기 가능) */
+export interface NightmareTweak {
+  /** 이 세기(0~1) 이상인 마디는 8분으로 채움 */
+  loud?: number;
+  /** 이 세기 이상인 마디는 16분으로 꽉 채우고 박마다 동시치기 */
+  full?: number;
+  /** 센 마디 박 등분 (2 = 8분, 3 = 셋잇단) */
+  loudSub?: number;
+  /** 아주 센 마디 박 등분 (4 = 16분, 6 = 16분 셋잇단) */
+  fullSub?: number;
+  /** 박당 동시치기 수: 센 마디 / 아주 센 마디 */
+  chordLoud?: number;
+  chordFull?: number;
+  /** 몇 마디마다 마지막 박을 연타로 (아주 센 마디) */
+  burstEvery?: number;
+  /** 연타 등분 (8 = 32분) */
+  burstSub?: number;
+}
+const NIGHTMARE_DEFAULT: Required<NightmareTweak> = {
+  loud: 0.45,
+  full: 0.72,
+  loudSub: 2,
+  fullSub: 4,
+  chordLoud: 1,
+  chordFull: 2,
+  burstEvery: 4,
+  burstSub: 8,
+};
+
 function nearestCen(an: Analysis, t: number) {
   let best = 0;
   let bd = Infinity;
@@ -86,9 +123,6 @@ function nearestCen(an: Analysis, t: number) {
     }
   }
   return best;
-}
-export function relaneWithPatterns(notes: Note[]) {
-  if (lastPatternCtx) relaneStreams(notes, lastPatternCtx, lastPatternCtx.cenOf);
 }
 
 const posKind = (o: Onset, div: number) => (o.grid < 0 ? 4 : gridPos(o.grid, div));
@@ -116,6 +150,8 @@ export interface AutoTweak {
   chordNeed?: number;
   /** 세분 칸(32분·셋잇단) 가중치 */
   finePos?: number;
+  /** 나이트메어 채우기 */
+  nightmare?: NightmareTweak;
 }
 
 /**
@@ -275,6 +311,26 @@ export function makeAutoChart(
     patCtx
   );
 
+  if (diff === "nightmare") {
+    const shift = shiftMs / 1000;
+    const nm = nightmareNotes(
+      an,
+      picked,
+      { ...NIGHTMARE_DEFAULT, ...tweak.nightmare },
+      {
+        beatSec,
+        barOf,
+        intensity: (b) => intensity[Math.max(0, Math.min(nBars - 1, b))],
+        patCtx,
+      }
+    );
+    for (const n of nm) n.t += shift;
+    return finishChart(
+      nm.filter((n) => n.t > 0.3),
+      diff
+    );
+  }
+
   const notes: Note[] = [];
   const laneLast = [-Infinity, -Infinity, -Infinity, -Infinity];
   let prevLane = -1;
@@ -417,9 +473,6 @@ export function makeAutoChart(
     if (end - n.t >= 0.4) n.end = end;
   }
 
-  // 스크립트(보스 패턴 덧입히기)에서 덧입힌 뒤 다시 패턴을 깔 수 있게
-  lastPatternCtx = { ...patCtx, cenOf: (t) => nearestCen(an, t) };
-
   const shift = shiftMs / 1000;
   if (shift)
     for (const n of notes) {
@@ -430,4 +483,95 @@ export function makeAutoChart(
     notes.filter((n) => n.t > 0.3),
     diff
   );
+}
+
+/**
+ * 나이트메어: 고른 타격 위에 센 마디를 8분·16분으로 꽉 채우고(박마다 동시치기, 프레이즈 끝 32분 연타),
+ * 레인은 음색이 아니라 전부 패턴(계단·연타·트릴…)으로 깖. 쉼이 2박 넘게 없으면 한 스트림으로 봐서
+ * 거의 모든 노트가 알아볼 수 있는 패턴 안에 들어감.
+ */
+function nightmareNotes(
+  an: Analysis,
+  picked: Onset[],
+  P: Required<NightmareTweak>,
+  ctx: {
+    beatSec: number;
+    barOf: (t: number) => number;
+    intensity: (bar: number) => number;
+    patCtx: PatternCtx;
+  }
+): Note[] {
+  const { beatSec, barOf, intensity } = ctx;
+  const beats = an.beats;
+  const beatT = (k: number) =>
+    k < beats.length ? beats[k] : beats[beats.length - 1] + (k - beats.length + 1) * beatSec;
+  // 슬롯: 시각 → 노트 수 (1 또는 2)
+  const slots = new Map<number, number>();
+  const key = (t: number) => Math.round(t * 200) / 200; // 5ms 격자
+  const put = (t: number, count = 1) => {
+    if (t <= 0 || t > an.duration - 0.2) return;
+    const k = key(t);
+    // 아주 가까운 슬롯이 이미 있으면 거기 합침
+    for (const d of [0, 0.005, -0.005, 0.01, -0.01, 0.015, -0.015, 0.02, -0.02])
+      if (slots.has(key(k + d))) {
+        slots.set(key(k + d), Math.max(slots.get(key(k + d))!, count));
+        return;
+      }
+    slots.set(k, count);
+  };
+  for (const o of picked) put(o.t, 1);
+  const lastPick = picked.length ? picked[picked.length - 1].t : 0;
+  const nBeats = Math.ceil(an.duration / beatSec);
+  for (let k = 0; k < nBeats; k++) {
+    const t0 = beatT(k);
+    if (t0 > lastPick) break;
+    const b = barOf(t0);
+    const I = intensity(b);
+    if (I < P.loud) continue;
+    const full = I >= P.full;
+    const t1 = beatT(k + 1);
+    const sub = full ? P.fullSub : P.loudSub;
+    const chords = full ? P.chordFull : P.chordLoud;
+    for (let c = 0; c < chords; c++) put(t0 + (c * (t1 - t0)) / chords, 2);
+    for (let i = 0; i < sub; i++) put(t0 + (i * (t1 - t0)) / sub, 1);
+    const beatInBar = Math.round((t0 - (beats[0] ?? 0)) / beatSec) % 4;
+    if (full && beatInBar === 3 && b % P.burstEvery === P.burstEvery - 1)
+      for (let i = 0; i < P.burstSub; i++) put(t0 + (i * (t1 - t0)) / P.burstSub, 1);
+  }
+  const times = [...slots.keys()].sort((a, b) => a - b);
+  // 패턴용 음색: 가장 가까운 타격의 음색
+  const cen = times.map((t) => nearestCen(an, t));
+  // 나이트메어는 2박 쉼까지 한 스트림으로 (거의 전부 패턴 안에)
+  const assigned = assignPatterns(
+    times.map((t, i) => ({ t, cen: cen[i], count: slots.get(t)! })),
+    { ...ctx.patCtx, diff: "nightmare", chords: true }
+  );
+  const notes: Note[] = [];
+  const laneLast = [-Infinity, -Infinity, -Infinity, -Infinity];
+  let prev: number[] = [];
+  for (let i = 0; i < times.length; i++) {
+    const t = times[i];
+    const count = slots.get(t)!;
+    let lanes = assigned.get(i) ?? [];
+    // 패턴 밖(드문 경우): 앞 노트와 다른 손, 연타 간격 지키며
+    if (lanes.length < count) {
+      const free = [0, 1, 2, 3].filter(
+        (l) => !lanes.includes(l) && t - laneLast[l] >= ctx.patCtx.jackGap
+      );
+      free.sort((a, b2) => {
+        const ha = prev.some((p) => p < 2 === a < 2) ? 1 : 0;
+        const hb = prev.some((p) => p < 2 === b2 < 2) ? 1 : 0;
+        return ha - hb;
+      });
+      lanes = [...lanes, ...free].slice(0, count);
+    }
+    lanes = lanes.filter((l) => t - laneLast[l] >= ctx.patCtx.jackGap - 1e-6);
+    if (!lanes.length) continue;
+    for (const l of lanes) {
+      notes.push({ t, lane: l });
+      laneLast[l] = t;
+    }
+    prev = lanes;
+  }
+  return notes;
 }

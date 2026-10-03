@@ -84,8 +84,8 @@ export interface Song {
   boss?: boolean;
   /** 음원 파일로 재생하는 곡 (신스 렌더 대신 이 파일을 불러옴) */
   audio?: string;
-  /** 음원 곡의 고정 채보 (미리 분석해 둔 것 — 모두 같은 채보로 쳐서 랭킹이 공정함) */
-  charts?: Record<Difficulty, Chart>;
+  /** 음원 곡의 고정 채보 (미리 분석해 둔 것 — 모두 같은 채보로 쳐서 랭킹이 공정함). 나이트메어는 보스곡만 */
+  charts?: Partial<Record<Difficulty, Chart>>;
 }
 
 // ───────────────────────── 작곡용 헬퍼 ─────────────────────────
@@ -313,7 +313,7 @@ function audioSong(
         notes: c.notes.map(([t, lane, end]) => (end ? { t, lane, end } : { t, lane })),
       },
     ])
-  ) as Record<Difficulty, Chart>;
+  ) as Partial<Record<Difficulty, Chart>>;
   const beatSec = 60 / data.bpm;
   return {
     id,
@@ -351,14 +351,14 @@ const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimD
   desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
 });
 
-// 보스곡: 매우 어려움은 기본 채보 위에 센 마디마다 16분 연타·정박/뒷박 동시치기·프레이즈 끝 32분 연타를 더함
+// 보스곡: 나이트메어 난이도가 있음 — 센 마디마다 16분 연타·박마다 동시치기·프레이즈 끝 32분 연타, 레인은 전부 패턴
 const MONARCH = audioSong("monarch", "Monarch's Fall", "/audio/monarch.mp3", monarchData, {
   color: "#EF4444",
   desc: "150 BPM · AI 자작곡",
   boss: true,
 });
 
-// 마지막 보스곡: 같은 방식에 16분(180 BPM 기준) 연타·동시치기를 더 촘촘하게
+// 마지막 보스곡: 같은 방식에 180 BPM 16분 연타·2마디마다 32분 연타
 const VELOCITY = audioSong("velocity", "Maximum Velocity", "/audio/velocity.mp3", velocityData, {
   color: "#F472B6",
   desc: "180 BPM · AI 자작곡",

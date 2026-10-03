@@ -8,13 +8,13 @@
  *
  * 옵션
  *   --bpm-label <n>   화면에 보일 BPM (분석기가 셔플로 잘못 보면 직접 지정)
- *   --boss '<json>'   매우 어려움에 보스 패턴을 덧입힘 (아래 BOSS_DEFAULT 참고, {}면 기본값)
+ *   --boss '<json>'   보스곡: 나이트메어 난이도를 추가 (src/lib/rhythm/autochart의 NightmareTweak, {}면 기본값)
  *   --hard-slots      쉬움·보통·어려움을 한 단계 위 규칙으로 (보스곡용: 대략 Lv6 / 11 / 14)
  *   --dry             파일은 안 쓰고 난이도별 통계만 출력
  *
  * 예) Monarch's Fall : npm run rhythm-chart -- monarch --bpm-label 150 --boss '{}'
  *     Maximum Velocity: npm run rhythm-chart -- velocity --bpm-label 180 --hard-slots \
- *       --boss '{"full":0.26,"loud":0.2,"loudSub":3,"fullSub":6,"chordLoud":2,"chordFull":3,"burstSub":12,"burstEvery":2}'
+ *       --boss '{"loudSub":3,"fullSub":6,"chordFull":3,"burstSub":12,"burstEvery":2}'
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -62,7 +62,7 @@ for (const n of ["analyze", "autochart", "chart", "patterns"]) {
 }
 const load = (n) => import(pathToFileURL(path.join(tmp, `${n}.mjs`)).href);
 const { analyzeAudio, displayBpm, SR } = await load("analyze");
-const { makeAutoChart, relaneWithPatterns } = await load("autochart");
+const { makeAutoChart } = await load("autochart");
 const { finishChart } = await load("chart");
 
 // ── 음원 → 22.05kHz 모노 PCM (분석기가 쓰는 OfflineAudioContext는 이 데이터를 돌려주는 가짜로) ──
@@ -92,98 +92,6 @@ console.log(
   `분석: ${a.bpm.toFixed(2)} BPM (표시 ${displayBpm(a).toFixed(1)}), 비트 ${a.beats.length}, 타격 ${a.onsets.length}, ${a.duration.toFixed(1)}초`
 );
 
-// ── 보스 패턴 ──
-// 마디별 음량이 loud 이상인 마디: 박마다 loudSub 등분 노트 + chordLoud개 동시치기
-// full 이상인 마디: fullSub 등분 + chordFull개, burstEvery 마디마다 마지막 박을 burstSub 등분 연타
-// 레인은 직전 노트 반대 손 우선, 같은 레인 jack초 이내 금지, 동시치기 최대 2개
-const BOSS_DEFAULT = {
-  density: 1.6, // 바탕이 되는 매우 어려움 자동 채보 밀도 배율
-  loud: 0.26,
-  full: 0.29,
-  loudSub: 2,
-  fullSub: 4,
-  chordLoud: 1,
-  chordFull: 2,
-  burstEvery: 4,
-  burstSub: 8,
-  jack: 0.17,
-};
-
-function bossChart(P) {
-  let seed = 20261003; // 항상 같은 채보가 나오게 고정 시드
-  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
-  const beatSec = 60 / a.bpm;
-  const barSec = beatSec * 4;
-  const b0 = a.beats[0];
-  const FPS = SR / 256;
-  const nBars = Math.ceil((a.duration - b0) / barSec);
-  const barRms = [];
-  for (let b = 0; b < nBars; b++) {
-    let s = 0;
-    let c = 0;
-    for (
-      let f = Math.floor((b0 + b * barSec) * FPS);
-      f < (b0 + (b + 1) * barSec) * FPS && f < a.rms.length;
-      f++
-    ) {
-      s += a.rms[f];
-      c++;
-    }
-    barRms.push(c ? s / c : 0);
-  }
-  // 실제 비트 추적값 기준 (템포 흔들림 반영)
-  const beatT = (k) =>
-    k < a.beats.length ? a.beats[k] : a.beats.at(-1) + (k - a.beats.length + 1) * beatSec;
-
-  const notes = makeAutoChart(a, "expert", 0, {
-    density: P.density,
-    finePos: 0.9,
-    chordEvery: 2,
-  }).notes.map((n) => ({ ...n }));
-  const lastT = notes.at(-1).t;
-  const hand = (l) => (l < 2 ? 0 : 1);
-  const sameLaneNear = (t, lane) =>
-    notes.some(
-      (n) =>
-        n.lane === lane &&
-        (Math.abs(n.t - t) < P.jack || (n.end && t > n.t - 0.01 && t < n.end + P.jack))
-    );
-  const add = (t, chord = false) => {
-    if (t > lastT + 0.01) return;
-    const here = notes.filter((n) => Math.abs(n.t - t) < 0.02);
-    if (here.length >= 2 || (here.length === 1 && !chord)) return;
-    const prev = notes.filter((n) => n.t < t - 0.02).sort((x, y) => y.t - x.t)[0];
-    const pick = [0, 1, 2, 3]
-      .filter((l) => !here.some((h) => h.lane === l) && !sameLaneNear(t, l))
-      .map((l) => ({
-        l,
-        w:
-          rnd() +
-          (prev && hand(prev.lane) !== hand(l) ? 1 : 0) +
-          (here.length && hand(here[0].lane) !== hand(l) ? 1.5 : 0),
-      }))
-      .sort((x, y) => y.w - x.w)[0];
-    if (pick) notes.push({ t: +t.toFixed(3), lane: pick.l });
-  };
-  for (let b = 0; b < nBars; b++) {
-    const r = barRms[b];
-    if (r < P.loud) continue;
-    for (let k = 0; k < 4; k++) {
-      const t0 = beatT(b * 4 + k);
-      const t1 = beatT(b * 4 + k + 1);
-      const sub = r >= P.full ? P.fullSub : P.loudSub;
-      const cs = r >= P.full ? P.chordFull : P.chordLoud;
-      for (let c = 0; c < cs; c++) add(t0 + (c * (t1 - t0)) / cs, true);
-      for (let s = 0; s < sub; s++) add(t0 + (s * (t1 - t0)) / sub);
-      if (r >= P.full && k === 3 && b % P.burstEvery === P.burstEvery - 1)
-        for (let s = 0; s < P.burstSub; s++) add(t0 + (s * (t1 - t0)) / P.burstSub);
-    }
-  }
-  // 덧입힌 노트까지 포함해서 계단·연타 같은 패턴으로 레인을 다시 깖
-  relaneWithPatterns(notes);
-  return finishChart(notes, "expert");
-}
-
 // ── 난이도별 채보 ──
 const charts = {};
 if (hardSlots) {
@@ -198,10 +106,10 @@ if (hardSlots) {
       scale
     );
 } else for (const d of ["easy", "normal", "hard"]) charts[d] = makeAutoChart(a, d);
-charts.expert =
-  bossArg !== undefined
-    ? bossChart({ ...BOSS_DEFAULT, ...JSON.parse(bossArg) })
-    : makeAutoChart(a, "expert");
+if (!charts.expert) charts.expert = makeAutoChart(a, "expert");
+// 보스곡: 나이트메어 (매우 어려움은 다른 곡과 같은 규칙)
+if (bossArg !== undefined)
+  charts.nightmare = makeAutoChart(a, "nightmare", 0, { nightmare: JSON.parse(bossArg) });
 
 // ── 통계 ──
 for (const [d, c] of Object.entries(charts)) {
@@ -225,7 +133,7 @@ const out = {
   beatOffset: r3(a.beats[0]),
   duration: Math.round(a.duration * 100) / 100,
   charts: Object.fromEntries(
-    ["easy", "normal", "hard", "expert"].map((d) => [
+    Object.keys(charts).map((d) => [
       d,
       {
         level: charts[d].level,
