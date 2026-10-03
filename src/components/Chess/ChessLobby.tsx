@@ -19,7 +19,7 @@ import {
 /** 이미 대국자로 앉아있는 방이 있으면 그 방으로 보낼지 묻기 */
 export function useActiveRoomPrompt(go: (roomId: string) => void) {
   const modal = useModal();
-  return async (room: ChessRoom) => {
+  return async (room: Pick<ChessRoom, "id" | "name" | "status">) => {
     const ok = await modal.confirm({
       title: "진행중인 게임이 있습니다",
       message: `'${room.name}' 방에서 ${room.status === "waiting" ? "대기" : "대국"} 중입니다. 한 번에 한 방에서만 둘 수 있어요.`,
