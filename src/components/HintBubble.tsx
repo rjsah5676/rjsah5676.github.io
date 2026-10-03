@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 /**
  * 처음 보는 UI 옆에 잠깐 뜨는 안내 말풍선 (PC·모바일 공통).
@@ -111,19 +118,71 @@ export default function HintBubble({
 
   const visible = show && !hidden;
 
+  // 화면 가장자리 근처에 뜨면 화면 밖으로 나가지 않게 안쪽으로 밀어줌 (꼬리는 원래 자리를 가리키게 반대로 이동)
+  // 화면보다 넓으면 줄바꿈 허용
+  const shiftRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<{ shift: number; width: number | null }>({
+    shift: 0,
+    width: null,
+  });
+  useLayoutEffect(() => {
+    if (!visible) return;
+    const wrap = shiftRef.current;
+    const el = bubbleRef.current;
+    if (!wrap || !el) return;
+    const measure = () => {
+      const vw = document.documentElement.clientWidth;
+      const M = 8;
+      const prev = { t: wrap.style.transform, w: el.style.width, ws: el.style.whiteSpace };
+      wrap.style.transform = "none";
+      el.style.width = "";
+      el.style.whiteSpace = "";
+      let r = el.getBoundingClientRect();
+      let width: number | null = null;
+      if (r.width > vw - M * 2) {
+        width = vw - M * 2;
+        el.style.width = `${width}px`;
+        el.style.whiteSpace = "normal";
+        r = el.getBoundingClientRect();
+      }
+      const shift = Math.round(r.left < M ? M - r.left : r.right > vw - M ? vw - M - r.right : 0);
+      wrap.style.transform = prev.t;
+      el.style.width = prev.w;
+      el.style.whiteSpace = prev.ws;
+      setFit((f) => (f.shift === shift && f.width === width ? f : { shift, width }));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [visible, touch]);
+
   return (
     <div className={`pointer-events-none z-40 ${className}`} aria-live="polite">
       <div
-        role="status"
-        data-tail={tail}
-        onClick={() => setShow(false)}
-        className={`hint-bubble relative rounded-xl border border-[#6C63FF]/40 bg-[#1C1E24] px-3 py-2 font-['Nanum_Gothic',sans-serif] text-xs whitespace-nowrap text-white/85 shadow-[0_8px_30px_-6px_rgba(108,99,255,0.5)] transition-all duration-500 ${
-          visible
-            ? "pointer-events-auto translate-x-0 translate-y-0 cursor-pointer opacity-100"
-            : `opacity-0 ${HIDE[tail]}`
-        }`}
+        ref={shiftRef}
+        style={{ transform: fit.shift ? `translateX(${fit.shift}px)` : undefined }}
       >
-        {touch && mobile ? mobile : children}
+        <div
+          ref={bubbleRef}
+          role="status"
+          data-tail={tail}
+          style={
+            {
+              width: fit.width ?? undefined,
+              whiteSpace: fit.width ? "normal" : undefined,
+              "--hint-shift": `${-fit.shift}px`,
+            } as CSSProperties
+          }
+          onClick={() => setShow(false)}
+          className={`hint-bubble relative rounded-xl border border-[#6C63FF]/40 bg-[#1C1E24] px-3 py-2 font-['Nanum_Gothic',sans-serif] text-xs whitespace-nowrap text-white/85 shadow-[0_8px_30px_-6px_rgba(108,99,255,0.5)] transition-all duration-500 ${
+            visible
+              ? "pointer-events-auto translate-x-0 translate-y-0 cursor-pointer opacity-100"
+              : `opacity-0 ${HIDE[tail]}`
+          }`}
+        >
+          {touch && mobile ? mobile : children}
+        </div>
       </div>
     </div>
   );

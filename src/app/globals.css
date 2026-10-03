@@ -88,12 +88,13 @@ body {
 }
 .hint-bubble[data-tail="top"]::before {
   top: -5px;
-  left: 50%;
+  /* 말풍선을 화면 안으로 민 만큼 꼬리는 반대로 (원래 가리키던 곳 유지) */
+  left: calc(50% + var(--hint-shift, 0px));
   transform: translateX(-50%) rotate(135deg);
 }
 .hint-bubble[data-tail="bottom"]::before {
   bottom: -5px;
-  left: 50%;
+  left: calc(50% + var(--hint-shift, 0px));
   transform: translateX(-50%) rotate(-45deg);
 }
 /* 안내 중인 탭을 살짝 툭툭 밀어서 눈에 띄게 */
