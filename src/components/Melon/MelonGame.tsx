@@ -541,6 +541,8 @@ export default function MelonGame() {
   const greenBtn = `${chunky} ${jua} bg-[#7ED957] text-white shadow-[0_4px_0_#4FA834] hover:brightness-105 active:shadow-[0_1px_0_#4FA834]`;
   const plainBtn = `${chunky} ${jua} bg-white text-[#6B8F4E] shadow-[0_4px_0_#CFE3BF] active:shadow-[0_1px_0_#CFE3BF]`;
   const card = "rounded-[22px] border-[3px] border-[#D6EEC4] bg-[#FFFDF4]";
+  // 아래 랭킹·방법 카드는 사이트 기본 어두운 톤 (판만 밝게)
+  const darkCard = "rounded-[22px] border-[3px] border-[#9BDB7A]/20 bg-[#1C1E24]";
 
   return (
     <div className="mx-auto max-w-[920px] px-4 pt-6 pb-24">
@@ -561,7 +563,7 @@ export default function MelonGame() {
           </div>
           <div className="h-4 flex-1 overflow-hidden rounded-full bg-[#EAF4E0] p-[3px]">
             <div
-              className={`melon-candy h-full rounded-full transition-[width] duration-100 ease-linear ${
+              className={`h-full rounded-full transition-[width,background-color] duration-100 ease-linear ${
                 low ? "bg-[#FF8FA3]" : ratio < 0.35 ? "bg-[#FFD166]" : "bg-[#8EDB6A]"
               }`}
               style={{ width: `${(phase === "menu" ? 1 : ratio) * 100}%` }}
@@ -717,29 +719,25 @@ export default function MelonGame() {
 
       {/* 랭킹·방법 */}
       <div className={`mt-7 grid gap-4 sm:grid-cols-2 ${jua}`}>
-        <section className={`${card} p-5`}>
-          <h2 className="mb-3 text-xl text-[#5BB53C]">🏆 랭킹 TOP 10</h2>
+        <section className={`${darkCard} p-5`}>
+          <h2 className="mb-3 text-xl text-[#9BE15D]">🏆 랭킹 TOP 10</h2>
           {ranks === null ? (
-            <p className="text-sm text-[#A3B98F]">불러오는 중…</p>
+            <p className="text-sm text-white/35">불러오는 중…</p>
           ) : ranks.length === 0 ? (
-            <p className="text-sm text-[#A3B98F]">아직 기록이 없어요</p>
+            <p className="text-sm text-white/35">아직 기록이 없어요</p>
           ) : (
             <ol className="flex flex-col gap-1">
               {ranks.map((r, i) => (
                 <li
                   key={i}
-                  className={`flex items-center gap-3 rounded-xl px-2 py-1 text-base ${i < 3 ? "bg-[#F3FAEC]" : ""}`}
+                  className={`flex items-center gap-3 rounded-xl px-2 py-1 text-base ${i < 3 ? "bg-white/[0.04]" : ""}`}
                 >
                   <span className="w-7 text-center">
-                    {i < 3 ? (
-                      ["🥇", "🥈", "🥉"][i]
-                    ) : (
-                      <span className="text-[#B5C7A5]">{i + 1}</span>
-                    )}
+                    {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-white/35">{i + 1}</span>}
                   </span>
-                  <span className="flex-1 truncate text-[#5E7A48]">{r.name}</span>
-                  <span className="w-14 text-right text-[#5BB53C] tabular-nums">{r.score}점</span>
-                  <span className="w-[3.75rem] text-right text-xs text-[#B5C7A5] tabular-nums">
+                  <span className="flex-1 truncate text-white/85">{r.name}</span>
+                  <span className="w-14 text-right text-[#B6F36A] tabular-nums">{r.score}점</span>
+                  <span className="w-[3.75rem] text-right text-xs text-white/30 tabular-nums">
                     {rankDateLabel(r.createdAt)}
                   </span>
                 </li>
@@ -747,8 +745,8 @@ export default function MelonGame() {
             </ol>
           )}
         </section>
-        <section className={`${card} p-5 text-base leading-relaxed text-[#6B8F4E]`}>
-          <h2 className="mb-3 text-xl text-[#5BB53C]">🍈 게임 방법</h2>
+        <section className={`${darkCard} p-5 text-base leading-relaxed text-white/65`}>
+          <h2 className="mb-3 text-xl text-[#9BE15D]">🍈 게임 방법</h2>
           <ul className="flex flex-col gap-1">
             <li>드래그로 멜론을 네모나게 묶어요</li>
             <li>
@@ -757,7 +755,7 @@ export default function MelonGame() {
             </li>
             <li>시간은 약 2분, 10위 안에 들면 이름을 남길 수 있어요</li>
           </ul>
-          <p className="mt-4 text-xs text-[#B5C7A5]">개발 lee gm · 디자인 tae hb · 음악 lee sh</p>
+          <p className="mt-4 text-xs text-white/30">개발 lee gm · 디자인 tae hb · 음악 lee sh</p>
         </section>
       </div>
     </div>

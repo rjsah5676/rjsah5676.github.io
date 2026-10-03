@@ -8,7 +8,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { toDate } from "@/lib/rankDate";
+import { fillCreateTimes, toDate } from "@/lib/rankDate";
 
 // 곡·난이도별로 서브컬렉션을 나눠서 score 하나로만 정렬 (복합 인덱스 불필요)
 // rhythm_rankings/{songId}_{diff}/scores/{autoId}
@@ -26,7 +26,7 @@ export interface RhythmRanking {
   fc: boolean;
   ap: boolean;
   /** 달성 일자 */
-  createdAt?: Date | null;
+  createdAt: Date | null;
 }
 
 export async function getRhythmTop(
@@ -35,7 +35,7 @@ export async function getRhythmTop(
   count = 10
 ): Promise<RhythmRanking[]> {
   const snap = await getDocs(query(scoresOf(songId, diff), orderBy("score", "desc"), limit(count)));
-  return snap.docs.map((d) => {
+  const rows = snap.docs.map((d) => {
     const x = d.data();
     return {
       id: d.id,
@@ -48,6 +48,7 @@ export async function getRhythmTop(
       createdAt: toDate(x.createdAt),
     };
   });
+  return fillCreateTimes(`rhythm_rankings/${songId}_${diff}/scores`, rows);
 }
 
 export async function addRhythmRanking(

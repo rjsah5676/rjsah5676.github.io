@@ -54,22 +54,6 @@
     0 7px 0 rgba(124, 196, 90, 0.35);
 }
 
-/* 남은 시간 바: 사탕 줄무늬가 흘러감 */
-@keyframes melon-candy {
-  to {
-    background-position: 28px 0;
-  }
-}
-.melon-candy {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 255, 255, 0.35) 0 7px,
-    transparent 7px 14px
-  );
-  background-size: 28px 100%;
-  animation: melon-candy 0.8s linear infinite;
-}
-
 /* 10초 남았을 때 시간 글자 흔들림 */
 @keyframes melon-shake {
   0%,
