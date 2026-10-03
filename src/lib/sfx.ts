@@ -35,102 +35,45 @@ function env(c: AudioContext, peak: number, attack: number, decay: number, at = 
   return g;
 }
 
-/**
- * 나무판에 기물 놓는 "딱!" — 모달 합성.
- * 아주 짧은 타격(임펄스)이 나무의 고유 진동수 몇 개를 울리고 수십 ms 안에 사라짐.
- * 낮은 음이 길게 남으면 북소리처럼 들려서, 저음은 아주 짧게만 넣음.
+/*
+ * 체스·장기 착수음 (녹음 파일: public/audio/sfx/*.mp3)
+ * move-self 내 수 · move-opponent 상대 수 · capture 잡기 · castle 캐슬링
+ * check 체크/장군 · promote 승진 · premove 한수쉼
  */
-type Mode = [freq: number, amp: number, decayMs: number];
-const CLACK: Mode[] = [
-  [1180, 1, 38],
-  [1730, 0.75, 30],
-  [2690, 0.55, 22],
-  [3610, 0.35, 16],
-  [5230, 0.2, 10],
-  [210, 0.35, 9], // 판이 살짝 울리는 몸통 (짧게)
-];
-const CAPTURE: Mode[] = [
-  [1320, 1, 32],
-  [2010, 0.85, 26],
-  [3050, 0.6, 18],
-  [4420, 0.4, 12],
-  [6100, 0.25, 8],
-  [190, 0.4, 10],
+export type PieceSound =
+  "move-self" | "move-opponent" | "capture" | "castle" | "check" | "promote" | "premove";
+const PIECE_SOUNDS: PieceSound[] = [
+  "move-self",
+  "move-opponent",
+  "capture",
+  "castle",
+  "check",
+  "promote",
+  "premove",
 ];
 
-const bufCache = new Map<string, AudioBuffer>();
-function clackBuffer(c: AudioContext, kind: "move" | "capture", scale: number): AudioBuffer {
-  const key = `${kind}:${scale}:${c.sampleRate}`;
-  const hit = bufCache.get(key);
-  if (hit) return hit;
-  const sr = c.sampleRate;
-  const len = Math.floor(sr * 0.16);
-  const buf = c.createBuffer(1, len, sr);
-  const d = buf.getChannelData(0);
-  const modes = kind === "capture" ? CAPTURE : CLACK;
-  // 두 번 부딪히는 소리 (잡을 땐 기물끼리 한 번 더)
-  const hits =
-    kind === "capture"
-      ? [
-          [0, 1],
-          [0.028, 0.55],
-        ]
-      : [[0, 1]];
-  for (const [at, gain] of hits) {
-    const off = Math.floor(at * sr);
-    for (const [f0, amp, decay] of modes) {
-      const f = f0 * scale;
-      const k = 1000 / (decay * sr);
-      const w = (2 * Math.PI * f) / sr;
-      const ph = Math.random() * Math.PI * 2;
-      for (let i = 0; off + i < len; i++) {
-        const e = Math.exp(-i * k);
-        if (e < 0.001) break;
-        d[off + i] += gain * amp * e * Math.sin(w * i + ph);
-      }
-    }
-    // 타격 순간의 "틱" (1.5ms 노이즈)
-    const n = Math.floor(sr * 0.0015);
-    for (let i = 0; i < n && off + i < len; i++)
-      d[off + i] += gain * 0.9 * (Math.random() * 2 - 1) * (1 - i / n);
-  }
-  // 정규화
-  let peak = 0;
-  for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(d[i]));
-  if (peak > 0) for (let i = 0; i < len; i++) d[i] /= peak;
-  bufCache.set(key, buf);
-  return buf;
-}
-
-/**
- * 실제 녹음 파일이 있으면 그걸 씀: public/audio/sfx/piece-move.mp3, piece-capture.mp3
- * (없거나 못 읽으면 위의 합성음으로)
- */
 const samples = new Map<string, Promise<AudioBuffer | null>>();
-function sample(c: AudioContext, kind: "move" | "capture") {
-  const url = `/audio/sfx/piece-${kind}.mp3`;
-  let p = samples.get(url);
+function sample(c: AudioContext, name: PieceSound) {
+  let p = samples.get(name);
   if (!p) {
-    p = fetch(url)
+    p = fetch(`/audio/sfx/${name}.mp3`)
       .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
       .then((b) => c.decodeAudioData(b))
       .catch(() => null);
-    samples.set(url, p);
+    samples.set(name, p);
   }
   return p;
 }
 
-/** 기물 놓는 소리. scale은 음높이 배율 (장기 알은 크고 두꺼워서 조금 낮게) */
-export function playPiece(kind: "move" | "capture" = "move", vol = 1, scale = 1) {
+export function playPiece(name: PieceSound, vol = 1) {
   const c = ac();
   if (!c) return;
-  void sample(c, kind).then((rec) => {
+  void sample(c, name).then((buf) => {
+    if (!buf) return;
     const src = c.createBufferSource();
-    src.buffer = rec ?? clackBuffer(c, kind, scale);
-    // 매번 살짝 다르게 (녹음 파일은 장기일 때 조금 낮게)
-    src.playbackRate.value = (rec ? scale ** 0.5 : 1) * (0.97 + Math.random() * 0.06);
+    src.buffer = buf;
     const g = c.createGain();
-    g.gain.value = (rec ? 0.9 : 0.55) * vol;
+    g.gain.value = vol;
     src.connect(g).connect(c.destination);
     src.start();
   });
@@ -140,8 +83,7 @@ export function playPiece(kind: "move" | "capture" = "move", vol = 1, scale = 1)
 export function preloadPieceSounds() {
   const c = ac();
   if (!c) return;
-  void sample(c, "move");
-  void sample(c, "capture");
+  PIECE_SOUNDS.forEach((n) => void sample(c, n));
 }
 
 /** 깃발 꽂기 "톡" (뽑을 땐 음이 내려감) */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { chessPieces, useMoveSound } from "@/hooks/useMoveSound";
+import { chessSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
 import { Chess } from "chess.js";
 import ChessBoard, { Piece } from "./ChessBoard";
 import { CHESS_BOTS, type ChessBot } from "./chessBots";
@@ -131,10 +131,9 @@ export default function ChessAIGame() {
   const { bestMove, newGame } = useStockfish();
   const loaded = useRef(false);
 
-
   const bot: ChessBot = CHESS_BOTS.find((b) => b.rating === rating) ?? CHESS_BOTS[2];
   const game = useMemo(() => replay(moves ?? []), [moves]);
-  useMoveSound(moves ? moves.length : -1, chessPieces(game.fen()));
+  useMoveSound(moves ? moves.length : -1, chessSoundInfo(game.fen(), moves?.at(-1), myColor));
   const end = moves ? endText(game, myColor) : null;
   const over = !!end || resigned;
   const aiColor: Color = myColor === "w" ? "b" : "w";

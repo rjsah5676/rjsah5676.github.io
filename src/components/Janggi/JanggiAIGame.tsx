@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { janggiPieces, useMoveSound } from "@/hooks/useMoveSound";
+import { janggiSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
 import JanggiBoard from "./JanggiBoard";
 import { END_REASON, SIDE_KO, SideBar } from "./JanggiParts";
 import { useJanggiAI } from "./useJanggiAI";
@@ -108,7 +108,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     [settings]
   );
   const game = useMemo(() => Janggi.replay(moves ?? [], setup), [moves, setup]);
-  useMoveSound(moves ? moves.length : -1, janggiPieces(game.fen()), moves?.at(-1) === "pass", 0.85);
+  useMoveSound(moves ? moves.length : -1, janggiSoundInfo(game.fen(), moves?.at(-1), settings.me));
   const end = moves ? game.end() : null;
   const over = !!end || resigned;
   const ai: Color = settings.me === "w" ? "b" : "w";

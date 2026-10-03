@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { janggiPieces, useMoveSound } from "@/hooks/useMoveSound";
+import { janggiSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
 import JanggiBoard from "./JanggiBoard";
 import { END_REASON, SIDE_KO, fmtScore } from "./JanggiParts";
 import { PieceGlyph } from "./JanggiBoard";
@@ -314,9 +314,7 @@ export default function JanggiRoomView({
   // 낙관적 수까지 포함한 화면상 수 — 서버 반영 때 한 번 더 울리지 않도록
   useMoveSound(
     room && display.fen ? room.moves.length + (display.fen !== room.fen ? 1 : 0) : -1,
-    janggiPieces(display.fen),
-    display.last === "pass",
-    0.85
+    janggiSoundInfo(display.fen, display.last, me)
   );
 
   const clock = room ? liveClock(room, now) : { w: 0, b: 0 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { chessPieces, useMoveSound } from "@/hooks/useMoveSound";
+import { chessSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
 import { Chess } from "chess.js";
 import ChessBoard from "./ChessBoard";
 import ChessChat from "./ChessChat";
@@ -348,8 +348,7 @@ export default function ChessRoomView({
   // 낙관적 수까지 포함한 화면상 수 — 서버 반영 때 한 번 더 울리지 않도록
   useMoveSound(
     room && display.fen ? room.moves.length + (display.fen !== room.fen ? 1 : 0) : -1,
-    chessPieces(display.fen),
-    display.last === "pass"
+    chessSoundInfo(display.fen, display.last, me)
   );
 
   const clock = room ? liveClock(room, now) : { w: 0, b: 0 };
