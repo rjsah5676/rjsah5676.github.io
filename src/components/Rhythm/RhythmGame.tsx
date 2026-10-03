@@ -664,21 +664,6 @@ export default function RhythmGame() {
         accent="#A78BFA"
         desc="DFJK 4키 리듬게임 · 내 mp3도 자동 채보"
         guide={RHYTHM_GUIDE}
-        rank={
-          mode === "builtin"
-            ? {
-                sub: `${song.title} · ${diffLabel}`,
-                render: () => (
-                  <RankingBoard
-                    songId={song.id}
-                    diff={diff}
-                    label={`${song.title} ${diffLabel}`}
-                    bare
-                  />
-                ),
-              }
-            : undefined
-        }
       />
       {syncPrompt && (
         <div
@@ -817,6 +802,9 @@ export default function RhythmGame() {
               {loading ? "곡 준비 중…" : "시작 (Enter)"}
             </button>
             {err && <p className="mt-2 text-center font-mono text-xs text-red-300">{err}</p>}
+            <div className="mt-5">
+              <RankingBoard songId={song.id} diff={diff} label={`${song.title} ${diffLabel}`} />
+            </div>
           </div>
         )}
 

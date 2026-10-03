@@ -74,7 +74,7 @@ export default function GameHeader({
     <header
       ref={ref}
       data-game-header
-      className={`mb-4 scroll-mt-[114px] text-left sm:mb-5 ${className}`}
+      className={`@container mb-4 scroll-mt-[114px] text-left sm:mb-5 ${className}`}
     >
       <div className="flex items-center gap-3">
         <div
@@ -93,7 +93,7 @@ export default function GameHeader({
               {title}
             </h1>
             <span
-              className="hidden shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase min-[420px]:inline"
+              className="hidden shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase @lg:inline"
               style={{ color: accent }}
             >
               {en}
@@ -111,9 +111,9 @@ export default function GameHeader({
               className={`${pill} border-white/12 bg-white/[0.04] text-white/80 hover:border-white/30 hover:text-white`}
             >
               <span aria-hidden>📖</span>
-              <span className="sm:hidden">가이드</span>
-              <span className="hidden sm:inline">게임 가이드</span>
-              <span className="hidden text-white/35 sm:inline" aria-hidden>
+              <span className="@2xl:hidden">가이드</span>
+              <span className="hidden @2xl:inline">게임 가이드</span>
+              <span className="hidden text-white/35 @2xl:inline" aria-hidden>
                 ›
               </span>
             </button>
@@ -126,9 +126,9 @@ export default function GameHeader({
               className={`${pill} border-[#FDE047]/30 bg-[#FDE047]/[0.07] text-[#FDE68A] hover:border-[#FDE047]/60`}
             >
               <span aria-hidden>🏆</span>
-              <span className="hidden min-[420px]:inline">랭킹</span>
+              <span className="hidden @sm:inline">랭킹</span>
               {rank.teaser && (
-                <span className="hidden max-w-[11rem] truncate text-[11px] text-[#FDE68A]/60 lg:inline">
+                <span className="hidden max-w-[11rem] truncate text-[11px] text-[#FDE68A]/60 @4xl:inline">
                   {rank.teaser}
                 </span>
               )}
@@ -155,7 +155,7 @@ export default function GameHeader({
             </span>
           }
         >
-          <GuideView doc={guide} accent={accent} />
+          <GuideView doc={guide} accent={accent} onDone={() => setGuideOpen(false)} />
         </Modal>
       )}
       {rank && (

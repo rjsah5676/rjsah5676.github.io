@@ -1,4 +1,102 @@
 import { B, K, type GuideDoc } from "@/components/GuideView";
+import JanggiMoves from "@/components/guide/JanggiMoves";
+import melonStart from "@/img/guide/melon-start.webp";
+import melonDrag from "@/img/guide/melon-drag.webp";
+import melonPop from "@/img/guide/melon-pop.webp";
+import melonHud from "@/img/guide/melon-hud.webp";
+import rhythmSelect from "@/img/guide/rhythm-select.webp";
+import rhythmPlay from "@/img/guide/rhythm-play.webp";
+import rhythmPause from "@/img/guide/rhythm-pause.webp";
+import rhythmSettings from "@/img/guide/rhythm-settings.webp";
+import chessSetup from "@/img/guide/chess-setup.webp";
+import chessSelect from "@/img/guide/chess-select.webp";
+import chessHint from "@/img/guide/chess-hint.webp";
+import chessRanked from "@/img/guide/chess-ranked.webp";
+import janggiSetup from "@/img/guide/janggi-setup.webp";
+import janggiHint from "@/img/guide/janggi-hint.webp";
+import mineStart from "@/img/guide/mine-start.webp";
+import mineOpen from "@/img/guide/mine-open.webp";
+
+/** 그림 대신: 큰 이모지 + 짧은 칩 몇 개 */
+function Poster({ emoji, chips }: { emoji: string; chips?: string[] }) {
+  return (
+    <div className="flex flex-col items-center gap-4 text-center">
+      <div className="text-6xl sm:text-7xl">{emoji}</div>
+      {chips && (
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {chips.map((c) => (
+            <span
+              key={c}
+              className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1 text-xs text-white/80"
+            >
+              {c}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 리듬게임 판정표 */
+function JudgeTable() {
+  const rows: [string, string, string][] = [
+    ["PERFECT", "±45ms", "#7DF9FF"],
+    ["GREAT", "±90ms", "#4ADE80"],
+    ["GOOD", "±130ms", "#FBBF24"],
+    ["MISS", "그 밖", "#F87171"],
+  ];
+  return (
+    <div className="flex w-full max-w-xs flex-col gap-1.5 font-mono">
+      {rows.map(([j, w, c]) => (
+        <div
+          key={j}
+          className="flex items-center justify-between rounded-lg bg-white/[0.04] px-4 py-2 text-sm"
+        >
+          <b style={{ color: c }}>{j}</b>
+          <span className="text-white/70">{w}</span>
+        </div>
+      ))}
+      <div className="mt-1 text-center text-[11px] text-white/45">
+        S+ 97% · S 94% · A 90% · B 80% · C 70%
+      </div>
+    </div>
+  );
+}
+
+/** 지뢰찾기: 숫자 위 동시 클릭 예시 */
+function ChordDemo() {
+  const cells = ["🚩", "", "", "", "2", "", "🚩", "", ""];
+  return (
+    <div className="flex items-center gap-4">
+      <div className="grid grid-cols-3 gap-1">
+        {cells.map((c, i) => (
+          <div
+            key={i}
+            className={`flex h-12 w-12 items-center justify-center rounded-md text-lg font-bold ${
+              i === 4 ? "bg-[#1C1E24] text-[#4ADE80]" : "bg-[#2B2E38]"
+            }`}
+          >
+            {c}
+          </div>
+        ))}
+      </div>
+      <div className="text-3xl text-white/40">→</div>
+      <div className="grid grid-cols-3 gap-1">
+        {cells.map((c, i) => (
+          <div
+            key={i}
+            className={`flex h-12 w-12 items-center justify-center rounded-md text-lg font-bold ${
+              c === "🚩" ? "bg-[#2B2E38]" : "bg-[#1C1E24] text-[#60A5FA]"
+            }`}
+          >
+            {c === "🚩" ? "🚩" : i === 4 ? <span className="text-[#4ADE80]">2</span> : "✓"}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /*
  * 게임별 가이드 (헤더의 [게임 가이드] 모달).
@@ -6,6 +104,58 @@ import { B, K, type GuideDoc } from "@/components/GuideView";
  */
 
 export const MELON_GUIDE: GuideDoc = {
+  slides: [
+    {
+      title: "멜론을 묶어 터뜨려요",
+      image: melonStart,
+      body: (
+        <>
+          판 가득 깔린 숫자 멜론을 네모로 묶어서 합이 <B>10</B> 또는 <B>20</B>이 되면 펑! 시작하기를
+          누르면 바로 시작해요.
+        </>
+      ),
+    },
+    {
+      title: "드래그로 네모 만들기",
+      image: melonDrag,
+      body: (
+        <>
+          누른 채로 끌면 네모가 잡혀요. 안에 든 숫자 합이 10이나 20일 때 손을 떼면 터져요. 틀려도
+          감점은 없어요.
+        </>
+      ),
+    },
+    {
+      title: "터뜨린 개수 = 점수",
+      image: melonPop,
+      body: (
+        <>
+          터진 자리는 빈칸이 돼요. 빈칸을 사이에 두고 멀리 떨어진 숫자끼리도 한 네모로 묶을 수
+          있어요. 많이 묶을수록 이득!
+        </>
+      ),
+    },
+    {
+      title: "2분 타임어택",
+      image: melonHud,
+      body: (
+        <>
+          시간 바가 다 줄면 끝. 10초 남으면 빨갛게 바뀌어요. 🔊로 볼륨 조절, 모바일은 <B>⛶ 크게</B>
+          로 전체 화면.
+        </>
+      ),
+    },
+    {
+      title: "고수 팁",
+      visual: <Poster emoji="🍈" chips={["3~5개로 20 만들기", "큰 숫자 먼저", "가장자리부터"]} />,
+      body: (
+        <>
+          바로 붙은 짝만 노리기보다 여러 개를 묶어 20을 만들면 점수가 쑥쑥. 짝이 귀한 7·8·9는 먼저
+          처리하세요. 10위 안에 들면 이름을 남길 수 있어요.
+        </>
+      ),
+    },
+  ],
   lead: (
     <>
       판 가득 깔린 숫자 멜론을 네모로 묶어서, 합이 <B>10</B> 또는 <B>20</B>이 되면 펑! 시간 안에
@@ -65,6 +215,62 @@ export const MELON_GUIDE: GuideDoc = {
 };
 
 export const RHYTHM_GUIDE: GuideDoc = {
+  slides: [
+    {
+      title: "곡과 난이도 고르기",
+      image: rhythmSelect,
+      body: (
+        <>
+          <K>←</K>
+          <K>→</K> 곡, <K>↑</K>
+          <K>↓</K> 난이도, <K>Enter</K> 시작. <B>내 음악으로 플레이</B>에서 mp3를 넣으면 자동으로
+          채보를 만들어 줘요.
+        </>
+      ),
+    },
+    {
+      title: "판정선에서 누르기",
+      image: rhythmPlay,
+      body: (
+        <>
+          노트가 아래 선에 닿는 순간 <K>D</K>
+          <K>F</K>
+          <K>J</K>
+          <K>K</K>. 롱노트는 꼬리 끝까지 누르고 있어요. 모바일은 레인을 터치. <K>Esc</K> 일시정지.
+        </>
+      ),
+    },
+    {
+      title: "판정과 랭크",
+      visual: <JudgeTable />,
+      body: (
+        <>
+          정확도는 PERFECT 100% · GREAT 70% · GOOD 40%. MISS가 나면 HP가 크게 깎이고, 바닥나면
+          FAILED. 미스 없이 끝내면 FC, 전부 PERFECT면 AP!
+        </>
+      ),
+    },
+    {
+      title: "싱크 맞추기",
+      image: rhythmPause,
+      body: (
+        <>
+          기기마다 소리가 늦게 나와요. 일시정지 화면에 이번 판 평균 타이밍이 나오고 버튼 하나로
+          적용돼요. 처음엔 꼭 한 번 맞춰 주세요.
+        </>
+      ),
+    },
+    {
+      title: "내 취향대로 설정",
+      image: rhythmSettings,
+      body: (
+        <>
+          노트 속도, 싱크, 볼륨, 타격음, 스킨. <B>레인 배치</B>(미러·랜덤)와 <B>노트 가림</B>
+          (페이드·서든)은 실력 연습용이에요.
+        </>
+      ),
+    },
+  ],
   lead: (
     <>
       위에서 떨어지는 노트가 판정선에 닿는 순간 키를 누르는 4키 리듬게임이에요. 기본 곡 말고도 내
@@ -205,6 +411,58 @@ const RANKED_ITEMS = (lead: string, moves: string, time: string) => [
 ];
 
 export const CHESS_GUIDE: GuideDoc = {
+  slides: [
+    {
+      title: "친구와 온라인 대국",
+      visual: <Poster emoji="🌐" chips={["방 만들기", "초대 링크", "제한 시간", "관전·채팅"]} />,
+      body: (
+        <>
+          <B>온라인 대국</B> 탭에서 방을 만들어 링크를 보내면 끝. 무르기·무승부는 상대가 수락해야
+          하고, 방장은 일시정지와 시간 추가를 할 수 있어요.
+        </>
+      ),
+    },
+    {
+      title: "AI 상대 고르기",
+      image: chessSetup,
+      body: (
+        <>
+          <B>AI와 두기</B> 탭에서 레이팅별 상대를 골라요. 높은 단계는 Stockfish 엔진이 진지하게
+          둬요. 대국은 브라우저에 저장돼서 이어 둘 수 있어요.
+        </>
+      ),
+    },
+    {
+      title: "기물 움직이기",
+      image: chessSelect,
+      body: (
+        <>
+          내 기물을 누르면 갈 수 있는 칸이 표시돼요. 끌어서 놓아도 돼요. 폰이 끝까지 가면 승진할
+          기물을 고르고, 캐슬링은 킹을 두 칸 옮기면 돼요.
+        </>
+      ),
+    },
+    {
+      title: "💡 힌트",
+      image: chessHint,
+      body: (
+        <>
+          막힐 땐 <B>힌트</B>! 엔진이 추천하는 수를 초록색으로 표시해 줘요. 무르기도 내 차례까지
+          되돌려요.
+        </>
+      ),
+    },
+    {
+      title: "🏆 AI 랭킹전",
+      image: chessRanked,
+      body: (
+        <>
+          랭킹 모드를 켜면 무르기·힌트 없이 진검승부. 순위는 <B>더 센 상대를 이긴 기록이 항상 위</B>
+          , 같은 상대끼리는 기물 우세·적은 수·짧은 시간으로 매긴 판 점수 순이에요.
+        </>
+      ),
+    },
+  ],
   lead: (
     <>친구와 실시간으로 두는 온라인 체스, 그리고 실력별 AI와의 대국까지. 브라우저에서 바로 둬요.</>
   ),
@@ -252,6 +510,80 @@ export const CHESS_GUIDE: GuideDoc = {
 };
 
 export const JANGGI_GUIDE: GuideDoc = {
+  slides: [
+    {
+      title: "위인 AI와 상차림 고르기",
+      image: janggiSetup,
+      body: (
+        <>
+          급수가 다른 위인 중 상대를 고르고, 마·상 배치(상차림)를 정해요. 초는 먼저 두고, 한은 덤
+          1.5점을 받아요.
+        </>
+      ),
+    },
+    {
+      title: "궁·사 — 궁성 안에서 한 칸",
+      visual: <JanggiMoves piece="king" />,
+      body: (
+        <>궁성 밖으로는 못 나가요. 궁성의 대각선 선 위에서는 대각선으로도 한 칸 갈 수 있어요.</>
+      ),
+    },
+    {
+      title: "차 — 가장 강한 기물",
+      visual: <JanggiMoves piece="chariot" />,
+      body: <>가로·세로로 막힐 때까지 쭉. 궁성 안에선 대각선 선도 따라가요. 점수 13점.</>,
+    },
+    {
+      title: "포 — 하나를 넘어서",
+      visual: <JanggiMoves piece="cannon" />,
+      body: (
+        <>
+          반드시 기물 하나를 뛰어넘어야 움직이고 잡을 수 있어요(넘을 게 없으면 ✕). 포끼리는 넘지도
+          잡지도 못해요.
+        </>
+      ),
+    },
+    {
+      title: "마 — 한 칸 가고 대각선",
+      visual: <JanggiMoves piece="horse" />,
+      body: <>곧게 한 칸 간 뒤 대각선 한 칸. 첫 칸이 막히면(멱) 그쪽으로는 못 가요.</>,
+    },
+    {
+      title: "상 — 한 칸 가고 대각선 두 칸",
+      visual: <JanggiMoves piece="elephant" />,
+      body: <>곧게 한 칸, 이어서 대각선 두 칸. 가는 길 중간이 하나라도 막히면 못 가요.</>,
+    },
+    {
+      title: "졸·병 — 앞이나 옆으로",
+      visual: <JanggiMoves piece="soldier" />,
+      body: <>앞이나 옆으로 한 칸. 뒤로는 못 가요. 상대 궁성 안에서는 앞쪽 대각선도 가능해요.</>,
+    },
+    {
+      title: "이기는 법과 특별 규칙",
+      visual: <Poster emoji="📜" chips={["외통 = 승리", "한수쉼", "빅장", "반복수 금지"]} />,
+      body: (
+        <>
+          장군을 피할 수 없게 만들면 승리. 장군이 아니면 한 수 쉴 수 있고, 두 궁이 마주 보는
+          빅장·양쪽 연속 쉼·200수는 점수로 판정해요. 같은 국면을 세 번째 만드는 수는 금지.
+        </>
+      ),
+    },
+    {
+      title: "💡 힌트",
+      image: janggiHint,
+      body: <>가장 강한 AI가 생각한 수를 초록색으로 보여 줘요. 처음 배울 때 따라 둬 보세요.</>,
+    },
+    {
+      title: "🏆 AI 랭킹전 · 온라인 대국",
+      image: chessRanked,
+      body: (
+        <>
+          랭킹 모드는 무르기·힌트 없이. <B>더 센 위인을 이긴 기록이 항상 위</B>예요. 친구와는{" "}
+          <B>온라인 대국</B> 탭에서 방을 만들어 둬요.
+        </>
+      ),
+    },
+  ],
   lead: (
     <>
       우리 장기를 온라인으로 친구와, 또는 역사 속 위인 AI와 둬요. 처음이라면 아래 기물 이동부터
@@ -340,6 +672,54 @@ export const JANGGI_GUIDE: GuideDoc = {
 };
 
 export const MINE_GUIDE: GuideDoc = {
+  slides: [
+    {
+      title: "아무 칸이나 눌러 시작",
+      image: mineStart,
+      body: (
+        <>
+          첫 칸은 항상 안전하고 주변이 넓게 열려요. 지뢰는 99개, 찍을 필요 없이 논리만으로 풀리는
+          판만 나와요.
+        </>
+      ),
+    },
+    {
+      title: "숫자 = 주변 8칸의 지뢰 수",
+      image: mineOpen,
+      body: (
+        <>
+          닫힌 이웃 칸 수가 숫자와 같으면 전부 지뢰, 숫자만큼 깃발이 꽂혀 있으면 나머지는 전부
+          안전해요.
+        </>
+      ),
+    },
+    {
+      title: "깃발과 한 번에 열기",
+      visual: <ChordDemo />,
+      body: (
+        <>
+          <B>오른쪽 클릭</B>으로 깃발. 숫자 위에서 <B>좌+우 동시 클릭</B>하면 깃발 수가 맞을 때
+          나머지 이웃 칸이 한 번에 열려요.
+        </>
+      ),
+    },
+    {
+      title: "모바일에서는 꾹",
+      visual: (
+        <Poster emoji="👆" chips={["탭 = 열기", "닫힌 칸 꾹 = 깃발", "숫자 꾹 = 한 번에 열기"]} />
+      ),
+      body: (
+        <>
+          짧게 탭하면 열고, 닫힌 칸을 꾹 누르면 깃발, 열린 숫자를 꾹 누르면 주변을 한 번에 열어요.
+        </>
+      ),
+    },
+    {
+      title: "기록 도전",
+      visual: <Poster emoji="⏱" chips={["첫 칸부터 시간 측정", "클리어하면 이름 등록"]} />,
+      body: <>1-2-1, 1-2-2-1 같은 자주 나오는 모양을 익혀 두면 훨씬 빨라져요.</>,
+    },
+  ],
   lead: (
     <>
       숫자를 단서로 지뢰 99개를 피해 모든 칸을 여는 고급 난이도 지뢰찾기예요. 찍을 필요 없이
