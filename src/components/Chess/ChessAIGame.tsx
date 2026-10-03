@@ -243,9 +243,9 @@ export default function ChessAIGame() {
     }
     if (endSaid.current) return;
     endSaid.current = true;
-    if (resigned || end?.head === "패배") say("aiWin", 8000);
-    else if (end?.head === "승리!") say("aiLose", 8000);
-    else say("draw", 8000);
+    if (resigned || end?.head === "패배") say("aiWin", 15000);
+    else if (end?.head === "승리!") say("aiLose", 15000);
+    else say("draw", 15000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [over]);
 

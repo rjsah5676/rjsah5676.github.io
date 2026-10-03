@@ -204,7 +204,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     if (endSaid.current) return;
     endSaid.current = true;
     const aiWon = resigned || (!!end && (end.result === "1-0" ? "w" : "b") === ai);
-    say(aiWon ? "aiWin" : "aiLose", 8000);
+    say(aiWon ? "aiWin" : "aiLose", 15000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [over]);
 

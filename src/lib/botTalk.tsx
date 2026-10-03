@@ -37,7 +37,7 @@ export function useBotTalk(lines: Lines) {
   }, [lines]);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
-  const say = useCallback((ev: TalkEvent, hold = 4200) => {
+  const say = useCallback((ev: TalkEvent, hold = 8000) => {
     if (ev === "move" && Math.random() > MOVE_CHANCE) return;
     const text = pick(linesRef.current[ev]);
     if (!text) return;
