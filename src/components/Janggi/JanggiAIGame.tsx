@@ -4,19 +4,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import JanggiBoard from "./JanggiBoard";
 import { END_REASON, SIDE_KO, SideBar } from "./JanggiParts";
 import { useJanggiAI } from "./useJanggiAI";
-import { Janggi, SETUPS, describeMove, type Color, type Setup } from "@/lib/janggi/engine";
-import type { Level } from "@/lib/janggi/ai";
+import {
+  C,
+  Janggi,
+  R,
+  SETUPS,
+  describeMove,
+  parseSq,
+  type Color,
+  type Setup,
+} from "@/lib/janggi/engine";
+import { DEFAULT_JANGGI_BOT, JANGGI_BOTS, type JanggiBot } from "./janggiBots";
+import { SpeechBubble, useBotTalk } from "@/lib/botTalk";
 
 const SAVE_KEY = "janggi:ai";
-const LEVELS: { v: Level; label: string; desc: string }[] = [
-  { v: "easy", label: "쉬움", desc: "가끔 실수해요" },
-  { v: "normal", label: "보통", desc: "두 수 앞까지" },
-  { v: "hard", label: "어려움", desc: "여러 수 앞까지 읽어요" },
-];
 
 interface Settings {
   me: Color;
-  level: Level;
+  bot: string;
   mySetup: Setup;
   aiSetup: Setup;
 }
@@ -68,7 +73,7 @@ function Seg<T extends string>({
 export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
   const [settings, setSettings] = useState<Settings>({
     me: "w",
-    level: "normal",
+    bot: DEFAULT_JANGGI_BOT,
     mySetup: "heeh",
     aiSetup: "heeh",
   });
@@ -84,6 +89,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     try {
       const v = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null") as Saved | null;
       if (v?.s && Array.isArray(v.moves)) {
+        if (!JANGGI_BOTS.some((b) => b.id === v.s.bot)) v.s.bot = DEFAULT_JANGGI_BOT; // 예전 저장값
         // eslint-disable-next-line react-hooks/set-state-in-effect -- 저장된 대국 복원 (마운트 1회)
         setSettings(v.s);
         setMoves(v.moves);
@@ -111,6 +117,8 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
   const end = moves ? game.end() : null;
   const over = !!end || resigned;
   const ai: Color = settings.me === "w" ? "b" : "w";
+  const bot: JanggiBot = JANGGI_BOTS.find((b) => b.id === settings.bot) ?? JANGGI_BOTS[2];
+  const { speech, say } = useBotTalk(bot.lines);
   const myTurn = !!moves && !over && game.turn() === settings.me;
 
   // AI 차례면 계산
@@ -121,7 +129,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- AI 계산 시작 표시
     setThinking(true);
     const started = performance.now();
-    ask(game.bd, ai, settings.level).then((mv) => {
+    ask(game.bd, ai, bot.ai).then((mv) => {
       // 너무 빨리 두면 정신없어서 최소 0.4초
       const wait = Math.max(0, 400 - (performance.now() - started));
       setTimeout(() => {
@@ -136,7 +144,40 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     };
     // movesLen이 바뀔 때만 (같은 국면에서 중복 계산 안 하게)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [movesLen, over, ai, settings.level]);
+  }, [movesLen, over, ai, settings.bot]);
+
+  // ── 대사: 한 수 진행될 때마다 상황에 맞게 ──
+  const seenLen = useRef(movesLen);
+  useEffect(() => {
+    const prev = seenLen.current;
+    seenLen.current = movesLen;
+    if (!moves || movesLen !== prev + 1 || movesLen <= 0) return;
+    const mv = moves[movesLen - 1];
+    const byUser = (movesLen % 2 === 1 ? "w" : "b") === settings.me;
+    const before = Janggi.replay(moves.slice(0, -1), setup);
+    const capturedType = mv === "pass" ? 0 : Math.abs(before.bd[parseSq(mv.slice(2, 4))]);
+    const check = game.inCheck();
+    if (byUser) {
+      if (capturedType === R || capturedType === C) say("userBigCapture");
+      else if (capturedType) say("userCapture");
+      else if (check) say("userCheck");
+      else say("move");
+    } else if (check) say("aiCheck");
+    else if (capturedType) say("aiCapture");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [movesLen]);
+  const endSaid = useRef(false);
+  useEffect(() => {
+    if (!over) {
+      endSaid.current = false;
+      return;
+    }
+    if (endSaid.current) return;
+    endSaid.current = true;
+    const aiWon = resigned || (!!end && (end.result === "1-0" ? "w" : "b") === ai);
+    say(aiWon ? "aiWin" : "aiLose", 8000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [over]);
 
   const notation = useMemo(() => {
     const g = new Janggi(setup);
@@ -161,12 +202,36 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
               { v: "b", label: "한 (후공 · 덤 1.5)" },
             ]}
           />
-          <Seg
-            label="난이도"
-            value={settings.level}
-            onChange={(level) => setSettings((s) => ({ ...s, level }))}
-            options={LEVELS.map((l) => ({ v: l.v, label: `${l.label} · ${l.desc}` }))}
-          />
+          <div>
+            <div className="mb-1.5 font-mono text-xs text-white/40">
+              상대 (급수는 대략적인 체감 기준)
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {JANGGI_BOTS.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setSettings((s) => ({ ...s, bot: b.id }))}
+                  className={`flex cursor-pointer flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                    settings.bot === b.id
+                      ? "border-[#6C63FF]/70 bg-[#6C63FF]/15"
+                      : "border-white/10 bg-white/[0.03] hover:border-white/25"
+                  }`}
+                >
+                  <span className="flex w-full items-center justify-between gap-2">
+                    <span className="text-xl">{b.emoji}</span>
+                    <span className="font-mono text-xs font-bold text-[#B7B2FF]">{b.rank}</span>
+                  </span>
+                  <span className="font-['Nanum_Gothic',sans-serif] text-sm text-white">
+                    {b.name}
+                  </span>
+                  <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/40">
+                    {b.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
           <Seg
             label="내 상차림"
             value={settings.mySetup}
@@ -184,10 +249,11 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
             onClick={() => {
               setResigned(false);
               setMoves([]);
+              say("greet");
             }}
             className={`${primaryBtn} py-2 text-sm`}
           >
-            대국 시작
+            {bot.emoji} {bot.name}({bot.rank})와 대국 시작
           </button>
         </div>
       </div>
@@ -208,10 +274,11 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
       return turnAt(n) === settings.me ? m.slice(0, Math.max(0, n)) : m;
     });
     setResigned(false);
+    say("undo");
   };
 
   let status: React.ReactNode;
-  if (resigned) status = <span className="text-white">기권 · AI 승리</span>;
+  if (resigned) status = <span className="text-white">기권 · {bot.name} 승리</span>;
   else if (end) {
     const win = (end.result === "1-0" ? "w" : "b") === settings.me;
     status = (
@@ -226,7 +293,8 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
         )}
       </>
     );
-  } else if (thinking) status = <span className="text-white/60">AI가 생각하는 중…</span>;
+  } else if (thinking)
+    status = <span className="text-white/60">{bot.name}이(가) 생각하는 중…</span>;
   else
     status = (
       <>
@@ -237,15 +305,16 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
 
   return (
     <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
-      <div className="w-full max-w-[max(300px,min(520px,calc((100dvh-380px)*0.9)))]">
+      <div className="w-full max-w-[max(300px,min(520px,calc((100dvh-420px)*0.9)))]">
         <SideBar
           color={top}
-          name={`AI · ${LEVELS.find((l) => l.v === settings.level)!.label}`}
+          name={`${bot.emoji} ${bot.name} · ${bot.rank}`}
           captured={caps[bottom]}
           score={game.score(top)}
           active={!over && game.turn() === top}
           hangul={hangul}
         />
+        <SpeechBubble speech={speech} />
         <JanggiBoard
           fen={game.fen()}
           orientation={bottom}
@@ -297,10 +366,10 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
                   }}
                   className="cursor-pointer rounded-full bg-red-500/85 px-3 py-1.5 font-mono text-xs text-white hover:bg-red-500"
                 >
-                  정말 기권
+                  네, 기권할게요
                 </button>
                 <button type="button" onClick={() => setConfirmResign(false)} className={btn}>
-                  취소
+                  계속 둘래요
                 </button>
               </>
             ) : (

@@ -7,9 +7,9 @@ import { NAV_GROUPS, type NavGroup } from "@/data/navMenu";
 import { SearchIcon, openSiteSearch } from "@/components/SiteSearch";
 
 /**
- * 상단 메뉴. 대제목을 누르면(PC는 올려도) 메뉴 바 아래로 넓은 패널이 열리고
+ * 상단 메뉴. 대제목은 목록 페이지 링크, PC는 마우스를 올리면(터치 기기는 ▾를 누르면) 메뉴 바 아래로 넓은 패널이 열리고
  * 하위 메뉴가 아이콘·설명 카드 격자로 나옴 → 항목이 늘어도 세로로 길게 늘어지지 않음.
- * 전체 목록 페이지는 패널 안 '전체 보기'로, 빠른 이동은 오른쪽 검색(Ctrl/⌘ K)으로.
+ * 빠른 이동은 오른쪽 검색(Ctrl/⌘ K)으로.
  */
 
 const trim = (p: string) => p.replace(/\/+$/, "") || "/";
@@ -140,25 +140,35 @@ export default function Nav() {
             const active = path === trim(g.href) || g.items.some((i) => path === trim(i.href));
             const isOpen = open === g.key;
             return (
-              <button
+              <div
                 key={g.key}
-                type="button"
-                aria-expanded={isOpen}
-                onClick={() => setOpen((o) => (o === g.key ? null : g.key))}
+                className="flex items-center"
                 onMouseEnter={() => {
                   if (!hoverable()) return;
                   clearHover();
                   hoverTimer.current = setTimeout(() => setOpen(g.key), open ? 0 : 120);
                 }}
-                className={`flex cursor-pointer items-center gap-1 px-2 py-3 font-mono text-[13px] whitespace-nowrap transition-colors min-[400px]:px-2.5 sm:px-3.5 sm:text-sm ${
-                  isOpen || active ? "text-[#8B84FF]" : "text-white/60 hover:text-white"
-                }`}
               >
-                {g.label}
-                <span className="text-white/35">
+                {/* 이름은 목록 페이지로, 화살표(터치 기기)·마우스 올리기(PC)로 패널 */}
+                <Link
+                  href={`${g.href}/`}
+                  onClick={() => setOpen(null)}
+                  className={`py-3 pl-2 font-mono text-[13px] whitespace-nowrap transition-colors min-[400px]:pl-2.5 sm:pl-3.5 sm:text-sm ${
+                    isOpen || active ? "text-[#8B84FF]" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  {g.label}
+                </Link>
+                <button
+                  type="button"
+                  aria-label={`${g.label} 하위 메뉴`}
+                  aria-expanded={isOpen}
+                  onClick={() => setOpen((o) => (o === g.key ? null : g.key))}
+                  className="cursor-pointer py-3 pr-2 pl-1 text-white/35 transition-colors hover:text-white min-[400px]:pr-2.5 sm:pr-3.5"
+                >
                   <Chevron open={isOpen} />
-                </span>
-              </button>
+                </button>
+              </div>
             );
           })}
         </div>

@@ -799,10 +799,10 @@ export default function JanggiRoomView({
                     }}
                     className="cursor-pointer rounded-full bg-red-500/85 px-3 py-1.5 font-mono text-xs text-white hover:bg-red-500"
                   >
-                    정말 기권
+                    네, 기권할게요
                   </button>
                   <button type="button" onClick={() => setConfirmResign(false)} className={btn}>
-                    취소
+                    계속 둘래요
                   </button>
                 </>
               ) : (

@@ -1,14 +1,17 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Faded from "@/components/Faded";
 import ChessLobby from "@/components/Chess/ChessLobby";
 import ChessRoomView from "@/components/Chess/ChessRoomView";
 import { useChessUser } from "@/components/Chess/useChessUser";
+import ChessAIGame from "@/components/Chess/ChessAIGame";
+import GameHeader from "@/components/GameHeader";
+import { useScrollToGame } from "@/hooks/useScrollToGame";
 
-// 정적 export라 동적 라우트 대신 ?room=ID 쿼리로 방을 구분
-function ChessApp() {
+// 정적 export라 동적 라우트 대신 ?room=ID 쿼리로 방을 구분 (기본은 로비, ?mode=ai면 AI 대국)
+function OnlineChess() {
   const router = useRouter();
   const params = useSearchParams();
   const roomId = params.get("room");
@@ -23,9 +26,9 @@ function ChessApp() {
   const go = (id: string | null, a?: "play" | "watch") =>
     router.push(id ? `/games/chess/?room=${id}${a ? `&as=${a}` : ""}` : "/games/chess/");
 
-  if (error) return <p className="pt-24 text-center font-mono text-sm text-red-400">{error}</p>;
+  if (error) return <p className="pt-10 text-center font-mono text-sm text-red-400">{error}</p>;
   if (!uid || !nickLoaded)
-    return <p className="pt-24 text-center font-mono text-sm text-white/40">접속 중…</p>;
+    return <p className="pt-10 text-center font-mono text-sm text-white/40">접속 중…</p>;
 
   if (!nick || editingNick) {
     const submit = () => {
@@ -35,7 +38,7 @@ function ChessApp() {
     };
     return (
       <Faded>
-        <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-6 pt-24 pb-24 text-center">
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-6 pt-10 pb-24 text-center">
           <div className="font-mono text-sm text-[#8B84FF]">♞ 닉네임을 입력해주세요</div>
           <div className="flex w-full gap-2">
             <input
@@ -88,10 +91,49 @@ function ChessApp() {
   );
 }
 
+function ChessApp() {
+  const router = useRouter();
+  const params = useSearchParams();
+  // 기본은 온라인 대국, ?mode=ai면 AI 대국
+  const online = params.get("mode") !== "ai";
+  const topRef = useRef<HTMLDivElement>(null);
+  useScrollToGame(topRef);
+  const tab = (on: boolean) =>
+    `cursor-pointer rounded-full px-4 py-1.5 font-['Nanum_Gothic',sans-serif] text-sm transition-colors ${
+      on ? "bg-[#6C63FF] text-white" : "text-white/55 hover:text-white"
+    }`;
+  return (
+    <div ref={topRef} className="mx-auto max-w-5xl scroll-mt-[108px] px-3 pt-6 sm:px-6">
+      <GameHeader title="Chess" desc="방을 만들어 친구와 온라인으로 두거나, AI와 한 판" />
+      <div className="flex rounded-full border border-white/10 bg-[#1C1E24] p-1 w-fit">
+        <button type="button" className={tab(online)} onClick={() => router.push("/games/chess/")}>
+          온라인 대국
+        </button>
+        <button
+          type="button"
+          className={tab(!online)}
+          onClick={() => router.push("/games/chess/?mode=ai")}
+        >
+          AI와 두기
+        </button>
+      </div>
+      {online ? (
+        <OnlineChess />
+      ) : (
+        <div className="pt-5 pb-24">
+          <ChessAIGame />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ChessPage() {
   return (
     <Suspense fallback={null}>
-      <ChessApp />
+      <Faded>
+        <ChessApp />
+      </Faded>
     </Suspense>
   );
 }

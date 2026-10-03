@@ -5,7 +5,7 @@ import { pageMeta } from "@/lib/seo";
 export const metadata = pageMeta({
   title: "온라인 체스",
   description:
-    "방을 만들어 친구와 두는 실시간 온라인 체스. 제한 시간·선후공 선택, 무르기, 관전 지원.",
+    "방을 만들어 친구와 두는 실시간 온라인 체스와 AI 대국(레이팅 400~2400, Stockfish). 제한 시간·선후공 선택, 무르기, 관전 지원.",
   path: "/games/chess/",
 });
 

@@ -103,14 +103,14 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/games/chess",
         image: imgChess,
         label: "온라인 체스",
-        desc: "방 만들고 실시간 대국·관전",
+        desc: "실시간 대국·관전, AI 6단계(400~2400)",
         icon: "♟️",
       },
       {
         href: "/games/janggi",
         image: imgJanggi,
         label: "온라인 장기",
-        desc: "AI 대국(3단계)·온라인 대국",
+        desc: "실시간 대국, 위인 AI 6명(이순신 등)",
         icon: "將",
       },
       {

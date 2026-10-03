@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { chooseMove, type Level } from "@/lib/janggi/ai";
+import { chooseMove, type AIConfig, type Level } from "@/lib/janggi/ai";
 import type { Color } from "@/lib/janggi/engine";
 
 /** AI 수 계산 (워커가 안 되는 환경이면 메인 스레드에서) */
@@ -29,7 +29,7 @@ export function useJanggiAI() {
     };
   }, []);
 
-  return useCallback((board: Int8Array, color: Color, level: Level): Promise<string | null> => {
+  return useCallback((board: Int8Array, color: Color, level: Level | AIConfig): Promise<string | null> => {
     const w = worker.current;
     if (!w) return new Promise((res) => setTimeout(() => res(chooseMove(board, color, level)), 30));
     const id = ++seq.current;

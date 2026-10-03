@@ -134,18 +134,26 @@ function search(
   return best;
 }
 
-const LEVEL: Record<Level, { depth: number; ms: number; noise: number; blunder: number }> = {
+/** 탐색 깊이·시간, 평가에 섞는 무작위(점수 단위), 아무 수나 둘 확률 */
+export interface AIConfig {
+  depth: number;
+  ms: number;
+  noise: number;
+  blunder: number;
+}
+
+const LEVEL: Record<Level, AIConfig> = {
   easy: { depth: 1, ms: 300, noise: 2.5, blunder: 0.25 },
   normal: { depth: 2, ms: 900, noise: 0.6, blunder: 0 },
   hard: { depth: 6, ms: 1500, noise: 0, blunder: 0 },
 };
 
 /** 다음 수 고르기 ("pass" 가능). 둘 수 있는 수가 없으면 null */
-export function chooseMove(board: Int8Array, c: Color, level: Level): string | null {
+export function chooseMove(board: Int8Array, c: Color, level: Level | AIConfig): string | null {
   const bd = Int8Array.from(board);
   const legal = legalMoves(bd, c);
   if (!legal.length) return "pass";
-  const cfg = LEVEL[level];
+  const cfg = typeof level === "string" ? LEVEL[level] : level;
   if (Math.random() < cfg.blunder) return encode(legal[Math.floor(Math.random() * legal.length)]);
 
   const ctx: Ctx = { deadline: performance.now() + cfg.ms, nodes: 0, stop: false };

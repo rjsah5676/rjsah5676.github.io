@@ -25,11 +25,7 @@ function Online({ hangul }: { hangul: boolean }) {
   const [nickInput, setNickInput] = useState("");
 
   const go = (id: string | null, a?: "play" | "watch") =>
-    router.push(
-      id
-        ? `/games/janggi/?mode=online&room=${id}${a ? `&as=${a}` : ""}`
-        : "/games/janggi/?mode=online"
-    );
+    router.push(id ? `/games/janggi/?room=${id}${a ? `&as=${a}` : ""}` : "/games/janggi/");
 
   if (error) return <p className="pt-12 text-center font-mono text-sm text-red-400">{error}</p>;
   if (!uid || !nickLoaded)
@@ -95,7 +91,8 @@ function Online({ hangul }: { hangul: boolean }) {
 function JanggiApp() {
   const router = useRouter();
   const params = useSearchParams();
-  const online = params.get("mode") === "online" || !!params.get("room");
+  // 기본은 온라인 대국, ?mode=ai면 AI 대국
+  const online = params.get("mode") !== "ai";
   const topRef = useRef<HTMLDivElement>(null);
   useScrollToGame(topRef);
 
@@ -121,22 +118,25 @@ function JanggiApp() {
 
   return (
     <div ref={topRef} className="mx-auto max-w-5xl scroll-mt-[108px] px-3 pt-6 pb-24 sm:px-6">
-      <GameHeader title="Janggi" desc="한국 장기 — AI와 두거나, 방을 만들어 친구와 온라인으로" />
+      <GameHeader
+        title="Janggi"
+        desc="한국 장기 — 방을 만들어 친구와 온라인으로 두거나, AI와 한 판"
+      />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex rounded-full border border-white/10 bg-[#1C1E24] p-1">
           <button
             type="button"
-            className={tab(!online)}
+            className={tab(online)}
             onClick={() => router.push("/games/janggi/")}
           >
-            AI와 두기
+            온라인 대국
           </button>
           <button
             type="button"
-            className={tab(online)}
-            onClick={() => router.push("/games/janggi/?mode=online")}
+            className={tab(!online)}
+            onClick={() => router.push("/games/janggi/?mode=ai")}
           >
-            온라인 대국
+            AI와 두기
           </button>
         </div>
         <button

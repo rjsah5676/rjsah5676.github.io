@@ -169,7 +169,7 @@ export default function ChessLobby({ uid, nick, onChangeNick, onEnter }: Props) 
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pt-12 pb-24 sm:px-6">
+    <div className="mx-auto max-w-2xl px-4 pt-6 pb-24 sm:px-6">
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="font-mono text-sm text-[#8B84FF]">♞ 온라인 체스</div>
         <button type="button" onClick={onChangeNick} className={ghostBtn}>
