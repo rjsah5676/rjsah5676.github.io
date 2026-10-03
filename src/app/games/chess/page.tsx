@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Faded from "@/components/Faded";
 import ChessLobby from "@/components/Chess/ChessLobby";
@@ -8,7 +8,10 @@ import ChessRoomView from "@/components/Chess/ChessRoomView";
 import { useChessUser } from "@/components/Chess/useChessUser";
 import ChessAIGame from "@/components/Chess/ChessAIGame";
 import GameHeader from "@/components/GameHeader";
-import { useScrollToGame } from "@/hooks/useScrollToGame";
+import { CHESS_GUIDE } from "@/data/gameGuides";
+import { RankBoard, useAIRankTop } from "@/components/AIRank";
+import { chessOppLabel } from "@/components/Chess/chessBots";
+import { pointsOf } from "@/lib/aiScore";
 
 // 정적 export라 동적 라우트 대신 ?room=ID 쿼리로 방을 구분 (기본은 로비, ?mode=ai면 AI 대국)
 function OnlineChess() {
@@ -96,15 +99,28 @@ function ChessApp() {
   const params = useSearchParams();
   // 기본은 온라인 대국, ?mode=ai면 AI 대국
   const online = params.get("mode") !== "ai";
-  const topRef = useRef<HTMLDivElement>(null);
-  useScrollToGame(topRef);
+  const top = useAIRankTop("chess_ai_rankings");
   const tab = (on: boolean) =>
     `cursor-pointer rounded-full px-4 py-1.5 font-['Nanum_Gothic',sans-serif] text-sm transition-colors ${
       on ? "bg-[#6C63FF] text-white" : "text-white/55 hover:text-white"
     }`;
   return (
-    <div ref={topRef} className="mx-auto max-w-5xl scroll-mt-[108px] px-3 pt-6 sm:px-6">
-      <GameHeader title="Chess" desc="방을 만들어 친구와 온라인으로 두거나, AI와 한 판" />
+    <div className="mx-auto max-w-5xl px-3 pt-6 sm:px-6">
+      <GameHeader
+        icon="♟️"
+        title="온라인 체스"
+        en="Chess"
+        accent="#8B84FF"
+        desc="친구와 실시간 대국, 또는 AI와 한 판"
+        guide={CHESS_GUIDE}
+        rank={{
+          sub: "AI 랭킹전",
+          teaser: top
+            ? `1위 ${top.name} · vs ${chessOppLabel(top.opp)} ${pointsOf(top.score).toLocaleString()}`
+            : null,
+          render: () => <RankBoard coll="chess_ai_rankings" oppLabel={chessOppLabel} bare />,
+        }}
+      />
       <div className="flex rounded-full border border-white/10 bg-[#1C1E24] p-1 w-fit">
         <button type="button" className={tab(online)} onClick={() => router.push("/games/chess/")}>
           온라인 대국

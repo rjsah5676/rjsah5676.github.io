@@ -32,6 +32,8 @@ import HintBubble, { markHintSeen } from "@/components/HintBubble";
 import SongCarousel from "./SongCarousel";
 import HoldButton from "./HoldButton";
 import { RankingBoard, SubmitRanking } from "./RankingBoard";
+import GameHeader from "@/components/GameHeader";
+import { RHYTHM_GUIDE } from "@/data/gameGuides";
 import CustomMusic, { type CustomTrack } from "./CustomMusic";
 import { makeAutoChart } from "@/lib/rhythm/autochart";
 import { displayBpm } from "@/lib/rhythm/analyze";
@@ -655,6 +657,29 @@ export default function RhythmGame() {
   const diffLabel = DIFFICULTIES.find((x) => x.key === diff)!.label;
   return (
     <div>
+      <GameHeader
+        icon="🎹"
+        title="리듬게임"
+        en="Rhythm"
+        accent="#A78BFA"
+        desc="DFJK 4키 리듬게임 · 내 mp3도 자동 채보"
+        guide={RHYTHM_GUIDE}
+        rank={
+          mode === "builtin"
+            ? {
+                sub: `${song.title} · ${diffLabel}`,
+                render: () => (
+                  <RankingBoard
+                    songId={song.id}
+                    diff={diff}
+                    label={`${song.title} ${diffLabel}`}
+                    bare
+                  />
+                ),
+              }
+            : undefined
+        }
+      />
       {syncPrompt && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
@@ -792,9 +817,6 @@ export default function RhythmGame() {
               {loading ? "곡 준비 중…" : "시작 (Enter)"}
             </button>
             {err && <p className="mt-2 text-center font-mono text-xs text-red-300">{err}</p>}
-            <div className="mt-5">
-              <RankingBoard songId={song.id} diff={diff} label={`${song.title} ${diffLabel}`} />
-            </div>
           </div>
         )}
 

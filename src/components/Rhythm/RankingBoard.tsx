@@ -74,17 +74,22 @@ export function RankingBoard({
   songId,
   diff,
   label,
+  bare = false,
 }: {
   songId: string;
   diff: string;
   label: string;
+  /** 모달 안처럼 테두리·제목 없이 */
+  bare?: boolean;
 }) {
   const top = useTop(songId, diff, 0);
   return (
-    <div className="rounded-xl border border-white/10 bg-[#1C1E24] p-4">
-      <p className="mb-2 font-mono text-sm font-bold text-white">
-        랭킹 <span className="text-xs font-normal text-white/40">· {label} TOP 10</span>
-      </p>
+    <div className={bare ? "" : "rounded-xl border border-white/10 bg-[#1C1E24] p-4"}>
+      {!bare && (
+        <p className="mb-2 font-mono text-sm font-bold text-white">
+          랭킹 <span className="text-xs font-normal text-white/40">· {label} TOP 10</span>
+        </p>
+      )}
       {!top ? (
         <p className="py-6 text-center font-mono text-xs text-white/30">불러오는 중…</p>
       ) : top.error ? (

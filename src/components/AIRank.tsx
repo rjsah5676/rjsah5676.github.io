@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import RankList from "./RankList";
 import { addAIRank, getAIRanks, type AIRankColl, type AIRankRow } from "@/firestore/aiRankings";
-import { clockLabel, type ScoreResult } from "@/lib/aiScore";
+import { clockLabel, pointsOf, type ScoreResult } from "@/lib/aiScore";
 
 /*
  * 체스·장기 AI 랭킹 모드 공통 UI: 내 차례 시간 재기, 랭킹 모드 스위치, 기록 등록, 순위표.
@@ -112,12 +112,12 @@ export function RankSubmit({
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-['Nanum_Gothic',sans-serif] text-xs text-white/60">랭킹 점수</span>
         <span className="font-mono text-xl font-bold text-[#FDE047] tabular-nums">
-          {result.score.toLocaleString()}
+          {result.points.toLocaleString()}
         </span>
       </div>
       <div className="mt-1.5 flex flex-col gap-0.5 font-mono text-[11px] text-white/45">
         <div className="flex justify-between">
-          <span>기본</span>
+          <span>기본 (순위는 센 상대를 이긴 기록이 항상 위)</span>
           <span className="tabular-nums">{result.base.toLocaleString()}</span>
         </div>
         {result.parts.map((p) => (
@@ -162,15 +162,33 @@ export function RankSubmit({
   );
 }
 
+/** 1위 미리보기용 (헤더 랭킹 버튼) */
+export function useAIRankTop(coll: AIRankColl) {
+  const [top, setTop] = useState<AIRankRow | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getAIRanks(coll, 1)
+      .then((r) => alive && setTop(r[0] ?? null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [coll]);
+  return top;
+}
+
 /** 순위표 (refresh가 바뀌면 다시 불러옴) */
 export function RankBoard({
   coll,
   oppLabel,
   refresh = 0,
+  bare = false,
 }: {
   coll: AIRankColl;
   oppLabel: (opp: string) => string;
   refresh?: number;
+  /** 모달 안처럼 테두리·제목 없이 */
+  bare?: boolean;
 }) {
   const [rows, setRows] = useState<AIRankRow[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -184,8 +202,14 @@ export function RankBoard({
     };
   }, [coll, refresh]);
   return (
-    <div className="rounded-xl border border-white/10 bg-[#1C1E24] p-3">
-      <div className="mb-1.5 px-1.5 font-mono text-xs text-white/40">🏆 랭킹 TOP 10</div>
+    <div className={bare ? "" : "rounded-xl border border-white/10 bg-[#1C1E24] p-3"}>
+      {bare ? (
+        <p className="mb-2 px-1.5 text-[11px] text-white/40">
+          더 센 상대를 이긴 기록이 항상 위 · 같은 상대끼리는 판 점수 순
+        </p>
+      ) : (
+        <div className="mb-1.5 px-1.5 font-mono text-xs text-white/40">🏆 랭킹 TOP 10</div>
+      )}
       {failed ? (
         <p className="py-3 font-mono text-xs text-white/30">랭킹을 불러오지 못했어요</p>
       ) : !rows ? (
@@ -194,7 +218,7 @@ export function RankBoard({
         <RankList
           rows={rows.map((r) => ({
             name: r.name,
-            value: r.score.toLocaleString(),
+            value: pointsOf(r.score).toLocaleString(),
             sub: `vs ${oppLabel(r.opp)} · ${r.moves}수 · ${clockLabel(r.seconds)}`,
             date: r.createdAt,
           }))}

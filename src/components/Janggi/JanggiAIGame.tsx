@@ -17,10 +17,10 @@ import {
 } from "@/lib/janggi/engine";
 import { DEFAULT_JANGGI_BOT, JANGGI_BOTS, type JanggiBot } from "./janggiBots";
 import { SpeechBubble, useBotTalk } from "@/lib/botTalk";
+import { scrollToGameTop } from "@/components/GameHeader";
 import { clockLabel, janggiScore } from "@/lib/aiScore";
 import {
   NEW_CLOCK,
-  RankBoard,
   RankSubmit,
   RankedToggle,
   useTurnClock,
@@ -28,6 +28,8 @@ import {
 } from "@/components/AIRank";
 
 const SAVE_KEY = "janggi:ai";
+/** 힌트는 가장 센 단계로 */
+const HINT_AI = { depth: 6, ms: 1500, noise: 0, blunder: 0 };
 
 interface Settings {
   me: Color;
@@ -96,7 +98,8 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
   const [confirmResign, setConfirmResign] = useState(false);
   const [ranked, setRanked] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [rankRefresh, setRankRefresh] = useState(0);
+  const [hint, setHint] = useState<{ at: number; mv: string | null } | null>(null);
+  const [hints, setHints] = useState(0);
   const ask = useJanggiAI();
   const loaded = useRef(false);
 
@@ -277,6 +280,9 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
               setResigned(false);
               setSubmitted(false);
               setClock(NEW_CLOCK);
+              setHint(null);
+              setHints(0);
+              setTimeout(scrollToGameTop, 50);
               setMoves([]);
               say("greet");
             }}
@@ -284,14 +290,6 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
           >
             {bot.emoji} {bot.name}({bot.rank})와 {ranked ? "랭킹전" : "대국"} 시작
           </button>
-          <RankBoard
-            coll="janggi_ai_rankings"
-            oppLabel={(o) => {
-              const b = JANGGI_BOTS.find((x) => x.id === o);
-              return b ? `${b.name}(${b.rank})` : o;
-            }}
-            refresh={rankRefresh}
-          />
         </div>
       </div>
     );
@@ -369,6 +367,7 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
           onMove={(mv) => setMoves((m) => (m ? [...m, mv] : m))}
           hangul={hangul}
           banned={banned}
+          hint={!ranked && hint?.at === moves.length ? hint.mv : null}
         />
         <SideBar
           color={bottom}
@@ -392,13 +391,16 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
         {ranked && won && end && (
           <RankSubmit
             coll="janggi_ai_rankings"
-            result={janggiScore(bot.base, lead, myMoves, seconds, end.reason === "checkmate")}
+            result={janggiScore(
+              JANGGI_BOTS.indexOf(bot) + 1,
+              lead,
+              myMoves,
+              seconds,
+              end.reason === "checkmate"
+            )}
             entry={{ opp: bot.id, moves: myMoves, seconds, lead: Math.max(0, lead) }}
             done={submitted}
-            onSaved={() => {
-              setSubmitted(true);
-              setRankRefresh((n) => n + 1);
-            }}
+            onSaved={() => setSubmitted(true)}
           />
         )}
         <div className="flex flex-wrap gap-1.5">
@@ -410,6 +412,25 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
               className={btn}
             >
               ↶ 무르기
+            </button>
+          )}
+          {!ranked && !over && (
+            <button
+              type="button"
+              disabled={!myTurn || thinking || hint?.at === moves.length}
+              onClick={async () => {
+                const at = moves.length;
+                setHint({ at, mv: null });
+                const mv = await ask(game.bd, settings.me, HINT_AI, banned);
+                setHint((h) => (h?.at === at ? { at, mv } : h));
+                if (mv) setHints((n) => n + 1);
+              }}
+              className={btn}
+              title="가장 강한 AI가 생각한 수를 판에 표시"
+            >
+              {hint?.at === moves.length && !hint.mv
+                ? "💡 생각 중…"
+                : `💡 힌트${hints ? ` ${hints}` : ""}`}
             </button>
           )}
           <button

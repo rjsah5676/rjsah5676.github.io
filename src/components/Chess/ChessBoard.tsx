@@ -20,6 +20,8 @@ interface Props {
   /** 내 차례 + 대국중일 때만 true */
   canMove: boolean;
   lastMove?: string;
+  /** 힌트로 보여 줄 수 (uci) */
+  hint?: string | null;
   onMove: (uci: string) => void;
 }
 
@@ -52,7 +54,7 @@ export function Piece({
   );
 }
 
-export default function ChessBoard({ fen, orientation, canMove, lastMove, onMove }: Props) {
+export default function ChessBoard({ fen, orientation, canMove, lastMove, hint, onMove }: Props) {
   const boardRef = useRef<HTMLDivElement>(null);
   const game = useMemo(() => new Chess(fen), [fen]);
   const board = useMemo(() => game.board(), [game]);
@@ -199,6 +201,13 @@ export default function ChessBoard({ fen, orientation, canMove, lastMove, onMove
               >
                 {last.includes(sq) && <div className="absolute inset-0 bg-[#F5D94A]/45" />}
                 {selected === sq && <div className="absolute inset-0 bg-[#F5D94A]/65" />}
+                {hint && (hint.slice(0, 2) === sq || hint.slice(2, 4) === sq) && (
+                  <div
+                    className={`pointer-events-none absolute inset-[3px] rounded-md border-[3px] border-[#10B981] ${
+                      hint.slice(2, 4) === sq ? "bg-[#34D399]/40" : "bg-[#34D399]/15"
+                    }`}
+                  />
+                )}
                 {checkSq === sq && (
                   <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,40,40,.95)_0%,rgba(255,40,40,.5)_45%,transparent_75%)]" />
                 )}

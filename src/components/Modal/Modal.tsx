@@ -17,7 +17,13 @@ export interface ModalProps {
   closeOnBackdrop?: boolean;
   // 열릴 때 포커스 줄 요소 (없으면 모달 자체)
   initialFocusRef?: React.RefObject<HTMLElement | null>;
+  // 패널 폭 (기본 sm). 내용이 길면 패널 안에서 스크롤
+  size?: "sm" | "md" | "lg";
+  // 오른쪽 위 닫기(×) 버튼
+  closeButton?: boolean;
 }
+
+const SIZE = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-xl" } as const;
 
 /**
  * 공통 모달.
@@ -36,6 +42,8 @@ export default function Modal({
   footer,
   closeOnBackdrop = true,
   initialFocusRef,
+  size = "sm",
+  closeButton = false,
 }: ModalProps) {
   const [mounted, setMounted] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -114,10 +122,23 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#1C1E24] p-6 shadow-2xl outline-none [animation:modal-pop_180ms_ease-out] sm:p-7"
+        className={`thin-scroll relative max-h-[88dvh] w-full ${SIZE[size]} overflow-y-auto rounded-2xl border border-white/10 bg-[#1C1E24] p-6 shadow-2xl outline-none [animation:modal-pop_180ms_ease-out] sm:p-7`}
       >
+        {closeButton && (
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => onCloseRef.current("backdrop")}
+            className="absolute top-4 right-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-lg text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            ×
+          </button>
+        )}
         {title && (
-          <h2 id={titleId} className="mb-3 font-mono text-base font-medium text-white">
+          <h2
+            id={titleId}
+            className={`mb-3 font-mono text-base font-medium text-white ${closeButton ? "pr-8" : ""}`}
+          >
             {title}
           </h2>
         )}

@@ -17,7 +17,7 @@ import bgmSound from "@/sounds/melongame/bgm.mp3";
 import endSound from "@/sounds/melongame/endbgm.mp3";
 import "@/css/Page/melon.css";
 import GameHeader from "@/components/GameHeader";
-import { useScrollToGame } from "@/hooks/useScrollToGame";
+import { MELON_GUIDE } from "@/data/gameGuides";
 import { rankDateLabel } from "@/lib/rankDate";
 import { getTopMelonScores, addMelonScore, type MelonScore } from "@/firestore/melonGame";
 import {
@@ -52,7 +52,7 @@ type Phase = "menu" | "play" | "over";
  */
 function boardMax(rot: boolean, big: boolean) {
   const aspect = rot ? H / W : W / H;
-  const reserve = big ? 86 : rot ? 180 : 340;
+  const reserve = big ? 86 : rot ? 250 : 350;
   return `max(${big ? 0 : 300}px, min(100%, calc((100svh - ${reserve}px) * ${aspect})))`;
 }
 
@@ -120,7 +120,7 @@ export default function MelonGame() {
     rotRef.current ? [y - PAD, x - PAD] : [x - PAD, y - PAD];
   /** 크게 보기: 사이트 헤더·메뉴를 가리고 판을 화면 가득 (가능하면 전체화면 + 가로 고정) */
   const [big, setBig] = useState(false);
-  useScrollToGame(topRef);
+  const [rankOpen, setRankOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("menu");
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIME_START);
@@ -609,8 +609,6 @@ export default function MelonGame() {
   const greenBtn = `${chunky} ${jua} bg-[#7ED957] text-white shadow-[0_4px_0_#4FA834] hover:brightness-105 active:shadow-[0_1px_0_#4FA834]`;
   const plainBtn = `${chunky} ${jua} bg-white text-[#6B8F4E] shadow-[0_4px_0_#CFE3BF] active:shadow-[0_1px_0_#CFE3BF]`;
   const card = "rounded-[22px] border-[3px] border-[#D6EEC4] bg-[#FFFDF4]";
-  // 아래 랭킹·방법 카드는 사이트 기본 어두운 톤 (판만 밝게)
-  const darkCard = "rounded-[22px] border-[3px] border-[#9BDB7A]/20 bg-[#1C1E24]";
 
   return (
     <div className="mx-auto max-w-[920px] px-4 pt-6 pb-24">
@@ -620,7 +618,49 @@ export default function MelonGame() {
         className="mx-auto scroll-mt-[108px]"
         style={{ maxWidth: boardMax(rot, false) }}
       >
-        <GameHeader title="Melon" desc="합이 10·20이 되게 묶어 터뜨리는 2분 타임어택" />
+        <GameHeader
+          icon="🍈"
+          title="멜론 게임"
+          en="Melon"
+          accent="#7ED957"
+          desc="합이 10·20이 되게 묶어 터뜨리는 2분 타임어택"
+          guide={MELON_GUIDE}
+          rank={{
+            teaser: ranks?.[0] ? `1위 ${ranks[0].name} · ${ranks[0].score}점` : null,
+            open: rankOpen,
+            onOpenChange: setRankOpen,
+            render: () =>
+              ranks === null ? (
+                <p className="text-sm text-white/35">불러오는 중…</p>
+              ) : ranks.length === 0 ? (
+                <p className="text-sm text-white/35">아직 기록이 없어요</p>
+              ) : (
+                <ol className={`flex flex-col gap-1 ${jua}`}>
+                  {ranks.map((r, i) => (
+                    <li
+                      key={i}
+                      className={`flex items-center gap-3 rounded-xl px-2 py-1 text-base ${i < 3 ? "bg-white/[0.04]" : ""}`}
+                    >
+                      <span className="w-7 text-center">
+                        {i < 3 ? (
+                          ["🥇", "🥈", "🥉"][i]
+                        ) : (
+                          <span className="text-white/35">{i + 1}</span>
+                        )}
+                      </span>
+                      <span className="flex-1 truncate text-white/85">{r.name}</span>
+                      <span className="w-14 text-right text-[#B6F36A] tabular-nums">
+                        {r.score}점
+                      </span>
+                      <span className="w-[3.75rem] text-right text-xs text-white/30 tabular-nums">
+                        {rankDateLabel(r.createdAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ),
+          }}
+        />
       </div>
       <div
         ref={wrapRef}
@@ -800,6 +840,9 @@ export default function MelonGame() {
                   <button type="button" onClick={start} className={greenBtn}>
                     다시하기
                   </button>
+                  <button type="button" onClick={() => setRankOpen(true)} className={plainBtn}>
+                    🏆 랭킹
+                  </button>
                   <button type="button" onClick={quit} className={plainBtn}>
                     처음으로
                   </button>
@@ -808,48 +851,6 @@ export default function MelonGame() {
             )}
           </div>
         </div>
-      </div>
-
-      {/* 랭킹·방법 */}
-      <div className={`mt-7 grid gap-4 sm:grid-cols-2 ${jua}`}>
-        <section className={`${darkCard} p-5`}>
-          <h2 className="mb-3 text-xl text-[#9BE15D]">🏆 랭킹 TOP 10</h2>
-          {ranks === null ? (
-            <p className="text-sm text-white/35">불러오는 중…</p>
-          ) : ranks.length === 0 ? (
-            <p className="text-sm text-white/35">아직 기록이 없어요</p>
-          ) : (
-            <ol className="flex flex-col gap-1">
-              {ranks.map((r, i) => (
-                <li
-                  key={i}
-                  className={`flex items-center gap-3 rounded-xl px-2 py-1 text-base ${i < 3 ? "bg-white/[0.04]" : ""}`}
-                >
-                  <span className="w-7 text-center">
-                    {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-white/35">{i + 1}</span>}
-                  </span>
-                  <span className="flex-1 truncate text-white/85">{r.name}</span>
-                  <span className="w-14 text-right text-[#B6F36A] tabular-nums">{r.score}점</span>
-                  <span className="w-[3.75rem] text-right text-xs text-white/30 tabular-nums">
-                    {rankDateLabel(r.createdAt)}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
-        <section className={`${darkCard} p-5 text-base leading-relaxed text-white/65`}>
-          <h2 className="mb-3 text-xl text-[#9BE15D]">🍈 게임 방법</h2>
-          <ul className="flex flex-col gap-1">
-            <li>드래그로 멜론을 네모나게 묶어요</li>
-            <li>
-              숫자 합이 <b className="text-[#FF8FA3]">10</b> 또는{" "}
-              <b className="text-[#FF8FA3]">20</b>이면 펑! 터진 개수만큼 점수
-            </li>
-            <li>시간은 약 2분, 10위 안에 들면 이름을 남길 수 있어요</li>
-          </ul>
-          <p className="mt-4 text-xs text-white/30">개발 lee gm · 디자인 tae hb · 음악 lee sh</p>
-        </section>
       </div>
     </div>
   );

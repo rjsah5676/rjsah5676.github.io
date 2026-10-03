@@ -83,7 +83,7 @@ export default function SketchLobby({
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-6 pt-12 pb-24">
+    <div className="mx-auto max-w-3xl px-6 pt-6 pb-24">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="font-mono text-sm text-[#8B84FF]">games</div>

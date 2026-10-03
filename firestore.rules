@@ -100,14 +100,14 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // 체스·장기 AI 랭킹 모드 (이긴 판만, 점수는 클라이언트 계산 — 범위만 검사)
+    // 체스·장기 AI 랭킹 모드 (이긴 판만). score = 상대 단계 × 1,000,000 + 판 점수 — 범위만 검사
     function validAIRank(maxScore) {
       let d = request.resource.data;
       return d.keys().hasOnly(['name', 'score', 'opp', 'moves', 'seconds', 'lead', 'createdAt'])
           && d.keys().hasAll(['name', 'score', 'opp', 'moves', 'seconds', 'lead', 'createdAt'])
           && validRankName()
           && d.name.size() <= 12
-          && d.score is int && d.score > 0 && d.score <= maxScore
+          && d.score is int && d.score > 1000000 && d.score <= maxScore
           && d.opp is string && d.opp.size() <= 20
           && d.moves is int && d.moves >= 2 && d.moves <= 1000
           && d.seconds is int && d.seconds >= 0 && d.seconds <= 86400
@@ -116,13 +116,20 @@ service cloud.firestore {
     }
     match /chess_ai_rankings/{entryId} {
       allow read: if true;
-      allow create: if validAIRank(150000)
-                    && request.resource.data.opp in ['400', '800', '1200', '1600', '2000', '2400'];
+      allow create: if validAIRank(7000000)
+                    && request.resource.data.opp in ['400', '800', '1200', '1600', '2000', '2400']
+                    && math.floor(request.resource.data.score / 1000000)
+                       == {'400': 1, '800': 2, '1200': 3, '1600': 4, '2000': 5, '2400': 6}.get(request.resource.data.opp, 0);
       allow update, delete: if isAdmin();
     }
     match /janggi_ai_rankings/{entryId} {
       allow read: if true;
-      allow create: if validAIRank(70000);
+      allow create: if validAIRank(13000000)
+                    && math.floor(request.resource.data.score / 1000000)
+                       == {'jangyeongsil': 1, 'heojun': 2, 'kimjeongho': 3, 'jeongyakyong': 4,
+                           'hwanghui': 5, 'gyebaek': 6, 'kimyusin': 7, 'euljimundeok': 8,
+                           'yeongaesomun': 9, 'gangamchan': 10, 'gwanggaeto': 11,
+                           'yisunsin': 12}.get(request.resource.data.opp, 0);
       allow update, delete: if isAdmin();
     }
 

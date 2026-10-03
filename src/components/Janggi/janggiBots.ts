@@ -9,8 +9,6 @@ export interface JanggiBot {
   desc: string;
   emoji: string;
   ai: AIConfig;
-  /** 랭킹 모드 기본 점수 (이겼을 때) */
-  base: number;
   lines: Lines;
 }
 
@@ -22,7 +20,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "발명은 잘하는데 장기는…",
     emoji: "⚙️",
     ai: { depth: 1, ms: 300, noise: 3, blunder: 0.4 },
-    base: 300,
     lines: {
       greet: [
         "측우기 만들다 잠깐 쉬러 왔소이다. 한 판 둡시다!",
@@ -51,7 +48,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "약은 잘 짓는데 수는 아직",
     emoji: "🌿",
     ai: { depth: 1, ms: 300, noise: 2.4, blunder: 0.28 },
-    base: 500,
     lines: {
       greet: ["동의보감 쓰다 머리 식히러 왔소", "장기도 몸에 좋다 하여 배우는 중이오"],
       move: ["꽤 괜찮은 수군요", "음, 맥이 고르구려", "그 수엔 감초가 들어갔소?"],
@@ -73,7 +69,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "판 구석구석을 걸어 다님",
     emoji: "🗺️",
     ai: { depth: 1, ms: 400, noise: 1.8, blunder: 0.18 },
-    base: 800,
     lines: {
       greet: ["대동여지도 그리듯 판을 한번 훑어보겠소", "장기판도 결국 지도요"],
       move: ["꽤 괜찮은 수군요", "그 길은 지도에 표시해 두겠소", "오, 처음 보는 길이오"],
@@ -95,7 +90,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "책은 많이 읽었어요",
     emoji: "📜",
     ai: { depth: 1, ms: 400, noise: 1.2, blunder: 0.1 },
-    base: 1100,
     lines: {
       greet: [
         "유배지에서 장기 책을 좀 읽었소. 한 수 배우겠소",
@@ -124,7 +118,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "너도 옳고 나도 옳소",
     emoji: "🧓",
     ai: { depth: 2, ms: 600, noise: 1, blunder: 0.06 },
-    base: 1700,
     lines: {
       greet: ["허허, 너도 옳고 나도 옳으니 한 판 둡시다", "청렴하게 두겠소"],
       move: ["꽤 괜찮은 수군요", "그대 말도 옳소", "허허, 그 수도 일리가 있구려"],
@@ -146,7 +139,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "황산벌의 결사대",
     emoji: "🛡️",
     ai: { depth: 2, ms: 700, noise: 0.6, blunder: 0.03 },
-    base: 2300,
     lines: {
       greet: ["오천 결사대의 각오로 두겠소", "물러섬은 없소"],
       move: ["꽤 괜찮은 수군요", "흠, 만만치 않구려", "황산벌보다 험하구려"],
@@ -168,7 +160,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "삼국을 통일한 장수",
     emoji: "🐎",
     ai: { depth: 2, ms: 800, noise: 0.35, blunder: 0.01 },
-    base: 3000,
     lines: {
       greet: ["화랑의 기개로 상대하겠소!", "말의 목을 벨 각오로 두겠소이다 🐎"],
       move: ["꽤 괜찮은 수군요", "제법이오. 화랑도에 들어올 만하오", "음, 그 수는 예상 밖이오"],
@@ -190,7 +181,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "유인하고 몰아치는 전술가",
     emoji: "🏹",
     ai: { depth: 3, ms: 900, noise: 0.25, blunder: 0 },
-    base: 4000,
     lines: {
       greet: ["살수에서처럼 정중히 맞이하겠소", "그대의 신묘한 책략, 구경 좀 하겠소"],
       move: [
@@ -216,7 +206,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "당나라도 막아낸 고구려의 실력자",
     emoji: "🗡️",
     ai: { depth: 3, ms: 1100, noise: 0.1, blunder: 0 },
-    base: 5200,
     lines: {
       greet: ["안시성처럼 단단히 지키겠다", "칼 다섯 자루를 찬 기분으로 두겠소"],
       move: ["꽤 괜찮은 수군요", "그 정도로 고구려는 안 무너지오", "흥, 계산된 수요?"],
@@ -238,7 +227,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "귀주에서 대승을 거둔 명장",
     emoji: "⚔️",
     ai: { depth: 4, ms: 1300, noise: 0.05, blunder: 0 },
-    base: 6600,
     lines: {
       greet: ["귀주에서처럼 바람이 내 편이길 바라오", "성실하게 상대하겠소"],
       move: ["꽤 괜찮은 수군요. 하지만 아직이오", "음, 신중하구려", "그 수, 기억해 두겠소"],
@@ -260,7 +248,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "판 전체를 넓혀 가는 정복왕",
     emoji: "🐉",
     ai: { depth: 5, ms: 1600, noise: 0, blunder: 0 },
-    base: 8200,
     lines: {
       greet: ["영토를 넓히듯 판을 넓혀 가겠다", "만주 벌판보다 좁구나. 시작하지"],
       move: ["꽤 괜찮은 수군요", "그 땅도 곧 내 것이 되리라", "흠, 쉽지 않은 상대로다"],
@@ -282,7 +269,6 @@ export const JANGGI_BOTS: JanggiBot[] = [
     desc: "단 한 번도 지지 않은 장군",
     emoji: "🐢",
     ai: { depth: 6, ms: 2200, noise: 0, blunder: 0 },
-    base: 10000,
     lines: {
       greet: [
         "필사즉생 필생즉사. 한 판 두어 봅시다",
@@ -306,3 +292,9 @@ export const JANGGI_BOTS: JanggiBot[] = [
 ];
 
 export const DEFAULT_JANGGI_BOT = "kimyusin";
+
+/** 랭킹 표시용: 봇 id → "이순신(5단)" */
+export function janggiOppLabel(id: string) {
+  const b = JANGGI_BOTS.find((x) => x.id === id);
+  return b ? `${b.name}(${b.rank})` : id;
+}

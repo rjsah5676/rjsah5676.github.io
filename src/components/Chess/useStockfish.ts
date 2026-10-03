@@ -49,28 +49,41 @@ export function useStockfish() {
     worker.current?.postMessage("ucinewgame");
   }, []);
 
-  const bestMove = useCallback(async (fen: string, bot: ChessBot): Promise<string | null> => {
-    const w = worker.current;
-    if (!w || !ready.current) return null;
-    await ready.current;
-    if (pending.current) {
-      w.postMessage("stop");
-      pending.current(null);
-    }
-    if (bot.elo) {
-      w.postMessage("setoption name Skill Level value 20");
-      w.postMessage("setoption name UCI_LimitStrength value true");
-      w.postMessage(`setoption name UCI_Elo value ${bot.elo}`);
-    } else {
-      w.postMessage("setoption name UCI_LimitStrength value false");
-      w.postMessage("setoption name Skill Level value 0");
-    }
-    w.postMessage(`position fen ${fen}`);
-    return new Promise((res) => {
-      pending.current = res;
-      w.postMessage(bot.depth ? `go depth ${bot.depth}` : `go movetime ${bot.movetime ?? 500}`);
-    });
-  }, []);
+  /** bot = null이면 전력(힌트용) */
+  const bestMove = useCallback(
+    async (fen: string, bot: ChessBot | null): Promise<string | null> => {
+      const w = worker.current;
+      if (!w || !ready.current) return null;
+      await ready.current;
+      if (pending.current) {
+        w.postMessage("stop");
+        pending.current(null);
+      }
+      if (!bot) {
+        w.postMessage("setoption name UCI_LimitStrength value false");
+        w.postMessage("setoption name Skill Level value 20");
+      } else if (bot.elo) {
+        w.postMessage("setoption name Skill Level value 20");
+        w.postMessage("setoption name UCI_LimitStrength value true");
+        w.postMessage(`setoption name UCI_Elo value ${bot.elo}`);
+      } else {
+        w.postMessage("setoption name UCI_LimitStrength value false");
+        w.postMessage("setoption name Skill Level value 0");
+      }
+      w.postMessage(`position fen ${fen}`);
+      return new Promise((res) => {
+        pending.current = res;
+        w.postMessage(
+          !bot
+            ? "go movetime 900"
+            : bot.depth
+              ? `go depth ${bot.depth}`
+              : `go movetime ${bot.movetime ?? 500}`
+        );
+      });
+    },
+    []
+  );
 
   return { bestMove, newGame };
 }

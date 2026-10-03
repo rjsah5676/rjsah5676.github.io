@@ -8,10 +8,10 @@ import { CHESS_BOTS, type ChessBot } from "./chessBots";
 import { useStockfish } from "./useStockfish";
 import { replay, uciToMove, type Color } from "@/firestore/chessGame";
 import { SpeechBubble, useBotTalk } from "@/lib/botTalk";
+import { scrollToGameTop } from "@/components/GameHeader";
 import { chessScore, clockLabel } from "@/lib/aiScore";
 import {
   NEW_CLOCK,
-  RankBoard,
   RankSubmit,
   RankedToggle,
   useTurnClock,
@@ -127,7 +127,9 @@ export default function ChessAIGame() {
   const [confirmResign, setConfirmResign] = useState(false);
   const [ranked, setRanked] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [rankRefresh, setRankRefresh] = useState(0);
+  // 힌트: 몇 번째 수에서 받은 건지 같이 들고, 판이 바뀌면 자동으로 안 보임
+  const [hint, setHint] = useState<{ at: number; mv: string | null } | null>(null);
+  const [hints, setHints] = useState(0);
   const { bestMove, newGame } = useStockfish();
   const loaded = useRef(false);
 
@@ -254,6 +256,9 @@ export default function ChessAIGame() {
       setResigned(false);
       setSubmitted(false);
       setClock(NEW_CLOCK);
+      setHint(null);
+      setHints(0);
+      setTimeout(scrollToGameTop, 50);
       newGame();
       setMoves([]);
       say("greet");
@@ -313,9 +318,6 @@ export default function ChessAIGame() {
         <button type="button" onClick={start} className={`${primaryBtn} mt-4 w-full py-2 text-sm`}>
           {bot.emoji} {bot.name}({bot.rating})와 {ranked ? "랭킹전" : "대국"} 시작
         </button>
-        <div className="mt-4">
-          <RankBoard coll="chess_ai_rankings" oppLabel={(o) => o} refresh={rankRefresh} />
-        </div>
       </div>
     );
   }
@@ -376,6 +378,7 @@ export default function ChessAIGame() {
           orientation={myColor}
           canMove={myTurn && !thinking}
           lastMove={moves.at(-1)}
+          hint={!ranked && hint?.at === moves.length ? hint.mv : null}
           onMove={(uci) => {
             try {
               new Chess(game.fen()).move(uciToMove(uci));
@@ -403,13 +406,15 @@ export default function ChessAIGame() {
         {ranked && won && (
           <RankSubmit
             coll="chess_ai_rankings"
-            result={chessScore(rating, lead, myMoves, seconds)}
+            result={chessScore(
+              CHESS_BOTS.findIndex((b) => b.rating === rating) + 1,
+              lead,
+              myMoves,
+              seconds
+            )}
             entry={{ opp: String(rating), moves: myMoves, seconds, lead: Math.max(0, lead) }}
             done={submitted}
-            onSaved={() => {
-              setSubmitted(true);
-              setRankRefresh((n) => n + 1);
-            }}
+            onSaved={() => setSubmitted(true)}
           />
         )}
         <div className="flex flex-wrap gap-1.5">
@@ -421,6 +426,25 @@ export default function ChessAIGame() {
               className={btn}
             >
               ↶ 무르기
+            </button>
+          )}
+          {!ranked && !over && (
+            <button
+              type="button"
+              disabled={!myTurn || thinking || hint?.at === moves.length}
+              onClick={async () => {
+                const at = moves.length;
+                setHint({ at, mv: null });
+                const mv = await bestMove(game.fen(), null);
+                setHint((h) => (h?.at === at ? { at, mv } : h));
+                if (mv) setHints((n) => n + 1);
+              }}
+              className={btn}
+              title="엔진이 추천하는 수를 판에 표시"
+            >
+              {hint?.at === moves.length && !hint.mv
+                ? "💡 생각 중…"
+                : `💡 힌트${hints ? ` ${hints}` : ""}`}
             </button>
           )}
           {!over &&

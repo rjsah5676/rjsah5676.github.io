@@ -118,7 +118,7 @@ export default function SketchRoomGate({
   };
 
   const center = (children: React.ReactNode) => (
-    <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-6 pt-24 pb-24 text-center">
+    <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-6 pt-8 pb-24 text-center">
       {children}
     </div>
   );

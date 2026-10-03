@@ -81,6 +81,7 @@ export default function JanggiBoard({
   onMove,
   hangul = false,
   banned,
+  hint,
 }: {
   fen: string;
   /** 아래쪽에 올 진영 */
@@ -91,6 +92,8 @@ export default function JanggiBoard({
   hangul?: boolean;
   /** 반복수라 못 두는 수 (판만으로는 기보를 몰라서 밖에서 받음) */
   banned?: string[];
+  /** 힌트로 보여 줄 수 ("e8e7") */
+  hint?: string | null;
 }) {
   const game = useMemo(() => Janggi.fromFen(fen), [fen]);
   const board = useMemo(() => game.board(), [game]);
@@ -239,6 +242,39 @@ export default function JanggiBoard({
           );
         })
       )}
+      {/* 힌트 */}
+      {hint &&
+        hint !== "pass" &&
+        (() => {
+          const a = parseSq(hint.slice(0, 2));
+          const b = parseSq(hint.slice(2, 4));
+          const p1 = pos(a % 9, Math.floor(a / 9));
+          const p2 = pos(b % 9, Math.floor(b / 9));
+          return (
+            <g pointerEvents="none" className="janggi-hint">
+              <line
+                x1={p1.x}
+                y1={p1.y}
+                x2={p2.x}
+                y2={p2.y}
+                stroke="#34D399"
+                strokeWidth={7}
+                strokeLinecap="round"
+                opacity={0.55}
+              />
+              <circle cx={p1.x} cy={p1.y} r={29} fill="none" stroke="#34D399" strokeWidth={4} />
+              <circle
+                cx={p2.x}
+                cy={p2.y}
+                r={29}
+                fill="#34D39933"
+                stroke="#34D399"
+                strokeWidth={4}
+                strokeDasharray="7 5"
+              />
+            </g>
+          );
+        })()}
     </svg>
   );
 }

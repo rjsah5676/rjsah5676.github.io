@@ -2,7 +2,7 @@
 
 import RankList from "@/components/RankList";
 import GameHeader from "@/components/GameHeader";
-import { useScrollToGame } from "@/hooks/useScrollToGame";
+import { REACTION_GUIDE } from "@/data/gameGuides";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Faded from "@/components/Faded";
 import {
@@ -40,8 +40,6 @@ export default function RspeedPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submittedRank, setSubmittedRank] = useState<number | undefined>();
 
-  const topRef = useRef<HTMLDivElement>(null);
-  useScrollToGame(topRef);
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 파란색이 실제로 그려지는 프레임 시각(performance.now 기준)
   const goAtRef = useRef<number | null>(null);
@@ -140,12 +138,30 @@ export default function RspeedPage() {
     }
   }
 
-  const header = <GameHeader title="Reaction" desc="파란색이 되는 순간 클릭, 5회 평균" />;
+  const header = (
+    <GameHeader
+      icon="⚡"
+      title="반응속도 테스트"
+      en="Reaction"
+      accent="#60A5FA"
+      desc="파란색이 되는 순간 클릭, 5회 평균"
+      guide={REACTION_GUIDE}
+      rank={{
+        teaser: list[0] ? `1위 ${list[0].name} · ${list[0].score}ms` : null,
+        sub: "5회 평균",
+        render: () => (
+          <RankList
+            rows={list.map((r) => ({ name: r.name, value: `${r.score}ms`, date: r.createdAt }))}
+          />
+        ),
+      }}
+    />
+  );
 
   if (phase === "done") {
     return (
       <Faded>
-        <div className="mx-auto max-w-md px-6 pt-6 pb-24 text-center">
+        <div className="mx-auto max-w-xl px-4 pt-6 pb-24 text-center sm:px-6">
           {header}
           <div className="mb-2 font-mono text-lg text-white/60">평균</div>
           <div className="mb-2 font-mono text-5xl font-bold text-white">{avg} ms</div>
@@ -222,7 +238,7 @@ export default function RspeedPage() {
 
   return (
     <Faded>
-      <div ref={topRef} className="mx-auto max-w-xl scroll-mt-[108px] px-6 pt-6 pb-24 text-center">
+      <div className="mx-auto max-w-xl px-4 pt-6 pb-24 text-center sm:px-6">
         {header}
         <div className="mb-4 flex items-center justify-between font-mono text-sm text-white/50">
           <span>
@@ -247,12 +263,6 @@ export default function RspeedPage() {
           )}
         </button>
         <p className="mt-4 font-mono text-xs text-white/30">스페이스바 / 엔터로도 가능</p>
-        {phase === "idle" && (
-          <div className="mt-10">
-            <div className="mb-3 font-mono text-sm text-white/60">랭킹 TOP 10</div>
-            <RankBox list={list} />
-          </div>
-        )}
       </div>
     </Faded>
   );

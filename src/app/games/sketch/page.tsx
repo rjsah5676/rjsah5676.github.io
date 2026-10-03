@@ -7,9 +7,11 @@ import SketchLobby from "@/components/Sketch/SketchLobby";
 import SketchRoomGate from "@/components/Sketch/SketchRoomGate";
 import { useChessUser } from "@/components/Chess/useChessUser";
 import { watchServerOffset } from "@/realtime/sketch";
+import GameHeader from "@/components/GameHeader";
+import { SKETCH_GUIDE } from "@/data/gameGuides";
 
 // 정적 export라 ?room=ID(&k=초대키) 쿼리로 방을 구분
-function SketchApp() {
+function SketchBody() {
   const router = useRouter();
   const params = useSearchParams();
   const roomId = params.get("room");
@@ -24,15 +26,15 @@ function SketchApp() {
   const go = (id: string | null) =>
     router.push(id ? `/games/sketch/?room=${id}` : "/games/sketch/");
 
-  if (error) return <p className="pt-24 text-center font-mono text-sm text-red-400">{error}</p>;
+  if (error) return <p className="pt-10 text-center font-mono text-sm text-red-400">{error}</p>;
   if (!uid || !nickLoaded)
-    return <p className="pt-24 text-center font-mono text-sm text-white/40">접속 중…</p>;
+    return <p className="pt-10 text-center font-mono text-sm text-white/40">접속 중…</p>;
 
   if (!nick) {
     const submit = () => nickInput.trim() && setNick(nickInput);
     return (
       <Faded>
-        <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-6 pt-24 pb-24 text-center">
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-6 pt-8 pb-24 text-center">
           <div className="font-mono text-sm text-[#8B84FF]">🎨 닉네임을 입력해주세요</div>
           <div className="flex w-full gap-2">
             <input
@@ -70,6 +72,25 @@ function SketchApp() {
     <Faded>
       <SketchLobby uid={uid} nick={nick} onEnter={go} />
     </Faded>
+  );
+}
+
+function SketchApp() {
+  return (
+    <>
+      <div className="mx-auto max-w-5xl px-3 pt-6 sm:px-6">
+        <GameHeader
+          icon="🎨"
+          title="스케치 퀴즈"
+          en="Sketch"
+          accent="#F472B6"
+          desc="한 명이 그리고 나머지가 맞히는 실시간 그림 퀴즈"
+          guide={SKETCH_GUIDE}
+          className="mb-0 sm:mb-0"
+        />
+      </div>
+      <SketchBody />
+    </>
   );
 }
 

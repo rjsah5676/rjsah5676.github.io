@@ -164,3 +164,9 @@ export const CHESS_BOTS: ChessBot[] = [
     },
   },
 ];
+
+/** 랭킹 표시용: "1600" → "기물 사냥꾼(1600)" */
+export function chessOppLabel(rating: string) {
+  const b = CHESS_BOTS.find((x) => String(x.rating) === rating);
+  return b ? `${b.name}(${b.rating})` : rating;
+}

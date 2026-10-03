@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Faded from "@/components/Faded";
 import GameHeader from "@/components/GameHeader";
@@ -8,7 +8,10 @@ import JanggiAIGame from "@/components/Janggi/JanggiAIGame";
 import JanggiLobby from "@/components/Janggi/JanggiLobby";
 import JanggiRoomView from "@/components/Janggi/JanggiRoomView";
 import { useChessUser } from "@/components/Chess/useChessUser";
-import { useScrollToGame } from "@/hooks/useScrollToGame";
+import { JANGGI_GUIDE } from "@/data/gameGuides";
+import { RankBoard, useAIRankTop } from "@/components/AIRank";
+import { janggiOppLabel } from "@/components/Janggi/janggiBots";
+import { pointsOf } from "@/lib/aiScore";
 
 const HANGUL_KEY = "janggi:hangul";
 
@@ -93,8 +96,7 @@ function JanggiApp() {
   const params = useSearchParams();
   // 기본은 온라인 대국, ?mode=ai면 AI 대국
   const online = params.get("mode") !== "ai";
-  const topRef = useRef<HTMLDivElement>(null);
-  useScrollToGame(topRef);
+  const top = useAIRankTop("janggi_ai_rankings");
 
   const [hangul, setHangul] = useState(false);
   useEffect(() => {
@@ -117,10 +119,21 @@ function JanggiApp() {
     }`;
 
   return (
-    <div ref={topRef} className="mx-auto max-w-5xl scroll-mt-[108px] px-3 pt-6 pb-24 sm:px-6">
+    <div className="mx-auto max-w-5xl px-3 pt-6 pb-24 sm:px-6">
       <GameHeader
-        title="Janggi"
-        desc="한국 장기 — 방을 만들어 친구와 온라인으로 두거나, AI와 한 판"
+        icon="將"
+        title="온라인 장기"
+        en="Janggi"
+        accent="#F08A8F"
+        desc="친구와 실시간 대국, 또는 위인 AI와 한 판"
+        guide={JANGGI_GUIDE}
+        rank={{
+          sub: "AI 랭킹전",
+          teaser: top
+            ? `1위 ${top.name} · vs ${janggiOppLabel(top.opp)} ${pointsOf(top.score).toLocaleString()}`
+            : null,
+          render: () => <RankBoard coll="janggi_ai_rankings" oppLabel={janggiOppLabel} bare />,
+        }}
       />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex rounded-full border border-white/10 bg-[#1C1E24] p-1">

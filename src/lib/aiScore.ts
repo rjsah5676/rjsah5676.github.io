@@ -1,6 +1,7 @@
 /**
  * AI 랭킹 모드 점수 (이겼을 때만).
- * 기본 점수(상대 실력) × 기물 우세 × 적은 수 × 짧은 시간 — 모두 곱셈이라 강한 상대를 이길수록 크게 유리.
+ * 순위는 무조건 "더 센 상대를 이긴 사람"이 위 — 저장 점수 = 상대 단계 × 1,000,000 + 판 점수.
+ * 판 점수 = 1000 × 기물 우세 × 적은 수 × 짧은 시간 (같은 상대끼리 비교용, 최대 6천 남짓)
  */
 export interface ScorePart {
   label: string;
@@ -9,33 +10,40 @@ export interface ScorePart {
 }
 
 export interface ScoreResult {
+  /** 저장·정렬용 (단계 포함) */
   score: number;
+  /** 화면에 보여 주는 판 점수 */
+  points: number;
   base: number;
   parts: ScorePart[];
 }
 
+export const TIER = 1_000_000;
+const BASE = 1000;
+
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 export const clockLabel = mmss;
 
-function combine(base: number, parts: ScorePart[]): ScoreResult {
-  const score = Math.round(parts.reduce((v, p) => v * p.factor, base));
-  return { score, base, parts };
+/** 저장 점수에서 판 점수만 */
+export const pointsOf = (score: number) => score % TIER;
+
+function combine(tier: number, parts: ScorePart[]): ScoreResult {
+  const points = Math.round(parts.reduce((v, p) => v * p.factor, BASE));
+  return { score: tier * TIER + points, points, base: BASE, parts };
 }
 
-/** 체스: 상대 레이팅 × 10 기본, 기물 우세 40점당 +100%, 60수 이내 빨리 끝낼수록, 10분 이내 빨리 둘수록 */
-export function chessScore(rating: number, lead: number, moves: number, seconds: number) {
-  return combine(rating * 10, [
+/** 체스: tier = 상대 단계(1~), 기물 우세 40점당 +100%, 60수 이내 빨리 끝낼수록, 10분 이내 빨리 둘수록 */
+export function chessScore(tier: number, lead: number, moves: number, seconds: number) {
+  return combine(tier, [
     { label: "기물 우세", detail: `+${Math.max(0, lead)}`, factor: 1 + Math.max(0, lead) / 40 },
     { label: "내 수", detail: `${moves}수`, factor: 1 + Math.max(0, 60 - moves) / 60 },
     { label: "사용 시간", detail: mmss(seconds), factor: 1 + Math.max(0, 600 - seconds) / 1200 },
   ]);
 }
 
-/**
- * 장기: 상대별 기본 점수, 점수(기물) 우세 60점당 +100%, 80수 이내, 15분 이내, 외통이 아닌 점수승은 ×0.6
- */
+/** 장기: 점수 우세 60점당 +100%, 80수 이내, 15분 이내, 외통이 아닌 판정승은 ×0.6 */
 export function janggiScore(
-  base: number,
+  tier: number,
   lead: number,
   moves: number,
   seconds: number,
@@ -47,5 +55,5 @@ export function janggiScore(
     { label: "사용 시간", detail: mmss(seconds), factor: 1 + Math.max(0, 900 - seconds) / 1800 },
   ];
   if (!checkmate) parts.push({ label: "판정승", detail: "외통 아님", factor: 0.6 });
-  return combine(base, parts);
+  return combine(tier, parts);
 }
