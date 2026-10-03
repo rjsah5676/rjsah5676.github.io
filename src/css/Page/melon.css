@@ -1,81 +1,45 @@
-/* melon-wrap: 원래 position:absolute; top:600px 같은 방식으로 페이지 레이아웃에
-   맞춰 수동으로 위치를 잡던 걸 정상 문서 흐름(relative)으로 바꿈 -
-   레이아웃(헤더/네브 높이)이 바뀔 때마다 깨지던 문제를 구조적으로 해결.
-   캔버스/버튼들은 이 안에서 여전히 절대좌표로 정확히 쌓이므로 내부 로직은 그대로 둠. */
-#melon-wrap {
-  position: relative;
-  width: 1030px;
-  height: 700px;
-}
-
-#melon-container {
-  display: flex;
-  width: 100%;
-  margin-bottom: 30px;
-  font-family: "Jua", serif;
-}
-
-#rankBox {
-  padding: 10px;
-  color: white;
-  background: #1c1e24;
-  border: 1px solid rgba(108, 99, 255, 0.2);
-  width: 40%;
-  border-radius: 8px;
-}
-
-#rank-title {
-  font-size: 25px;
-  color: #8b84ff;
-  padding-left: 20px;
-}
-#rank-info {
-  font-size: 20px;
-  padding-left: 30px;
-  padding-bottom: 5px;
-}
-
-#melon-box {
-  color: white;
-  padding: 10px;
-  margin-left: 5%;
-  background: #1c1e24;
-  border: 1px solid rgba(108, 99, 255, 0.2);
-  width: 55%;
-  border-radius: 8px;
-}
-
-#melon-title {
-  font-size: 25px;
-  padding-left: 20px;
-}
-#melon-text {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
-  padding-top: 30px;
-  padding-left: 40px;
-  padding-bottom: 5px;
-}
-
-/* 모바일: 랭킹/설명 박스는 축소 영역 밖이라 세로로 쌓아서 읽을 수 있게 */
-@media (max-width: 1062px) {
-  #melon-container {
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
+/* 멜론 게임 연출 */
+@keyframes melon-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
   }
-  #rankBox,
-  #melon-box {
-    width: 100%;
-    margin-left: 0;
+  50% {
+    transform: translateY(-10px) rotate(4deg);
   }
-  #rank-title,
-  #melon-title {
-    font-size: 19px;
-    padding-left: 8px;
+}
+.melon-float {
+  animation: melon-float 3.2s ease-in-out infinite;
+}
+
+/* 점수가 오를 때 톡 */
+@keyframes melon-bump {
+  0% {
+    transform: scale(1.35);
   }
-  #melon-text {
-    font-size: 13px;
-    padding: 12px 8px 4px;
+  100% {
+    transform: scale(1);
   }
+}
+.melon-bump {
+  display: inline-block;
+  animation: melon-bump 0.25s ease-out;
+}
+
+/* 결과 점수 등장 */
+@keyframes melon-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.melon-pop {
+  animation: melon-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
