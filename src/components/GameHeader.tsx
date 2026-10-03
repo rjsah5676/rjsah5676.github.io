@@ -136,7 +136,7 @@ export default function GameHeader({
                 delay={700}
                 duration={6500}
                 maxShows={3}
-                className="absolute top-full left-1/2 z-30 mt-2 -translate-x-1/2"
+                className="absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2"
               >
                 처음이신가요? 👋 <b className="text-white">게임 가이드</b>에서 하는 법을 볼 수
                 있어요

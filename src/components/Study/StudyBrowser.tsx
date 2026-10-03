@@ -166,7 +166,7 @@ export default function StudyBrowser({
       <HintBubble
         storageKey={MENU_HINT_KEY}
         hidden={isMenuOpen}
-        className="fixed top-1/2 left-8 z-40 -translate-y-1/2 md:hidden"
+        className="fixed top-1/2 left-8 z-20 -translate-y-1/2 md:hidden"
       >
         <span className="font-mono text-[#A9A3FF]">←</span> 여기를 누르면{" "}
         <b className="text-white">분류 메뉴</b>가 열려요

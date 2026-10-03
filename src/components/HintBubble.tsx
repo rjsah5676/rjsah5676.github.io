@@ -178,7 +178,7 @@ export default function HintBubble({
   }, [visible, touch, inDom, base]);
 
   return (
-    <div className={`pointer-events-none z-40 w-0 ${className}`} aria-live="polite">
+    <div className={`pointer-events-none z-20 w-0 ${className}`} aria-live="polite">
       {inDom && (
         <div
           ref={shiftRef}
