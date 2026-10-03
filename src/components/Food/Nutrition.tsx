@@ -1,28 +1,54 @@
-import { DAILY, fmt, MACRO_COLORS, macroRatio, NUTRIENTS, type Amounts } from "@/lib/food";
+import {
+  DAILY,
+  fmt,
+  isDietFriendly,
+  MACRO_COLORS,
+  macroDaily,
+  macroRatio,
+  NUTRIENTS,
+  type Amounts,
+} from "@/lib/food";
 
-/** 탄·단·지 칼로리 비율 도넛 (서버·클라이언트 공용) */
-export function MacroDonut({ a, size = 150 }: { a: Amounts; size?: number }) {
-  const r = macroRatio(a);
+const MACROS = [
+  ["carb", "탄수화물"],
+  ["protein", "단백질"],
+  ["fat", "지방"],
+] as const;
+
+/** 도넛 하나: 조각 비율(합 1) + 가운데 글자 */
+function Donut({
+  parts,
+  size,
+  label,
+  center,
+  unit,
+}: {
+  parts: Record<"carb" | "protein" | "fat", number> | null;
+  size: number;
+  label: string;
+  center: string;
+  unit: string;
+}) {
   const R = 15.9155; // 둘레 100
   let acc = 0;
-  const segs = r
-    ? (["carb", "protein", "fat"] as const).map((k) => {
-        const seg = { k, len: r[k] * 100, off: 25 - acc };
-        acc += r[k] * 100;
+  const segs = parts
+    ? MACROS.map(([k]) => {
+        const seg = { k, len: parts[k] * 100, off: 25 - acc };
+        acc += parts[k] * 100;
         return seg;
       })
     : [];
   return (
-    <div className="flex items-center gap-4 sm:gap-5">
-      <svg
-        viewBox="0 0 42 42"
-        style={{ width: `min(${size}px, 34vw)`, height: "auto" }}
-        className="shrink-0"
-        role="img"
-        aria-label="탄단지 비율"
-      >
-        <circle cx="21" cy="21" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
-        {segs.map((s) => (
+    <svg
+      viewBox="0 0 42 42"
+      style={{ width: `min(${size}px, 30vw)`, height: "auto" }}
+      className="shrink-0"
+      role="img"
+      aria-label={label}
+    >
+      <circle cx="21" cy="21" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
+      {segs.map((s) =>
+        s.len <= 0 ? null : (
           <circle
             key={s.k}
             cx="21"
@@ -34,39 +60,108 @@ export function MacroDonut({ a, size = 150 }: { a: Amounts; size?: number }) {
             strokeDasharray={`${Math.max(0, s.len - 0.6)} ${100 - Math.max(0, s.len - 0.6)}`}
             strokeDashoffset={s.off}
           />
-        ))}
-        <text
-          x="21"
-          y="20.5"
-          textAnchor="middle"
-          className="fill-white font-mono"
-          fontSize="6"
-          fontWeight="700"
-        >
-          {Math.round(a.kcal).toLocaleString("ko-KR")}
-        </text>
-        <text x="21" y="26" textAnchor="middle" className="fill-white/45 font-mono" fontSize="3">
-          kcal
-        </text>
-      </svg>
-      <ul className="space-y-1.5 font-mono text-xs">
-        {(
-          [
-            ["carb", "탄수화물"],
-            ["protein", "단백질"],
-            ["fat", "지방"],
-          ] as const
-        ).map(([k, label]) => (
-          <li key={k} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-sm" style={{ background: MACRO_COLORS[k] }} />
-            <span className="w-14 text-white/60">{label}</span>
-            <span className="w-10 text-right text-white">
-              {r ? `${Math.round(r[k] * 100)}%` : "-"}
-            </span>
-            <span className="hidden text-white/35 min-[400px]:inline">{fmt(a[k])}g</span>
+        )
+      )}
+      <text
+        x="21"
+        y="20.5"
+        textAnchor="middle"
+        className="fill-white font-mono"
+        fontSize={center.length > 5 ? 5 : 6}
+        fontWeight="700"
+      >
+        {center}
+      </text>
+      <text x="21" y="26" textAnchor="middle" className="fill-white/45 font-mono" fontSize="3">
+        {unit}
+      </text>
+    </svg>
+  );
+}
+
+/**
+ * 탄·단·지 그래프 두 개 + 다이어트 판정 (서버·클라이언트 공용)
+ * - 왼쪽: 열량이 어디서 나오는지 (칼로리 비율)
+ * - 오른쪽: 하루 기준치를 얼마나 채우는지 (탄 324g · 단 55g · 지 54g 기준), 조각 크기도 그 %에 비례
+ */
+export function MacroDonut({ a, size = 120 }: { a: Amounts; size?: number }) {
+  const r = macroRatio(a);
+  const d = macroDaily(a);
+  const dSum = d ? d.carb + d.protein + d.fat : 0;
+  const dParts =
+    d && dSum > 0 ? { carb: d.carb / dSum, protein: d.protein / dSum, fat: d.fat / dSum } : null;
+  const diet = isDietFriendly(a);
+  const pct = (v: number) => (v < 0.01 && v > 0 ? "<1%" : `${Math.round(v * 100)}%`);
+
+  const col = (
+    title: string,
+    donut: React.ReactNode,
+    rows: { k: (typeof MACROS)[number][0]; label: string; main: string; sub: string }[]
+  ) => (
+    <div className="flex min-w-0 flex-col items-center gap-2">
+      <p className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/45">{title}</p>
+      {donut}
+      <ul className="w-full max-w-[11rem] space-y-1 font-mono text-[11px]">
+        {rows.map((x) => (
+          <li key={x.k} className="flex items-center gap-1.5">
+            <span
+              className="h-2 w-2 shrink-0 rounded-sm"
+              style={{ background: MACRO_COLORS[x.k] }}
+            />
+            <span className="text-white/60">{x.label}</span>
+            <span className="ml-auto text-white">{x.main}</span>
+            <span className="hidden w-12 text-right text-white/30 min-[400px]:inline">{x.sub}</span>
           </li>
         ))}
       </ul>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="grid grid-cols-2 gap-3">
+        {col(
+          "칼로리 비율",
+          <Donut
+            parts={r}
+            size={size}
+            label="탄단지 칼로리 비율"
+            center={Math.round(a.kcal).toLocaleString("ko-KR")}
+            unit="kcal"
+          />,
+          MACROS.map(([k, label]) => ({
+            k,
+            label,
+            main: r ? `${Math.round(r[k] * 100)}%` : "-",
+            sub: `${fmt(a[k])}g`,
+          }))
+        )}
+        {col(
+          "하루 권장량 대비",
+          <Donut
+            parts={dParts}
+            size={size}
+            label="하루 권장량 대비 탄단지"
+            center={`${Math.round((a.kcal / DAILY.kcal) * 100)}%`}
+            unit="하루 열량"
+          />,
+          MACROS.map(([k, label]) => ({
+            k,
+            label,
+            main: d ? pct(d[k]) : "-",
+            sub: `/${DAILY[k]}g`,
+          }))
+        )}
+      </div>
+      {diet && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 font-['Nanum_Gothic',sans-serif] text-xs text-emerald-200">
+          <span className="text-base">💪</span>
+          <span>
+            <b className="text-emerald-100">다이어트에 적합한 음식이에요</b>
+            <span className="text-emerald-200/70"> · 단백질은 풍부하고 탄수화물은 적어요</span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

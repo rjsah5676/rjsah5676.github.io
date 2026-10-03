@@ -109,7 +109,7 @@ export default async function FoodPage({ params }: Params) {
             <p className="mb-3 font-mono text-xs text-white/45">
               {serving ? `1인분 ${fmt(f.serving)}g` : "100g"} 기준
             </p>
-            <MacroDonut a={main} size={130} />
+            <MacroDonut a={main} size={110} />
           </div>
           <div className="rounded-xl border border-white/10 bg-[#1C1E24] p-5">
             <p className="mb-1 font-mono text-xs text-white/45">
