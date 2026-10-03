@@ -239,7 +239,7 @@ export const RHYTHM_GUIDE: GuideDoc = {
       image: rhythmCustom,
       body: (
         <>
-          <B>내 음악으로 플레이</B>에 mp3·wav·m4a를 끌어다 놓으면 이 사이트만의{" "}
+          <B>내 음악으로 플레이</B>에 노래 파일을 끌어다 놓으면 이 사이트만의{" "}
           <B>채보 생성 알고리즘</B>이 드럼과 박자를 분석해 쉬움~나이트메어 5단계 채보를 바로 만들어
           줘요.
           <br />
