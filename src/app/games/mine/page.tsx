@@ -339,7 +339,7 @@ export default function Minesweeper() {
         title="지뢰찾기"
         en="Minesweeper"
         accent="#F87171"
-        desc="지뢰 99개 고급 난이도, 찍기 없이 논리로 푸는 판"
+        desc="지뢰 99개 고급 난이도"
         className="w-full max-w-[848px]"
         guide={MINE_GUIDE}
         rank={{

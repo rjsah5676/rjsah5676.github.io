@@ -33,7 +33,6 @@ import {
   isClear,
   rangeOf,
   type Board,
-  type Range,
 } from "@/lib/melon/logic";
 
 const MELON_SRC = [tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8, tm9].map((m) => m.src);
@@ -81,11 +80,6 @@ interface Floater {
   text: string;
   age: number;
 }
-interface Flash {
-  g: Range;
-  age: number;
-}
-
 const VOL_KEY = "melon:volume";
 interface Volume {
   bgm: number;
@@ -150,7 +144,6 @@ export default function MelonGame() {
     fallers: [] as Faller[],
     drops: [] as Drop[],
     floaters: [] as Floater[],
-    flash: null as Flash | null,
   });
   const imgs = useRef<HTMLImageElement[]>([]);
   const ring = useRef<HTMLImageElement | null>(null);
@@ -348,26 +341,6 @@ export default function MelonGame() {
       }
 
       const F = fx.current;
-      // 합이 안 맞았을 때 선택 칸이 잠깐 붉게
-      if (F.flash) {
-        F.flash.age += dt;
-        const a = 1 - F.flash.age / 0.35;
-        if (a <= 0) F.flash = null;
-        else {
-          const g = F.flash.g;
-          const c0 = Math.max(0, g.c0);
-          const r0 = Math.max(0, g.r0);
-          const c1 = Math.min(COLS - 1, g.c1);
-          const r1 = Math.min(ROWS - 1, g.r1);
-          if (c1 >= c0 && r1 >= r0) {
-            const [x0, y0] = cellXY(c0, r0);
-            const [x1, y1] = cellXY(c1, r1);
-            ctx.fillStyle = `rgba(255,143,163,${0.35 * a})`;
-            ctx.fillRect(x0, y0, x1 - x0 + CELL, y1 - y0 + CELL);
-          }
-        }
-      }
-
       // 터진 과즙 방울
       F.drops = F.drops.filter((p) => (p.age += dt) < p.life);
       for (const p of F.drops) {
@@ -460,7 +433,7 @@ export default function MelonGame() {
     stopTimer();
     boardRef.current = createBoard();
     layerDirty.current = true;
-    fx.current = { fallers: [], drops: [], floaters: [], flash: null };
+    fx.current = { fallers: [], drops: [], floaters: [] };
     scoreRef.current = 0;
     setScore(0);
     timeRef.current = TIME_START;
@@ -525,10 +498,7 @@ export default function MelonGame() {
     const g = rangeOf(...toBoard(d.ax, d.ay), ...toBoard(d.bx, d.by));
     const cells = cellsIn(boardRef.current, g);
     const sum = cells.reduce((s, c) => s + c.v, 0);
-    if (!isClear(sum)) {
-      if (cells.length) fx.current.flash = { g, age: 0 };
-      return;
-    }
+    if (!isClear(sum)) return;
     const F = fx.current;
     let cx = 0;
     let cy = 0;
