@@ -67,7 +67,7 @@ const SAMPLES: Record<string, number> = {
   "whoosh-l": 0.16,
   "whoosh-h": 0.2,
   jump: 0.07,
-  super: 0.32,
+  super: 0.22,
   meter: 0.18,
   ko: 0.75,
   round: 0.45,
@@ -303,8 +303,10 @@ export function sfxDash() {
   if (!c) return;
   // 대시는 8bit 파일 대신 합성 바람 소리 (파일은 타격음이랑 너무 비슷하게 들림)
   const t = c.currentTime;
-  burst(c, t, 600, 1, 0.18, 0.12, "bandpass", 0, 2600);
-  tone(c, t, "sine", 120, 60, 0.15, 0.06);
+  // 슉 — 위로 쓸리는 바람 + 바닥 차는 소리 + 끝에 짧은 바람 꼬리 (8bit 소리들 사이에서도 들리게 크게)
+  burst(c, t, 500, 1.1, 0.55, 0.16, "bandpass", 0.15, 3200);
+  burst(c, t + 0.03, 2400, 0.8, 0.25, 0.12, "highpass", 0.1, 5200);
+  tone(c, t, "sine", 140, 55, 0.35, 0.07, 1.5);
 }
 
 /** 필살기 발동 (화면 멈춤) */
