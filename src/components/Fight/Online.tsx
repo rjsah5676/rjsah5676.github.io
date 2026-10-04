@@ -23,7 +23,7 @@ import {
 
 const KR = "font-['Nanum_Gothic',sans-serif]";
 const PX = "[image-rendering:pixelated]";
-const MENU_BG = "/fight/bg/menu.webp";
+const MENU_BG = "/fight/bg/title.webp";
 const face = (c: CharDef) => `/fight/art/${c.id}-face.webp`;
 const art = (c: CharDef) => `/fight/art/${c.id}.webp`;
 const SEAT_COL = ["#3B82F6", "#F43F5E"];

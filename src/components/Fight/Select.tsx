@@ -28,7 +28,7 @@ const face = (c: CharDef) => `/fight/art/${c.id}-face.webp`;
 const art = (c: CharDef) => `/fight/art/${c.id}.webp`;
 const PX = "[image-rendering:pixelated]";
 const KR = "font-['Nanum_Gothic',sans-serif]";
-const MENU_BG = "/fight/bg/menu.webp";
+const MENU_BG = "/fight/bg/title.webp";
 
 /** 기술 아이콘 (public/fight/icon/<id>-S|X.webp) — 아직 없으면 안 보임 */
 function SkillIcon({ c, k, small }: { c: CharDef; k: "S" | "X" | "A"; small?: boolean }) {
@@ -345,69 +345,98 @@ export default function Select({
         className={`absolute inset-0 h-full w-full object-cover ${PX} ${stage === "mode" ? "opacity-90" : "opacity-45"} ${stage === "map" ? "blur-[3px]" : ""}`}
       />
       <div
-        className={`absolute inset-0 ${stage === "mode" ? "bg-[linear-gradient(to_top,rgba(5,6,12,0.85),transparent_55%)]" : "bg-[radial-gradient(ellipse_at_center,transparent_25%,#0B0D14_90%)]"}`}
+        className={`absolute inset-0 ${stage === "mode" ? "bg-[linear-gradient(to_top,rgba(10,4,20,0.92)_0%,rgba(10,4,20,0.55)_30%,transparent_55%),linear-gradient(to_bottom,rgba(20,6,40,0.55),transparent_28%)]" : "bg-[radial-gradient(ellipse_at_center,transparent_25%,#0B0D14_90%)]"}`}
       />
 
       {stage === "mode" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-end gap-[2cqw] pb-[5cqw]">
-          <div className="text-center">
-            <div className="font-mono text-[6.5cqw] leading-none font-black tracking-[0.12em] text-white italic drop-shadow-[0_0.5cqw_0_#000] [text-shadow:0_0_2cqw_rgba(255,80,60,0.6)]">
-              PIXEL FIGHT
+        <>
+          {/* 타이틀: 노을 하늘 위쪽 (해 위) — 노을색 그라데이션 글자 + 짙은 보라 테두리 + 빛 */}
+          <div className="pointer-events-none absolute inset-x-0 top-[7%] flex flex-col items-center [animation:modal-fade_500ms_ease-out]">
+            <div className="relative">
+              <div
+                aria-hidden
+                className="absolute inset-0 font-mono text-[7.4cqw] leading-none font-black tracking-[0.1em] text-[#FF7A3D] italic opacity-70 blur-[1.6cqw]"
+              >
+                PIXEL FIGHT
+              </div>
+              <div className="relative bg-gradient-to-b from-[#FFF6C8] via-[#FFB347] to-[#FF4F8B] bg-clip-text font-mono text-[7.4cqw] leading-none font-black tracking-[0.1em] text-transparent italic [-webkit-text-stroke:0.22cqw_#2A0E3A] [filter:drop-shadow(0_0.45cqw_0_#1A0726)_drop-shadow(0_0_1.2cqw_rgba(255,120,80,0.45))]">
+                PIXEL FIGHT
+              </div>
             </div>
-            <div className={`${KR} mt-[0.6cqw] text-[1.5cqw] tracking-[0.4em] text-white/60`}>픽셀 격투</div>
+            <div className="mt-[1.2cqw] flex items-center gap-[1.2cqw]">
+              <span className="h-[0.15cqw] w-[8cqw] bg-gradient-to-r from-transparent to-[#FFD27A]" />
+              <span className="font-mono text-[1.25cqw] font-bold tracking-[0.5em] text-[#FFE3B0] [text-shadow:0_0.15cqw_0_#1A0726]">
+                1 VS 1 · PLATFORM FIGHTER
+              </span>
+              <span className="h-[0.15cqw] w-[8cqw] bg-gradient-to-l from-transparent to-[#FFD27A]" />
+            </div>
           </div>
-          <div className="flex gap-[1.4cqw]">
-            {(
-              [
-                ["ai", "AI 대전", "CPU와 1:1"],
-                ["2p", "2인 대전", "한 키보드로 둘이서"],
-                ["online", "온라인 대전", "방 만들고 1:1"],
-              ] as const
-            ).map(([m, label, sub]) => {
-              const on = setup.mode === m;
-              return (
+
+          {/* 아래 돌바닥 위: 모드 · 난이도 · 시작 */}
+          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-[1.5cqw] pb-[3.6cqw]">
+            <div className="flex gap-[1.4cqw]">
+              {(
+                [
+                  ["ai", "AI 대전", "CPU와 1:1"],
+                  ["2p", "2인 대전", "한 키보드로 둘이서"],
+                  ["online", "온라인 대전", "방 만들고 1:1"],
+                ] as const
+              ).map(([m, label, sub]) => {
+                const on = setup.mode === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      sfxUi("move");
+                      setSetup((s) => ({ ...s, mode: m }));
+                    }}
+                    className={`${KR} relative flex w-[17cqw] cursor-pointer flex-col items-center gap-[0.3cqw] rounded-[0.8cqw] border-[0.2cqw] px-[1cqw] py-[1cqw] backdrop-blur-[3px] transition-all ${
+                      on
+                        ? "-translate-y-[0.3cqw] border-[#FFC86B] bg-[linear-gradient(to_bottom,rgba(255,170,90,0.28),rgba(120,40,110,0.35))] shadow-[0_0_2.2cqw_rgba(255,160,80,0.45),inset_0_0_1cqw_rgba(255,220,150,0.25)]"
+                        : "border-white/15 bg-[#140A24]/65 hover:border-[#FFC86B]/60 hover:bg-[#1E0F33]/75"
+                    }`}
+                  >
+                    {on && (
+                      <span className="absolute -top-[0.9cqw] left-1/2 -translate-x-1/2 font-mono text-[1cqw] text-[#FFC86B]">▼</span>
+                    )}
+                    <span className={`text-[2.1cqw] font-extrabold ${on ? "text-white" : "text-white/80"} [text-shadow:0_0.2cqw_0_#1A0726]`}>
+                      {label}
+                    </span>
+                    <span className={`text-[1.1cqw] ${on ? "text-[#FFE3B0]" : "text-white/45"}`}>{sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className={`flex min-h-[3cqw] items-center gap-[0.5cqw] ${ai ? "" : "invisible"}`}>
+              <span className={`${KR} mr-[0.4cqw] text-[1.2cqw] text-[#FFE3B0]/70`}>난이도</span>
+              {AI_LEVELS.map((l, i) => (
                 <button
-                  key={m}
+                  key={l.id}
                   type="button"
                   onClick={() => {
                     sfxUi("move");
-                    setSetup((s) => ({ ...s, mode: m }));
+                    setSetup((s) => ({ ...s, level: i }));
                   }}
-                  className={`${KR} flex w-[17cqw] cursor-pointer flex-col items-center gap-[0.3cqw] rounded-[0.8cqw] border-[0.25cqw] px-[1cqw] py-[1.1cqw] backdrop-blur-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                    on
-                      ? "border-[#FDE047] bg-[#FDE047]/15 shadow-[0_0_2cqw_rgba(253,224,71,0.35)]"
-                      : "border-white/25 bg-black/45 hover:border-white/60"
+                  className={`${KR} cursor-pointer rounded-full border px-[1.1cqw] py-[0.35cqw] text-[1.2cqw] transition-colors ${
+                    setup.level === i
+                      ? "border-[#FFC86B] bg-[#FFC86B] font-bold text-[#2A0E3A]"
+                      : "border-white/10 bg-[#140A24]/65 text-white/65 hover:border-[#FFC86B]/50 hover:text-white"
                   }`}
                 >
-                  <span className="text-[2.2cqw] font-extrabold text-white">{label}</span>
-                  <span className="text-[1.15cqw] text-white/55">{sub}</span>
+                  {l.name}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={toChars}
+              className={`${KR} cursor-pointer rounded-full border-[0.2cqw] border-[#FFE3B0]/70 bg-gradient-to-b from-[#FF8A4C] to-[#E0306A] px-[4.4cqw] py-[0.8cqw] text-[1.9cqw] font-extrabold tracking-[0.15em] text-white shadow-[0_0.4cqw_0_#5A1240,0_0_2cqw_rgba(255,110,90,0.45)] [text-shadow:0_0.15cqw_0_#5A1240] transition-transform hover:scale-105 active:translate-y-[0.2cqw]`}
+            >
+              시작하기
+            </button>
           </div>
-          <div className={`flex min-h-[3cqw] items-center gap-[0.6cqw] ${ai ? "" : "invisible"}`}>
-            <span className={`${KR} text-[1.3cqw] text-white/60`}>난이도</span>
-            {AI_LEVELS.map((l, i) => (
-              <button
-                key={l.id}
-                type="button"
-                onClick={() => setSetup((s) => ({ ...s, level: i }))}
-                className={`${KR} cursor-pointer rounded-full px-[1.2cqw] py-[0.4cqw] text-[1.3cqw] transition-colors ${
-                  setup.level === i ? "bg-white font-bold text-black" : "bg-black/50 text-white/65 hover:bg-white/20"
-                }`}
-              >
-                {l.name}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={toChars}
-            className={`${KR} cursor-pointer rounded-full bg-[#E8344E] px-[4cqw] py-[0.9cqw] text-[1.9cqw] font-extrabold text-white shadow-[0_0.4cqw_0_#7A1020] transition-transform hover:scale-105`}
-          >
-            시작하기
-          </button>
-        </div>
+        </>
       )}
 
       {stage === "char" && (
