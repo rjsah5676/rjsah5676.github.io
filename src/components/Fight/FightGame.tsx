@@ -28,19 +28,11 @@ import {
 } from "@/lib/fight/sfx";
 import { FightRenderer } from "./render";
 import { FightInput, KEY_GUIDE } from "./input";
+import Select, { type Setup } from "./Select";
 import { scrollToGameTop } from "@/components/GameHeader";
 import { RankSubmit } from "@/components/AIRank";
 import { clockLabel, fightScore } from "@/lib/aiScore";
 
-type Mode = "ai" | "2p";
-interface Setup {
-  mode: Mode;
-  c1: number;
-  c2: number;
-  level: number;
-  /** MAPS 인덱스, -1 = 랜덤 */
-  map: number;
-}
 
 const SAVE_KEY = "fight:setup";
 const MUTE_KEY = "fight:mute";
@@ -49,58 +41,6 @@ const btn =
   "cursor-pointer rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs whitespace-nowrap text-white/75 transition-colors hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
 const primaryBtn =
   "cursor-pointer rounded-full bg-[#6C63FF] px-4 py-1.5 font-mono text-xs whitespace-nowrap text-white transition-colors hover:bg-[#5b52f0] disabled:cursor-not-allowed disabled:opacity-40";
-
-/** 캐릭터 선택 카드의 서 있는 모습 (idle 반복) */
-function Portrait({
-  id,
-  faceLeft = false,
-  size = 2,
-}: {
-  id: string;
-  faceLeft?: boolean;
-  size?: number;
-}) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const [sheetLeft, setSheetLeft] = useState(false);
-  useEffect(() => {
-    let raf = 0;
-    let alive = true;
-    loadSheet(id)
-      .then((sh) => {
-        const c = ref.current;
-        if (!c || !alive) return;
-        const [cw, ch] = sh.cell;
-        setSheetLeft(sh.facing === "left");
-        c.width = cw;
-        c.height = ch;
-        const g = c.getContext("2d")!;
-        const a = sh.anims[sh.states.idle.anim];
-        const t0 = performance.now();
-        const draw = () => {
-          const fr = Math.floor(((performance.now() - t0) / 1000) * a.fps) % a.frames;
-          g.clearRect(0, 0, cw, ch);
-          g.drawImage(sh.img, fr * cw, a.row * ch, cw, ch, 0, 0, cw, ch);
-          raf = requestAnimationFrame(draw);
-        };
-        draw();
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-      cancelAnimationFrame(raf);
-    };
-  }, [id]);
-  return (
-    <canvas
-      ref={ref}
-      className="block [image-rendering:pixelated]"
-      style={{
-        width: 100 * size * 0.8,
-        transform: faceLeft !== sheetLeft ? "scaleX(-1)" : undefined,
-      }}
-    />
-  );
-}
 
 const PAD =
   "flex select-none items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] font-['Nanum_Gothic',sans-serif] text-white/80 active:bg-[#6C63FF]/40 touch-none";
@@ -167,7 +107,7 @@ function TouchPad({ input }: { input: FightInput }) {
       </div>
       <div className="grid grid-cols-3 gap-2">
         <PadBtn bit={IN.C} onPad={onPad} className="h-14 w-14 text-sm">
-          고유기
+          아이덴티티
         </PadBtn>
         <PadBtn bit={IN.X} onPad={onPad} className="h-14 w-14 text-sm text-[#FDE047]">
           필살기
@@ -190,7 +130,7 @@ function TouchPad({ input }: { input: FightInput }) {
 interface Hud {
   hp: [number, number];
   meter: [number, number];
-  /** 고유기 남은 대기 비율 (0 = 준비됨) */
+  /** 아이덴티티 남은 대기 비율 (0 = 준비됨) */
   cd: [number, number];
   wins: [number, number];
   sec: number;
@@ -228,72 +168,97 @@ function hudOf(s: State): Hud {
   };
 }
 
-function HpBar({
-  v,
-  right,
-  name,
-  wins,
-}: {
-  v: number;
-  right?: boolean;
-  name: string;
-  wins: number;
-}) {
-  return (
-    <div className={`flex min-w-0 flex-1 flex-col gap-[0.6cqw] ${right ? "items-end" : ""}`}>
-      <div
-        className={`relative h-[2.6cqw] w-full overflow-hidden rounded-[0.4cqw] border border-black/60 bg-[#3B1020] ${right ? "scale-x-[-1]" : ""}`}
-      >
-        <div
-          className="absolute inset-y-0 left-0 bg-[#FF8A3D] transition-[width] duration-500"
-          style={{ width: `${v * 100}%` }}
-        />
-        <div
-          className={`absolute inset-y-0 left-0 ${v < 0.25 ? "bg-[#F43F5E]" : "bg-[#FDE047]"}`}
-          style={{ width: `${v * 100}%` }}
-        />
-      </div>
-      <div className={`flex items-center gap-[1cqw] ${right ? "flex-row-reverse" : ""}`}>
-        <span className="font-['Nanum_Gothic',sans-serif] text-[2.2cqw] font-bold text-white drop-shadow-[0_1px_0_#000]">
-          {name}
-        </span>
-        <span className="flex gap-[0.5cqw]">
-          {Array.from({ length: WINS_NEEDED }, (_, i) => (
-            <span
-              key={i}
-              className={`h-[1.4cqw] w-[1.4cqw] rounded-full border border-black/50 ${i < wins ? "bg-[#FDE047]" : "bg-white/20"}`}
-            />
-          ))}
-        </span>
-      </div>
-    </div>
-  );
-}
+const KR = "font-['Nanum_Gothic',sans-serif]";
 
-function Meter({ v, cd, right }: { v: number; cd: number; right?: boolean }) {
-  const full = v >= METER_MAX;
+/** 한쪽 선수 HUD: 얼굴 · 이름 · 체력 · 필살기 게이지 · 아이덴티티 대기 */
+function PlayerHud({
+  ch,
+  hp,
+  meter,
+  cd,
+  wins,
+  tag,
+  right,
+}: {
+  ch: number;
+  hp: number;
+  meter: number;
+  cd: number;
+  wins: number;
+  tag: string;
+  right?: boolean;
+}) {
+  const c = CHARS[ch];
+  const full = meter >= METER_MAX;
+  const cdLeft = cd * (c.cd / 60);
   const ready = cd <= 0;
+  const flip = right ? "scale-x-[-1]" : "";
   return (
-    <div className={`flex items-center gap-[0.8cqw] ${right ? "flex-row-reverse" : ""}`}>
-      <div
-        className={`relative overflow-hidden rounded-full border px-[0.8cqw] py-[0.15cqw] font-mono text-[1.4cqw] font-bold ${ready ? "border-[#FDE047]/70 text-[#FDE047]" : "border-white/20 text-white/40"}`}
-      >
-        <div className="absolute inset-y-0 left-0 bg-white/15" style={{ width: `${(1 - cd) * 100}%` }} />
-        <span className="relative">고유기</span>
+    <div className={`flex min-w-0 flex-1 items-start gap-[1cqw] ${right ? "flex-row-reverse" : ""}`}>
+      { }
+      <img
+        src={`/fight/art/${c.id}-face.webp`}
+        alt={c.name}
+        className={`h-[6.4cqw] w-[8cqw] shrink-0 rounded-[0.5cqw] border-[0.25cqw] object-cover shadow-[0_0.3cqw_0_#000] [image-rendering:pixelated] ${flip}`}
+        style={{ borderColor: c.color }}
+      />
+      <div className={`flex min-w-0 flex-1 flex-col gap-[0.45cqw] ${right ? "items-end" : ""}`}>
+        <div className={`flex items-baseline gap-[0.8cqw] ${right ? "flex-row-reverse" : ""}`}>
+          <span className={`${KR} text-[2.1cqw] leading-none font-extrabold text-white drop-shadow-[0_0.2cqw_0_#000]`}>
+            {c.name}
+          </span>
+          <span className="font-mono text-[1.1cqw] text-white/55 drop-shadow-[0_0.1cqw_0_#000]">{tag}</span>
+          <span className="flex gap-[0.4cqw] self-center">
+            {Array.from({ length: WINS_NEEDED }, (_, i) => (
+              <span
+                key={i}
+                className={`h-[1.1cqw] w-[1.1cqw] rotate-45 border border-black/60 ${i < wins ? "bg-[#FDE047]" : "bg-white/15"}`}
+              />
+            ))}
+          </span>
+        </div>
+        {/* 체력 (비스듬한 막대) */}
+        <div className={`w-full ${flip}`}>
+          <div className="relative h-[2.2cqw] w-full -skew-x-[20deg] overflow-hidden border-[0.2cqw] border-black/70 bg-[#2A0D18] shadow-[0_0.25cqw_0_rgba(0,0,0,0.6)]">
+            <div className="absolute inset-y-0 left-0 bg-white/70 transition-[width] duration-700" style={{ width: `${hp * 100}%` }} />
+            <div
+              className={`absolute inset-y-0 left-0 bg-gradient-to-b ${hp < 0.25 ? "from-[#FF6B81] to-[#C81E3A]" : "from-[#FFE97A] to-[#F5A524]"}`}
+              style={{ width: `${hp * 100}%` }}
+            />
+            <div className="absolute inset-x-0 top-0 h-[35%] bg-white/25" />
+          </div>
+        </div>
+        {/* 필살기 게이지 + 아이덴티티 */}
+        <div className={`flex w-full items-center gap-[0.8cqw] ${right ? "flex-row-reverse" : ""}`}>
+          <div
+            className={`relative flex h-[2.6cqw] w-[2.6cqw] shrink-0 items-center justify-center rounded-full border-[0.2cqw] ${ready ? "border-[#FDE047]" : "border-white/25"}`}
+            style={{
+              background: ready
+                ? "radial-gradient(circle, rgba(253,224,71,0.35), rgba(0,0,0,0.5))"
+                : `conic-gradient(rgba(255,255,255,0.35) ${(1 - cd) * 360}deg, rgba(0,0,0,0.55) 0)`,
+            }}
+            title={`아이덴티티 · ${c.idName}`}
+          >
+            <span className={`font-mono text-[1.1cqw] font-bold ${ready ? "text-[#FDE047]" : "text-white"}`}>
+              {ready ? "L" : cdLeft.toFixed(1)}
+            </span>
+          </div>
+          <span className={`${KR} text-[1.1cqw] font-bold ${ready ? "text-[#FDE047]" : "text-white/45"} drop-shadow-[0_0.1cqw_0_#000]`}>
+            {c.idName}
+          </span>
+          <div className={`ml-auto ${right ? "mr-auto ml-0" : ""} flex items-center gap-[0.6cqw] ${right ? "flex-row-reverse" : ""}`}>
+            <div className={`relative h-[1.2cqw] w-[16cqw] -skew-x-[20deg] overflow-hidden border border-black/60 bg-black/50 ${flip}`}>
+              <div
+                className={`absolute inset-y-0 left-0 ${full ? "animate-pulse bg-gradient-to-r from-[#22D3EE] to-[#A5F3FC]" : "bg-[#3B82F6]"}`}
+                style={{ width: `${Math.min(100, meter)}%` }}
+              />
+            </div>
+            <span className={`font-mono text-[1.2cqw] font-black drop-shadow-[0_0.1cqw_0_#000] ${full ? "text-[#67E8F9]" : "text-white/50"}`}>
+              {full ? c.ultName : `${meter}%`}
+            </span>
+          </div>
+        </div>
       </div>
-      <div
-        className={`relative h-[1.3cqw] w-[24cqw] overflow-hidden rounded-full border border-black/50 bg-black/40 ${right ? "scale-x-[-1]" : ""}`}
-      >
-        <div
-          className={`absolute inset-y-0 left-0 ${full ? "animate-pulse bg-[#22D3EE]" : "bg-[#3B82F6]"}`}
-          style={{ width: `${Math.min(100, v)}%` }}
-        />
-      </div>
-      <span
-        className={`font-mono text-[1.6cqw] font-bold drop-shadow-[0_1px_0_#000] ${full ? "text-[#67E8F9]" : "text-white/50"}`}
-      >
-        {full ? "MAX" : `${v}%`}
-      </span>
     </div>
   );
 }
@@ -464,11 +429,39 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 시작할 때의 설정으로 한 판
   }, [playing]);
 
-  const start = () => {
+  const start = useCallback(() => {
     setPaused(false);
     setPlaying(true);
     setTimeout(scrollToGameTop, 50);
-  };
+  }, []);
+
+  // ── 배경음악 (처음 클릭·키 입력부터, 소리 끄면 멈춤) ──
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  const mutedRef = useRef(false);
+  const startBgm = useCallback(() => {
+    if (mutedRef.current) return;
+    if (!bgmRef.current) {
+      const a = new Audio("/fight/bgm.mp3");
+      a.loop = true;
+      a.volume = 0.35;
+      bgmRef.current = a;
+    }
+    if (bgmRef.current.paused) bgmRef.current.play().catch(() => {});
+  }, []);
+  useEffect(() => {
+    mutedRef.current = muted;
+    if (muted) bgmRef.current?.pause();
+  }, [muted]);
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "hidden") bgmRef.current?.pause();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      bgmRef.current?.pause();
+    };
+  }, []);
   const toMenu = useCallback(() => {
     setPlaying(false);
     setPaused(false);
@@ -477,133 +470,29 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const toggleMute = () =>
     setMuted((m) => {
       setFightVolume(m ? 0.8 : 0);
+      if (m) {
+        mutedRef.current = false;
+        setTimeout(startBgm, 0);
+      }
       try {
         localStorage.setItem(MUTE_KEY, m ? "0" : "1");
       } catch {}
       return !m;
     });
 
-  const c1 = CHARS[setup.c1],
-    c2 = CHARS[setup.c2];
   const level = AI_LEVELS[setup.level];
 
   if (!playing) {
     return (
-      <div className="mx-auto max-w-2xl rounded-xl border border-white/10 bg-[#1C1E24] p-4 sm:p-6">
-        <div className="mb-4 flex flex-wrap gap-1.5">
-          {(
-            [
-              ["ai", "🤖 AI 대전"],
-              ["2p", "👥 2인 대전 (한 키보드)"],
-            ] as const
-          ).map(([m, label]) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setSetup((s) => ({ ...s, mode: m }))}
-              className={`cursor-pointer rounded-full px-4 py-1.5 font-['Nanum_Gothic',sans-serif] text-sm transition-colors ${
-                setup.mode === m
-                  ? "bg-[#6C63FF] text-white"
-                  : "bg-white/5 text-white/60 hover:bg-white/10"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-          <span className="self-center pl-1 font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-            온라인 대전은 준비 중
-          </span>
+      <div className="mx-auto w-full max-w-[min(960px,calc((100dvh-170px)*16/9))]">
+        <Select setup={setup} setSetup={setSetup} onStart={start} onInteract={startBgm} />
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={toggleMute} className={btn}>
+            {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
+          </button>
+          <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">온라인 대전은 준비 중</span>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {([0, 1] as const).map((side) => {
-            const sel = side === 0 ? setup.c1 : setup.c2;
-            return (
-              <div key={side}>
-                <div className="mb-1.5 font-mono text-xs text-white/40">
-                  {side === 0 ? "1P" : setup.mode === "ai" ? "AI" : "2P"}
-                </div>
-                <div className="flex flex-col gap-2">
-                  {CHARS.map((c, i) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() =>
-                        setSetup((s) => (side === 0 ? { ...s, c1: i } : { ...s, c2: i }))
-                      }
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
-                        sel === i
-                          ? "border-[#6C63FF]/70 bg-[#6C63FF]/15"
-                          : "border-white/10 bg-white/[0.03] hover:border-white/25"
-                      }`}
-                    >
-                      <span className="flex h-14 w-16 shrink-0 items-end justify-center overflow-hidden">
-                        <Portrait id={c.id} faceLeft={side === 1} size={0.9} />
-                      </span>
-                      <span className="flex min-w-0 flex-col">
-                        <span className="font-['Nanum_Gothic',sans-serif] text-sm text-white">
-                          <span style={{ color: c.color }}>●</span> {c.name}{" "}
-                          <span className="text-xs text-white/45">{c.title}</span>
-                        </span>
-                        <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/45">
-                          {c.desc}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-4">
-          <div className="mb-1.5 font-mono text-xs text-white/40">맵</div>
-          <div className="flex flex-wrap gap-1.5">
-            {[{ id: "random", name: "🎲 랜덤", desc: "매 판 무작위" }, ...MAPS].map((m, i) => (
-              <button
-                key={m.id}
-                type="button"
-                title={m.desc}
-                onClick={() => setSetup((s) => ({ ...s, map: i - 1 }))}
-                className={`cursor-pointer rounded-full px-3 py-1 font-['Nanum_Gothic',sans-serif] text-xs transition-colors ${
-                  setup.map === i - 1
-                    ? "bg-[#6C63FF] text-white"
-                    : "bg-white/5 text-white/60 hover:bg-white/10"
-                }`}
-              >
-                {m.name}
-              </button>
-            ))}
-          </div>
-          <p className="mt-1 font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-            {setup.map >= 0 ? MAPS[setup.map].desc : "운동장·체육관·옥상·복도 중 무작위"}
-          </p>
-        </div>
-
-        {setup.mode === "ai" && (
-          <div className="mt-4">
-            <div className="mb-1.5 font-mono text-xs text-white/40">AI 단계</div>
-            <div className="flex flex-wrap gap-1.5">
-              {AI_LEVELS.map((l, i) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  onClick={() => setSetup((s) => ({ ...s, level: i }))}
-                  className={`cursor-pointer rounded-full px-3 py-1 font-['Nanum_Gothic',sans-serif] text-xs transition-colors ${
-                    setup.level === i
-                      ? "bg-[#6C63FF] text-white"
-                      : "bg-white/5 text-white/60 hover:bg-white/10"
-                  }`}
-                >
-                  {i + 1}. {l.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-4 rounded-lg bg-black/20 px-3 py-2.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-relaxed text-white/50">
+        <div className="mt-3 rounded-lg bg-black/20 px-3 py-2.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-relaxed text-white/50">
           <div>
             <b className="text-white/70">1P</b> {setup.mode === "ai" ? KEY_GUIDE.p1 : KEY_GUIDE.p1Two}
           </div>
@@ -615,27 +504,18 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             </div>
           )}
           <div className="mt-1 text-white/40">
-            걸으면서 때리기 · 같은 방향 두 번 대시(공중 1번) · 2단 점프, 공중 공격은 점프마다 2번 ·
-            공중 고유기는 아래로 내리꽂음 · 떨어지면 위에서 다시 등장 · 게이지 MAX에 필살기(발차기+고유기
-            동시도 가능) · 게임패드 · Esc 일시정지
+            약(J)으로 빠르게 끊어 치고 발차기·아이덴티티·필살기로 이어 가기 · 같은 방향 두 번 대시(공중 1번) · 2단 점프,
+            공중 공격은 점프마다 2번 · 가드는 보는 쪽만 막음 · 떨어지면 위에서 다시 등장 · 게이지 MAX에
+            필살기(발차기+아이덴티티 동시도 가능) · 게임패드 · Esc 일시정지
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={start}
-          className={`${primaryBtn} mt-4 w-full py-2.5 text-sm`}
-        >
-          ⚔️ {c1.name} vs {c2.name}
-          {setup.mode === "ai" ? ` (AI ${level.name})` : ""} 시작
-        </button>
       </div>
     );
   }
 
   const names: [string, string] = [
-    `${c1.name}${setup.mode === "ai" ? " (나)" : " 1P"}`,
-    `${c2.name}${setup.mode === "ai" ? ` · AI ${level.name}` : " 2P"}`,
+    "1P",
+    setup.mode === "ai" ? `CPU ${level.name}` : "2P",
   ];
 
   let banner: { text: string; sub?: string; color?: string } | null = null;
@@ -674,20 +554,17 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         {hud && (
           <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-[1.6cqw]">
             <div className="flex items-start gap-[2cqw]">
-              <HpBar v={hud.hp[0]} name={names[0]} wins={hud.wins[0]} />
-              <div className="flex w-[8cqw] shrink-0 flex-col items-center">
+              <PlayerHud ch={setup.c1} hp={hud.hp[0]} meter={hud.meter[0]} cd={hud.cd[0]} wins={hud.wins[0]} tag={names[0]} />
+              <div className="flex w-[7cqw] shrink-0 flex-col items-center pt-[0.4cqw]">
                 <span
-                  className={`font-mono text-[4cqw] leading-none font-bold drop-shadow-[0_2px_0_#000] ${hud.sec <= 10 && hud.phase === "fight" ? "text-[#F87171]" : "text-white"}`}
+                  className={`font-mono text-[4cqw] leading-none font-black drop-shadow-[0_0.3cqw_0_#000] ${hud.sec <= 10 && hud.phase === "fight" ? "text-[#F87171]" : "text-white"}`}
                 >
                   {Math.min(ROUND_SEC, hud.sec)}
                 </span>
               </div>
-              <HpBar v={hud.hp[1]} right name={names[1]} wins={hud.wins[1]} />
+              <PlayerHud ch={setup.c2} hp={hud.hp[1]} meter={hud.meter[1]} cd={hud.cd[1]} wins={hud.wins[1]} tag={names[1]} right />
             </div>
-            <div className="flex items-end justify-between">
-              <Meter v={hud.meter[0]} cd={hud.cd[0]} />
-              <Meter v={hud.meter[1]} cd={hud.cd[1]} right />
-            </div>
+            <div />
             {hud.combo.map(
               (c, i) =>
                 c >= 2 && (

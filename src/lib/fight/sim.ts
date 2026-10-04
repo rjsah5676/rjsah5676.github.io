@@ -11,7 +11,7 @@
  * 발판은 한쪽 통과(밑에서 뚫고 올라감, ↓+점프로 내려감). 화면 밑으로 떨어지면
  * 위에서 잠깐 무적으로 다시 내려옴 (피해 없음).
  * 조작: 좌우로 걷고 그쪽을 봄, ←←/→→ 대시(공중 1번), 점프(공중에서 한 번 더),
- * ↓ 누르고 있으면 가드. 공중에선 약·발차기·고유기 — 점프마다 2번까지.
+ * ↓ 누르고 있으면 가드. 공중에선 약·발차기·아이덴티티 — 점프마다 2번까지.
  */
 import {
   CHARS,
@@ -48,7 +48,7 @@ export const IN = {
   A: 16,
   /** 발차기 (K) */
   B: 32,
-  /** 고유기 (L) — 캐릭터마다 다름 */
+  /** 아이덴티티 (L) — 캐릭터마다 다름 */
   C: 64,
   /** 필살기 (I, 게이지) */
   X: 128,
@@ -112,7 +112,7 @@ export interface Fighter {
   dashT: number;
   /** 이번 공중에서 대시 썼나 */
   airDash: number;
-  /** 고유기 남은 대기 프레임 */
+  /** 아이덴티티 남은 대기 프레임 */
   cd: number;
   /** 쓴 점프 수 (땅에 닿으면 0) */
   jumps: number;
@@ -828,8 +828,10 @@ function separate(s: State) {
   moveX(b, dir * (over - pa));
 }
 
-function canBlock(s: State, d: Fighter) {
+function canBlock(s: State, d: Fighter, fromX: number) {
   if (airborneS(s, d)) return false;
+  // 보고 있는 쪽에서 온 공격만 막음 (등 뒤는 못 막음)
+  if ((fromX - d.x) * d.face < 0) return false;
   return d.st === "block" || ((d.st === "idle" || d.st === "walk") && holding(d, IN.D));
 }
 
@@ -842,9 +844,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
   const a = s.p[ai];
   const d = s.p[1 - ai];
   const dir = d.x >= srcX ? 1 : -1; // d가 밀려날 방향
-  if (mid !== "S") a.hit = 1;
+  if (!m.proj && !m.summon) a.hit = 1;
   const eh = d.h + 28 * SUB;
-  if (canBlock(s, d)) {
+  if (canBlock(s, d, srcX)) {
     d.hp -= m.chip;
     d.st = "block";
     d.t = 0;
@@ -856,7 +858,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     s.stop = Math.max(s.stop, m.hitstop - 3);
     s.ev.push({ k: "block", p: ai, x: d.x - dir * 10 * SUB, h: eh, v: m.chip, m: mid });
   } else {
-    const dmg = scaleDmg(m.dmg, d.combo);
+    // 연타·소환 필살기는 콤보 보정 없이 매 타 같은 피해
+    const dmg = m.multi || m.summon ? m.dmg : scaleDmg(m.dmg, d.combo);
     const wasAir = airborneS(s, d);
     d.hp -= dmg;
     d.combo++;

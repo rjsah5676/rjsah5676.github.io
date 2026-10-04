@@ -8,7 +8,7 @@
 
 export const SUB = 256;
 
-/** 기술 id: L 약 · H 발차기 · J 공중 약 · K 공중 발차기 · S 고유기(캐릭터마다 다름) · X 필살기 */
+/** 기술 id: L 약 · H 발차기 · J 공중 약 · K 공중 발차기 · S 아이덴티티(캐릭터마다 다름) · X 필살기 */
 export type MoveId = "L" | "H" | "J" | "K" | "S" | "X";
 
 export interface Box {
@@ -73,7 +73,7 @@ export interface CharDef {
   jumpVx: number;
   /** 대시 속도 (←← / →→) */
   dash: number;
-  /** 고유기 재사용 대기 (프레임) */
+  /** 아이덴티티 재사용 대기 (프레임) */
   cd: number;
   /** 피격 박스 */
   hurt: Box;
@@ -81,6 +81,11 @@ export interface CharDef {
   width: number;
   /** 탄·이펙트 색 */
   color: string;
+  /** 아이덴티티(L)·필살기(I) 이름과 설명 (선택 화면·HUD) */
+  idName: string;
+  idDesc: string;
+  ultName: string;
+  ultDesc: string;
   moves: Record<MoveId, MoveDef>;
 }
 
@@ -92,21 +97,26 @@ export const CHARS: CharDef[] = [
     id: "kai",
     name: "카이",
     title: "맨손 격투 · 바람",
-    desc: "고유기 질풍권 — 바람 두르고 돌진, 공중에선 내리꽂는 발차기",
+    desc: "빠른 주먹·발차기로 붙어서 몰아치는 맨손 격투가",
     hp: 1250,
     walk: 1180,
     jumpVx: 1050,
     dash: 2700,
-    cd: 96,
+    cd: 150,
     hurt: { x: -9, y: 58, w: 18, h: 58 },
     width: 18,
     color: "#E6ECF5",
+    idName: "질풍권",
+    idDesc: "바람을 두르고 짧게 돌진하는 주먹. 공중에선 앞쪽 아래로 내리꽂는 발차기",
+    ultName: "천풍난무",
+    ultDesc: "회오리를 두르고 돌진하며 6연타, 마지막 타에 날려 버림",
     moves: {
       L: {
-        startup: 4,
+        // 약 (J): 제일 빠르고 짧은 경직 — J·J로 이어 치고 발차기·아이덴티티·필살기로 캔슬
+        startup: 3,
         active: 3,
-        recovery: 7,
-        dmg: 45,
+        recovery: 5,
+        dmg: 40,
         chip: 0,
         hitstun: 14,
         blockstun: 9,
@@ -117,10 +127,11 @@ export const CHARS: CharDef[] = [
         cancel: ["L", "H", "S", "X"],
       },
       H: {
-        startup: 8,
+        // 발차기 (K): 세지만 느리고 헛치면 빈틈 큼 — 연타보다 약 뒤에 이어 쓰는 기술
+        startup: 11,
         active: 4,
-        recovery: 13,
-        dmg: 105,
+        recovery: 19,
+        dmg: 95,
         chip: 0,
         hitstun: 20,
         blockstun: 14,
@@ -159,31 +170,31 @@ export const CHARS: CharDef[] = [
         lunge: 2300,
       },
       S: {
-        // 고유기 「질풍권」: 바람을 두르고 앞으로 돌진 (공중에선 비스듬히 내리꽂는 발차기)
-        startup: 7,
-        active: 14,
-        recovery: 12,
-        dmg: 95,
-        chip: 14,
-        hitstun: 20,
-        blockstun: 14,
-        push: 1400,
+        // 아이덴티티 「질풍권」: 바람을 두르고 앞으로 돌진 (공중에선 비스듬히 내리꽂는 발차기)
+        startup: 9,
+        active: 11,
+        recovery: 22,
+        dmg: 70,
+        chip: 6,
+        hitstun: 18,
+        blockstun: 10,
+        push: 1100,
         hitstop: 7,
         meter: 7,
         box: { x: 0, y: 48, w: 46, h: 32 },
-        rush: { vx: 3300, airVh: -2400 },
+        rush: { vx: 2500, airVh: -2200 },
       },
       X: {
         // 필살기 「천풍난무」: 회오리를 두르고 돌진하며 6연타, 마지막에 날려 버림
         startup: 6,
         active: 36,
         recovery: 22,
-        dmg: 52,
-        chip: 10,
+        dmg: 42,
+        chip: 8,
         hitstun: 18,
         blockstun: 12,
-        push: 260,
-        hitstop: 4,
+        push: 220,
+        hitstop: 2,
         meter: 0,
         box: { x: -30, y: 86, w: 92, h: 86 },
         kd: true,
@@ -196,7 +207,7 @@ export const CHARS: CharDef[] = [
     id: "igna",
     name: "이그나",
     title: "불꽃 술사",
-    desc: "고유기 화염구 — 빠른 불꽃 탄, 공중에선 비스듬히 내리꽂음",
+    desc: "불꽃 탄과 긴 불꽃 베기로 거리를 두고 태우는 술사",
     hp: 1150,
     walk: 1080,
     jumpVx: 980,
@@ -205,12 +216,16 @@ export const CHARS: CharDef[] = [
     hurt: { x: -9, y: 60, w: 18, h: 60 },
     width: 18,
     color: "#FF6A2A",
+    idName: "화염구",
+    idDesc: "빠르게 날아가는 불꽃 탄. 공중에서 쏘면 앞쪽 아래로 비스듬히 내리꽂음",
+    ultName: "업화주",
+    ultDesc: "상대 발밑에서 불기둥이 솟아 4연타 — 어디에 있든 따라감",
     moves: {
       L: {
-        startup: 5,
+        startup: 4,
         active: 3,
-        recovery: 8,
-        dmg: 48,
+        recovery: 6,
+        dmg: 42,
         chip: 0,
         hitstun: 14,
         blockstun: 9,
@@ -221,10 +236,10 @@ export const CHARS: CharDef[] = [
         cancel: ["L", "H", "S", "X"],
       },
       H: {
-        startup: 10,
+        startup: 12,
         active: 5,
-        recovery: 15,
-        dmg: 115,
+        recovery: 20,
+        dmg: 100,
         chip: 8,
         hitstun: 21,
         blockstun: 15,
@@ -263,7 +278,7 @@ export const CHARS: CharDef[] = [
         lunge: 1600,
       },
       S: {
-        // 고유기 「화염구」: 빠른 불꽃 탄 (공중에선 앞쪽 아래로 내리꽂음)
+        // 아이덴티티 「화염구」: 빠른 불꽃 탄 (공중에선 앞쪽 아래로 내리꽂음)
         startup: 8,
         active: 1,
         recovery: 15,
@@ -291,7 +306,7 @@ export const CHARS: CharDef[] = [
         meter: 0,
         box: { x: 0, y: 0, w: 0, h: 0 },
         kd: true,
-        summon: { w: 56, h: 150, delay: 26, life: 40, every: 10 },
+        summon: { w: 56, h: 150, delay: 20, life: 40, every: 10 },
       },
     },
   },

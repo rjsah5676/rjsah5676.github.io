@@ -1,14 +1,14 @@
 {
   "image": "/fight/igna.webp",
   "cell": [
-    124,
-    84
+    125,
+    83
   ],
   "anchor": [
-    64,
-    81
+    63,
+    80
   ],
-  "scale": 1.048,
+  "scale": 1.032,
   "pixel": true,
   "facing": "right",
   "anims": {

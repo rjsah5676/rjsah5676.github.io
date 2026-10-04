@@ -42,7 +42,7 @@ KAI_ANIMS = {
     "air": dict(src=[(2, 6)], fps=1, loop=False),
     "air2": dict(src=[(3, 3)], fps=1, loop=False),
     "cast": dict(src=[(0, 6), (3, 3), (3, 3)], fps=12, loop=False),
-    "super": dict(src=[(4, 0), (4, 1), (4, 1), (4, 3)], fps=10, loop=False),
+    "super": dict(src=[(4, 0), (4, 1), (4, 1), (4, 1), (4, 3)], fps=10, loop=False),
     "hit": dict(src=[(2, 5)], fps=1, loop=False),
     "block": dict(src=[(2, 5)], fps=1, loop=False),
     "dash": dict(src=[(0, 6), (3, 3)], fps=12, loop=False),
@@ -54,7 +54,7 @@ KAI_MOVES = {
     "J": {"anim": "air", "from": 0, "impact": 0, "to": 0},
     "K": {"anim": "air2", "from": 0, "impact": 0, "to": 0},
     "S": {"anim": "cast", "from": 0, "impact": 1, "to": 2},
-    "X": {"anim": "super", "from": 0, "impact": 2, "to": 3},
+    "X": {"anim": "super", "from": 0, "impact": 1, "to": 4},
 }
 # 이그나 (불꽃)
 IGNA_ANIMS = {
@@ -235,9 +235,26 @@ def main(src: str, cid: str, wm: list, splits: list):
         # 머리카락 하이라이트처럼 배경색과 비슷해 뚫린 구멍을 메움 (원래 색으로)
         filled = ndimage.binary_fill_holes(ndimage.binary_closing(mask, np.ones((3, 3)), iterations=2))
         restore = filled & ~mask
+        # 작은 구멍(머리 하이라이트 등)만 메움 — 다리 사이 같은 큰 틈은 배경 그대로
+        lb, nb = ndimage.label(restore)
+        if nb:
+            sz = ndimage.sum(np.ones_like(dist), lb, range(1, nb + 1))
+            small = np.zeros(nb + 1, bool)
+            md = ndimage.mean(dist, lb, range(1, nb + 1))
+            # 진짜 배경 틈은 배경색과 거의 같음(거리 작음), 머리 하이라이트는 조금 다름
+            small[1:] = (sz <= 30) | (md >= 16)
+            restore = small[lb]
         alpha[restore] = 1
         rgb[restore] = im[restore]
         mask |= restore
+    # 테두리 정리: 바깥 가장자리 중 배경색에 가까운 픽셀(번진 배경·격자 잔상)을 두 겹까지 벗겨 냄,
+    # 남은 픽셀은 반투명 없이 딱 떨어지게 (도트 그림)
+    for _ in range(2):
+        rim = mask & ~ndimage.binary_erosion(mask, np.ones((3, 3)))
+        bad = rim & (dist < 60)
+        mask &= ~bad
+    alpha = np.where(mask, 1.0, 0.0)
+    rgb = np.where(mask[..., None], im, 0)
 
     # 몸 픽셀: 하늘색 이펙트(파랑 강하고 밝음) 제외
     r, g, b = im[..., 0], im[..., 1], im[..., 2]

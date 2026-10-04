@@ -2,13 +2,13 @@
   "image": "/fight/kai.webp",
   "cell": [
     120,
-    76
+    69
   ],
   "anchor": [
     65,
-    73
+    66
   ],
-  "scale": 1.04,
+  "scale": 1.016,
   "pixel": true,
   "facing": "right",
   "anims": {
@@ -62,7 +62,7 @@
     },
     "super": {
       "row": 8,
-      "frames": 4,
+      "frames": 5,
       "fps": 10,
       "loop": false
     },
@@ -125,8 +125,8 @@
     "X": {
       "anim": "super",
       "from": 0,
-      "impact": 2,
-      "to": 3
+      "impact": 1,
+      "to": 4
     }
   },
   "states": {

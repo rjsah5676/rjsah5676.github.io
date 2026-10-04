@@ -34,6 +34,18 @@ interface Particle {
 /** 캐릭터별 능력 (탄·타격 이펙트 모양) */
 const ELEMENT: Record<string, "fire" | "bolt" | "ice" | "wind"> = { kai: "wind", igna: "fire" };
 
+/** 이그나 화염구 그림 (public/fight/fx) — 처음 쓸 때 불러옴 */
+let fbCache: HTMLImageElement | null | undefined;
+function fireball(): HTMLImageElement | null {
+  if (fbCache === undefined) {
+    fbCache = null;
+    const im = new Image();
+    im.onload = () => (fbCache = im);
+    im.src = "/fight/fx/igna-fireball.webp";
+  }
+  return fbCache && fbCache.complete ? fbCache : null;
+}
+
 function glowAt(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
   g.save();
   g.globalCompositeOperation = "lighter";
@@ -200,6 +212,35 @@ export class FightRenderer {
     this.shake *= 0.8;
   }
 
+  /** 카이 필살기 동안 몸을 감싸고 도는 회오리 */
+  private drawWindAura(f: Fighter, s: State) {
+    if (f.st !== "atk" || f.mv !== "X" || CHARS[f.ch].id !== "kai") return;
+    const m = CHARS[f.ch].moves.X;
+    if (f.t < m.startup - 2 || f.t > m.startup + m.active + 4) return;
+    const g = this.g;
+    const x = f.x / SUB,
+      y = screenY(f.h);
+    const spin = s.f * 0.45;
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    for (let k = 0; k < 5; k++) {
+      const yy = y - 8 - k * 15;
+      const rx = 30 + k * 3,
+        ry = 7 + k;
+      g.strokeStyle = `rgba(220,235,255,${0.55 - k * 0.07})`;
+      g.lineWidth = 2.2;
+      g.beginPath();
+      g.ellipse(x, yy, rx, ry, 0, spin + k, spin + k + Math.PI * 1.3);
+      g.stroke();
+      g.strokeStyle = "rgba(160,190,230,0.35)";
+      g.lineWidth = 1.2;
+      g.beginPath();
+      g.ellipse(x, yy, rx * 0.8, ry * 0.8, 0, -spin + k * 2, -spin + k * 2 + Math.PI);
+      g.stroke();
+    }
+    g.restore();
+  }
+
   private drawFighter(f: Fighter, i: number, s: State) {
     const g = this.g;
     const sh = this.sheets[i];
@@ -338,7 +379,19 @@ export class FightRenderer {
       g.translate(cx, cy);
       g.rotate(Math.atan2(-p.vh, Math.abs(p.vx)) * dir);
       g.translate(-cx, -cy);
-      if (el === "fire") {
+      const fbImg = fireball();
+      if (el === "fire" && fbImg) {
+        // 화염구 그림 (오른쪽을 보는 그림, 앞쪽 원이 탄 판정 위치)
+        const hgt = w * 1.7;
+        const wid = (hgt * fbImg.width) / fbImg.height;
+        g.save();
+        g.translate(cx, cy);
+        g.scale(dir, 1);
+        g.imageSmoothingEnabled = false;
+        g.drawImage(fbImg, -wid * 0.78, -hgt / 2, wid, hgt);
+        g.restore();
+        glowAt(g, cx, cy, w * 1.4, "rgba(255,120,40,0.3)");
+      } else if (el === "fire") {
         for (let k = 4; k >= 0; k--) {
           g.globalAlpha = 0.25 + (4 - k) * 0.15;
           g.fillStyle = k > 2 ? "#FF5A1F" : k > 0 ? "#FF9A3A" : "#FFE27A";
@@ -437,7 +490,10 @@ export class FightRenderer {
     }
     // 발판은 배경에 구워 둠 → 캐릭터 (공격 중인 쪽을 앞에)
     const order = s.p[0].st === "atk" && s.p[1].st !== "atk" ? [1, 0] : [0, 1];
-    for (const i of order) this.drawFighter(s.p[i], i, s);
+    for (const i of order) {
+      this.drawFighter(s.p[i], i, s);
+      this.drawWindAura(s.p[i], s);
+    }
     this.drawProj(s);
 
     for (const p of this.parts) {
