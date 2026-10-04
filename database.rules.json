@@ -125,12 +125,12 @@
           },
           "seats": {
             "$seat": {
-              ".write": "auth != null && ($seat === '0' || $seat === '1') && ((!data.exists() && newData.val() === auth.uid) || (data.val() === auth.uid && !newData.exists()) || (!newData.exists() && !root.child('fight/rooms/' + $room + '/players/' + data.val()).exists()))"
+              ".write": "auth != null && ($seat === '0' || $seat === '1') && ((!data.exists() && newData.val() === auth.uid) || (data.val() === auth.uid && !newData.exists()) || (data.exists() && !newData.exists() && !root.child('fight/rooms/' + $room + '/players/' + data.val()).exists()))"
             }
           },
           "players": {
             "$uid": {
-              ".write": "auth != null && auth.uid === $uid && (!newData.exists() || (root.child('fight/rooms/' + $room + '/meta').exists() && newData.parent().parent().child('seats/' + newData.child('seat').val()).val() === auth.uid))",
+              ".write": "auth != null && auth.uid === $uid && (!newData.exists() || (root.child('fight/rooms/' + $room + '/meta').exists() && ((newData.child('seat').val() === 0 && newData.parent().parent().child('seats/0').val() === auth.uid) || (newData.child('seat').val() === 1 && newData.parent().parent().child('seats/1').val() === auth.uid))))",
               ".validate": "newData.child('nick').isString() && newData.child('nick').val().length <= 10 && (newData.child('seat').val() === 0 || newData.child('seat').val() === 1) && newData.child('ch').isNumber() && newData.child('ready').isBoolean() && newData.child('joinedAt').isNumber()"
             }
           },

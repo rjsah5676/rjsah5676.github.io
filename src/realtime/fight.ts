@@ -212,18 +212,26 @@ export class RoomSession {
     const order: (0 | 1)[] =
       room.seats[1] === this.uid ? [1, 0] : room.seats[0] === this.uid ? [0, 1] : room.seats[0] ? [1, 0] : [0, 1];
     let ok = false;
+    let tried = false;
+    let lastErr: unknown = null;
     for (const seat of order) {
       const owner = room.seats[seat];
       if (owner && owner !== this.uid && room.players[owner]) continue;
+      tried = true;
       try {
         await this.takeSeat(seat, !!owner && owner !== this.uid);
         ok = true;
         break;
-      } catch {
-        /* 다른 사람이 먼저 앉음 → 다음 자리 */
+      } catch (e) {
+        // 다른 사람이 먼저 앉았을 수도 → 다음 자리
+        lastErr = e;
+        console.error("[fight] 자리 잡기 실패", e);
       }
     }
-    if (!ok) throw new RoomFullError();
+    if (!ok) {
+      if (!tried) throw new RoomFullError();
+      throw lastErr ?? new Error("join failed");
+    }
     this.unsubs.push(
       onValue(
         r(`rooms/${this.id}`),
@@ -245,13 +253,13 @@ export class RoomSession {
   private async takeSeat(seat: 0 | 1, clearStale: boolean) {
     if (clearStale) await remove(r(`rooms/${this.id}/seats/${seat}`));
     if (!this.joinedAt) this.joinedAt = serverNow();
-    const od = onDisconnect(r(`rooms/${this.id}`));
-    await od.update({ [`seats/${seat}`]: null, [`players/${this.uid}`]: null });
     await update(r(`rooms/${this.id}`), {
       [`seats/${seat}`]: this.uid,
       [`players/${this.uid}`]: { nick: this.nick, seat, ch: this.ch, ready: false, joinedAt: this.joinedAt },
     });
     this.seat = seat;
+    // 끊기면 자리·플레이어 자동 삭제 — 자리를 차지한 뒤에 예약해야 규칙(내 자리만 지울 수 있음)을 통과함
+    await onDisconnect(r(`rooms/${this.id}`)).update({ [`seats/${seat}`]: null, [`players/${this.uid}`]: null });
   }
 
   private onRoom(room: OnlineRoom | null) {
