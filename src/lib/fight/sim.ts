@@ -28,8 +28,10 @@ import {
 } from "./chars";
 import { MAPS, type MapDef, type Plat } from "./maps";
 
-/** 띄워진 상대 중력 (보통의 45%) */
-const FLOAT_G = Math.trunc((GRAVITY * 45) / 100);
+/** 띄워진 상대 중력 (보통의 34%) — 띄우는 속도와 같은 비율로 줄여서, 덜 높이 뜨지만 떠 있는 시간은 그대로 */
+const FLOAT_G = Math.trunc((GRAVITY * 34) / 100);
+/** 띄워진 상대 최대 낙하 속도 */
+const FLOAT_FALL = 825;
 /** 정수 제곱근 (실수 연산 안 씀) */
 function isqrt(n: number): number {
   if (n <= 0) return 0;
@@ -108,15 +110,15 @@ const AIR_ATTACKS = 2;
 /** 막은 뒤 가드 반격을 받아 주는 여유 프레임 (막는 경직 + 이만큼) */
 const GC_GRACE = 10;
 /** 잡기 성공 후 위로 띄우는 세기와 그동안의 경직 */
-const LAUNCH_VH = 2300;
+const LAUNCH_VH = 1725;
 const LAUNCH_STUN = 60;
 /** 화상: 이만큼마다 체력 -BURN_DMG */
 const BURN_EVERY = 15;
 const BURN_DMG = 2;
 /** 감전 처음 걸릴 때 짧게 기절 (경직 +) */
-const SHOCK_STUN = 8;
+const SHOCK_STUN = 10;
 /** 약 4단 마무리로 띄우는 세기 */
-const CHAIN_LAUNCH_VH = 1900;
+const CHAIN_LAUNCH_VH = 1425;
 /** 띄워진 상대를 공중에서 다시 때리면: 다시 떠오르는 세기, 밀림 비율(%), 최소 경직 */
 const JUGGLE_VH = 950;
 const JUGGLE_PUSH = 45;
@@ -1094,7 +1096,7 @@ function physics(s: State, i: number) {
   }
   // 공중 (띄워진 상대는 천천히 떨어짐)
   // (띄워진 상대: 중력 45%, 떨어지는 최고 속도도 낮게 → 공중 콤보 넣을 시간)
-  if (f.float === 1 && f.st === "hit") f.vh = Math.max(-1100, f.vh - FLOAT_G);
+  if (f.float === 1 && f.st === "hit") f.vh = Math.max(-FLOAT_FALL, f.vh - FLOAT_G);
   else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-1400, f.vh - GRAVITY);
   else f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
@@ -1245,7 +1247,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     if (m.pullUp && !kd) {
       // 끌어올리기 = 띄우기: 때린 쪽 높이까지 솟구치게 띄우고(천천히 떨어지는 상태), 가로로는 때린 쪽 앞으로 끌려옴
       const dh = Math.max(0, a.h - 20 * SUB - d.h);
-      d.vh = Math.min(LAUNCH_VH, Math.max(900, isqrt(2 * FLOAT_G * dh)));
+      d.vh = Math.min(LAUNCH_VH, Math.max(700, isqrt(2 * FLOAT_G * dh)));
       d.vx = 0;
       d.kd = 0;
       d.float = 1;
