@@ -143,12 +143,12 @@ service cloud.firestore {
     }
 
     // 격투 AI 대전 (opp = AI 단계 1~6, moves = 적중 수, lead = 남은 체력 %)
+    // opp = "AI단계" 또는 "AI단계:내캐릭터>상대캐릭터" (예: "3:kai>igna")
     match /fight_ai_rankings/{entryId} {
       allow read: if true;
       allow create: if validAIRank(7000000)
-                    && request.resource.data.opp in ['1', '2', '3', '4', '5', '6']
-                    && math.floor(request.resource.data.score / 1000000)
-                       == {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6}.get(request.resource.data.opp, 0);
+                    && request.resource.data.opp.matches('^[1-6](:[a-z]+>[a-z]+)?$')
+                    && math.floor(request.resource.data.score / 1000000) == int(request.resource.data.opp[0:1]);
       allow update, delete: if isAdmin();
     }
 

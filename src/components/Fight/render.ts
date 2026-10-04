@@ -245,6 +245,13 @@ export class FightRenderer {
         this.parts.push({ x, y: y - 10, vx: 0, vy: -0.5, life: 34, max: 34, color: col, size: 1.3, kind: "text", text: txt });
         this.parts.push({ x, y, vx: 0, vy: 0, life: 12, max: 12, color: col, size: 13, kind: "ring" });
         if (e.k === "counter") this.shake = Math.max(this.shake, 3);
+      } else if (e.k === "shock") {
+        this.parts.push({ x, y: y - 6, vx: 0, vy: -0.6, life: 34, max: 34, color: "#FFE45C", size: 1.25, kind: "text", text: "SHOCK!" });
+        for (let i = 0; i < 8; i++)
+          this.parts.push({
+            x, y: y - 20, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, life: 14, max: 14,
+            color: "#FFF27A", size: 1, kind: "bolt",
+          });
       } else if (e.k === "launch") {
         this.parts.push({ x, y: y - 30, vx: 0, vy: -0.6, life: 30, max: 30, color: "#FFE08A", size: 1.2, kind: "text", text: "LAUNCH!" });
         this.parts.push({ x, y, vx: 0, vy: 0, life: 14, max: 14, color: "#FFE08A", size: 14, kind: "ring" });
@@ -348,6 +355,14 @@ export class FightRenderer {
     g.fillStyle = "#fff";
     g.textAlign = "center";
     g.fillText(label, x, y - 3);
+    if (f.shock > 0) {
+      // 감전 표시 (남은 시간만큼 줄어드는 노란 막대)
+      g.globalAlpha = 1;
+      g.fillStyle = "#FFE45C";
+      g.font = "bold 8px ui-monospace, monospace";
+      g.fillText("⚡감전", x, y - 14);
+      g.fillRect(x - 12, y - 12, Math.min(24, (24 * f.shock) / 180), 1.5);
+    }
     g.restore();
   }
 
@@ -460,6 +475,15 @@ export class FightRenderer {
       src = t;
       ssx = 0;
       ssy = 0;
+    }
+    // 감전 중: 몸 주위로 번개가 튐
+    if (f.shock > 0 && s.f % 5 === 0) {
+      const hh = (fr.sh / sc) * 0.9;
+      for (let k = 0; k < 2; k++)
+        this.parts.push({
+          x: x + (Math.random() - 0.5) * 24, y: y - Math.random() * hh, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3,
+          life: 8, max: 8, color: Math.random() < 0.5 ? "#FFFFFF" : "#FFE45C", size: 1, kind: "bolt",
+        });
     }
     // 움직임 연출 (발 기준 늘이기·기울이기·밀기, 잔상)
     const mo = this.motion[i];

@@ -80,7 +80,19 @@ export interface MoveDef {
   /** 맞으면 상대를 내 쪽으로 끌어당김 */
   pull?: boolean;
   /** 소환기: 상대 발밑 발판에 기둥을 세움 (delay 뒤 life 동안, every 프레임마다 타격) */
-  summon?: { w: number; h: number; delay: number; life: number; every: number };
+  summon?: {
+    w: number;
+    h: number;
+    delay: number;
+    life: number;
+    every: number;
+    /** 타마다 상대 발밑으로 다시 떨어짐 (추적) */
+    track?: boolean;
+  };
+  /** 맞히면 상대를 감전시키는 프레임 수 (느려지고, 같은 캐릭터의 공격에 더 아픔) */
+  shock?: number;
+  /** 약 4단 마무리로 쓰일 때 상대를 위로 띄움 (어퍼컷) → 점프 캔슬해 공중 콤보 */
+  launcher?: boolean;
   proj?: ProjDef;
 }
 
@@ -133,8 +145,8 @@ const RAW: CharSrc[] = [
     name: "카이",
     title: "맨손 격투 · 바람",
     desc: "빠른 주먹·발차기로 붙어서 몰아치는 맨손 격투가",
-    hp: 1250,
-    walk: 1180,
+    hp: 1350,
+    walk: 1240,
     jumpVx: 1050,
     dash: 2700,
     cd: 150,
@@ -155,7 +167,7 @@ const RAW: CharSrc[] = [
         startup: 3,
         active: 3,
         recovery: 5,
-        dmg: 40,
+        dmg: 44,
         chip: 0,
         hitstun: 14,
         blockstun: 9,
@@ -164,13 +176,14 @@ const RAW: CharSrc[] = [
         meter: 5,
         box: { x: 4, y: 46, w: 44, h: 18 },
         cancel: ["H", "S", "X"],
+        launcher: true, // 4단째 어퍼컷: 상대를 띄움 → 점프 캔슬 공중 콤보
       },
       H: {
         // 발차기 (K): 세지만 느리고 헛치면 빈틈 큼 — 연타보다 약 뒤에 이어 쓰는 기술
         startup: 11,
         active: 4,
         recovery: 19,
-        dmg: 95,
+        dmg: 102,
         chip: 0,
         hitstun: 20,
         blockstun: 14,
@@ -213,7 +226,7 @@ const RAW: CharSrc[] = [
         startup: 9,
         active: 11,
         recovery: 22,
-        dmg: 70,
+        dmg: 78,
         chip: 6,
         hitstun: 18,
         blockstun: 10,
@@ -250,7 +263,7 @@ const RAW: CharSrc[] = [
     name: "이그나",
     title: "불꽃 술사",
     desc: "불꽃 탄과 긴 불꽃 베기로 거리를 두고 태우는 술사",
-    hp: 1220,
+    hp: 1170,
     walk: 1160,
     jumpVx: 980,
     dash: 2500,
@@ -301,7 +314,7 @@ const RAW: CharSrc[] = [
         startup: 5,
         active: 9,
         recovery: 7,
-        dmg: 62,
+        dmg: 56,
         chip: 0,
         hitstun: 16,
         blockstun: 10,
@@ -363,7 +376,7 @@ const RAW: CharSrc[] = [
     name: "소영",
     title: "선생님 · 채찍",
     desc: "긴 채찍으로 거리를 지배하는 엄한 선생님. 붙으면 약함",
-    hp: 1220,
+    hp: 1270,
     walk: 1020,
     jumpVx: 900,
     dash: 2300,
@@ -600,9 +613,9 @@ const RAW: CharSrc[] = [
     tagline: "THUNDER LANCER",
     difficulty: 2,
     idName: "뇌창",
-    idDesc: "번개 창을 아주 빠르게 던짐. 맞으면 오래 감전돼서 달려가 이어 칠 수 있음 (대기 길음)",
+    idDesc: "번개 창을 아주 빠르게 던짐. 맞으면 감전 — 한동안 느려지고 제나의 공격에 더 아프게 맞음",
     ultName: "천뢰강림",
-    ultDesc: "상대 발밑에 번개 창이 연달아 3번 내리꽂힘",
+    ultDesc: "상대 발밑에 번개가 3번 내리꽂힘 — 감전 중인 상대는 도망쳐도 따라감",
     moves: {
       L: {
         startup: 5,
@@ -622,7 +635,7 @@ const RAW: CharSrc[] = [
         startup: 11,
         active: 4,
         recovery: 23,
-        dmg: 72,
+        dmg: 66,
         chip: 0,
         hitstun: 19,
         blockstun: 13,
@@ -673,13 +686,14 @@ const RAW: CharSrc[] = [
         meter: 7,
         box: { x: 0, y: 0, w: 0, h: 0 },
         proj: { speed: 2600, y: 38, w: 40, h: 14, life: 70 },
+        shock: 110,
       },
       X: {
         // 필살기 「천뢰강림」: 상대 발밑에 번개 창 3연타
         startup: 10,
         active: 1,
         recovery: 28,
-        dmg: 95,
+        dmg: 70,
         chip: 14,
         hitstun: 26,
         blockstun: 14,
@@ -688,7 +702,8 @@ const RAW: CharSrc[] = [
         meter: 0,
         box: { x: 0, y: 0, w: 0, h: 0 },
         kd: true,
-        summon: { w: 48, h: 160, delay: 16, life: 36, every: 12 },
+        summon: { w: 48, h: 160, delay: 16, life: 36, every: 12, track: true },
+        shock: 90,
       },
     },
   },

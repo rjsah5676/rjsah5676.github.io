@@ -95,6 +95,13 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: "🎹",
       },
       {
+        href: "/games/fight",
+        image: imgFight,
+        label: "픽셀 격투",
+        desc: "1:1 플랫폼 격투, AI 모드 · 2인 모드 · 온라인 모드(준비 중)",
+        icon: "🥊",
+      },
+      {
         href: "/games/sketch",
         image: imgSketch,
         label: "스케치 퀴즈",
@@ -121,13 +128,6 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "온라인 오목",
         desc: "렌주룰 금수 판정, 실시간 온라인 대국·AI 대국·랭킹전",
         icon: "⚫",
-      },
-      {
-        href: "/games/fight",
-        image: imgFight,
-        label: "픽셀 격투",
-        desc: "1:1 도트 플랫폼 격투, 캐릭터 5명, AI 6단계·랭킹, 2인",
-        icon: "🥊",
       },
       {
         href: "/games/mine",

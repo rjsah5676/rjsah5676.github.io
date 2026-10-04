@@ -207,6 +207,62 @@ export default function RhythmGame() {
   const isCustom = mode === "custom" && !!customSong && !!customCharts;
 
   const builtinSong = SONGS[songIdx];
+
+  // ── 곡 미리 듣기: 선택 화면에서 커서가 곡에 머물면 하이라이트 구간을 잠깐 틀어 줌 ──
+  const previewRef = useRef<{ src: AudioBufferSourceNode; gain: GainNode; ctx: AudioContext } | null>(null);
+  const stopPreview = useCallback((fade = 0.25) => {
+    const p = previewRef.current;
+    if (!p) return;
+    previewRef.current = null;
+    const t = p.ctx.currentTime;
+    try {
+      p.gain.gain.cancelScheduledValues(t);
+      p.gain.gain.setValueAtTime(p.gain.gain.value, t);
+      p.gain.gain.linearRampToValueAtTime(0, t + fade);
+      p.src.stop(t + fade + 0.02);
+    } catch {}
+  }, []);
+  const previewVol = settings.music;
+  useEffect(() => {
+    if (screen !== "select" || mode !== "builtin") return;
+    let alive = true;
+    // 커서가 멈춘 뒤 잠깐 있다가 (빠르게 넘길 땐 안 틀음)
+    const timer = setTimeout(async () => {
+      try {
+        const ctx = await audio();
+        if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+        if (ctx.state !== "running") return; // 아직 클릭·키 입력 전이면 소리 못 냄 → 다음 조작 때
+        const buffer = await loadSong(builtinSong);
+        if (!alive) return;
+        stopPreview(0.1);
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const gain = ctx.createGain();
+        src.connect(gain).connect(ctx.destination);
+        // 하이라이트: 곡의 1/3 지점 근처 마디 시작부터 18초
+        const beat = 60 / builtinSong.bpm;
+        const barSec = beat * 4;
+        const from = Math.max(0, Math.floor((buffer.duration / 3) / barSec) * barSec + (builtinSong.beatOffset ?? 0));
+        const len = Math.min(18, Math.max(4, buffer.duration - from - 0.5));
+        const t = ctx.currentTime;
+        const v = previewVol * 0.55;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(v, t + 0.6);
+        gain.gain.setValueAtTime(v, t + len - 1.2);
+        gain.gain.linearRampToValueAtTime(0, t + len);
+        src.start(t, from, len);
+        previewRef.current = { src, gain, ctx };
+        src.onended = () => {
+          if (previewRef.current?.src === src) previewRef.current = null;
+        };
+      } catch {}
+    }, 450);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+      stopPreview();
+    };
+  }, [screen, mode, builtinSong, previewVol, stopPreview]);
   const charts = useMemo(
     () =>
       Object.fromEntries(

@@ -8,10 +8,16 @@ import { FIGHT_GUIDE } from "@/data/gameGuides";
 import { RankBoard, useAIRankTop } from "@/components/AIRank";
 import { AI_LEVELS } from "@/lib/fight/ai";
 import { pointsOf } from "@/lib/aiScore";
+import { CHARS } from "@/lib/fight/chars";
 
+/** 기록의 상대 표기: "3" 또는 "3:kai>igna" (AI 단계:내 캐릭터>상대 캐릭터) */
 const oppLabel = (opp: string) => {
-  const i = Number(opp) - 1;
-  return AI_LEVELS[i] ? `AI ${i + 1}단계 ${AI_LEVELS[i].name}` : opp;
+  const [lv, pair] = opp.split(":");
+  const i = Number(lv) - 1;
+  const base = AI_LEVELS[i] ? `AI ${i + 1}단계 ${AI_LEVELS[i].name}` : opp;
+  if (!pair) return base;
+  const [me, foe] = pair.split(">").map((id) => CHARS.find((c) => c.id === id)?.name ?? id);
+  return `${base} · ${me}로 ${foe} 이김`;
 };
 
 export default function FightPage() {

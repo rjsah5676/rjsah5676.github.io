@@ -230,6 +230,25 @@ export class FightAI {
       else press(b);
     };
 
+    // ── 띄운 상대 공중 콤보 (잡기·약 4단 마무리 뒤) ──
+    if (o.st === "hit" && o.float && !o.kd && this.r() < L.combo + 0.2) {
+      if (f.st === "atk" && f.hit && (f.mv === "T" || (f.mv === "L" && f.chain >= 4))) {
+        // 점프 캔슬
+        press(IN.J);
+        return finish();
+      }
+      if ((f.st === "idle" || f.st === "walk") && !air && dist < 60) {
+        out |= toward;
+        press(IN.J);
+        return finish();
+      }
+      if (f.st === "jump" && f.airUsed < 2) {
+        out |= toward;
+        if (dist < 48 && dy > -25 && dy < 70) hitBtn(f.airUsed === 0 ? IN.A : IN.B);
+        else if (f.jumps < 2 && f.vh < 0 && dy > 30) press(IN.J);
+        return finish();
+      }
+    }
     // ── 콤보 이어 가기 ──
     if (f.st === "atk" && f.hit && o.st === "hit") {
       if (this.comboDecision === null) this.comboDecision = this.r() < L.combo;

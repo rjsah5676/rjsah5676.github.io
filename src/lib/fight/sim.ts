@@ -96,6 +96,12 @@ const GC_GRACE = 10;
 /** 잡기 성공 후 위로 띄우는 세기와 그동안의 경직 */
 const LAUNCH_VH = 2300;
 const LAUNCH_STUN = 46;
+/** 약 4단 마무리로 띄우는 세기 */
+const CHAIN_LAUNCH_VH = 1900;
+/** 띄워진 상대를 공중에서 다시 때리면: 다시 떠오르는 세기, 밀림 비율(%), 최소 경직 */
+const JUGGLE_VH = 950;
+const JUGGLE_PUSH = 45;
+const JUGGLE_STUN = 28;
 
 export type FState =
   "idle" | "walk" | "dash" | "jump" | "atk" | "hit" | "block" | "down" | "rise" | "ko" | "win";
@@ -143,6 +149,10 @@ export interface Fighter {
   jumps: number;
   /** 가드 반격을 쓸 수 있는 남은 프레임 (공격을 막으면 채워짐) */
   gcT: number;
+  /** 띄워진 상태 (잡기·약 4단 마무리): 떨어지는 속도가 느려 공중 콤보를 넣기 쉬움, 땅에 닿으면 0 */
+  float: number;
+  /** 감전 남은 프레임: 걷기·대시가 느려지고, 감전시킨 캐릭터의 공격에 더 아픔 */
+  shock: number;
   /** 남은 무적 프레임 (다시 내려온 뒤) */
   inv: number;
   /** 최근 입력 (마지막이 이번 프레임) */
@@ -182,6 +192,7 @@ export type EvKind =
   | "fall"
   | "throw"
   | "launch"
+  | "shock"
   | "tech"
   | "just"
   | "counter";
@@ -288,6 +299,8 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     grabbed: 0,
     jumps: 0,
     gcT: 0,
+    float: 0,
+    shock: 0,
     inv: 0,
     hist: new Array(HIST).fill(0),
   };
@@ -377,6 +390,8 @@ export function hash(s: State): number {
     mix(f.grabbed);
     mix(f.airDash);
     mix(f.gcT);
+    mix(f.float);
+    mix(f.shock);
     mix(f.inv);
     mix(f.st.length * 31 + f.st.charCodeAt(0));
     mix(f.mv ? f.mv.charCodeAt(0) : 0);
@@ -546,7 +561,7 @@ function jump(s: State, i: number, v: number) {
   f.airUsed = 0;
   f.jumps++;
   f.vh = v;
-  f.vx = holding(f, IN.R) ? c.jumpVx : holding(f, IN.L) ? -c.jumpVx : Math.trunc(f.vx / 2);
+  f.vx = holding(f, IN.R) ? spd(f, c.jumpVx) : holding(f, IN.L) ? -spd(f, c.jumpVx) : Math.trunc(f.vx / 2);
   if (holding(f, IN.R)) f.face = 1;
   else if (holding(f, IN.L)) f.face = -1;
   s.ev.push({ k: "jump", p: i, x: f.x, h: f.h, v: f.jumps });
@@ -588,6 +603,9 @@ function airAttack(s: State, i: number): boolean {
   return false;
 }
 
+/** 감전 중이면 이동이 느림 (%) */
+const spd = (f: Fighter, v: number) => (f.shock > 0 ? Math.trunc((v * 85) / 100) : v);
+
 /** 좌우 중 하나만 누르고 있으면 그쪽을 봄 */
 function steerFace(f: Fighter) {
   if (holding(f, IN.R) && !holding(f, IN.L)) f.face = 1;
@@ -621,7 +639,7 @@ function control(s: State, i: number) {
         f.st = "dash";
         f.t = 0;
         f.dashT = DASH_T;
-        f.vx = f.face * c.dash;
+        f.vx = f.face * spd(f, c.dash);
         s.ev.push({ k: "dash", p: i, x: f.x, h: f.h, v: 0 });
         return;
       }
@@ -646,7 +664,7 @@ function control(s: State, i: number) {
         f.st = st;
         f.t = 0;
       }
-      f.vx = moving ? c.walk * f.face : 0;
+      f.vx = moving ? spd(f, c.walk) * f.face : 0;
       return;
     }
     case "dash":
@@ -749,6 +767,18 @@ function control(s: State, i: number) {
         });
         s.ev.push({ k: "proj", p: i, x: f.x, h: f.h, v: 0 });
       }
+      // 띄운 뒤 점프 캔슬: 잡기·약 4단 마무리를 맞힌 뒤엔 바로 뛰어올라 공중 콤보
+      if (
+        f.hit &&
+        !air &&
+        (f.mv === "T" || (f.mv === "L" && isFinisher(f) && m.launcher)) &&
+        f.t >= m.startup + m.active &&
+        pressed(f, JUMP_BITS, 3)
+      ) {
+        f.mv = "";
+        jump(s, i, JUMP_V);
+        return;
+      }
       // 약·발차기 연속 동작: 판정이 나온 뒤부터 끝날 때까지 같은 버튼으로 다음 동작 (헛쳐도 됨)
       const cm = CHAIN_MAX[f.mv as MoveId];
       if (cm && f.chain < cm && f.t >= m.startup + (f.hit ? 1 : m.active) && onGround(s, f)) {
@@ -774,6 +804,7 @@ function control(s: State, i: number) {
           const o = s.p[1 - i];
           f.vh = LAUNCH_VH;
           f.kd = 0;
+          f.float = 1;
           f.vx = o.face * 220;
           f.stun = LAUNCH_STUN;
           s.ev.push({ k: "launch", p: 1 - i, x: f.x, h: f.h, v: 0 });
@@ -809,6 +840,7 @@ function control(s: State, i: number) {
           f.st = "jump";
           f.t = 0;
           f.combo = 0;
+          f.float = 0;
           f.airUsed = 0;
           f.jumps = Math.min(f.jumps, 1);
         }
@@ -854,6 +886,7 @@ function control(s: State, i: number) {
 
 function landed(s: State, i: number, f: Fighter) {
   f.jumps = 0;
+  f.float = 0;
   f.airUsed = 0;
   f.airDash = 0;
   f.dashT = 0;
@@ -917,6 +950,7 @@ function respawn(s: State, i: number) {
   f.airDash = 0;
   f.dashT = 0;
   f.gcT = 0;
+  f.float = 0;
   f.inv = RESPAWN_INV;
 }
 
@@ -950,8 +984,8 @@ function physics(s: State, i: number) {
     }
     if (standingOn(map, f)) return;
   }
-  // 공중
-  f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
+  // 공중 (띄워진 상대는 천천히 떨어짐)
+  f.vh = Math.max(-MAX_FALL, f.vh - (f.float && f.st === "hit" ? Math.trunc((GRAVITY * 7) / 10) : GRAVITY));
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
   const gl = charOf(f).glide;
   if (gl && f.vh < -gl && (f.st === "jump" || f.st === "atk") && holding(f, JUMP_BITS)) f.vh = -gl;
@@ -1051,6 +1085,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     const counter = ((d.st === "atk" && !!dm && d.t < dm.startup) || d.st === "dash") && d.combo === 0;
     let base = fin ? Math.trunc((m.dmg * 13) / 10) : m.dmg;
     if (counter) base = Math.trunc((base * 5) / 4);
+    // 감전된 상대: 감전시킬 수 있는 캐릭터(제나)의 모든 공격이 15% 더 아픔
+    const shocker = CHARS[a.ch].moves.S.shock !== undefined;
+    if (d.shock > 0 && shocker) base = Math.trunc((base * 110) / 100);
     const dmg = m.multi || m.summon ? m.dmg : scaleDmg(base, d.combo);
     const wasAir = airborneS(s, d);
     d.hp -= dmg;
@@ -1073,6 +1110,22 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.vh = kd ? 1500 : 700;
       d.kd = kd ? 1 : 0;
       d.vx = Math.trunc((dir * (kd && m.multi ? 1700 : m.push) * 13) / 10);
+      if (wasAir && !kd && d.float) {
+        // 띄워진 상대 공중 콤보(저글): 멀리 안 날아가고 다시 살짝 떠올라 다음 타를 넣을 수 있음
+        // 때린 쪽이 아직 떠오르는 중이면 그 속도에 맞춰 같이 떠오름 (위로 지나쳐 버리지 않게)
+        d.vh = Math.max(JUGGLE_VH, airborneS(s, a) ? a.vh - 150 : 0);
+        d.vx = Math.trunc((dir * m.push * JUGGLE_PUSH) / 100);
+        d.stun = Math.max(d.stun, JUGGLE_STUN);
+      }
+    }
+    if (fin && mid === "L" && m.launcher && !kd && !wasAir) {
+      // 약 4단 마무리: 위로 띄움 → 점프 캔슬해서 공중 콤보
+      d.vh = CHAIN_LAUNCH_VH;
+      d.kd = 0;
+      d.float = 1;
+      d.vx = Math.trunc((dir * m.push * 5) / 10);
+      d.stun = Math.max(d.stun, 36);
+      s.ev.push({ k: "launch", p: ai, x: d.x, h: d.h, v: 1 });
     }
     if (mid === "T") {
       // 잡기: 잠깐 붙잡혀 있다가(그 사이 약+발차기로 풀 수 있음) 던져짐 — 던지는 건 hit 상태에서 처리
@@ -1081,6 +1134,11 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.vx = 0;
       d.vh = 0;
       d.kd = 0;
+    }
+    if (m.shock) {
+      if (d.shock === 0) s.ev.push({ k: "shock", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
+      d.shock = Math.max(d.shock, m.shock);
+      if (d.shock > 0 && shocker) d.stun += 3;
     }
     a.meter = Math.min(METER_MAX, a.meter + m.meter);
     d.meter = Math.min(METER_MAX, d.meter + (dmg >> 4));
@@ -1134,6 +1192,12 @@ function projectiles(s: State) {
       const X = CHARS[s.p[p.o].ch].moves.X;
       const sm = X.summon!;
       const at = p.t - sm.delay;
+      if (sm.track && d.shock > 0 && at >= 0 && at % sm.every === 0) {
+        // 추적: 감전된 상대라면 타마다 상대 발밑으로 따라감 (지금 선 발판 높이)
+        p.x = d.x;
+        const under = platBelow(map, d.x, d.h);
+        p.h = under ? under.y * SUB : d.h;
+      }
       if (at >= 0 && at % sm.every === 0 && h && overlap(projRect(p, s), h)) {
         const last = at + sm.every >= sm.life;
         applyHit(s, p.o, last ? X : { ...X, kd: false }, p.x, "X");
@@ -1261,7 +1325,10 @@ export function step(s: State, input: [number, number]): State {
   if (s.phase === "fight") {
     s.pt++;
     if (s.timer > 0) s.timer--;
-    for (const f of s.p) if (f.cd > 0) f.cd--;
+    for (const f of s.p) {
+      if (f.cd > 0) f.cd--;
+      if (f.shock > 0) f.shock--;
+    }
     control(s, 0);
     control(s, 1);
   } else {

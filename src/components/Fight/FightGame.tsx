@@ -587,10 +587,15 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           {fsBtn()}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={toggleFs} className={primaryBtn}>
+            ⛶ 전체화면
+          </button>
           <button type="button" onClick={toggleMute} className={btn}>
             {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
           </button>
-          <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">온라인 대전은 준비 중</span>
+          <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
+            전체화면은 Esc로 나와요 · 온라인 대전은 준비 중
+          </span>
         </div>
         <div className="mt-3 rounded-lg bg-black/20 px-3 py-2.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-relaxed text-white/50">
           <div>
@@ -605,7 +610,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           )}
           <div className="mt-1 text-white/40">
             약 4단·발차기 2단, 마지막 동작은 세지만 빈틈 큼 · 발차기·아이덴티티는 막히면 막은 쪽이 먼저 움직임(반격
-            기회) · 맞기 직전 가드 = 저스트 가드 · 막은 직후 K = 가드 반격(게이지 25) · J+K 잡기(가드 불가, 위로 띄움, 잡힌 직후 J+K로
+            기회) · 맞기 직전 가드 = 저스트 가드 · 막은 직후 K = 가드 반격(게이지 25) · J+K 잡기(가드 불가, 위로 띄움 → 바로 점프해 공중 콤보, 잡힌 직후 J+K로
             풀기) · 방향키는 공격·가드 중에도 바로 돌아섬 · 기술 내는 중·대시 중에 맞으면 카운터 · 같은 방향 두 번 대시 · 2단 점프, 공중 공격 점프마다 2번 ·
             떨어지면 위에서 다시 등장 · 게이지 MAX에 필살기 · Esc 일시정지
           </div>
@@ -764,6 +769,9 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         <button type="button" onClick={toMenu} className={btn}>
           메뉴로
         </button>
+        <button type="button" onClick={toggleFs} className={btn}>
+          ⛶ 전체화면
+        </button>
         <button type="button" onClick={toggleMute} className={btn}>
           {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
         </button>
@@ -780,7 +788,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             coll="fight_ai_rankings"
             result={fightScore(setup.level + 1, result.hp, result.seconds)}
             entry={{
-              opp: `${setup.level + 1}`,
+              opp: `${setup.level + 1}:${CHARS[setup.c1].id}>${CHARS[setup.c2].id}`,
               moves: Math.max(2, result.hits),
               seconds: result.seconds,
               lead: result.hp,
