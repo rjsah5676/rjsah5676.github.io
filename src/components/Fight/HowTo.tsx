@@ -16,7 +16,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
 
 type Row = [string, React.ReactNode, React.ReactNode?];
 const k = (...ks: string[]) => (
-  <span className="inline-flex flex-wrap items-center gap-0.5">
+  <span className="inline-flex flex-nowrap items-center gap-0.5 whitespace-nowrap">
     {ks.map((x, i) => (x === "/" ? <span key={i} className="px-0.5 text-white/30">/</span> : <Kbd key={i}>{x}</Kbd>))}
   </span>
 );
@@ -60,20 +60,18 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
         ["필살기 (MAX)", k("I"), k("V")],
       ];
   return (
-    <div className={`mt-3 grid gap-3 rounded-lg bg-black/20 px-3 py-3 ${KR} text-[11.5px] leading-relaxed text-white/60 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]`}>
+    <div className={`mt-3 grid gap-3 rounded-lg bg-black/20 px-3 py-3 ${KR} text-[11.5px] leading-relaxed text-white/60 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]`}>
       {/* 키 */}
       <div>
-        <div className="mb-1.5 grid grid-cols-[1fr_auto_auto] items-center gap-x-2 text-[10.5px] text-white/35">
-          <span>조작</span>
-          <span className="w-20 text-center">{two ? "1P" : "기본"}</span>
-          <span className="w-16 text-center">{two ? "2P" : "또는"}</span>
-        </div>
         <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 gap-y-1">
+          <span className="pb-0.5 text-[10.5px] text-white/35">조작</span>
+          <span className="min-w-20 pb-0.5 text-center text-[10.5px] text-white/35">{two ? "1P" : "기본"}</span>
+          <span className="min-w-16 pb-0.5 text-center text-[10.5px] text-white/35">{two ? "2P" : "또는"}</span>
           {rows.map(([label, a, b]) => (
             <div key={label} className="contents">
               <span className="whitespace-nowrap text-white/65">{label}</span>
-              <span className="flex w-20 justify-center">{a}</span>
-              <span className="flex w-16 justify-center">{b}</span>
+              <span className="flex min-w-20 justify-center">{a}</span>
+              <span className="flex min-w-16 justify-center">{b}</span>
             </div>
           ))}
         </div>
