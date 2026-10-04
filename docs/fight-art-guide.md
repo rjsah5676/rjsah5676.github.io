@@ -1,7 +1,18 @@
 # 격투게임 그림 만들기 (AI 이미지 → 게임)
 
 엔진(판정·롤백·발판·AI)은 그대로 두고, 그림만 AI 이미지로 뽑아서 넣는다.
-지금 들어간 것: 캐릭터 카이·이그나·소영·릴리 (설정화 두 장에서 잘라냄 — `PRESETS`, 전신·얼굴은 `scripts/extract-fight-art.py`), 맵 운해 학당 (`public/fight/bg/temple.webp`).
+지금 들어간 것: 캐릭터 카이·이그나·소영·릴리·제나 (캐릭터별 시트 → `scripts/import-fight-atlas.py`, 칸 좌표는 `scripts/fight-sprites.json`), 맵 운해 학당·노을 옥상 (`public/fight/bg/temple.webp`, `rooftop.webp`).
+
+### 지금 쓰는 방법 (아틀라스)
+
+1. 시트 배경이 체크무늬로 '그려진' 그림이면 먼저 `python3 scripts/dechecker.py 원본.png 원본-a.png` 로 진짜 투명하게.
+2. `scripts/fight-sprites.json` 에 캐릭터마다 `sheet`, `body`(몸 키 px), 동작별 `f`(칸 [x0,y0,x1,y1] 목록)·`fps`·`loop`.
+   동작 이름: idle walk jump dash L1~L4 H1 H2 J K S X hit block down win (+ glide, pillar). 탄 그림은 `fx`.
+   선택 화면 전신·얼굴은 `_art`.
+3. `python3 scripts/import-fight-atlas.py <원본 폴더> [id ...]` → `public/fight/<id>.webp/json`, `fx/`, `art/`.
+   칸에 걸쳐 잘린 이펙트는 덩어리 단위로 살려 주고, 발 기준점은 몸(가장 큰 덩어리) 맨 아래로 자동.
+
+아래는 예전 격자 시트 방식 (여전히 읽힘).
 그림 속 발판 좌표는 `src/lib/fight/maps.ts` 에 직접 맞춰 적음.
 
 ## 캐릭터 시트

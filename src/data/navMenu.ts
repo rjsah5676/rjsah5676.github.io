@@ -126,7 +126,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/games/fight",
         image: imgFight,
         label: "픽셀 격투",
-        desc: "1:1 도트 플랫폼 격투, 캐릭터 4명, AI 6단계·랭킹, 2인",
+        desc: "1:1 도트 플랫폼 격투, 캐릭터 5명, AI 6단계·랭킹, 2인",
         icon: "🥊",
       },
       {

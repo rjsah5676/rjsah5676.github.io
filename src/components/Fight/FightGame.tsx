@@ -31,7 +31,7 @@ import {
 } from "@/lib/fight/sfx";
 
 /** 캐릭터별 효과음 성격 */
-const SFX_EL: Record<string, Element> = { kai: "wind", igna: "fire", soyoung: "whip", lily: "water" };
+const SFX_EL: Record<string, Element> = { kai: "wind", igna: "fire", soyoung: "whip", lily: "water", zena: "bolt" };
 import { FightRenderer } from "./render";
 import { FightInput, KEY_GUIDE } from "./input";
 import Select, { type Setup } from "./Select";

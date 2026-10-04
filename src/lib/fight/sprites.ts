@@ -19,6 +19,8 @@ export interface AnimDef {
   frames: number;
   fps: number;
   loop: boolean;
+  /** 아틀라스 시트: 이 동작의 프레임 번호들 (SpriteSheet.frames 인덱스) */
+  list?: number[];
 }
 export interface MoveAnim {
   anim: string;
@@ -32,6 +34,8 @@ export interface StateAnim {
 }
 export interface SpriteSheet {
   image: string;
+  /** 아틀라스 시트: 프레임마다 [x, y, w, h, 발x, 발y] (그림 px, 발 위치는 프레임 안) — 있으면 cell·anchor 대신 */
+  frames?: [number, number, number, number, number, number][];
   cell: [number, number];
   anchor: [number, number];
   /** 그림이 보고 있는 쪽 (반대쪽은 뒤집어서 그림) */
@@ -103,6 +107,8 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
       return sh.states.dash ? stateAnim("dash", f.t) : loopAt(sh.states.walk.anim, f.t * 2);
     case "jump":
       if (f.dashT > 0 && sh.states.dash) return stateAnim("dash", f.t);
+      // 우산 활강 (천천히 떨어지는 중)
+      if (sh.anims.glide && CHARS[f.ch].glide && f.vh <= -(CHARS[f.ch].glide ?? 0) + 5) return loopAt("glide", f.t);
       return stateAnim("jump", f.t);
     case "atk": {
       const m = CHARS[f.ch].moves[f.mv as MoveId];
@@ -140,4 +146,22 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
     case "win":
       return stateAnim("win", f.t);
   }
+}
+
+/** 그릴 그림 조각: 시트 안 위치(sx, sy, sw, sh)와 그 조각 안의 발 위치(ax, ay) — 격자·아틀라스 공통 */
+export interface FrameRect {
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+  ax: number;
+  ay: number;
+}
+export function frameRect(sh: SpriteSheet, anim: AnimDef, k: number): FrameRect {
+  if (sh.frames && anim.list) {
+    const f = sh.frames[anim.list[Math.max(0, Math.min(anim.list.length - 1, k))]];
+    return { sx: f[0], sy: f[1], sw: f[2], sh: f[3], ax: f[4], ay: f[5] };
+  }
+  const [cw, ch] = sh.cell;
+  return { sx: k * cw, sy: anim.row * ch, sw: cw, sh: ch, ax: sh.anchor[0], ay: sh.anchor[1] };
 }

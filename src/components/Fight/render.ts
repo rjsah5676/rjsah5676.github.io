@@ -16,7 +16,7 @@ import {
   type Proj,
   type State,
 } from "@/lib/fight/sim";
-import { pickFrame, type LoadedSheet } from "@/lib/fight/sprites";
+import { frameRect, pickFrame, type LoadedSheet } from "@/lib/fight/sprites";
 
 interface Particle {
   x: number;
@@ -33,23 +33,30 @@ interface Particle {
 
 /** 캐릭터별 능력 (탄·타격 이펙트 모양) */
 const ELEMENT: Record<string, "fire" | "bolt" | "ice" | "wind" | "whip" | "water"> = {
+  zena: "bolt",
   kai: "wind",
   igna: "fire",
   soyoung: "whip",
   lily: "water",
 };
 
-/** 이그나 화염구 그림 (public/fight/fx) — 처음 쓸 때 불러옴 */
-let fbCache: HTMLImageElement | null | undefined;
-function fireball(): HTMLImageElement | null {
-  if (fbCache === undefined) {
-    fbCache = null;
+/** 탄 그림 (public/fight/fx/<이름>.webp, 오른쪽을 보는 그림) — 처음 쓸 때 불러옴 */
+const fxCache = new Map<string, HTMLImageElement | null>();
+function fxImg(name: string): HTMLImageElement | null {
+  if (!fxCache.has(name)) {
+    fxCache.set(name, null);
     const im = new Image();
-    im.onload = () => (fbCache = im);
-    im.src = "/fight/fx/igna-fireball.webp";
+    im.onload = () => fxCache.set(name, im);
+    im.src = `/fight/fx/${name}.webp`;
   }
-  return fbCache && fbCache.complete ? fbCache : null;
+  return fxCache.get(name) ?? null;
 }
+/** 캐릭터·기술별 탄 그림: [그림, 판정 크기 대비 그림 높이 배율, 판정 중심이 그림 가로 어디쯤(0~1)] */
+const PROJ_ART: Record<string, Partial<Record<"S" | "X", [string, number, number]>>> = {
+  igna: { S: ["igna-fireball", 1.7, 0.78] },
+  lily: { S: ["lily-bubble", 1.25, 0.5], X: ["lily-wave", 1.25, 0.55] },
+  zena: { S: ["zena-spear", 1.1, 0.8] },
+};
 
 function glowAt(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
   g.save();
@@ -244,7 +251,7 @@ export class FightRenderer {
     if (f.st === "ko" || f.h / SUB > VIEW_H) return;
     const g = this.g;
     const sh = this.sheets[i];
-    const top = sh ? (sh.anchor[1] / (sh.scale ?? 1)) * 0.82 : 62;
+    const top = sh ? (frameRect(sh, sh.anims[sh.states.idle.anim], 0).ay / (sh.scale ?? 1)) * 0.95 : 62;
     const x = f.x / SUB,
       y = screenY(f.h) - Math.min(top, 74) - 10;
     const col = i === 0 ? "#3B82F6" : "#F43F5E";
@@ -347,26 +354,23 @@ export class FightRenderer {
       return;
     }
     const { anim, frame } = pickFrame(sh, f, s);
-    const [cw, ch] = sh.cell;
-    const [ax, ay] = sh.anchor;
+    const fr = frameRect(sh, anim, frame);
     const sc = sh.scale ?? 1;
-    const sx = frame * cw,
-      sy = anim.row * ch;
     const flashHit = (f.st === "hit" && f.t < 2) || (s.stop > 0 && f.st === "hit");
     let src: CanvasImageSource = sh.img;
-    let ssx = sx,
-      ssy = sy;
+    let ssx = fr.sx,
+      ssy = fr.sy;
     if (flashHit) {
       if (!this.tmp) this.tmp = document.createElement("canvas");
       const t = this.tmp;
-      t.width = cw;
-      t.height = ch;
+      t.width = fr.sw;
+      t.height = fr.sh;
       const tg = t.getContext("2d")!;
-      tg.clearRect(0, 0, cw, ch);
-      tg.drawImage(sh.img, sx, sy, cw, ch, 0, 0, cw, ch);
+      tg.clearRect(0, 0, fr.sw, fr.sh);
+      tg.drawImage(sh.img, fr.sx, fr.sy, fr.sw, fr.sh, 0, 0, fr.sw, fr.sh);
       tg.globalCompositeOperation = "source-atop";
       tg.fillStyle = "rgba(255,255,255,0.7)";
-      tg.fillRect(0, 0, cw, ch);
+      tg.fillRect(0, 0, fr.sw, fr.sh);
       tg.globalCompositeOperation = "source-over";
       src = t;
       ssx = 0;
@@ -375,10 +379,11 @@ export class FightRenderer {
     g.save();
     // 다시 내려온 직후 무적: 깜빡이지 않고 살짝만 투명하게
     if (f.inv > 0) g.globalAlpha = 0.75;
-    if (sh.pixel) g.imageSmoothingEnabled = false;
+    g.imageSmoothingEnabled = !sh.pixel;
+    g.imageSmoothingQuality = "high";
     const flip = sh.facing === "left" ? f.face > 0 : f.face < 0;
-    const dw = cw / sc,
-      dh = ch / sc;
+    const dw = fr.sw / sc,
+      dh = fr.sh / sc;
     if (sh.layDown && (f.st === "down" || f.st === "rise" || (f.st === "ko" && !isAirF(s, f)))) {
       // 쓰러짐 그림이 없으면 눕혀서 (일어날 땐 다시 세움)
       const k = f.st === "rise" ? 1 - f.t / 14 : Math.min(1, f.t / 6);
@@ -386,11 +391,11 @@ export class FightRenderer {
       g.rotate((flip ? 1 : -1) * (Math.PI / 2) * k);
       g.translate(-x, -y);
     }
-    if (!flip) g.drawImage(src, ssx, ssy, cw, ch, x - ax / sc, y - ay / sc, dw, dh);
+    if (!flip) g.drawImage(src, ssx, ssy, fr.sw, fr.sh, x - fr.ax / sc, y - fr.ay / sc, dw, dh);
     else {
       g.translate(x, 0);
       g.scale(-1, 1);
-      g.drawImage(src, ssx, ssy, cw, ch, -ax / sc, y - ay / sc, dw, dh);
+      g.drawImage(src, ssx, ssy, fr.sw, fr.sh, -fr.ax / sc, y - fr.ay / sc, dw, dh);
     }
     g.restore();
   }
@@ -418,13 +423,12 @@ export class FightRenderer {
     g.save();
     g.globalAlpha = fade;
     if (sh && a) {
-      const [cw, ch] = sh.cell;
-      const [ax, ay] = sh.anchor;
-      const fr = Math.floor(((p.t - sm.delay) * a.fps) / 60) % a.frames;
+      const k0 = Math.floor(((p.t - sm.delay) * a.fps) / 60) % a.frames;
+      const fr = frameRect(sh, a, k0);
       // 기둥 높이에 맞춰 크게
-      const k = sm.h / (ch * 0.9);
-      if (sh.pixel) g.imageSmoothingEnabled = false;
-      g.drawImage(sh.img, fr * cw, a.row * ch, cw, ch, x - ax * k, y - ay * k, cw * k, ch * k);
+      const k = sm.h / (fr.sh * 0.9);
+      g.imageSmoothingEnabled = !sh.pixel;
+      g.drawImage(sh.img, fr.sx, fr.sy, fr.sw, fr.sh, x - fr.ax * k, y - fr.ay * k, fr.sw * k, fr.sh * k);
     } else {
       g.fillStyle = "rgba(255,120,40,0.8)";
       g.fillRect(x - sm.w / 2, y - sm.h, sm.w, sm.h);
@@ -453,18 +457,21 @@ export class FightRenderer {
       g.translate(cx, cy);
       g.rotate(Math.atan2(-p.vh, Math.abs(p.vx)) * dir);
       g.translate(-cx, -cy);
-      const fbImg = fireball();
-      if (el === "fire" && fbImg) {
-        // 화염구 그림 (오른쪽을 보는 그림, 앞쪽 원이 탄 판정 위치)
-        const hgt = w * 1.7;
-        const wid = (hgt * fbImg.width) / fbImg.height;
+      const art = PROJ_ART[ch.id]?.[p.mv ? "X" : "S"];
+      const img = art ? fxImg(art[0]) : null;
+      if (art && img) {
+        // 그림 탄: 판정 높이에 맞춰 크기, 날아가는 쪽으로 뒤집음 (물방울은 살짝 출렁)
+        const hgt = ((r.hi - r.lo) / SUB) * art[1];
+        const wid = (hgt * img.width) / img.height;
+        const bob = ch.id === "lily" && !p.mv ? Math.sin(t * 0.08) * 3 : 0;
         g.save();
-        g.translate(cx, cy);
-        g.scale(dir, 1);
-        g.imageSmoothingEnabled = false;
-        g.drawImage(fbImg, -wid * 0.78, -hgt / 2, wid, hgt);
+        g.translate(cx, cy + bob);
+        g.scale(dir || 1, 1);
+        g.imageSmoothingEnabled = true;
+        g.drawImage(img, -wid * art[2], -hgt / 2, wid, hgt);
         g.restore();
-        glowAt(g, cx, cy, w * 1.4, "rgba(255,120,40,0.3)");
+        const glowCol = el === "fire" ? "rgba(255,120,40,0.3)" : el === "bolt" ? "rgba(255,230,90,0.3)" : "rgba(90,190,255,0.22)";
+        glowAt(g, cx, cy, w * 1.2, glowCol);
       } else if (el === "fire") {
         for (let k = 4; k >= 0; k--) {
           g.globalAlpha = 0.25 + (4 - k) * 0.15;

@@ -56,4 +56,23 @@ export const MAPS: MapDef[] = [
     bgPlats: true,
     bgm: "/fight/bgm.mp3",
   },
+  {
+    // 그림: public/fight/bg/rooftop.webp (1672×941 원본 → 0.689배)
+    id: "rooftop",
+    name: "노을 옥상",
+    desc: "벚꽃 날리는 해 질 녘 학교 옥상 — 떨어질 걱정 없는 넓은 바닥, 양쪽 건물 지붕까지",
+    plats: [
+      { x0: 0, x1: 1152, y: 186, solid: true, kind: "floor" },
+      { x0: 238, x1: 466, y: 301, kind: "beam" },
+      { x0: 690, x1: 918, y: 301, kind: "beam" },
+      { x0: 452, x1: 700, y: 396, kind: "beam" },
+      { x0: 16, x1: 244, y: 473, kind: "roof" },
+      { x0: 1000, x1: 1152, y: 498, kind: "roof" },
+    ],
+    spawn: [380, 772],
+    respawn: [360, 576, 800],
+    bg: "/fight/bg/rooftop.webp",
+    bgPlats: true,
+    bgm: "/fight/bgm-rooftop.mp3",
+  },
 ];

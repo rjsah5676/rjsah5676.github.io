@@ -161,6 +161,11 @@ export function sfxHit(power: number, el: Element = "wind") {
     burst(c, t + 0.02, 900, 3, 0.18, 0.14, "bandpass", 0.3, 400);
   } else if (el === "whip") tone(c, t, "triangle", 2400, 900, 0.12, 0.05);
   else if (el === "wind") burst(c, t, 1800, 0.8, 0.16, 0.12, "bandpass", 0.2, 600);
+  else if (el === "bolt") {
+    // 찌직 — 전기
+    tone(c, t, "square", 1800, 300, 0.1, 0.08, 2);
+    burst(c, t, 5200, 2, 0.25, 0.1, "bandpass", 0.2, 2400);
+  }
   if (power >= 2) {
     // 필살기 마무리: 큰 폭발음
     burst(c, t + 0.02, 380, 0.5, 0.7, 0.45, "lowpass", 0.5, 120);
@@ -197,6 +202,12 @@ export function sfxProj(el: Element = "fire", big = false) {
   const c = ac();
   if (!c) return;
   const t = c.currentTime;
+  if (el === "bolt") {
+    // 슈웅 찌직 — 번개 창
+    burst(c, t, 900, 1.2, 0.3, 0.16, "bandpass", 0.2, 5000);
+    tone(c, t, "square", 2400, 600, 0.08, 0.12, 2);
+    return;
+  }
   if (el === "water") {
     // 퐁 — 물방울
     tone(c, t, "sine", 300, 1100, 0.3, 0.12, 0, 0.3);
