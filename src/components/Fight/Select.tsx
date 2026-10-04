@@ -88,7 +88,7 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
       </div>
       <div
         key={c.id}
-        className={`${KR} relative my-[0.2cqw] max-w-[21cqw] rounded-[0.8cqw] border border-white/25 bg-black/55 px-[0.9cqw] py-[0.4cqw] text-[1.15cqw] leading-snug text-white italic [animation:modal-fade_300ms_ease-out]`}
+        className={`${KR} relative my-[0.2cqw] rounded-[0.8cqw] border border-white/25 bg-black/55 pl-[0.9cqw] pr-[1.2cqw] py-[0.4cqw] text-[1.1cqw] whitespace-nowrap text-left leading-snug text-white italic [animation:modal-fade_300ms_ease-out]`}
       >
         “{c.quote}”
       </div>

@@ -408,7 +408,7 @@ const RAW: CharSrc[] = [
     hurt: { x: -9, y: 60, w: 18, h: 60 },
     width: 18,
     color: "#FF5FB4",
-    quote: "수업은 끝났어, 지금부터… 제대로 할 시간이지.",
+    quote: "수업 끝. 이제… 제대로 할 시간이야.",
     winQuote: "오늘 수업은 여기까지. 복습해 와.",
     tagline: "STRICT BUT KIND",
     difficulty: 3,
