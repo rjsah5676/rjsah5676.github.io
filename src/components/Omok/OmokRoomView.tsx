@@ -279,7 +279,8 @@ export default function OmokRoomView({
   // 낙관적 수까지 포함한 화면상 수 — 서버 반영 때 한 번 더 울리지 않도록
   useMoveSound(
     room && display.fen ? room.moves.length + (display.fen !== room.fen ? 1 : 0) : -1,
-    omokSoundInfo(display.fen, display.last, me)
+    omokSoundInfo(display.fen, display.last, me),
+    "chess"
   );
 
   const clock = room ? liveClock(room, now) : { w: 0, b: 0 };

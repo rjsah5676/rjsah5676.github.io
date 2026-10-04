@@ -111,7 +111,11 @@ export default function JanggiAIGame({ hangul }: { hangul: boolean }) {
     [settings]
   );
   const game = useMemo(() => Janggi.replay(moves ?? [], setup), [moves, setup]);
-  useMoveSound(moves ? moves.length : -1, janggiSoundInfo(game.fen(), moves?.at(-1), settings.me));
+  useMoveSound(
+    moves ? moves.length : -1,
+    janggiSoundInfo(game.fen(), moves?.at(-1), settings.me),
+    "chess"
+  );
   const end = moves ? game.end() : null;
   const over = !!end || resigned;
   const ai: Color = settings.me === "w" ? "b" : "w";

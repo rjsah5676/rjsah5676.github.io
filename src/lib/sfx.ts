@@ -39,7 +39,7 @@ function env(c: AudioContext, peak: number, attack: number, decay: number, at = 
  * 체스·장기 착수음 (녹음 파일: public/audio/sfx/*.mp3)
  * move-self 내 수 · move-opponent 상대 수 · capture 잡기 · castle 캐슬링
  * check 체크/장군 · promote 승진 · premove 한수쉼
- * set을 주면 public/audio/sfx/{set}/ 에서 (체스는 "chess" — 나무 기물 소리 녹음을 잘라 만든 세트)
+ * set을 주면 public/audio/sfx/{set}/ 에서 ("chess" — 나무 기물 소리 녹음을 잘라 만든 세트, 체스·장기·오목 공통)
  */
 export type PieceSound =
   "move-self" | "move-opponent" | "capture" | "castle" | "check" | "promote" | "premove";

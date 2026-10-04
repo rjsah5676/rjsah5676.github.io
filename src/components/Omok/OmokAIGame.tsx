@@ -132,7 +132,11 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
   const rule: Rule = ranked ? "renju" : settings.rule;
   const game = useMemo(() => Omok.replay(moves ?? [], rule), [moves, rule]);
   const fen = game.fen();
-  useMoveSound(moves ? moves.length : -1, omokSoundInfo(fen, moves?.at(-1), settings.me));
+  useMoveSound(
+    moves ? moves.length : -1,
+    omokSoundInfo(fen, moves?.at(-1), settings.me),
+    "chess"
+  );
   const end = moves ? game.end() : null;
   const over = !!end || resigned;
   const ai: Color = settings.me === "w" ? "b" : "w";
