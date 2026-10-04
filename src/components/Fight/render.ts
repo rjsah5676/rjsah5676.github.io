@@ -52,6 +52,12 @@ function fxImg(name: string): HTMLImageElement | null {
   }
   return fxCache.get(name) ?? null;
 }
+/** v2 에셋의 움직이는 탄 그림 (fx/<캐릭터>-<이름>-0..n): 캐릭터·기술 → [이름, 장 수, 판정 높이 대비 배율, 판정 중심 가로 위치] */
+const PROJ_ANIM: Record<string, Partial<Record<"S" | "X", [string, number, number, number]>>> = {
+  igna: { S: ["igna-fireball", 4, 2.6, 0.8] },
+};
+/** v2 에셋의 소환(불기둥 등) 그림: 캐릭터 → [이름, 장 수] — 바닥 기준, 판정 높이에 맞춤 */
+const PILLAR_ANIM: Record<string, [string, number]> = { igna: ["igna-pillar", 4] };
 /** 캐릭터·기술별 탄 그림: [그림, 판정 크기 대비 그림 높이 배율, 판정 중심이 그림 가로 어디쯤(0~1)] */
 const PROJ_ART: Record<string, Partial<Record<"S" | "X", [string, number, number]>>> = {
   igna: { S: ["igna-fireball", 1.7, 0.78] },
@@ -65,6 +71,7 @@ const PROJ_ART: Record<string, Partial<Record<"S" | "X", [string, number, number
  */
 const FX_SETS: Record<string, Record<string, [number, number, boolean]>> = {
   kai: { spark: [4, 0.75, true], guard: [2, 0.6, true], dust: [4, 0.5, false], rush: [4, 0.7, true], burst: [4, 1.3, true] },
+  igna: { spark: [4, 0.7, true], guard: [2, 0.6, true], dust: [4, 0.5, false] },
 };
 interface FxAnim {
   key: string;
@@ -544,9 +551,18 @@ export class FightRenderer {
     const sh = this.sheets[p.o];
     const a = sh?.anims.pillar;
     const fade = Math.min(1, (sm.delay + sm.life - p.t) / 8);
+    const pa = PILLAR_ANIM[CHARS[s.p[p.o].ch].id];
+    // 솟음 → 최대(반복) → 사그라짐
+    const life = p.t - sm.delay;
+    const pk = !pa ? 0 : life < 4 ? 0 : life < 8 ? 1 : sm.delay + sm.life - p.t < 8 ? pa[1] - 1 : 1 + (Math.floor(life / 4) % 2);
+    const pim = pa ? fxImg(`${pa[0]}-${Math.min(pa[1] - 1, pk)}`) : null;
     g.save();
     g.globalAlpha = fade;
-    if (sh && a) {
+    if (pim) {
+      const k = (sm.h * 1.1) / pim.height;
+      g.globalCompositeOperation = "lighter";
+      g.drawImage(pim, x - (pim.width * k) / 2, y - pim.height * k + 4, pim.width * k, pim.height * k);
+    } else if (sh && a) {
       const k0 = Math.floor(((p.t - sm.delay) * a.fps) / 60) % a.frames;
       const fr = frameRect(sh, a, k0);
       // 기둥 높이에 맞춰 크게
@@ -581,9 +597,20 @@ export class FightRenderer {
       g.translate(cx, cy);
       g.rotate(Math.atan2(-p.vh, Math.abs(p.vx)) * dir);
       g.translate(-cx, -cy);
+      const anim = PROJ_ANIM[ch.id]?.[p.mv ? "X" : "S"];
+      const aimg = anim ? fxImg(`${anim[0]}-${Math.floor(t / 4) % anim[1]}`) : null;
       const art = PROJ_ART[ch.id]?.[p.mv ? "X" : "S"];
       const img = art ? fxImg(art[0]) : null;
-      if (art && img) {
+      if (anim && aimg) {
+        const hgt = ((r.hi - r.lo) / SUB) * anim[2];
+        const wid = (hgt * aimg.width) / aimg.height;
+        g.save();
+        g.translate(cx, cy);
+        g.scale(dir || 1, 1);
+        g.globalCompositeOperation = "lighter";
+        g.drawImage(aimg, -wid * anim[3], -hgt / 2, wid, hgt);
+        g.restore();
+      } else if (art && img) {
         // 그림 탄: 판정 높이에 맞춰 크기, 날아가는 쪽으로 뒤집음 (물방울은 살짝 출렁)
         const hgt = ((r.hi - r.lo) / SUB) * art[1];
         const wid = (hgt * img.width) / img.height;

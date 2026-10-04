@@ -26,8 +26,13 @@ def key(img: Image.Image, bg: str) -> np.ndarray:
     if bg == "green":
         k = g - np.maximum(r, b)
         alpha = np.clip(1 - (k - 30) / 110, 0, 1)
-        g2 = np.minimum(g, np.maximum(r, b) + 8)  # 초록 번짐 빼기
-        rgb = np.dstack([r, g2, b])
+        # 반투명 가장자리(불꽃 끝 등): 초록 배경이 섞인 만큼 빼서 원래 색 되살림 (c = a·색 + (1-a)·초록)
+        am = np.maximum(alpha, 0.05)
+        r2 = np.clip(r / am, 0, 255)
+        b2 = np.clip(b / am, 0, 255)
+        g2 = np.clip((g - (1 - alpha) * 255) / am, 0, 255)
+        g2 = np.minimum(g2, np.maximum(r2, b2) + 8)  # 남은 초록 번짐 빼기
+        rgb = np.dstack([r2, g2, b2])
     else:
         m = a.max(2)
         alpha = np.clip((m - 14) / 70, 0, 1)
