@@ -59,7 +59,7 @@ function SkillRow({ c, k, right }: { c: CharDef; k: "S" | "X"; right?: boolean }
           <span className={`flex items-start gap-[0.4cqw] ${right ? "flex-row-reverse" : ""}`}>
             <SkillIcon key={`${c.id}-A`} c={c} k="A" small />
             <span className="text-[0.95cqw] leading-snug break-keep text-white/55">
-              <b className="text-[#FDE047]/80">점프 중 L</b> {c.airDesc}
+              <b className="text-[#FDE047]/80">{c.airLabel ?? "점프 중 L"}</b> {c.airDesc}
             </span>
           </span>
         )}

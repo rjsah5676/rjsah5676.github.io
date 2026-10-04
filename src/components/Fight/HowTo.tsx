@@ -101,7 +101,7 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
                     <b className="text-[#FDE047]/85">L {c.idName}</b> {c.idDesc}
                   </p>
                   <p>
-                    <b className="text-[#FDE047]/60">점프 중 L</b> {c.airDesc}
+                    <b className="text-[#FDE047]/60">{c.airLabel ?? "점프 중 L"}</b> {c.airDesc}
                   </p>
                   <p>
                     <b className="text-[#22D3EE]/85">I {c.ultName}</b> {c.ultDesc}

@@ -149,6 +149,8 @@ export interface CharDef {
   ultDesc: string;
   /** 점프 중 아이덴티티(L)가 땅에서와 다를 때 설명 */
   airDesc: string;
+  /** airDesc 앞에 붙는 이름 (없으면 "점프 중 L") */
+  airLabel?: string;
   moves: Record<MoveId, MoveDef>;
 }
 
@@ -546,7 +548,8 @@ const RAW: CharSrc[] = [
     idDesc: "느리고 오래 가는 큰 비눗방울로 길목을 막음 — 맞으면 갇혀서 둥실 떠오름 (때리면 터짐, 연타로 탈출)",
     ultName: "장마 파도",
     ultDesc: "바닥을 휩쓰는 큰 파도가 지나가며 5번 때림",
-    airDesc: "비눗방울은 공중에서도 수평으로 · 점프를 누르고 있으면 우산으로 천천히 활강",
+    airDesc: "점프를 누르고 있으면 우산으로 천천히 활강",
+    airLabel: "점프 홀딩",
     moves: {
       L: {
         startup: 4,
