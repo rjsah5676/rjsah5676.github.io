@@ -106,7 +106,11 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
       return stateAnim("jump", f.t);
     case "atk": {
       const m = CHARS[f.ch].moves[f.mv as MoveId];
-      const ma = sh.chain?.[f.mv as MoveId]?.[f.chain - 1] ?? sh.moves[f.mv as MoveId];
+      // 잡기·가드 반격은 그림이 없으면 약·발차기 그림으로
+      const ma =
+        sh.chain?.[f.mv as MoveId]?.[f.chain - 1] ??
+        sh.moves[f.mv as MoveId] ??
+        sh.moves[f.mv === "T" ? "L" : "H"];
       const a = sh.anims[ma.anim];
       const total = m.startup + m.active + m.recovery + finishRec(f);
       let fr: number;

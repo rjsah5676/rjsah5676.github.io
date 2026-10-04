@@ -159,6 +159,16 @@ export class FightRenderer {
           x: x + (Math.random() - 0.5) * 22, y: y - 14 - Math.random() * 10, vx: 0, vy: -0.5, life: 30, max: 30,
           color: "#FFE08A", size: 1, kind: "text", text: String(e.v),
         });
+      } else if (e.k === "just" || e.k === "counter" || e.k === "tech") {
+        // 저스트 가드 / 카운터 / 잡기 풀기 글자
+        const txt = e.k === "just" ? "JUST!" : e.k === "counter" ? "COUNTER!" : "TECH";
+        const col = e.k === "just" ? "#9BE7FF" : e.k === "counter" ? "#FFB347" : "#C8FF9B";
+        this.parts.push({ x, y: y - 10, vx: 0, vy: -0.5, life: 34, max: 34, color: col, size: 1.3, kind: "text", text: txt });
+        this.parts.push({ x, y, vx: 0, vy: 0, life: 12, max: 12, color: col, size: 13, kind: "ring" });
+        if (e.k === "counter") this.shake = Math.max(this.shake, 3);
+      } else if (e.k === "throw") {
+        this.parts.push({ x, y, vx: 0, vy: 0, life: 12, max: 12, color: "#fff", size: 12, kind: "ring" });
+        this.shake = Math.max(this.shake, 4);
       } else if (e.k === "block") {
         this.parts.push({ x, y, vx: 0, vy: 0, life: 12, max: 12, color: "#8FD3FF", size: 11, kind: "ring" });
         for (let i = 0; i < 6; i++)
@@ -642,7 +652,7 @@ export class FightRenderer {
         g.arc(p.x, p.y, p.size * (1.6 - a), 0, Math.PI * 2);
         g.stroke();
       } else if (p.kind === "text" && p.text) {
-        g.font = "bold 8px ui-sans-serif, system-ui, sans-serif";
+        g.font = `bold ${Math.round(8 * p.size)}px ui-sans-serif, system-ui, sans-serif`;
         g.textAlign = "center";
         g.lineWidth = 2;
         g.strokeStyle = "rgba(0,0,0,0.8)";

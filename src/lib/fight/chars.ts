@@ -8,8 +8,12 @@
 
 export const SUB = 256;
 
-/** 기술 id: L 약 · H 발차기 · J 공중 약 · K 공중 발차기 · S 아이덴티티(캐릭터마다 다름) · X 필살기 */
-export type MoveId = "L" | "H" | "J" | "K" | "S" | "X";
+/**
+ * 기술 id: L 약 · H 발차기 · J 공중 약 · K 공중 발차기 · S 아이덴티티(캐릭터마다 다름) · X 필살기
+ *          T 잡기(약+발차기, 가드 불가) · G 가드 반격(가드 중 발차기, 게이지 25)
+ */
+export type MoveId = "L" | "H" | "J" | "K" | "S" | "X" | "T" | "G";
+type BaseMoveId = Exclude<MoveId, "T" | "G">;
 
 export interface Box {
   x: number;
@@ -68,6 +72,11 @@ export interface MoveDef {
   };
   /** 여러 번 맞는 기술: 판정 동안 이 프레임마다 다시 맞음 (마지막 타만 다운) */
   multi?: number;
+  /**
+   * 막혔을 때 프레임 이득 (+면 때린 쪽이 먼저 움직임, -면 막은 쪽이 먼저 → 반격 가능).
+   * 없으면 기술 종류별 기본값(ON_BLOCK). blockstun은 이 값으로 자동 계산.
+   */
+  onBlock?: number;
   /** 맞으면 상대를 내 쪽으로 끌어당김 */
   pull?: boolean;
   /** 소환기: 상대 발밑 발판에 기둥을 세움 (delay 뒤 life 동안, every 프레임마다 타격) */
@@ -114,7 +123,9 @@ export interface CharDef {
 export const JUMP_VY = -2650; // 약 10.4px/f → 최고 높이 약 134px (2단 점프로 약 240px)
 export const GRAVITY = 102; // 0.4px/f²
 
-export const CHARS: CharDef[] = [
+type CharSrc = Omit<CharDef, "moves"> & { moves: Record<BaseMoveId, MoveDef> };
+
+const RAW: CharSrc[] = [
   {
     id: "kai",
     name: "카이",
@@ -145,7 +156,7 @@ export const CHARS: CharDef[] = [
         chip: 0,
         hitstun: 14,
         blockstun: 9,
-        push: 380,
+        push: 560,
         hitstop: 5,
         meter: 5,
         box: { x: 4, y: 46, w: 44, h: 18 },
@@ -260,7 +271,7 @@ export const CHARS: CharDef[] = [
         chip: 0,
         hitstun: 14,
         blockstun: 9,
-        push: 400,
+        push: 660,
         hitstop: 5,
         meter: 5,
         box: { x: 4, y: 40, w: 48, h: 24 },
@@ -269,15 +280,16 @@ export const CHARS: CharDef[] = [
       H: {
         startup: 10,
         active: 5,
-        recovery: 18,
-        dmg: 100,
+        recovery: 20,
+        dmg: 90,
         chip: 8,
         hitstun: 21,
         blockstun: 15,
         push: 1150,
         hitstop: 10,
         meter: 10,
-        box: { x: 0, y: 68, w: 70, h: 60 },
+        box: { x: 0, y: 68, w: 64, h: 60 },
+        onBlock: -6,
         cancel: ["S", "X"],
         step: 160,
       },
@@ -367,26 +379,26 @@ export const CHARS: CharDef[] = [
         // 약: 리치는 길지만 한 대가 약하고 조금 느림
         startup: 4,
         active: 3,
-        recovery: 8,
+        recovery: 7,
         dmg: 36,
         chip: 0,
         hitstun: 13,
         blockstun: 8,
-        push: 360,
+        push: 800,
         hitstop: 4,
         meter: 5,
         box: { x: 8, y: 46, w: 62, h: 14 },
         cancel: ["H", "S", "X"],
       },
       H: {
-        startup: 11,
+        startup: 10,
         active: 4,
         recovery: 20,
         dmg: 90,
         chip: 0,
         hitstun: 19,
         blockstun: 13,
-        push: 1000,
+        push: 1350,
         hitstop: 8,
         meter: 9,
         box: { x: 10, y: 52, w: 88, h: 26 },
@@ -400,7 +412,7 @@ export const CHARS: CharDef[] = [
         chip: 0,
         hitstun: 15,
         blockstun: 10,
-        push: 560,
+        push: 900,
         hitstop: 5,
         meter: 5,
         box: { x: 4, y: 44, w: 70, h: 22 },
@@ -413,7 +425,7 @@ export const CHARS: CharDef[] = [
         chip: 0,
         hitstun: 18,
         blockstun: 12,
-        push: 1000,
+        push: 1200,
         hitstop: 7,
         meter: 7,
         box: { x: 0, y: 40, w: 80, h: 40 },
@@ -457,11 +469,11 @@ export const CHARS: CharDef[] = [
     name: "릴리",
     title: "유치원생 · 우산과 물",
     desc: "우산으로 둥실 떠다니며 물방울을 띄우는 꼬마. 작아서 잘 안 맞음",
-    hp: 1050,
-    walk: 1050,
+    hp: 1120,
+    walk: 1120,
     jumpVx: 1050,
     dash: 2500,
-    cd: 100,
+    cd: 80,
     glide: 520,
     hurt: { x: -8, y: 50, w: 16, h: 50 },
     width: 16,
@@ -478,21 +490,21 @@ export const CHARS: CharDef[] = [
         startup: 4,
         active: 3,
         recovery: 6,
-        dmg: 34,
+        dmg: 37,
         chip: 0,
         hitstun: 13,
         blockstun: 8,
-        push: 380,
+        push: 640,
         hitstop: 4,
         meter: 5,
         box: { x: 4, y: 44, w: 40, h: 22 },
         cancel: ["H", "S", "X"],
       },
       H: {
-        startup: 9,
+        startup: 8,
         active: 5,
         recovery: 16,
-        dmg: 80,
+        dmg: 86,
         chip: 0,
         hitstun: 19,
         blockstun: 13,
@@ -519,7 +531,7 @@ export const CHARS: CharDef[] = [
         startup: 6,
         active: 8,
         recovery: 10,
-        dmg: 72,
+        dmg: 82,
         chip: 0,
         hitstun: 18,
         blockstun: 12,
@@ -534,7 +546,7 @@ export const CHARS: CharDef[] = [
         startup: 10,
         active: 1,
         recovery: 14,
-        dmg: 60,
+        dmg: 70,
         chip: 10,
         hitstun: 34,
         blockstun: 14,
@@ -542,7 +554,7 @@ export const CHARS: CharDef[] = [
         hitstop: 8,
         meter: 7,
         box: { x: 0, y: 0, w: 0, h: 0 },
-        proj: { speed: 520, y: 40, w: 30, h: 30, life: 230, flat: true },
+        proj: { speed: 520, y: 40, w: 34, h: 34, life: 230, flat: true },
       },
       X: {
         // 필살기 「장마 파도」: 바닥을 따라가는 큰 파도 5연타
@@ -563,6 +575,59 @@ export const CHARS: CharDef[] = [
     },
   },
 ];
+
+/**
+ * 막혔을 때 기본 프레임 이득 — 격투게임 공식:
+ *   약은 거의 0(막혀도 안전, 계속 압박), 발차기는 조금 손해, 아이덴티티는 크게 손해(막히면 반격당함),
+ *   필살기는 막히면 확정 반격. 약 4단·발차기 2단의 마지막 동작은 sim.ts에서 빈틈이 더 붙음.
+ */
+const ON_BLOCK: Record<MoveId, number> = { L: -1, H: -4, J: 0, K: -2, S: -8, X: -16, T: 0, G: -10 };
+
+/** 잡기: 가드 불가, 대신 사거리가 아주 짧고 헛치면 빈틈이 큼. 잡히는 순간 약+발차기로 풀 수 있음 */
+const THROW: MoveDef = {
+  startup: 5,
+  active: 2,
+  recovery: 24,
+  dmg: 110,
+  chip: 0,
+  hitstun: 30,
+  blockstun: 0,
+  push: 1500,
+  hitstop: 10,
+  meter: 8,
+  box: { x: 0, y: 56, w: 30, h: 44 },
+  kd: true,
+};
+/** 가드 반격: 막는 중에 발차기 → 게이지 25를 써서 바로 밀쳐 냄 (시작 동안 무적) */
+const GUARD_COUNTER: MoveDef = {
+  startup: 4,
+  active: 4,
+  recovery: 20,
+  dmg: 40,
+  chip: 0,
+  hitstun: 22,
+  blockstun: 10,
+  push: 1800,
+  hitstop: 8,
+  meter: 0,
+  box: { x: -6, y: 64, w: 62, h: 64 },
+  kd: true,
+};
+export const GUARD_COUNTER_COST = 25;
+
+function normalize(c: CharSrc): CharDef {
+  const moves = { ...c.moves, T: { ...THROW }, G: { ...GUARD_COUNTER } } as Record<MoveId, MoveDef>;
+  for (const id of Object.keys(moves) as MoveId[]) {
+    const m = moves[id];
+    if (m.proj || m.summon || id === "T") continue;
+    const adv = m.onBlock ?? ON_BLOCK[id];
+    // 첫 판정 프레임에 막혔다고 보고: 막은 쪽 경직 = 때린 쪽 남은 동작 + 이득
+    m.blockstun = Math.max(2, m.active - 1 + m.recovery + adv);
+  }
+  return { ...c, moves };
+}
+
+export const CHARS: CharDef[] = RAW.map(normalize);
 
 export const charIndex = (id: string) =>
   Math.max(

@@ -462,7 +462,11 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           if (e.k === "hit") {
             sfxHit(e.m === "X" ? 2 : e.m === "H" || e.m === "S" || e.m === "K" ? 1 : 0, elOf(e.p));
             if (e.p === 0) hits++;
-          } else if (e.k === "block") sfxBlock();
+          } else if (e.k === "block" || e.k === "just") sfxBlock();
+          else if (e.k === "throw") {
+            sfxHit(1, elOf(e.p));
+            if (e.p === 0) hits++;
+          } else if (e.k === "tech") sfxBlock();
           else if (e.k === "proj") sfxProj(elOf(e.p), s.p[e.p].mv === "X");
           else if (e.k === "super") sfxSuper();
           else if (e.k === "ko") sfxKO();
@@ -565,9 +569,10 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             </div>
           )}
           <div className="mt-1 text-white/40">
-            약(J)으로 빠르게 끊어 치고 발차기·아이덴티티·필살기로 이어 가기 · 같은 방향 두 번 대시(공중 1번) · 2단 점프,
-            공중 공격은 점프마다 2번 · 가드는 보는 쪽만 막음 · 떨어지면 위에서 다시 등장 · 게이지 MAX에
-            필살기(발차기+아이덴티티 동시도 가능) · 게임패드 · Esc 일시정지
+            약 4단·발차기 2단, 마지막 동작은 세지만 빈틈 큼 · 발차기·아이덴티티는 막히면 막은 쪽이 먼저 움직임(반격
+            기회) · 맞기 직전 가드 = 저스트 가드 · 가드 중 K = 가드 반격(게이지 25) · J+K 잡기(가드 불가, 잡힌 직후 J+K로
+            풀기) · 기술 내는 중·대시 중에 맞으면 카운터 · 같은 방향 두 번 대시 · 2단 점프, 공중 공격 점프마다 2번 ·
+            떨어지면 위에서 다시 등장 · 게이지 MAX에 필살기 · Esc 일시정지
           </div>
         </div>
       </div>
