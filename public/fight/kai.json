@@ -129,6 +129,48 @@
       "to": 4
     }
   },
+  "chain": {
+    "L": [
+      {
+        "anim": "light",
+        "from": 0,
+        "impact": 1,
+        "to": 1
+      },
+      {
+        "anim": "light",
+        "from": 1,
+        "impact": 2,
+        "to": 3
+      },
+      {
+        "anim": "light",
+        "from": 3,
+        "impact": 1,
+        "to": 0
+      },
+      {
+        "anim": "dash",
+        "from": 0,
+        "impact": 1,
+        "to": 1
+      }
+    ],
+    "H": [
+      {
+        "anim": "heavy",
+        "from": 0,
+        "impact": 1,
+        "to": 2
+      },
+      {
+        "anim": "air",
+        "from": 0,
+        "impact": 0,
+        "to": 0
+      }
+    ]
+  },
   "states": {
     "idle": {
       "anim": "idle"

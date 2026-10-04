@@ -191,11 +191,10 @@ function PlayerHud({
   const c = CHARS[ch];
   const full = meter >= METER_MAX;
   const cdLeft = cd * (c.cd / 60);
-  const ready = cd <= 0;
+  const ready = cdLeft < 0.05;
   const flip = right ? "scale-x-[-1]" : "";
   return (
     <div className={`flex min-w-0 flex-1 items-start gap-[1cqw] ${right ? "flex-row-reverse" : ""}`}>
-      { }
       <img
         src={`/fight/art/${c.id}-face.webp`}
         alt={c.name}
@@ -243,19 +242,32 @@ function PlayerHud({
               {ready ? "L" : cdLeft.toFixed(1)}
             </span>
           </div>
-          <span className={`${KR} text-[1.1cqw] font-bold ${ready ? "text-[#FDE047]" : "text-white/45"} drop-shadow-[0_0.1cqw_0_#000]`}>
+          <span className={`${KR} whitespace-nowrap text-[1.1cqw] font-bold ${ready ? "text-[#FDE047]" : "text-white/45"} drop-shadow-[0_0.1cqw_0_#000]`}>
             {c.idName}
           </span>
           <div className={`ml-auto ${right ? "mr-auto ml-0" : ""} flex items-center gap-[0.6cqw] ${right ? "flex-row-reverse" : ""}`}>
-            <div className={`relative h-[1.2cqw] w-[16cqw] -skew-x-[20deg] overflow-hidden border border-black/60 bg-black/50 ${flip}`}>
+            <div
+              className={`relative -skew-x-[20deg] overflow-hidden border bg-black/50 transition-all ${flip} ${
+                full
+                  ? "h-[1.6cqw] w-[14cqw] border-[#A5F3FC] shadow-[0_0_1.2cqw_rgba(34,211,238,0.9)]"
+                  : "h-[1.2cqw] w-[14cqw] border-black/60"
+              }`}
+            >
               <div
-                className={`absolute inset-y-0 left-0 ${full ? "animate-pulse bg-gradient-to-r from-[#22D3EE] to-[#A5F3FC]" : "bg-[#3B82F6]"}`}
+                className={`absolute inset-y-0 left-0 ${full ? "bg-gradient-to-r from-[#0EA5E9] via-[#A5F3FC] to-[#22D3EE]" : "bg-[#3B82F6]"}`}
                 style={{ width: `${Math.min(100, meter)}%` }}
               />
+              {full && (
+                <div className="absolute inset-y-0 w-[30%] animate-[meter-shine_1.1s_linear_infinite] bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+              )}
             </div>
-            <span className={`font-mono text-[1.2cqw] font-black drop-shadow-[0_0.1cqw_0_#000] ${full ? "text-[#67E8F9]" : "text-white/50"}`}>
-              {full ? c.ultName : `${meter}%`}
-            </span>
+            {full ? (
+              <span className="animate-pulse whitespace-nowrap font-mono text-[1.4cqw] font-black text-[#A5F3FC] [text-shadow:0_0_0.8cqw_#22D3EE,0_0.1cqw_0_#000]">
+                {c.ultName} READY! <span className="rounded-[0.2cqw] bg-[#22D3EE] px-[0.4cqw] text-black">I</span>
+              </span>
+            ) : (
+              <span className="font-mono text-[1.2cqw] font-black text-white/50 drop-shadow-[0_0.1cqw_0_#000]">{meter}%</span>
+            )}
           </div>
         </div>
       </div>
@@ -311,6 +323,49 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     pausedRef.current = paused;
   }, [paused]);
 
+  // ── 배경음악: 맵마다 (대전 중, 맵 선택에서 그 맵에 커서가 있을 때만) ──
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  const mutedRef = useRef(false);
+  const wantRef = useRef<string | null>(null);
+  const playBgm = useCallback((src: string | null) => {
+    wantRef.current = src;
+    const cur = bgmRef.current;
+    if (!src || mutedRef.current) {
+      cur?.pause();
+      return;
+    }
+    if (cur && cur.dataset.src === src) {
+      if (cur.paused) cur.play().catch(() => {});
+      return;
+    }
+    cur?.pause();
+    const a = new Audio(src);
+    a.dataset.src = src;
+    a.loop = true;
+    a.volume = 0.35;
+    bgmRef.current = a;
+    a.play().catch(() => {});
+  }, []);
+  const previewMap = useCallback(
+    (m: number | null) => playBgm(m !== null && m >= 0 ? (MAPS[m].bgm ?? null) : null),
+    [playBgm]
+  );
+  useEffect(() => {
+    mutedRef.current = muted;
+    if (muted) bgmRef.current?.pause();
+    else playBgm(wantRef.current);
+  }, [muted, playBgm]);
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "hidden") bgmRef.current?.pause();
+      else playBgm(wantRef.current);
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      bgmRef.current?.pause();
+    };
+  }, [playBgm]);
   // ── 게임 루프 ──
   useEffect(() => {
     if (!playing) return;
@@ -322,6 +377,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     const pickMap = () =>
       setup.map >= 0 ? setup.map : Math.floor(Math.random() * MAPS.length);
     let s = newMatch([setup.c1, setup.c2], pickMap());
+    playBgm(MAPS[s.map].bgm ?? null);
     let ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
     let hits = 0;
     let lastHud = "";
@@ -338,6 +394,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       .catch(() => {});
     restartRef.current = () => {
       s = newMatch([setup.c1, setup.c2], pickMap());
+      playBgm(MAPS[s.map].bgm ?? null);
       ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
       hits = 0;
       doneReported = false;
@@ -435,45 +492,22 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     setTimeout(scrollToGameTop, 50);
   }, []);
 
-  // ── 배경음악 (처음 클릭·키 입력부터, 소리 끄면 멈춤) ──
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
-  const mutedRef = useRef(false);
-  const startBgm = useCallback(() => {
-    if (mutedRef.current) return;
-    if (!bgmRef.current) {
-      const a = new Audio("/fight/bgm.mp3");
-      a.loop = true;
-      a.volume = 0.35;
-      bgmRef.current = a;
-    }
-    if (bgmRef.current.paused) bgmRef.current.play().catch(() => {});
-  }, []);
-  useEffect(() => {
-    mutedRef.current = muted;
-    if (muted) bgmRef.current?.pause();
-  }, [muted]);
-  useEffect(() => {
-    const onVis = () => {
-      if (document.visibilityState === "hidden") bgmRef.current?.pause();
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      document.removeEventListener("visibilitychange", onVis);
-      bgmRef.current?.pause();
-    };
-  }, []);
+  const [entry, setEntry] = useState<"mode" | "char">("mode");
   const toMenu = useCallback(() => {
+    setEntry("mode");
+    playBgm(null);
     setPlaying(false);
     setPaused(false);
     setHud(null);
-  }, []);
+  }, [playBgm]);
+  const toChars = useCallback(() => {
+    toMenu();
+    setEntry("char");
+  }, [toMenu]);
   const toggleMute = () =>
     setMuted((m) => {
       setFightVolume(m ? 0.8 : 0);
-      if (m) {
-        mutedRef.current = false;
-        setTimeout(startBgm, 0);
-      }
+
       try {
         localStorage.setItem(MUTE_KEY, m ? "0" : "1");
       } catch {}
@@ -485,7 +519,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   if (!playing) {
     return (
       <div className="mx-auto w-full max-w-[min(960px,calc((100dvh-170px)*16/9))]">
-        <Select setup={setup} setSetup={setSetup} onStart={start} onInteract={startBgm} />
+        <Select setup={setup} setSetup={setSetup} onStart={start} onPreview={previewMap} entry={entry} />
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <button type="button" onClick={toggleMute} className={btn}>
             {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
@@ -608,17 +642,25 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
                 ↻ 다시
               </button>
               <button type="button" onClick={toMenu} className={btn}>
-                캐릭터 선택
+                메뉴로
               </button>
             </div>
           </div>
         )}
         {result && (
-          <div className="absolute inset-x-0 bottom-[14%] flex justify-center gap-2">
-            <button type="button" onClick={() => restartRef.current()} className={primaryBtn}>
+          <div className="absolute inset-x-0 bottom-[14%] flex justify-center gap-[1.4cqw]">
+            <button
+              type="button"
+              onClick={() => restartRef.current()}
+              className="cursor-pointer rounded-full bg-[#6C63FF] px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#2E2A7A] hover:bg-[#5b52f0]"
+            >
               ↻ 다시 한 판
             </button>
-            <button type="button" onClick={toMenu} className={btn}>
+            <button
+              type="button"
+              onClick={toChars}
+              className="cursor-pointer rounded-full border-[0.2cqw] border-white bg-black/75 px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#000] hover:bg-white hover:text-black"
+            >
               캐릭터 선택
             </button>
           </div>
@@ -632,7 +674,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           {paused ? "▶ 계속" : "⏸ 일시정지"}
         </button>
         <button type="button" onClick={toMenu} className={btn}>
-          캐릭터 선택
+          메뉴로
         </button>
         <button type="button" onClick={toggleMute} className={btn}>
           {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}

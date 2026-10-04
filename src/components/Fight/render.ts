@@ -212,6 +212,25 @@ export class FightRenderer {
     this.shake *= 0.8;
   }
 
+  /** 필살기 게이지가 꽉 차면 몸 주위에 빛 */
+  private drawMaxAura(f: Fighter, s: State) {
+    if (f.meter < 100 || f.st === "ko" || f.h / SUB > VIEW_H) return;
+    const g = this.g;
+    const x = f.x / SUB,
+      y = screenY(f.h);
+    const c = CHARS[f.ch].color;
+    const p = 0.55 + 0.45 * Math.sin(s.f * 0.18);
+    glowAt(g, x, y - 32, 46 + p * 10, c === "#E6ECF5" ? "rgba(140,200,255,0.32)" : "rgba(255,110,40,0.32)");
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    for (let k = 0; k < 3; k++) {
+      const a = s.f * 0.09 + k * 2.1;
+      g.fillStyle = `rgba(255,255,255,${0.5 * p})`;
+      g.fillRect(x + Math.cos(a) * 18 - 1, y - 8 - ((s.f * 1.3 + k * 23) % 64), 2, 2);
+    }
+    g.restore();
+  }
+
   /** 카이 필살기 동안 몸을 감싸고 도는 회오리 */
   private drawWindAura(f: Fighter, s: State) {
     if (f.st !== "atk" || f.mv !== "X" || CHARS[f.ch].id !== "kai") return;
@@ -491,6 +510,7 @@ export class FightRenderer {
     // 발판은 배경에 구워 둠 → 캐릭터 (공격 중인 쪽을 앞에)
     const order = s.p[0].st === "atk" && s.p[1].st !== "atk" ? [1, 0] : [0, 1];
     for (const i of order) {
+      this.drawMaxAura(s.p[i], s);
       this.drawFighter(s.p[i], i, s);
       this.drawWindAura(s.p[i], s);
     }

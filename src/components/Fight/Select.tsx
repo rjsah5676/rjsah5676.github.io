@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * 격투게임 시작 전 화면: 캐릭터 선택 → 맵 선택 → VS.
+ * 격투게임 시작 전 화면: 모드 선택(AI는 난이도까지) → 캐릭터 선택 → 맵 선택 → VS.
  * 키보드: 1P A·D 고르기 · J/Space 결정 · K 취소, 2P ←→ · Enter 결정 · . 취소 (마우스·터치도 됨)
- * AI 대전이면 1P가 자기 캐릭터를 고른 뒤 상대(CPU) 캐릭터도 고름.
+ * AI 대전이면 1P가 자기 캐릭터를 고른 뒤 상대(CPU) 캐릭터도 고름. 지금 고르는 쪽은 빛나는 테두리로 표시.
  */
 import { useEffect, useRef, useState } from "react";
 import { CHARS, type CharDef } from "@/lib/fight/chars";
@@ -24,6 +24,7 @@ const face = (c: CharDef) => `/fight/art/${c.id}-face.webp`;
 const art = (c: CharDef) => `/fight/art/${c.id}.webp`;
 const PX = "[image-rendering:pixelated]";
 const KR = "font-['Nanum_Gothic',sans-serif]";
+const MENU_BG = "/fight/bg/menu.webp";
 
 function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
   return (
@@ -56,21 +57,29 @@ export default function Select({
   setup,
   setSetup,
   onStart,
-  onInteract,
+  onPreview,
+  entry = "mode",
 }: {
   setup: Setup;
   setSetup: (f: (s: Setup) => Setup) => void;
   onStart: () => void;
-  /** 첫 클릭·키 입력 (배경음악 시작용) */
-  onInteract: () => void;
+  /** 맵 선택에서 커서가 가리키는 맵 (배경음악 미리 듣기, -1·null = 끔) */
+  onPreview: (map: number | null) => void;
+  /** 처음 보여 줄 화면 (판이 끝나고 "캐릭터 선택"을 누르면 char) */
+  entry?: "mode" | "char";
 }) {
-  const [stage, setStage] = useState<"char" | "map" | "vs">("char");
+  const [stage, setStage] = useState<"mode" | "char" | "map" | "vs">(entry);
   const [lock, setLock] = useState<[boolean, boolean]>([false, false]);
   const [mapCur, setMapCur] = useState(setup.map);
   const stRef = useRef({ stage, lock, setup, mapCur });
   useEffect(() => {
     stRef.current = { stage, lock, setup, mapCur };
   });
+
+  // 맵 선택 중엔 커서가 있는 맵의 음악, 그 밖의 화면에선 끔
+  useEffect(() => {
+    onPreview(stage === "map" || stage === "vs" ? mapCur : null);
+  }, [stage, mapCur, onPreview]);
 
   // VS 화면 잠깐 보여 주고 시작
   useEffect(() => {
@@ -96,7 +105,21 @@ export default function Select({
     const l: [boolean, boolean] = [...stRef.current.lock];
     if (l[side]) l[side] = false;
     else if (side === 1 && ai) l[0] = false;
+    else if (side === 0 && !l[1]) {
+      // 아무것도 안 고른 상태에서 취소 → 모드 선택으로
+      setStage("mode");
+      return;
+    }
     setLock(l);
+  };
+  const backToChars = () => {
+    // 맵 선택에서 뒤로: 1P부터 다시 고름
+    setLock([false, false]);
+    setStage("char");
+  };
+  const toChars = () => {
+    setLock([false, false]);
+    setStage("char");
   };
   const mapOptions = [-1, ...MAPS.map((_, i) => i)];
 
@@ -116,7 +139,10 @@ export default function Select({
       const any = p1.l || p1.r || p1.ok || p1.no || p2.l || p2.r || p2.ok || p2.no;
       if (!any) return;
       e.preventDefault();
-      onInteract();
+      if (stage === "mode") {
+        if (p1.ok || p2.ok) toChars();
+        return;
+      }
       if (stage === "char") {
         if (ai) {
           // AI 대전: 어느 키든 지금 고르는 쪽을 움직임
@@ -143,10 +169,7 @@ export default function Select({
           setSetup((s) => ({ ...s, map: mapCur }));
           setStage("vs");
         }
-        if (p1.no || p2.no) {
-          setLock([true, false]);
-          setStage("char");
-        }
+        if (p1.no || p2.no) backToChars();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -163,16 +186,76 @@ export default function Select({
   return (
     <div
       className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-[#0B0D14] select-none [container-type:inline-size]"
-      onPointerDown={onInteract}
     >
-      {/* 배경: 맵 그림을 어둡게 */}
-      { }
+      {/* 메인 배경 (맵 선택에선 고른 맵 그림) */}
       <img
-        src={MAPS[0].bg}
+        src={stage === "map" && mapShown ? mapShown.bg : MENU_BG}
         alt=""
-        className="absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-[2px]"
+        className={`absolute inset-0 h-full w-full object-cover ${PX} ${stage === "mode" ? "opacity-90" : "opacity-45"} ${stage === "map" ? "blur-[3px]" : ""}`}
       />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,#0B0D14_85%)]" />
+      <div
+        className={`absolute inset-0 ${stage === "mode" ? "bg-[linear-gradient(to_top,rgba(5,6,12,0.85),transparent_55%)]" : "bg-[radial-gradient(ellipse_at_center,transparent_25%,#0B0D14_90%)]"}`}
+      />
+
+      {stage === "mode" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-end gap-[2cqw] pb-[5cqw]">
+          <div className="text-center">
+            <div className="font-mono text-[6.5cqw] leading-none font-black tracking-[0.12em] text-white italic drop-shadow-[0_0.5cqw_0_#000] [text-shadow:0_0_2cqw_rgba(255,80,60,0.6)]">
+              PIXEL FIGHT
+            </div>
+            <div className={`${KR} mt-[0.6cqw] text-[1.5cqw] tracking-[0.4em] text-white/60`}>픽셀 격투</div>
+          </div>
+          <div className="flex gap-[1.4cqw]">
+            {(
+              [
+                ["ai", "AI 대전", "CPU와 1:1"],
+                ["2p", "2인 대전", "한 키보드로 둘이서"],
+                ["online", "온라인 대전", "준비 중"],
+              ] as const
+            ).map(([m, label, sub]) => {
+              const on = m !== "online" && setup.mode === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  disabled={m === "online"}
+                  onClick={() => m !== "online" && setSetup((s) => ({ ...s, mode: m }))}
+                  className={`${KR} flex w-[17cqw] cursor-pointer flex-col items-center gap-[0.3cqw] rounded-[0.8cqw] border-[0.25cqw] px-[1cqw] py-[1.1cqw] backdrop-blur-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    on
+                      ? "border-[#FDE047] bg-[#FDE047]/15 shadow-[0_0_2cqw_rgba(253,224,71,0.35)]"
+                      : "border-white/25 bg-black/45 hover:border-white/60"
+                  }`}
+                >
+                  <span className="text-[2.2cqw] font-extrabold text-white">{label}</span>
+                  <span className="text-[1.15cqw] text-white/55">{sub}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className={`flex min-h-[3cqw] items-center gap-[0.6cqw] ${ai ? "" : "invisible"}`}>
+            <span className={`${KR} text-[1.3cqw] text-white/60`}>난이도</span>
+            {AI_LEVELS.map((l, i) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => setSetup((s) => ({ ...s, level: i }))}
+                className={`${KR} cursor-pointer rounded-full px-[1.2cqw] py-[0.4cqw] text-[1.3cqw] transition-colors ${
+                  setup.level === i ? "bg-white font-bold text-black" : "bg-black/50 text-white/65 hover:bg-white/20"
+                }`}
+              >
+                {l.name}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={toChars}
+            className={`${KR} cursor-pointer rounded-full bg-[#E8344E] px-[4cqw] py-[0.9cqw] text-[1.9cqw] font-extrabold text-white shadow-[0_0.4cqw_0_#7A1020] transition-transform hover:scale-105`}
+          >
+            시작하기
+          </button>
+        </div>
+      )}
 
       {stage === "char" && (
         <>
@@ -180,68 +263,61 @@ export default function Select({
             <div className="font-mono text-[2.6cqw] font-black tracking-[0.35em] text-white italic drop-shadow-[0_0.3cqw_0_#000]">
               CHARACTER SELECT
             </div>
-            <div className="flex items-center gap-[0.8cqw]">
-              {(
-                [
-                  ["ai", "AI 대전"],
-                  ["2p", "2인 대전"],
-                ] as const
-              ).map(([m, label]) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => {
-                    setSetup((s) => ({ ...s, mode: m }));
-                    setLock([false, false]);
-                  }}
-                  className={`${KR} cursor-pointer rounded-full px-[1.4cqw] py-[0.4cqw] text-[1.3cqw] transition-colors ${
-                    setup.mode === m ? "bg-[#6C63FF] text-white" : "bg-white/10 text-white/60 hover:bg-white/20"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-              {ai && (
-                <span className="flex items-center gap-[0.4cqw] pl-[1cqw]">
-                  <span className={`${KR} text-[1.2cqw] text-white/45`}>CPU</span>
-                  {AI_LEVELS.map((l, i) => (
-                    <button
-                      key={l.id}
-                      type="button"
-                      title={l.name}
-                      onClick={() => setSetup((s) => ({ ...s, level: i }))}
-                      className={`${KR} cursor-pointer rounded-full px-[0.9cqw] py-[0.3cqw] text-[1.15cqw] transition-colors ${
-                        setup.level === i ? "bg-white text-black" : "bg-white/10 text-white/55 hover:bg-white/20"
-                      }`}
-                    >
-                      {l.name}
-                    </button>
-                  ))}
-                </span>
-              )}
+            <div className={`${KR} text-[1.2cqw] text-white/55`}>
+              {ai ? `AI 대전 · CPU ${AI_LEVELS[setup.level].name}` : "2인 대전"}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setStage("mode")}
+            className={`${KR} absolute top-[2.4cqw] left-[2cqw] cursor-pointer rounded-full bg-black/50 px-[1.4cqw] py-[0.5cqw] text-[1.2cqw] text-white/70 hover:bg-white/20`}
+          >
+            ◀ 모드 선택
+          </button>
 
           {/* 양쪽 전신 그림 */}
           {([0, 1] as const).map((sd) => {
             const c = sd === 0 ? c1 : c2;
+            const col = sd === 0 ? "#3B82F6" : "#F43F5E";
+            // 지금 고르는 쪽: AI 대전은 차례인 한쪽, 2인 대전은 아직 안 고른 쪽 모두
+            const active = !lock[sd] && (ai ? side === sd : true);
             return (
               <div
                 key={sd}
                 className={`absolute bottom-0 ${sd === 0 ? "left-[1cqw]" : "right-[1cqw]"} flex h-[78%] items-end gap-[1.5cqw] ${sd === 1 ? "flex-row-reverse" : ""}`}
               >
-                { }
-                <img
+                                <img
                   key={c.id}
                   src={art(c)}
                   alt={c.name}
-                  className={`h-full w-auto ${PX} drop-shadow-[0_0_2cqw_rgba(0,0,0,0.8)] [animation:modal-fade_250ms_ease-out] ${sd === 1 ? "scale-x-[-1]" : ""} ${lock[sd] ? "" : "opacity-90"}`}
+                  className={`h-full w-auto ${PX} transition-[filter,opacity] duration-300 [animation:modal-fade_250ms_ease-out] ${sd === 1 ? "scale-x-[-1]" : ""} ${
+                    active || lock[sd] ? "" : "opacity-45 brightness-50"
+                  }`}
+                  style={{
+                    filter: active
+                      ? `drop-shadow(0 0 0.25cqw ${col}) drop-shadow(0 0 1.4cqw ${col})`
+                      : lock[sd]
+                        ? "drop-shadow(0 0 0.2cqw #fff)"
+                        : undefined,
+                  }}
                 />
                 <div className="mb-[18cqw]">
-                  <div
-                    className={`mb-[0.6cqw] inline-block rounded-[0.3cqw] px-[0.7cqw] font-mono text-[1.3cqw] font-black ${sd === 0 ? "bg-[#3B82F6]" : "bg-[#F43F5E]"} text-white`}
-                  >
-                    {sd === 0 ? "1P" : ai ? "CPU" : "2P"} {lock[sd] ? "✔" : ""}
+                  <div className={`mb-[0.6cqw] flex items-center gap-[0.6cqw] ${sd === 1 ? "flex-row-reverse" : ""}`}>
+                    <span
+                      className="rounded-[0.3cqw] px-[0.7cqw] font-mono text-[1.3cqw] font-black text-white"
+                      style={{ background: col }}
+                    >
+                      {sd === 0 ? "1P" : ai ? "CPU" : "2P"}
+                    </span>
+                    {lock[sd] ? (
+                      <span className="font-mono text-[1.4cqw] font-black text-[#FDE047] italic">READY!</span>
+                    ) : active ? (
+                      <span className={`${KR} animate-pulse text-[1.3cqw] font-bold`} style={{ color: col }}>
+                        {ai && sd === 1 ? "▼ 상대 캐릭터를 고르세요" : "▼ 선택 중"}
+                      </span>
+                    ) : (
+                      <span className={`${KR} text-[1.2cqw] text-white/35`}>대기</span>
+                    )}
                   </div>
                   <CharInfo c={c} right={sd === 1} />
                 </div>
@@ -255,23 +331,27 @@ export default function Select({
               {CHARS.map((c, i) => {
                 const on1 = setup.c1 === i,
                   on2 = setup.c2 === i;
+                const act1 = !lock[0] && (ai ? side === 0 : true);
+                const act2 = !lock[1] && (ai ? side === 1 : true);
+                const glow = (on1 && act1) || (on2 && act2);
                 return (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => {
-                      // 아직 안 고른 쪽부터 (AI 대전은 1P → CPU)
+                      // 아직 안 고른 쪽부터 (AI 대전은 1P → CPU). 한 번 누르면 커서, 같은 칸을 한 번 더 누르면 결정
                       const sd = (lock[0] ? 1 : 0) as 0 | 1;
-                      setSetup((s) => (sd === 0 ? { ...s, c1: i } : { ...s, c2: i }));
-                      confirm(sd);
+                      if (lock[sd]) return;
+                      const cur = sd === 0 ? setup.c1 : setup.c2;
+                      if (cur === i) confirm(sd);
+                      else setSetup((s) => (sd === 0 ? { ...s, c1: i } : { ...s, c2: i }));
                     }}
                     className="relative cursor-pointer"
                   >
-                    { }
-                    <img
+                                        <img
                       src={face(c)}
                       alt={c.name}
-                      className={`h-[7.5cqw] w-[9.4cqw] rounded-[0.5cqw] border-[0.3cqw] object-cover ${PX} ${
+                      className={`h-[7.5cqw] w-[9.4cqw] rounded-[0.5cqw] border-[0.3cqw] object-cover ${PX} ${glow ? "animate-pulse" : ""} ${
                         on1 && on2
                           ? "border-[#A78BFA]"
                           : on1
@@ -295,8 +375,8 @@ export default function Select({
             <div className={`${KR} text-center text-[1.1cqw] text-white/45`}>
               {ai
                 ? side === 0
-                  ? "내 캐릭터 고르기 — A·D(←→) 이동, J(Enter) 결정"
-                  : "상대(CPU) 캐릭터 고르기 — K(.) 뒤로"
+                  ? "내 캐릭터 고르기 — A·D(←→) 이동, J(Enter)·한 번 더 클릭 결정, K 뒤로"
+                  : "상대(CPU) 캐릭터 고르기 — K(.) 내 캐릭터 다시"
                 : "1P A·D + J 결정 · 2P ←→ + Enter 결정 (K / . 취소)"}
             </div>
           </div>
@@ -354,10 +434,7 @@ export default function Select({
           <div className="flex gap-[1cqw]">
             <button
               type="button"
-              onClick={() => {
-                setLock([true, false]);
-                setStage("char");
-              }}
+              onClick={backToChars}
               className={`${KR} cursor-pointer rounded-full bg-white/10 px-[2cqw] py-[0.6cqw] text-[1.4cqw] text-white/70 hover:bg-white/20`}
             >
               ◀ 캐릭터 다시
@@ -380,8 +457,7 @@ export default function Select({
         <div className="absolute inset-0 flex items-center justify-center gap-[4cqw] bg-black/40">
           {([c1, c2] as const).map((c, i) => (
             <div key={i} className={`flex flex-col items-center gap-[1cqw] ${i === 0 ? "order-1" : "order-3"}`}>
-              { }
-              <img
+                            <img
                 src={face(c)}
                 alt={c.name}
                 className={`h-[18cqw] w-[22.5cqw] rounded-[0.8cqw] border-[0.4cqw] object-cover ${PX} [animation:modal-fade_300ms_ease-out]`}

@@ -73,6 +73,13 @@ const JUMP2_V = Math.trunc((JUMP_V * 88) / 100);
 const MAX_FALL = 2600;
 /** 공중 좌우 가속 */
 const AIR_ACC = 70;
+/** 공중에서 이 콤보 수를 넘기면 강제 다운 */
+const JUGGLE_MAX = 7;
+/** 연속 동작 수: 약(L) 4단, 발차기(H) 2단 */
+const CHAIN_MAX: Partial<Record<MoveId, number>> = { L: 4, H: 2 };
+const CHAIN_STEP = 520;
+/** 마지막 동작 뒤 추가 빈틈 (상대가 반격할 틈) */
+const FINISH_REC: Partial<Record<MoveId, number>> = { L: 14, H: 16 };
 /** 대시 길이 (프레임) */
 const DASH_T = 13;
 /** 한 번 뜰 때 쓸 수 있는 공중 공격 수 (2단 점프하면 다시 채워짐) */
@@ -114,6 +121,8 @@ export interface Fighter {
   airDash: number;
   /** 아이덴티티 남은 대기 프레임 */
   cd: number;
+  /** 약·발차기 연속 동작 몇 번째인지 (1부터) */
+  chain: number;
   /** 쓴 점프 수 (땅에 닿으면 0) */
   jumps: number;
   /** 남은 발판 통과 프레임 (↓+점프) */
@@ -189,6 +198,8 @@ export interface State {
 }
 
 const charOf = (f: Fighter): CharDef => CHARS[f.ch];
+const isFinisher = (f: Fighter) => !!f.mv && !!CHAIN_MAX[f.mv] && f.chain >= CHAIN_MAX[f.mv]!;
+const finishRec = (f: Fighter) => (isFinisher(f) ? (FINISH_REC[f.mv as MoveId] ?? 0) : 0);
 const moveOf = (f: Fighter): MoveDef | null => (f.mv ? charOf(f).moves[f.mv] : null);
 const totalOf = (m: MoveDef) => m.startup + m.active + m.recovery;
 const mapOf = (s: State): MapDef => MAPS[s.map] ?? MAPS[0];
@@ -246,6 +257,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     dashT: 0,
     airDash: 0,
     cd: 0,
+    chain: 0,
     jumps: 0,
     drop: 0,
     inv: 0,
@@ -331,6 +343,7 @@ export function hash(s: State): number {
     mix(f.jumps);
     mix(f.dashT);
     mix(f.cd);
+    mix(f.chain);
     mix(f.airDash);
     mix(f.drop);
     mix(f.inv);
@@ -426,6 +439,8 @@ const airborneS = (s: State, f: Fighter) => !onGround(s, f);
 
 function startMove(s: State, i: number, id: MoveId) {
   const f = s.p[i];
+  // 같은 기술을 이어 누르면 다음 동작 (약 4단 · 발차기 2단)
+  f.chain = f.st === "atk" && f.mv === id && CHAIN_MAX[id] ? f.chain + 1 : 1;
   f.st = "atk";
   f.mv = id;
   f.t = 0;
@@ -653,11 +668,17 @@ function control(s: State, i: number) {
         });
         s.ev.push({ k: "proj", p: i, x: f.x, h: f.h, v: 0 });
       }
-      // 맞히거나 막힌 뒤 짧은 동안 다음 기술로 캔슬
-      if (f.hit && m.cancel && f.t >= m.startup && f.t < m.startup + m.active + 12 && onGround(s, f)) {
-        if (tryAttack(s, i, m.cancel)) return;
+      // 약·발차기 연속 동작: 판정이 나온 뒤부터 끝날 때까지 같은 버튼으로 다음 동작 (헛쳐도 됨)
+      const cm = CHAIN_MAX[f.mv as MoveId];
+      if (cm && f.chain < cm && f.t >= m.startup + (f.hit ? 1 : m.active) && onGround(s, f)) {
+        if (tryAttack(s, i, [f.mv as MoveId])) return;
       }
-      if (f.t >= totalOf(m)) {
+      // 맞히거나 막힌 뒤 짧은 동안 다음 기술로 캔슬 (마지막 동작 뒤엔 같은 기술 연타 불가)
+      if (f.hit && m.cancel && f.t >= m.startup && f.t < m.startup + m.active + 12 && onGround(s, f)) {
+        const allow = isFinisher(f) ? m.cancel.filter((c) => c !== f.mv) : m.cancel;
+        if (tryAttack(s, i, allow)) return;
+      }
+      if (f.t >= totalOf(m) + finishRec(f)) {
         f.mv = "";
         f.t = 0;
         f.st = onGround(s, f) ? "idle" : "jump";
@@ -770,6 +791,8 @@ function physics(s: State, i: number) {
   const on = standingOn(map, f);
   if (on) {
     if (f.st === "atk" && m?.step && f.t < m.startup) moveX(f, m.step * f.face);
+    // 연속 동작 2단째부터는 앞으로 조금씩 따라 들어감 (밀려난 상대를 계속 맞힘)
+    if (f.st === "atk" && m && f.chain > 1 && CHAIN_MAX[f.mv as MoveId] && f.t < m.startup) moveX(f, CHAIN_STEP * f.face);
     moveX(f, f.vx);
     if (!inX(on, f.x)) {
       // 다른 같은 높이 발판으로 이어지지 않으면 떨어짐
@@ -859,17 +882,23 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     s.ev.push({ k: "block", p: ai, x: d.x - dir * 10 * SUB, h: eh, v: m.chip, m: mid });
   } else {
     // 연타·소환 필살기는 콤보 보정 없이 매 타 같은 피해
-    const dmg = m.multi || m.summon ? m.dmg : scaleDmg(m.dmg, d.combo);
+    const fin = (mid === "L" || mid === "H") && isFinisher(a);
+    const base = fin ? Math.trunc((m.dmg * 13) / 10) : m.dmg;
+    const dmg = m.multi || m.summon ? m.dmg : scaleDmg(base, d.combo);
     const wasAir = airborneS(s, d);
     d.hp -= dmg;
     d.combo++;
     d.st = "hit";
     d.t = 0;
     d.mv = "";
-    d.stun = m.hitstun;
-    d.vx = dir * m.push;
+    // 경직 감소: 콤보가 길어질수록 맞는 경직이 줄어 무한 콤보 방지 (필살기 연타는 예외)
+    const decay = m.multi || m.summon ? 0 : Math.min(40, Math.max(0, d.combo - 3) * 6);
+    d.stun = Math.max(6, Math.trunc((m.hitstun * (100 - decay)) / 100));
+    d.vx = fin ? Math.trunc((dir * m.push * 16) / 10) : dir * m.push;
     const a0 = s.p[ai];
-    const kd = m.kd && !(m.multi && mid !== "S" && a0.st === "atk" && a0.t < m.startup + m.active - m.multi);
+    // 공중 콤보 한도: 공중에서 일정 수 넘게 맞으면 강제 다운 (저글 한계)
+    const juggleOut = wasAir && d.combo >= JUGGLE_MAX;
+    const kd = juggleOut || (m.kd && !(m.multi && mid !== "S" && a0.st === "atk" && a0.t < m.startup + m.active - m.multi));
     if (wasAir || kd) {
       d.vh = kd ? 1500 : 700;
       d.kd = kd ? 1 : 0;
@@ -1038,7 +1067,7 @@ export function step(s: State, input: [number, number]): State {
       if (f.st === "walk") ((f.st = "idle"), (f.vx = 0));
       if (f.st === "hit" && f.stun > 0) f.stun--;
       if (f.st === "hit" && f.stun <= 0 && onGround(s, f)) ((f.st = "idle"), (f.t = 0));
-      if (f.st === "atk" && f.t >= totalOf(moveOf(f)!)) ((f.st = onGround(s, f) ? "idle" : "jump"), (f.mv = ""), (f.t = 0));
+      if (f.st === "atk" && f.t >= totalOf(moveOf(f)!) + finishRec(f)) ((f.st = onGround(s, f) ? "idle" : "jump"), (f.mv = ""), (f.t = 0));
       if (f.st === "block" && --f.stun <= 0) ((f.st = "idle"), (f.t = 0));
       if (f.st === "down" && f.t >= DOWN_T) ((f.st = "rise"), (f.t = 0));
       if (f.st === "rise" && f.t >= RISE_T) ((f.st = "idle"), (f.t = 0));
@@ -1075,4 +1104,4 @@ export function step(s: State, input: [number, number]): State {
 export const hpRatio = (f: Fighter) => f.hp / CHARS[f.ch].hp;
 /** 공중인지 (AI·그림용) */
 export const isAir = (s: State, f: Fighter) => airborneS(s, f);
-export { charOf, moveOf, totalOf, mapOf };
+export { charOf, moveOf, totalOf, mapOf, finishRec };

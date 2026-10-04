@@ -41,6 +41,15 @@ html {
 }
 
 /* 공통 모달 애니메이션 */
+@keyframes meter-shine {
+  from {
+    left: -30%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
 @keyframes modal-fade {
   from {
     opacity: 0;

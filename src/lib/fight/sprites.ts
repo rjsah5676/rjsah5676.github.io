@@ -12,7 +12,7 @@
  */
 import type { MoveId } from "./chars";
 import { CHARS } from "./chars";
-import type { Fighter, State } from "./sim";
+import { finishRec, type Fighter, type State } from "./sim";
 
 export interface AnimDef {
   row: number;
@@ -44,6 +44,8 @@ export interface SpriteSheet {
   layDown?: boolean;
   anims: Record<string, AnimDef>;
   moves: Record<MoveId, MoveAnim>;
+  /** 약·발차기 연속 동작별 그림 (없으면 moves 것 반복) */
+  chain?: Partial<Record<MoveId, MoveAnim[]>>;
   states: Record<string, StateAnim>;
   credit?: string;
 }
@@ -104,9 +106,9 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
       return stateAnim("jump", f.t);
     case "atk": {
       const m = CHARS[f.ch].moves[f.mv as MoveId];
-      const ma = sh.moves[f.mv as MoveId];
+      const ma = sh.chain?.[f.mv as MoveId]?.[f.chain - 1] ?? sh.moves[f.mv as MoveId];
       const a = sh.anims[ma.anim];
-      const total = m.startup + m.active + m.recovery;
+      const total = m.startup + m.active + m.recovery + finishRec(f);
       let fr: number;
       if (f.t < m.startup) fr = ma.from + ((ma.impact - ma.from) * f.t) / Math.max(1, m.startup);
       else

@@ -56,6 +56,19 @@ KAI_MOVES = {
     "S": {"anim": "cast", "from": 0, "impact": 1, "to": 2},
     "X": {"anim": "super", "from": 0, "impact": 1, "to": 4},
 }
+# 약 4단·발차기 2단 동작별 그림 (anim, from, impact, to)
+KAI_CHAIN = {
+    "L": [
+        {"anim": "light", "from": 0, "impact": 1, "to": 1},
+        {"anim": "light", "from": 1, "impact": 2, "to": 3},
+        {"anim": "light", "from": 3, "impact": 1, "to": 0},
+        {"anim": "dash", "from": 0, "impact": 1, "to": 1},
+    ],
+    "H": [
+        {"anim": "heavy", "from": 0, "impact": 1, "to": 2},
+        {"anim": "air", "from": 0, "impact": 0, "to": 0},
+    ],
+}
 # 이그나 (불꽃)
 IGNA_ANIMS = {
     "idle": dict(src=[(0, i) for i in range(6)], fps=7, loop=True),
@@ -81,6 +94,18 @@ IGNA_MOVES = {
     "K": {"anim": "air2", "from": 0, "impact": 0, "to": 0},
     "S": {"anim": "cast", "from": 0, "impact": 1, "to": 2},
     "X": {"anim": "super", "from": 0, "impact": 1, "to": 2},
+}
+IGNA_CHAIN = {
+    "L": [
+        {"anim": "light", "from": 0, "impact": 1, "to": 1},
+        {"anim": "light", "from": 1, "impact": 2, "to": 2},
+        {"anim": "cast", "from": 0, "impact": 0, "to": 0},
+        {"anim": "heavy", "from": 0, "impact": 2, "to": 2},
+    ],
+    "H": [
+        {"anim": "heavy", "from": 0, "impact": 1, "to": 1},
+        {"anim": "air2", "from": 0, "impact": 0, "to": 0},
+    ],
 }
 # 쓰러짐은 서 있는 그림을 눕혀서 (render.ts)
 FALLBACK_STATES = {
@@ -113,6 +138,7 @@ PRESETS = {
         grid=[(4, 80, 7), (83, 155, 7), (162, 232, 7), (233, 306, 4), (307, 384, 4)],
         anims=KAI_ANIMS,
         moves=KAI_MOVES,
+        chain=KAI_CHAIN,
     ),
     "igna": dict(
         crop=(1066, 349, 1507, 783),
@@ -127,6 +153,7 @@ PRESETS = {
         ],
         anims=IGNA_ANIMS,
         moves=IGNA_MOVES,
+        chain=IGNA_CHAIN,
     ),
 }
 
@@ -388,6 +415,7 @@ def main(src: str, cid: str, wm: list, splits: list):
             for i, (n, ad) in enumerate(anims.items())
         },
         "moves": moves,
+        **({"chain": preset["chain"]} if preset and preset.get("chain") else {}),
         "states": STATES if "down" in anims else FALLBACK_STATES,
         **({} if "down" in anims else {"layDown": True}),
     }

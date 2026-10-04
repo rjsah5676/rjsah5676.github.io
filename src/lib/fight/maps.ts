@@ -28,6 +28,8 @@ export interface MapDef {
   bg?: string;
   /** 배경 그림에 발판까지 그려져 있으면 true (발판 따로 안 그림) */
   bgPlats?: boolean;
+  /** 이 맵의 배경음악 (대전 중, 맵 선택에서 이 맵에 커서가 있을 때) */
+  bgm?: string;
 }
 
 export const MAPS: MapDef[] = [
@@ -52,5 +54,6 @@ export const MAPS: MapDef[] = [
     respawn: [300, 560, 700],
     bg: "/fight/bg/temple.webp",
     bgPlats: true,
+    bgm: "/fight/bgm.mp3",
   },
 ];

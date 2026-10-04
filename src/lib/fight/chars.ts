@@ -107,7 +107,7 @@ export const CHARS: CharDef[] = [
     width: 18,
     color: "#E6ECF5",
     idName: "질풍권",
-    idDesc: "바람을 두르고 짧게 돌진하는 주먹. 공중에선 앞쪽 아래로 내리꽂는 발차기",
+    idDesc: "바람을 두르고 돌진하며 2연타. 공중에선 앞쪽 아래로 내리꽂는 발차기",
     ultName: "천풍난무",
     ultDesc: "회오리를 두르고 돌진하며 6연타, 마지막 타에 날려 버림",
     moves: {
@@ -120,11 +120,11 @@ export const CHARS: CharDef[] = [
         chip: 0,
         hitstun: 14,
         blockstun: 9,
-        push: 520,
+        push: 380,
         hitstop: 5,
         meter: 5,
         box: { x: 4, y: 46, w: 44, h: 18 },
-        cancel: ["L", "H", "S", "X"],
+        cancel: ["H", "S", "X"],
       },
       H: {
         // 발차기 (K): 세지만 느리고 헛치면 빈틈 큼 — 연타보다 약 뒤에 이어 쓰는 기술
@@ -170,7 +170,7 @@ export const CHARS: CharDef[] = [
         lunge: 2300,
       },
       S: {
-        // 아이덴티티 「질풍권」: 바람을 두르고 앞으로 돌진 (공중에선 비스듬히 내리꽂는 발차기)
+        // 아이덴티티 「질풍권」: 바람을 두르고 앞으로 돌진하며 2연타 (공중에선 비스듬히 내리꽂는 발차기)
         startup: 9,
         active: 11,
         recovery: 22,
@@ -183,6 +183,8 @@ export const CHARS: CharDef[] = [
         meter: 7,
         box: { x: 0, y: 48, w: 46, h: 32 },
         rush: { vx: 2500, airVh: -2200 },
+        // 돌진 중 2번 때림
+        multi: 6,
       },
       X: {
         // 필살기 「천풍난무」: 회오리를 두르고 돌진하며 6연타, 마지막에 날려 버림
@@ -208,11 +210,11 @@ export const CHARS: CharDef[] = [
     name: "이그나",
     title: "불꽃 술사",
     desc: "불꽃 탄과 긴 불꽃 베기로 거리를 두고 태우는 술사",
-    hp: 1150,
-    walk: 1080,
+    hp: 1220,
+    walk: 1160,
     jumpVx: 980,
     dash: 2500,
-    cd: 66,
+    cd: 56,
     hurt: { x: -9, y: 60, w: 18, h: 60 },
     width: 18,
     color: "#FF6A2A",
@@ -229,16 +231,16 @@ export const CHARS: CharDef[] = [
         chip: 0,
         hitstun: 14,
         blockstun: 9,
-        push: 560,
+        push: 400,
         hitstop: 5,
         meter: 5,
         box: { x: 4, y: 40, w: 48, h: 24 },
-        cancel: ["L", "H", "S", "X"],
+        cancel: ["H", "S", "X"],
       },
       H: {
-        startup: 12,
+        startup: 10,
         active: 5,
-        recovery: 20,
+        recovery: 18,
         dmg: 100,
         chip: 8,
         hitstun: 21,
@@ -297,7 +299,7 @@ export const CHARS: CharDef[] = [
         startup: 10,
         active: 1,
         recovery: 30,
-        dmg: 70,
+        dmg: 88,
         chip: 12,
         hitstun: 24,
         blockstun: 14,
