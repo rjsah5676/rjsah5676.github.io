@@ -1,208 +1,577 @@
 {
-  "image": "/fight/lily.webp",
-  "cell": [
-    148,
-    109
+ "image": "/fight/lily.webp",
+ "cell": [
+  0,
+  0
+ ],
+ "anchor": [
+  0,
+  0
+ ],
+ "scale": 2.0,
+ "facing": "right",
+ "frames": [
+  [
+   0,
+   0,
+   71,
+   103,
+   37.5,
+   103.0
   ],
-  "anchor": [
-    81,
-    106
+  [
+   73,
+   0,
+   72,
+   104,
+   41.4,
+   104.0
   ],
-  "scale": 1.018,
-  "pixel": true,
-  "facing": "right",
-  "anims": {
-    "idle": {
-      "row": 0,
-      "frames": 4,
-      "fps": 6,
-      "loop": true
-    },
-    "walk": {
-      "row": 1,
-      "frames": 4,
-      "fps": 9,
-      "loop": true
-    },
-    "jump": {
-      "row": 2,
-      "frames": 1,
-      "fps": 1,
-      "loop": false
-    },
-    "light": {
-      "row": 3,
-      "frames": 3,
-      "fps": 16,
-      "loop": false
-    },
-    "heavy": {
-      "row": 4,
-      "frames": 3,
-      "fps": 12,
-      "loop": false
-    },
-    "air": {
-      "row": 5,
-      "frames": 1,
-      "fps": 1,
-      "loop": false
-    },
-    "air2": {
-      "row": 6,
-      "frames": 1,
-      "fps": 1,
-      "loop": false
-    },
-    "cast": {
-      "row": 7,
-      "frames": 3,
-      "fps": 12,
-      "loop": false
-    },
-    "super": {
-      "row": 8,
-      "frames": 4,
-      "fps": 10,
-      "loop": false
-    },
-    "hit": {
-      "row": 9,
-      "frames": 1,
-      "fps": 1,
-      "loop": false
-    },
-    "block": {
-      "row": 10,
-      "frames": 1,
-      "fps": 1,
-      "loop": false
-    },
-    "dash": {
-      "row": 11,
-      "frames": 1,
-      "fps": 1,
-      "loop": false
-    },
-    "win": {
-      "row": 12,
-      "frames": 2,
-      "fps": 3,
-      "loop": true
-    }
+  [
+   147,
+   0,
+   73,
+   106,
+   40.9,
+   106.0
+  ],
+  [
+   222,
+   0,
+   71,
+   103,
+   38.1,
+   103.0
+  ],
+  [
+   295,
+   0,
+   78,
+   105,
+   44.2,
+   105.0
+  ],
+  [
+   375,
+   0,
+   73,
+   98,
+   38.2,
+   98.0
+  ],
+  [
+   450,
+   0,
+   72,
+   101,
+   38.0,
+   101.0
+  ],
+  [
+   524,
+   0,
+   72,
+   98,
+   32.0,
+   98.0
+  ],
+  [
+   598,
+   0,
+   75,
+   96,
+   30.3,
+   96.0
+  ],
+  [
+   675,
+   0,
+   91,
+   98,
+   40.2,
+   98.0
+  ],
+  [
+   768,
+   0,
+   82,
+   98,
+   45.5,
+   98.0
+  ],
+  [
+   852,
+   0,
+   75,
+   111,
+   44.3,
+   111.0
+  ],
+  [
+   929,
+   0,
+   80,
+   111,
+   51.0,
+   111.0
+  ],
+  [
+   1011,
+   0,
+   91,
+   112,
+   46.9,
+   112.0
+  ],
+  [
+   1104,
+   0,
+   104,
+   115,
+   44.2,
+   115.0
+  ],
+  [
+   1210,
+   0,
+   77,
+   104,
+   45.0,
+   104.0
+  ],
+  [
+   1289,
+   0,
+   72,
+   101,
+   38.3,
+   101.0
+  ],
+  [
+   1363,
+   0,
+   97,
+   99,
+   37.1,
+   99.0
+  ],
+  [
+   1462,
+   0,
+   112,
+   115,
+   62.2,
+   115.0
+  ],
+  [
+   1576,
+   0,
+   116,
+   113,
+   64.5,
+   113.0
+  ],
+  [
+   1694,
+   0,
+   160,
+   111,
+   91.6,
+   111.0
+  ],
+  [
+   1856,
+   0,
+   148,
+   109,
+   76.8,
+   108.0
+  ],
+  [
+   0,
+   117,
+   127,
+   104,
+   58.1,
+   104.0
+  ],
+  [
+   129,
+   117,
+   89,
+   103,
+   37.2,
+   93.0
+  ],
+  [
+   220,
+   117,
+   59,
+   87,
+   41.1,
+   87.0
+  ],
+  [
+   281,
+   117,
+   89,
+   103,
+   37.2,
+   93.0
+  ],
+  [
+   372,
+   117,
+   180,
+   131,
+   90.9,
+   131.0
+  ],
+  [
+   554,
+   117,
+   79,
+   97,
+   41.0,
+   97.0
+  ],
+  [
+   635,
+   117,
+   94,
+   103,
+   49.9,
+   103.0
+  ],
+  [
+   731,
+   117,
+   94,
+   79,
+   47.9,
+   79.0
+  ],
+  [
+   827,
+   117,
+   84,
+   81,
+   43.8,
+   81.0
+  ],
+  [
+   913,
+   117,
+   94,
+   101,
+   49.8,
+   101.0
+  ],
+  [
+   1009,
+   117,
+   71,
+   103,
+   38.1,
+   103.0
+  ]
+ ],
+ "anims": {
+  "idle": {
+   "list": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "frames": 5,
+   "fps": 6,
+   "loop": true,
+   "row": 0
   },
-  "moves": {
-    "L": {
-      "anim": "light",
-      "from": 0,
-      "impact": 1,
-      "to": 2
-    },
-    "H": {
-      "anim": "heavy",
-      "from": 0,
-      "impact": 1,
-      "to": 2
-    },
-    "J": {
-      "anim": "air",
-      "from": 0,
-      "impact": 0,
-      "to": 0
-    },
-    "K": {
-      "anim": "air2",
-      "from": 0,
-      "impact": 0,
-      "to": 0
-    },
-    "S": {
-      "anim": "cast",
-      "from": 0,
-      "impact": 1,
-      "to": 2
-    },
-    "X": {
-      "anim": "super",
-      "from": 0,
-      "impact": 1,
-      "to": 3
-    }
+  "walk": {
+   "list": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "frames": 6,
+   "fps": 10,
+   "loop": true,
+   "row": 0
   },
-  "chain": {
-    "L": [
-      {
-        "anim": "light",
-        "from": 0,
-        "impact": 0,
-        "to": 0
-      },
-      {
-        "anim": "light",
-        "from": 1,
-        "impact": 1,
-        "to": 1
-      },
-      {
-        "anim": "light",
-        "from": 2,
-        "impact": 2,
-        "to": 2
-      },
-      {
-        "anim": "heavy",
-        "from": 1,
-        "impact": 1,
-        "to": 2
-      }
-    ],
-    "H": [
-      {
-        "anim": "heavy",
-        "from": 0,
-        "impact": 1,
-        "to": 1
-      },
-      {
-        "anim": "air2",
-        "from": 0,
-        "impact": 0,
-        "to": 0
-      }
-    ]
+  "jump": {
+   "list": [
+    11
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
   },
-  "states": {
-    "idle": {
-      "anim": "idle"
-    },
-    "walk": {
-      "anim": "walk"
-    },
-    "jump": {
-      "anim": "jump",
-      "frame": 0
-    },
-    "hit": {
-      "anim": "hit"
-    },
-    "block": {
-      "anim": "block",
-      "frame": 0
-    },
-    "down": {
-      "anim": "hit",
-      "frame": 0
-    },
-    "ko": {
-      "anim": "hit",
-      "frame": 0
-    },
-    "win": {
-      "anim": "win"
-    },
-    "dash": {
-      "anim": "dash"
-    }
+  "glide": {
+   "list": [
+    12,
+    13
+   ],
+   "frames": 2,
+   "fps": 6,
+   "loop": true,
+   "row": 0
   },
-  "layDown": true
+  "dash": {
+   "list": [
+    14
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "L1": {
+   "list": [
+    15
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "L2": {
+   "list": [
+    16
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "L3": {
+   "list": [
+    17
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "L4": {
+   "list": [
+    18
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "H1": {
+   "list": [
+    19
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "H2": {
+   "list": [
+    20
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "J": {
+   "list": [
+    21
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "K": {
+   "list": [
+    22
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "S": {
+   "list": [
+    23,
+    24
+   ],
+   "frames": 2,
+   "fps": 12,
+   "loop": false,
+   "row": 0
+  },
+  "X": {
+   "list": [
+    25,
+    26
+   ],
+   "frames": 2,
+   "fps": 10,
+   "loop": false,
+   "row": 0
+  },
+  "hit": {
+   "list": [
+    27
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "block": {
+   "list": [
+    28
+   ],
+   "frames": 1,
+   "fps": 1,
+   "loop": false,
+   "row": 0
+  },
+  "down": {
+   "list": [
+    29,
+    30
+   ],
+   "frames": 2,
+   "fps": 10,
+   "loop": false,
+   "row": 0
+  },
+  "win": {
+   "list": [
+    31,
+    32
+   ],
+   "frames": 2,
+   "fps": 3,
+   "loop": true,
+   "row": 0
+  }
+ },
+ "moves": {
+  "L": {
+   "anim": "L1",
+   "from": 0,
+   "impact": 0,
+   "to": 0
+  },
+  "H": {
+   "anim": "H1",
+   "from": 0,
+   "impact": 0,
+   "to": 0
+  },
+  "J": {
+   "anim": "J",
+   "from": 0,
+   "impact": 0,
+   "to": 0
+  },
+  "K": {
+   "anim": "K",
+   "from": 0,
+   "impact": 0,
+   "to": 0
+  },
+  "S": {
+   "anim": "S",
+   "from": 0,
+   "impact": 1,
+   "to": 1
+  },
+  "X": {
+   "anim": "X",
+   "from": 0,
+   "impact": 1,
+   "to": 1
+  }
+ },
+ "chain": {
+  "L": [
+   {
+    "anim": "L1",
+    "from": 0,
+    "impact": 0,
+    "to": 0
+   },
+   {
+    "anim": "L2",
+    "from": 0,
+    "impact": 0,
+    "to": 0
+   },
+   {
+    "anim": "L3",
+    "from": 0,
+    "impact": 0,
+    "to": 0
+   },
+   {
+    "anim": "L4",
+    "from": 0,
+    "impact": 0,
+    "to": 0
+   }
+  ],
+  "H": [
+   {
+    "anim": "H1",
+    "from": 0,
+    "impact": 0,
+    "to": 0
+   },
+   {
+    "anim": "H2",
+    "from": 0,
+    "impact": 0,
+    "to": 0
+   }
+  ]
+ },
+ "states": {
+  "idle": {
+   "anim": "idle"
+  },
+  "walk": {
+   "anim": "walk"
+  },
+  "jump": {
+   "anim": "jump",
+   "frame": 0
+  },
+  "hit": {
+   "anim": "hit"
+  },
+  "block": {
+   "anim": "block",
+   "frame": 0
+  },
+  "down": {
+   "anim": "down"
+  },
+  "ko": {
+   "anim": "down"
+  },
+  "win": {
+   "anim": "win"
+  },
+  "dash": {
+   "anim": "dash"
+  }
+ }
 }
