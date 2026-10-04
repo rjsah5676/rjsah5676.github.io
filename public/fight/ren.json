@@ -1,0 +1,147 @@
+{
+  "image": "/fight/ren.png",
+  "cell": [
+    96,
+    80
+  ],
+  "anchor": [
+    40,
+    78
+  ],
+  "facing": "right",
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 6,
+      "fps": 7,
+      "loop": true
+    },
+    "walk": {
+      "row": 1,
+      "frames": 8,
+      "fps": 12,
+      "loop": true
+    },
+    "jump": {
+      "row": 2,
+      "frames": 2,
+      "fps": 8,
+      "loop": false
+    },
+    "light": {
+      "row": 3,
+      "frames": 6,
+      "fps": 18,
+      "loop": false
+    },
+    "heavy": {
+      "row": 4,
+      "frames": 8,
+      "fps": 16,
+      "loop": false
+    },
+    "air": {
+      "row": 5,
+      "frames": 4,
+      "fps": 16,
+      "loop": false
+    },
+    "cast": {
+      "row": 6,
+      "frames": 7,
+      "fps": 14,
+      "loop": false
+    },
+    "super": {
+      "row": 7,
+      "frames": 9,
+      "fps": 14,
+      "loop": false
+    },
+    "hit": {
+      "row": 8,
+      "frames": 3,
+      "fps": 12,
+      "loop": false
+    },
+    "block": {
+      "row": 9,
+      "frames": 1,
+      "fps": 1,
+      "loop": false
+    },
+    "down": {
+      "row": 10,
+      "frames": 6,
+      "fps": 12,
+      "loop": false
+    },
+    "win": {
+      "row": 11,
+      "frames": 6,
+      "fps": 8,
+      "loop": true
+    }
+  },
+  "moves": {
+    "L": {
+      "anim": "light",
+      "from": 0,
+      "impact": 2,
+      "to": 5
+    },
+    "H": {
+      "anim": "heavy",
+      "from": 0,
+      "impact": 3,
+      "to": 7
+    },
+    "J": {
+      "anim": "air",
+      "from": 0,
+      "impact": 2,
+      "to": 3
+    },
+    "S": {
+      "anim": "cast",
+      "from": 0,
+      "impact": 4,
+      "to": 6
+    },
+    "X": {
+      "anim": "super",
+      "from": 0,
+      "impact": 4,
+      "to": 8
+    }
+  },
+  "states": {
+    "idle": {
+      "anim": "idle"
+    },
+    "walk": {
+      "anim": "walk"
+    },
+    "jump": {
+      "anim": "jump",
+      "frame": 0
+    },
+    "hit": {
+      "anim": "hit"
+    },
+    "block": {
+      "anim": "block",
+      "frame": 0
+    },
+    "down": {
+      "anim": "down"
+    },
+    "ko": {
+      "anim": "down"
+    },
+    "win": {
+      "anim": "win"
+    }
+  },
+  "credit": "오리지널 (코드로 그림)"
+}
