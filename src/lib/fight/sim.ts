@@ -28,6 +28,20 @@ import {
 } from "./chars";
 import { MAPS, type MapDef, type Plat } from "./maps";
 
+/** 띄워진 상대 중력 (보통의 45%) */
+const FLOAT_G = Math.trunc((GRAVITY * 45) / 100);
+/** 정수 제곱근 (실수 연산 안 씀) */
+function isqrt(n: number): number {
+  if (n <= 0) return 0;
+  let x = Math.trunc(n / 2) + 1;
+  let y = Math.trunc((x + Math.trunc(n / x)) / 2);
+  while (y < x) {
+    x = y;
+    y = Math.trunc((x + Math.trunc(n / x)) / 2);
+  }
+  return x;
+}
+
 export const VIEW_W = 1152;
 export const VIEW_H = 648;
 export const WALL_L = 16 * SUB;
@@ -160,8 +174,6 @@ export interface Fighter {
   /** 끌려오는 중: 남은 프레임과 도착할 x (그동안 매 프레임 남은 거리를 나눠서 이동) */
   pullT: number;
   pullX: number;
-  /** 위로 끌어올릴 높이 (pulled = 2 일 때) */
-  pullH: number;
   /** 끌어당기기에 맞아 경직 중 (이 동안엔 잡기도 들어감) — 경직이 풀리면 0 */
   pulled: number;
   /** 비눗방울에 갇힌 남은 프레임 (둥실 떠 있고 못 움직임) */
@@ -325,7 +337,6 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     spiked: 0,
     pullT: 0,
     pullX: 0,
-    pullH: 0,
     pulled: 0,
     trapT: 0,
     inv: 0,
@@ -423,7 +434,6 @@ export function hash(s: State): number {
     mix(f.spiked);
     mix(f.pullT);
     mix(f.pullX);
-    mix(f.pullH);
     mix(f.pulled);
     mix(f.trapT);
     mix(f.inv);
@@ -1044,10 +1054,6 @@ function physics(s: State, i: number) {
   }
   if (f.pullT > 0) {
     moveX(f, Math.trunc((f.pullX - f.x) / f.pullT));
-    if (f.pulled === 2) {
-      f.h += Math.trunc((f.pullH - f.h) / f.pullT);
-      f.vh = 0;
-    }
     f.pullT--;
     f.vx = 0;
   }
@@ -1078,7 +1084,7 @@ function physics(s: State, i: number) {
   }
   // 공중 (띄워진 상대는 천천히 떨어짐)
   // (띄워진 상대: 중력 45%, 떨어지는 최고 속도도 낮게 → 공중 콤보 넣을 시간)
-  if (f.float === 1 && f.st === "hit") f.vh = Math.max(-1100, f.vh - Math.trunc((GRAVITY * 45) / 100));
+  if (f.float === 1 && f.st === "hit") f.vh = Math.max(-1100, f.vh - FLOAT_G);
   else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-1400, f.vh - GRAVITY);
   else f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
@@ -1227,15 +1233,13 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       }
     }
     if (m.pullUp && !kd) {
-      // 끌어올리기: 때린 쪽 앞 공중(발 높이보다 살짝 아래)으로 끌려옴 → 띄워진 상태(천천히 떨어짐)
-      d.pulled = 2;
-      d.pullX = a.x + a.face * 36 * SUB;
-      d.pullH = Math.max(d.h, a.h - 30 * SUB);
-      d.vh = 0;
+      // 끌어올리기 = 띄우기: 때린 쪽 높이까지 솟구치게 띄우고(천천히 떨어지는 상태), 가로로는 때린 쪽 앞으로 끌려옴
+      const dh = Math.max(0, a.h - 20 * SUB - d.h);
+      d.vh = Math.min(LAUNCH_VH, Math.max(900, isqrt(2 * FLOAT_G * dh)));
       d.vx = 0;
       d.kd = 0;
       d.float = 1;
-      d.stun = Math.max(d.stun, 40);
+      d.stun = Math.max(d.stun, LAUNCH_STUN - 10);
       s.ev.push({ k: "launch", p: ai, x: d.x, h: d.h, v: 3 });
     }
     if (m.spike && wasAir && !kd) {
