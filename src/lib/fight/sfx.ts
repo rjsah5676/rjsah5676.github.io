@@ -61,19 +61,18 @@ const SAMPLES: Record<string, number> = {
   "hit-h": 0.62,
   "hit-x": 0.75,
   counter: 0.5,
-  block: 0.42,
-  just: 0.45,
+  block: 0.8,
+  just: 0.7,
   tech: 0.45,
-  "whoosh-l": 0.22,
-  "whoosh-h": 0.28,
-  jump: 0.2,
-  dash: 0.28,
-  super: 0.45,
-  meter: 0.32,
+  "whoosh-l": 0.16,
+  "whoosh-h": 0.2,
+  jump: 0.07,
+  super: 0.32,
+  meter: 0.18,
   ko: 0.75,
   round: 0.45,
   fight: 0.5,
-  respawn: 0.32,
+  respawn: 0.1,
   "ui-move": 0.3,
   "ui-ok": 0.35,
   "ui-back": 0.3,
@@ -246,8 +245,13 @@ export function sfxHit(power: number, el: Element = "wind") {
 export function sfxBlock() {
   const c = ac();
   if (!c) return;
-  if (sample("block")) return;
   const t = c.currentTime;
+  if (sample("block")) {
+    // 막는 쿵 소리를 밑에 깔아서 타격음에 안 묻히게
+    tone(c, t, "sine", 150, 70, 0.55, 0.08, 2);
+    burst(c, t, 3800, 3, 0.2, 0.05);
+    return;
+  }
   tone(c, t, "sine", 140, 70, 0.5, 0.07, 2);
   tone(c, t, "square", 1900, 1500, 0.07, 0.09, 0, 0.4);
   tone(c, t, "triangle", 2850, 2600, 0.06, 0.14, 0, 0.4);
@@ -297,7 +301,7 @@ export function sfxProj(el: Element = "fire", big = false) {
 export function sfxDash() {
   const c = ac();
   if (!c) return;
-  if (sample("dash")) return;
+  // 대시는 8bit 파일 대신 합성 바람 소리 (파일은 타격음이랑 너무 비슷하게 들림)
   const t = c.currentTime;
   burst(c, t, 600, 1, 0.18, 0.12, "bandpass", 0, 2600);
   tone(c, t, "sine", 120, 60, 0.15, 0.06);

@@ -53,6 +53,9 @@ import type { RoomSession } from "@/realtime/fight";
 const SAVE_KEY = "fight:setup";
 const MENU_BGM = "/fight/bgm-menu.mp3";
 const MUTE_KEY = "fight:mute";
+const VOL_KEY = "fight:vol";
+/** 배경음악 최대 음량 (슬라이더 100%일 때) */
+const BGM_MAX = 0.5;
 
 const btn =
   "cursor-pointer rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs whitespace-nowrap text-white/75 transition-colors hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
@@ -300,6 +303,9 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const [paused, setPaused] = useState(false);
   const [hud, setHud] = useState<Hud | null>(null);
   const [muted, setMuted] = useState(false);
+  /** 효과음·배경음 음량 (0~1) */
+  const [vol, setVol] = useState({ sfx: 0.8, bgm: 0.7 });
+  const volRef = useRef(vol);
   const [coarse, setCoarse] = useState(false);
   const [result, setResult] = useState<{
     win: boolean;
@@ -375,7 +381,13 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         setSetup({ ...v, rolled: undefined, map: typeof v.map === "number" && (v.map === -1 || MAPS[v.map]) ? v.map : -1 });
       const m = localStorage.getItem(MUTE_KEY) === "1";
       setMuted(m);
-      setFightVolume(m ? 0 : 0.8);
+      const sv = JSON.parse(localStorage.getItem(VOL_KEY) ?? "null") as { sfx?: number; bgm?: number } | null;
+      const vv = {
+        sfx: typeof sv?.sfx === "number" ? Math.min(1, Math.max(0, sv.sfx)) : 0.8,
+        bgm: typeof sv?.bgm === "number" ? Math.min(1, Math.max(0, sv.bgm)) : 0.7,
+      };
+      setVol(vv);
+      setFightVolume(m ? 0 : vv.sfx);
     } catch {}
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
     // 초대 링크 (?room=ID) → 바로 온라인 방으로
@@ -423,7 +435,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     const a = new Audio(src);
     a.dataset.src = src;
     a.loop = true;
-    a.volume = 0.35;
+    a.volume = BGM_MAX * volRef.current.bgm;
     bgmRef.current = a;
     a.play().catch(() => {});
   }, []);
@@ -684,9 +696,43 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     toMenu();
     setEntry("char");
   }, [toMenu]);
+  // 음량 바뀌면 바로 반영 + 저장
+  useEffect(() => {
+    volRef.current = vol;
+    if (!muted) setFightVolume(vol.sfx);
+    if (bgmRef.current) bgmRef.current.volume = BGM_MAX * vol.bgm;
+    try {
+      localStorage.setItem(VOL_KEY, JSON.stringify(vol));
+    } catch {}
+  }, [vol, muted]);
+  const volSliders = (
+    <span className={`flex items-center gap-2 ${muted ? "opacity-40" : ""}`}>
+      {(
+        [
+          ["sfx", "효과음"],
+          ["bgm", "배경음"],
+        ] as const
+      ).map(([k, label]) => (
+        <label key={k} className="flex items-center gap-1 font-['Nanum_Gothic',sans-serif] text-[11px] text-white/55">
+          {label}
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={Math.round(vol[k] * 100)}
+            disabled={muted}
+            onChange={(e) => setVol((v) => ({ ...v, [k]: Number(e.target.value) / 100 }))}
+            className="h-1 w-16 cursor-pointer accent-[#6C63FF]"
+            aria-label={`${label} 음량`}
+          />
+        </label>
+      ))}
+    </span>
+  );
   const toggleMute = () =>
     setMuted((m) => {
-      setFightVolume(m ? 0.8 : 0);
+      setFightVolume(m ? volRef.current.sfx : 0);
 
       try {
         localStorage.setItem(MUTE_KEY, m ? "0" : "1");
@@ -735,6 +781,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           <button type="button" onClick={toggleMute} className={btn}>
             {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
           </button>
+          {volSliders}
           <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
             전체화면에선 Esc = 일시정지, 나올 땐 일시정지 메뉴나 ✕
           </span>
@@ -937,6 +984,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         <button type="button" onClick={toggleMute} className={btn}>
           {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
         </button>
+        {volSliders}
       </div>
 
       {!coarse && hud && <HowTo mode={ol ? "online" : setup.mode} chars={hud.ch} />}
