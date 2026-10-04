@@ -33,7 +33,8 @@ import {
 /** 캐릭터별 효과음 성격 */
 const SFX_EL: Record<string, Element> = { kai: "wind", igna: "fire", soyoung: "whip", lily: "water", zena: "bolt" };
 import { FightRenderer } from "./render";
-import { FightInput, KEY_GUIDE } from "./input";
+import { FightInput } from "./input";
+import HowTo from "./HowTo";
 import Select, { type Setup } from "./Select";
 import { scrollToGameTop } from "@/components/GameHeader";
 import { RankSubmit } from "@/components/AIRank";
@@ -725,24 +726,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             전체화면에선 Esc = 일시정지, 나올 땐 일시정지 메뉴나 ✕
           </span>
         </div>
-        <div className="mt-3 rounded-lg bg-black/20 px-3 py-2.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-relaxed text-white/50">
-          <div>
-            <b className="text-white/70">1P</b> {setup.mode !== "2p" ? KEY_GUIDE.p1 : KEY_GUIDE.p1Two}
-          </div>
-          {setup.mode !== "2p" ? (
-            <div className="text-white/40">또는 {KEY_GUIDE.p1Alt}</div>
-          ) : (
-            <div>
-              <b className="text-white/70">2P</b> {KEY_GUIDE.p2}
-            </div>
-          )}
-          <div className="mt-1 text-white/40">
-            약 4단·발차기 2단, 마지막 동작은 세지만 빈틈 큼 · 발차기·아이덴티티는 막히면 막은 쪽이 먼저 움직임(반격
-            기회) · 맞기 직전 가드 = 저스트 가드 · 막은 직후 K = 가드 반격(게이지 25, 위로 띄움) · J+K 잡기(가드 불가, 위로 띄움 → 바로 점프해 공중 콤보, 잡힌 직후 J+K로
-            풀기) · 방향키는 공격·가드 중에도 바로 돌아섬 · 기술 내는 중·대시 중에 맞으면 카운터 · 같은 방향 두 번 대시 · 2단 점프, 공중 공격 점프마다 2번 ·
-            떨어지면 위에서 다시 등장 · 게이지 MAX에 필살기 · Esc 일시정지
-          </div>
-        </div>
+        <HowTo mode={setup.mode} />
       </div>
     );
   }
@@ -940,12 +924,9 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         <button type="button" onClick={toggleMute} className={btn}>
           {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
         </button>
-        {!coarse && (
-          <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-            {setup.mode !== "2p" || ol ? KEY_GUIDE.p1 : `1P ${KEY_GUIDE.p1Two} / 2P ${KEY_GUIDE.p2}`}
-          </span>
-        )}
       </div>
+
+      {!coarse && hud && <HowTo mode={ol ? "online" : setup.mode} chars={hud.ch} />}
 
       {result && setup.mode === "ai" && !ol && result.win && (
         <div className="mt-3 max-w-md">

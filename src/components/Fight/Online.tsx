@@ -28,7 +28,7 @@ const art = (c: CharDef) => `/fight/art/${c.id}.webp`;
 const SEAT_COL = ["#3B82F6", "#F43F5E"];
 const pill = `${KR} cursor-pointer rounded-full bg-black/50 px-[1.4cqw] py-[0.5cqw] text-[1.2cqw] text-white/75 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40`;
 const field = `${KR} min-w-0 rounded-[0.6cqw] border border-white/15 bg-black/55 px-[1cqw] py-[0.6cqw] text-[1.3cqw] text-white placeholder:text-white/30 focus:border-[#FDE047]/60 focus:outline-none`;
-const bigBtn = `${KR} cursor-pointer rounded-full bg-[#E8344E] px-[2.6cqw] py-[0.7cqw] text-[1.5cqw] font-extrabold text-white shadow-[0_0.3cqw_0_#7A1020] transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100`;
+const bigBtn = `${KR} cursor-pointer whitespace-nowrap rounded-full bg-[#E8344E] px-[2.6cqw] py-[0.7cqw] text-[1.5cqw] font-extrabold text-white shadow-[0_0.3cqw_0_#7A1020] transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100`;
 
 export interface MatchCfg {
   match: string;
@@ -630,7 +630,7 @@ function Room({
           </div>
           <div className={`${KR} text-[1cqw] text-white/40`}>A·D(←→) 고르기 · J(Enter) 준비 · Esc 나가기 · 둘 다 준비하면 시작</div>
         </div>
-        <button type="button" disabled={!foe && !me.ready} onClick={() => s.setReady(!me.ready)} className={`${bigBtn} mb-[1.6cqw] min-w-[11cqw]`}>
+        <button type="button" disabled={!foe && !me.ready} onClick={() => s.setReady(!me.ready)} className={`${bigBtn} mb-[1.6cqw] min-w-[12cqw]`}>
           {me.ready ? "준비 취소" : foe ? "준비" : "상대 대기"}
         </button>
       </div>

@@ -69,6 +69,8 @@ export interface MoveDef {
     airVx?: number;
     /** 공중에서 쓰고 착지하면 이 반경(px)에 충격파 */
     landBurst?: number;
+    /** 착지 충격파 피해 (없으면 기술 피해 그대로) */
+    landDmg?: number;
   };
   /** 여러 번 맞는 기술: 판정 동안 이 프레임마다 다시 맞음 (마지막 타만 다운) */
   multi?: number;
@@ -91,6 +93,10 @@ export interface MoveDef {
   };
   /** 맞히면 상대를 감전시키는 프레임 수 (느려지고, 같은 캐릭터의 공격에 더 아픔) */
   shock?: number;
+  /** 맞으면 화상 (프레임) — 15프레임마다 체력 -2 */
+  burn?: number;
+  /** 맞으면 위로 띄움 (후속타) */
+  launch?: boolean;
   /** 약 4단 마무리로 쓰일 때 상대를 위로 띄움 (어퍼컷) → 점프 캔슬해 공중 콤보 */
   launcher?: boolean;
   /** 공중에서 쓰면 이 값들로 바뀜 (같은 키, 다른 기술 — 예: 소영 공중 지도편달 = 아래로 내려치기) */
@@ -141,6 +147,8 @@ export interface CharDef {
   idDesc: string;
   ultName: string;
   ultDesc: string;
+  /** 점프 중 아이덴티티(L)가 땅에서와 다를 때 설명 */
+  airDesc: string;
   moves: Record<MoveId, MoveDef>;
 }
 
@@ -155,7 +163,7 @@ const RAW: CharSrc[] = [
     name: "카이",
     title: "맨손 격투 · 바람",
     desc: "빠른 주먹·발차기로 붙어서 몰아치는 맨손 격투가",
-    hp: 1350,
+    hp: 1380,
     walk: 1240,
     jumpVx: 1050,
     dash: 2700,
@@ -168,16 +176,17 @@ const RAW: CharSrc[] = [
     tagline: "RELENTLESS FIGHTER",
     difficulty: 2,
     idName: "질풍권",
-    idDesc: "바람을 두르고 돌진하며 2연타. 공중에선 아래로 급강하해 착지하며 충격파로 넘어뜨림",
+    idDesc: "바람을 두르고 돌진하며 2연타",
     ultName: "천풍난무",
     ultDesc: "회오리를 두르고 돌진하며 6연타, 마지막 타에 날려 버림",
+    airDesc: "가는 방향 아래로 급강하해 차고, 착지 충격파로 2타째 — 맞으면 띄워져서 바로 점프해 공중 콤보",
     moves: {
       L: {
         // 약 (J): 제일 빠르고 짧은 경직 — J·J로 이어 치고 발차기·아이덴티티·필살기로 캔슬
         startup: 3,
         active: 3,
         recovery: 5,
-        dmg: 44,
+        dmg: 46,
         chip: 0,
         hitstun: 14,
         blockstun: 9,
@@ -193,7 +202,7 @@ const RAW: CharSrc[] = [
         startup: 11,
         active: 4,
         recovery: 19,
-        dmg: 102,
+        dmg: 106,
         chip: 0,
         hitstun: 20,
         blockstun: 14,
@@ -245,7 +254,7 @@ const RAW: CharSrc[] = [
         meter: 7,
         box: { x: 0, y: 48, w: 46, h: 32 },
         // 공중: 거의 수직으로 급강하 → 착지 충격파 (공중 K는 앞으로 길게 차는 기술)
-        rush: { vx: 2500, airVh: -3400, airVx: 900, landBurst: 46 },
+        rush: { vx: 2500, airVh: -3400, airVx: 900, landBurst: 46, landDmg: 50 },
         // 돌진 중 2번 때림
         multi: 6,
       },
@@ -277,7 +286,7 @@ const RAW: CharSrc[] = [
     walk: 1160,
     jumpVx: 980,
     dash: 2500,
-    cd: 56,
+    cd: 66,
     hurt: { x: -9, y: 60, w: 18, h: 60 },
     width: 18,
     color: "#FF6A2A",
@@ -286,9 +295,10 @@ const RAW: CharSrc[] = [
     tagline: "BLAZING SOUL",
     difficulty: 1,
     idName: "화염구",
-    idDesc: "빠르게 날아가는 불꽃 탄. 공중에서 쏘면 앞쪽 아래로 비스듬히 내리꽂음",
+    idDesc: "빠르게 날아가는 불꽃 탄. 맞으면 화상 — 한동안 체력이 조금씩 닳음",
     ultName: "업화주",
-    ultDesc: "상대 발밑에서 불기둥이 솟아 4연타 — 어디에 있든 따라감",
+    ultDesc: "상대 발밑에서 큰 불기둥이 솟아 4연타 — 어디에 있든 따라가고 오래 화상",
+    airDesc: "화염구를 앞쪽 아래로 비스듬히 쏨 — 아래 발판의 상대를 노림",
     moves: {
       L: {
         startup: 4,
@@ -308,7 +318,7 @@ const RAW: CharSrc[] = [
         startup: 10,
         active: 5,
         recovery: 20,
-        dmg: 90,
+        dmg: 86,
         chip: 8,
         hitstun: 21,
         blockstun: 15,
@@ -361,6 +371,7 @@ const RAW: CharSrc[] = [
         meter: 7,
         box: { x: 0, y: 0, w: 0, h: 0 },
         proj: { speed: 1750, y: 36, w: 30, h: 24, life: 95 },
+        burn: 120,
       },
       X: {
         // 필살기 「업화주」: 상대 발밑에서 불기둥이 솟아 4연타 — 어디 있든 쫓아감
@@ -376,7 +387,8 @@ const RAW: CharSrc[] = [
         meter: 0,
         box: { x: 0, y: 0, w: 0, h: 0 },
         kd: true,
-        summon: { w: 56, h: 150, delay: 20, life: 40, every: 10 },
+        summon: { w: 66, h: 165, delay: 20, life: 40, every: 10 },
+        burn: 180,
       },
     },
   },
@@ -386,7 +398,7 @@ const RAW: CharSrc[] = [
     name: "소영",
     title: "선생님 · 채찍",
     desc: "긴 채찍으로 거리를 지배하는 엄한 선생님. 붙으면 약함",
-    hp: 1180,
+    hp: 1210,
     walk: 1020,
     jumpVx: 900,
     dash: 2300,
@@ -399,9 +411,10 @@ const RAW: CharSrc[] = [
     tagline: "STRICT BUT KIND",
     difficulty: 3,
     idName: "지도편달",
-    idDesc: "아주 긴 채찍으로 낚아채 바로 앞까지 끌어당김 — 맞히면 약 콤보·잡기가 확정으로 이어짐. 공중에선 바로 아래로 길게 내리쳐 맞으면 내 쪽으로 띄워 올림",
+    idDesc: "아주 긴 채찍으로 낚아채 바로 앞까지 끌어당김 — 맞히면 약 콤보·잡기가 확정으로 이어짐",
     ultName: "보충수업",
     ultDesc: "채찍을 휘몰아 앞뒤를 모두 6번 후려침",
+    airDesc: "공중에 멈춰 바로 아래로 긴 채찍을 내리침 — 맞으면 내 높이까지 띄워 끌어와서 공중 콤보",
     moves: {
       L: {
         // 약: 리치는 길지만 한 대가 약하고 조금 느림
@@ -520,7 +533,7 @@ const RAW: CharSrc[] = [
     walk: 1120,
     jumpVx: 1050,
     dash: 2500,
-    cd: 80,
+    cd: 92,
     glide: 520,
     hurt: { x: -8, y: 50, w: 16, h: 50 },
     width: 16,
@@ -533,6 +546,7 @@ const RAW: CharSrc[] = [
     idDesc: "느리게 떠가는 큰 비눗방울 — 오래 남아서 길목을 막고, 맞으면 방울에 갇혀 둥실 떠오름 (때리면 터짐, 연타로 탈출)",
     ultName: "장마 파도",
     ultDesc: "바닥을 휩쓰는 큰 파도가 지나가며 5번 때림",
+    airDesc: "비눗방울은 공중에서도 수평으로 · 점프를 누르고 있으면 우산으로 천천히 활강",
     moves: {
       L: {
         startup: 4,
@@ -629,7 +643,7 @@ const RAW: CharSrc[] = [
     name: "제나",
     title: "창술 · 번개",
     desc: "번개 두른 창으로 중거리를 지배하는 장난꾸러기",
-    hp: 1140,
+    hp: 1120,
     walk: 1120,
     jumpVx: 1000,
     dash: 2600,
@@ -642,9 +656,10 @@ const RAW: CharSrc[] = [
     tagline: "THUNDER LANCER",
     difficulty: 2,
     idName: "뇌창",
-    idDesc: "번개 창을 아주 빠르게 던짐. 맞으면 감전 — 한동안 느려지고 제나의 공격에 더 아프게 맞음",
+    idDesc: "번개 창을 아주 빠르게 던짐. 맞으면 감전 — 잠깐 몸이 굳고, 한동안 느려지며 제나의 공격에 더 아프게 맞음",
     ultName: "천뢰강림",
     ultDesc: "상대 발밑에 번개가 3번 내리꽂힘 — 감전 중인 상대는 도망쳐도 따라감",
+    airDesc: "뇌창을 앞쪽 아래로 비스듬히 던짐 — 아래 발판의 상대를 노림",
     moves: {
       L: {
         startup: 5,

@@ -29,6 +29,42 @@ const PX = "[image-rendering:pixelated]";
 const KR = "font-['Nanum_Gothic',sans-serif]";
 const MENU_BG = "/fight/bg/menu.webp";
 
+/** 기술 아이콘 (public/fight/icon/<id>-S|X.webp) — 아직 없으면 안 보임 */
+function SkillIcon({ c, k }: { c: CharDef; k: "S" | "X" }) {
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
+  return (
+    <img
+      src={`/fight/icon/${c.id}-${k}.webp`}
+      alt=""
+      onError={() => setOk(false)}
+      className={`h-[2.4cqw] w-[2.4cqw] shrink-0 rounded-[0.35cqw] border border-white/30 bg-black/40 object-cover ${PX}`}
+    />
+  );
+}
+
+function SkillRow({ c, k, right }: { c: CharDef; k: "S" | "X"; right?: boolean }) {
+  const isId = k === "S";
+  return (
+    <div className={`${KR} mt-[0.3cqw] flex w-full items-start gap-[0.6cqw] ${right ? "flex-row-reverse text-right" : ""}`}>
+      <SkillIcon key={c.id} c={c} k={k} />
+      <div className={`flex min-w-0 flex-1 flex-col gap-[0.2cqw] ${right ? "items-end" : ""}`}>
+        <span
+          className={`rounded-[0.3cqw] px-[0.5cqw] text-[1.05cqw] font-bold text-black ${isId ? "bg-[#FDE047]/90" : "bg-[#22D3EE]/90"}`}
+        >
+          {isId ? "아이덴티티 L" : "필살기 I"} · {isId ? c.idName : c.ultName}
+        </span>
+        <span className="text-[1.05cqw] leading-snug break-keep text-white/80">{isId ? c.idDesc : c.ultDesc}</span>
+        {isId && (
+          <span className="text-[0.95cqw] leading-snug break-keep text-white/55">
+            <b className="text-[#FDE047]/80">점프 중 L</b> {c.airDesc}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
   return (
     <div className={`flex flex-col gap-[0.5cqw] ${right ? "items-end text-right" : ""}`}>
@@ -52,19 +88,9 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
       >
         “{c.quote}”
       </div>
-      {/* 기술 이름은 배지로 한 줄, 설명은 그 아래 따로 (설명이 배지 옆으로 끼어들며 어색하게 꺾이지 않게) */}
-      <div className={`${KR} mt-[0.3cqw] flex w-full flex-col gap-[0.25cqw] ${right ? "items-end" : ""}`}>
-        <span className="rounded-[0.3cqw] bg-[#FDE047]/90 px-[0.5cqw] text-[1.05cqw] font-bold text-black">
-          아이덴티티 · {c.idName}
-        </span>
-        <span className="text-[1.05cqw] leading-snug break-keep text-white/75">{c.idDesc}</span>
-      </div>
-      <div className={`${KR} flex w-full flex-col gap-[0.25cqw] ${right ? "items-end" : ""}`}>
-        <span className="rounded-[0.3cqw] bg-[#22D3EE]/90 px-[0.5cqw] text-[1.05cqw] font-bold text-black">
-          필살기 · {c.ultName}
-        </span>
-        <span className="text-[1.05cqw] leading-snug break-keep text-white/75">{c.ultDesc}</span>
-      </div>
+      {/* 기술: 아이콘 + 이름 배지 한 줄, 설명은 그 아래 (점프 중 L이 다르면 한 줄 더) */}
+      <SkillRow c={c} k="S" right={right} />
+      <SkillRow c={c} k="X" right={right} />
     </div>
   );
 }

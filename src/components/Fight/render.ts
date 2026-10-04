@@ -43,11 +43,17 @@ const ELEMENT: Record<string, "fire" | "bolt" | "ice" | "wind" | "whip" | "water
 
 /** 탄 그림 (public/fight/fx/<이름>.webp, 오른쪽을 보는 그림) — 처음 쓸 때 불러옴 */
 const fxCache = new Map<string, HTMLImageElement | null>();
+/** 불러오기가 끝난 그림 (실패 포함) — 시작 전에 다 받아 두려고 */
+const fxDone = new Set<string>();
 function fxImg(name: string): HTMLImageElement | null {
   if (!fxCache.has(name)) {
     fxCache.set(name, null);
     const im = new Image();
-    im.onload = () => fxCache.set(name, im);
+    im.onload = () => {
+      fxCache.set(name, im);
+      fxDone.add(name);
+    };
+    im.onerror = () => fxDone.add(name);
     im.src = `/fight/fx/${name}.webp`;
   }
   return fxCache.get(name) ?? null;
@@ -76,6 +82,17 @@ const FX_SETS: Record<string, Record<string, [number, number, boolean]>> = {
   lily: { spark: [4, 0.6, true], guard: [2, 0.6, true], dust: [4, 0.5, false] },
   zena: { spark: [4, 0.6, true], guard: [2, 0.6, true], dust: [4, 0.5, false] },
 };
+/** 캐릭터 하나가 쓰는 그림 효과 파일 이름 전부 */
+function fxNames(id: string): string[] {
+  const out: string[] = [];
+  for (const [nm, d] of Object.entries(FX_SETS[id] ?? {})) for (let k = 0; k < d[0]; k++) out.push(`${id}-${nm}-${k}`);
+  for (const a of Object.values(PROJ_ANIM[id] ?? {})) if (a) for (let k = 0; k < a[1]; k++) out.push(`${a[0]}-${k}`);
+  const pa = PILLAR_ANIM[id];
+  if (pa) for (let k = 0; k < pa[1]; k++) out.push(`${pa[0]}-${k}`);
+  for (const a of Object.values(PROJ_ART[id] ?? {})) if (a) out.push(a[0]);
+  return out;
+}
+
 interface FxAnim {
   key: string;
   n: number;
@@ -159,11 +176,23 @@ export class FightRenderer {
     }
   }
 
-  /** 시작 전에 그림이 다 준비됐나 (캐릭터 시트 둘 + 맵 배경) — 덜 됐으면 대신 그린 임시 그림이 잠깐 보이지 않게 */
+  /** 시작 전에 그림이 다 준비됐나 (캐릭터 시트 둘 + 맵 배경 + 두 캐릭터의 탄·기둥·효과 그림) —
+   *  덜 됐으면 대신 그린 임시 그림(네모 등)이 잠깐 보이지 않게 */
   ready(s: State) {
     const map = MAPS[s.map] ?? MAPS[0];
-    return !!this.sheets[0] && !!this.sheets[1] && (!map.bg || !!this.bgImage(map.id, map.bg));
+    if (!this.sheets[0] || !this.sheets[1] || (map.bg && !this.bgImage(map.id, map.bg))) return false;
+    if (this.fxReady) return true;
+    let all = true;
+    for (const f of s.p) {
+      for (const n of fxNames(CHARS[f.ch].id)) {
+        fxImg(n);
+        if (!fxDone.has(n)) all = false;
+      }
+    }
+    this.fxReady = all;
+    return all;
   }
+  private fxReady = false;
   /** 준비 중 화면 (검은 바탕) */
   drawLoading() {
     const g = this.g;
@@ -264,6 +293,13 @@ export class FightRenderer {
           this.parts.push({
             x, y: y - 20, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, life: 14, max: 14,
             color: "#FFF27A", size: 1, kind: "bolt",
+          });
+      } else if (e.k === "burn") {
+        this.parts.push({ x, y: y - 6, vx: 0, vy: -0.6, life: 34, max: 34, color: "#FF8A3D", size: 1.25, kind: "text", text: "BURN!" });
+        for (let i = 0; i < 10; i++)
+          this.parts.push({
+            x: x + (Math.random() - 0.5) * 20, y: y - 10, vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2, life: 18, max: 18,
+            color: Math.random() < 0.5 ? "#FFB347" : "#FF5A1F", size: 1.3, kind: "spark",
           });
       } else if (e.k === "trap" || e.k === "pop") {
         const pop = e.k === "pop";
@@ -387,6 +423,15 @@ export class FightRenderer {
       g.fillText("⚡감전", x, y - 14);
       g.fillRect(x - 12, y - 12, Math.min(24, (24 * f.shock) / 180), 1.5);
     }
+    if (f.burn > 0) {
+      // 화상 표시 (감전 표시가 있으면 그 위)
+      const by = y - (f.shock > 0 ? 24 : 14);
+      g.globalAlpha = 1;
+      g.fillStyle = "#FF8A3D";
+      g.font = "bold 8px ui-monospace, monospace";
+      g.fillText("🔥화상", x, by);
+      g.fillRect(x - 12, by + 2, Math.min(24, (24 * f.burn) / 180), 1.5);
+    }
     g.restore();
   }
 
@@ -508,6 +553,14 @@ export class FightRenderer {
           x: x + (Math.random() - 0.5) * 24, y: y - Math.random() * hh, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3,
           life: 8, max: 8, color: Math.random() < 0.5 ? "#FFFFFF" : "#FFE45C", size: 1, kind: "bolt",
         });
+    }
+    // 화상 중: 몸에서 불씨가 피어오름
+    if (f.burn > 0 && s.f % 4 === 0) {
+      const hh = (fr.sh / sc) * 0.8;
+      this.parts.push({
+        x: x + (Math.random() - 0.5) * 18, y: y - Math.random() * hh, vx: (Math.random() - 0.5) * 0.6, vy: -0.8 - Math.random(),
+        life: 14, max: 14, color: Math.random() < 0.5 ? "#FFB347" : "#FF5A1F", size: 1.2, kind: "spark",
+      });
     }
     // 움직임 연출 (발 기준 늘이기·기울이기·밀기, 잔상)
     const mo = this.motion[i];
@@ -644,9 +697,6 @@ export class FightRenderer {
       const k = sm.h / (fr.sh * 0.9);
       g.imageSmoothingEnabled = !sh.pixel;
       g.drawImage(sh.img, fr.sx, fr.sy, fr.sw, fr.sh, x - fr.ax * k, y - fr.ay * k, fr.sw * k, fr.sh * k);
-    } else {
-      g.fillStyle = "rgba(255,120,40,0.8)";
-      g.fillRect(x - sm.w / 2, y - sm.h, sm.w, sm.h);
     }
     g.restore();
     glowAt(g, x, y - sm.h / 2, sm.h * 0.6, "rgba(255,120,40,0.25)");

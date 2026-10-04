@@ -110,6 +110,11 @@ const GC_GRACE = 10;
 /** 잡기 성공 후 위로 띄우는 세기와 그동안의 경직 */
 const LAUNCH_VH = 2300;
 const LAUNCH_STUN = 60;
+/** 화상: 이만큼마다 체력 -BURN_DMG */
+const BURN_EVERY = 15;
+const BURN_DMG = 2;
+/** 감전 처음 걸릴 때 짧게 기절 (경직 +) */
+const SHOCK_STUN = 8;
 /** 약 4단 마무리로 띄우는 세기 */
 const CHAIN_LAUNCH_VH = 1900;
 /** 띄워진 상대를 공중에서 다시 때리면: 다시 떠오르는 세기, 밀림 비율(%), 최소 경직 */
@@ -167,6 +172,8 @@ export interface Fighter {
   float: number;
   /** 감전 남은 프레임: 걷기·대시가 느려지고, 감전시킨 캐릭터의 공격에 더 아픔 */
   shock: number;
+  /** 화상 남은 프레임 (이그나 — 15프레임마다 체력이 조금씩 닳음, 화상으로는 안 죽음) */
+  burn: number;
   /** 지금 기술을 공중에서 시작했나 (공중 버전 기술용) */
   aerial: number;
   /** 아래로 내리꽂힌 상태: 땅에 닿으면 한 번 튀어 오름 */
@@ -218,6 +225,7 @@ export type EvKind =
   | "throw"
   | "launch"
   | "shock"
+  | "burn"
   | "trap"
   | "pop"
   | "tech"
@@ -333,6 +341,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     gcT: 0,
     float: 0,
     shock: 0,
+    burn: 0,
     aerial: 0,
     spiked: 0,
     pullT: 0,
@@ -430,6 +439,7 @@ export function hash(s: State): number {
     mix(f.gcT);
     mix(f.float);
     mix(f.shock);
+    mix(f.burn);
     mix(f.aerial);
     mix(f.spiked);
     mix(f.pullT);
@@ -976,7 +986,7 @@ function landed(s: State, i: number, f: Fighter) {
   f.airDash = 0;
   f.dashT = 0;
   const lm = moveOf(f);
-  // 내리꽂기 착지: 주변에 충격파 (가까이 땅에 있는 상대를 넘어뜨림)
+  // 내리꽂기 착지: 주변에 충격파 (가까이 땅에 있는 상대를 띄움 → 후속 2타, 바로 점프해 공중 콤보)
   if (f.dive && f.st === "atk" && lm?.rush?.landBurst) {
     const o = s.p[1 - i];
     const hr = hurtRect(o);
@@ -984,7 +994,7 @@ function landed(s: State, i: number, f: Fighter) {
     s.ev.push({ k: "clash", p: i, x: f.x, h: f.h, v: 1 });
     if (hr && Math.abs(o.x - f.x) < r && Math.abs(o.h - f.h) < 24 * SUB) {
       f.hit = 0;
-      applyHit(s, i, { ...lm, kd: true, multi: undefined, push: 1300 }, f.x, "S");
+      applyHit(s, i, { ...lm, kd: false, multi: undefined, push: 0, dmg: lm.rush.landDmg ?? lm.dmg, launch: true }, f.x, "S");
     }
   }
   f.dive = 0;
@@ -1289,9 +1299,24 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       s.ev.push({ k: "trap", p: ai, x: d.x, h: d.h + 30 * SUB, v: 0 });
     }
     if (m.shock) {
-      if (d.shock === 0) s.ev.push({ k: "shock", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
+      // 처음 감전되면 짧게 기절 (몸이 굳음), 이미 감전 중이면 살짝만
+      const fresh = d.shock === 0;
+      if (fresh) s.ev.push({ k: "shock", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
       d.shock = Math.max(d.shock, m.shock);
-      if (d.shock > 0 && shocker) d.stun += 3;
+      if (!d.kd) d.stun += fresh ? SHOCK_STUN : 3;
+    }
+    if (m.burn) {
+      if (d.burn === 0) s.ev.push({ k: "burn", p: ai, x: d.x, h: d.h + 60 * SUB, v: 0 });
+      d.burn = Math.max(d.burn, m.burn);
+    }
+    if (m.launch && !kd && !wasAir) {
+      // 띄우는 후속타 (카이 공중 질풍권 착지 충격파)
+      d.vh = LAUNCH_VH;
+      d.kd = 0;
+      d.float = 1;
+      d.vx = dir * 250;
+      d.stun = Math.max(d.stun, LAUNCH_STUN - 10);
+      s.ev.push({ k: "launch", p: ai, x: d.x, h: d.h, v: 4 });
     }
     a.meter = Math.min(METER_MAX, a.meter + m.meter);
     d.meter = Math.min(METER_MAX, d.meter + (dmg >> 4));
@@ -1481,6 +1506,10 @@ export function step(s: State, input: [number, number]): State {
     for (const f of s.p) {
       if (f.cd > 0) f.cd--;
       if (f.shock > 0) f.shock--;
+      if (f.burn > 0) {
+        f.burn--;
+        if (f.burn % BURN_EVERY === 0 && f.hp > 1) f.hp = Math.max(1, f.hp - BURN_DMG);
+      }
     }
     control(s, 0);
     control(s, 1);
