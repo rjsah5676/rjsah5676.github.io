@@ -113,7 +113,7 @@ export default function MelonGame() {
   /** 화면 좌표 → 원래 판 기준 좌표 (판정은 항상 이 좌표로) */
   const toBoard = (x: number, y: number): [number, number] =>
     rotRef.current ? [y - PAD, x - PAD] : [x - PAD, y - PAD];
-  /** 크게 보기: 사이트 헤더·메뉴를 가리고 판을 화면 가득 (가능하면 전체화면 + 가로 고정) */
+  /** 크게 보기: 사이트 헤더·메뉴를 가리고 판을 화면 가득 (가능하면 전체화면 + 세로 고정 → 판을 돌린 세로 모양으로 길게) */
   const [big, setBig] = useState(false);
   const [rankOpen, setRankOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("menu");
@@ -239,9 +239,9 @@ export default function MelonGame() {
     const orient = screen.orientation as ScreenOrientation & {
       lock?: (o: string) => Promise<void>;
     };
-    // 전체화면·가로 고정은 되는 브라우저(안드로이드 크롬 등)에서만, 안 되면 화면 덮기만
+    // 전체화면·세로 고정은 되는 브라우저(안드로이드 크롬 등)에서만, 안 되면 화면 덮기만
     el?.requestFullscreen?.()
-      .then(() => orient.lock?.("landscape"))
+      .then(() => orient.lock?.("portrait"))
       .catch(() => {});
     const onFs = () => {
       if (!document.fullscreenElement) setBig(false);
