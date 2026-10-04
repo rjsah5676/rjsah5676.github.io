@@ -108,7 +108,8 @@ export default function Select({
       const kk = k;
       timers.current.push(setTimeout(() => show(kk, kk === count - 1), t));
     }
-    timers.current.push(setTimeout(done, t + 380));
+    // 멈춘 뒤 뽑힌 걸 잠깐 보여 주고 결정
+    timers.current.push(setTimeout(done, t + 950));
   };
 
   // 맵 선택 중엔 커서가 있는 맵의 음악, 그 밖의 화면에선 끔
