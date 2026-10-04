@@ -142,6 +142,16 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // 격투 AI 대전 (opp = AI 단계 1~6, moves = 적중 수, lead = 남은 체력 %)
+    match /fight_ai_rankings/{entryId} {
+      allow read: if true;
+      allow create: if validAIRank(7000000)
+                    && request.resource.data.opp in ['1', '2', '3', '4', '5', '6']
+                    && math.floor(request.resource.data.score / 1000000)
+                       == {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6}.get(request.resource.data.opp, 0);
+      allow update, delete: if isAdmin();
+    }
+
     // 스케치 퀴즈 (메뉴에서 내림) - 기존 데이터 읽기만 허용, 새 쓰기는 차단
     match /sketch_user/{entryId} {
       allow read: if true;

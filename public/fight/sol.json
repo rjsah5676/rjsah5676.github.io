@@ -1,0 +1,135 @@
+{
+  "image": "/fight/sol.png",
+  "cell": [
+    100,
+    100
+  ],
+  "anchor": [
+    49,
+    84
+  ],
+  "facing": "left",
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 12,
+      "fps": 10,
+      "loop": true
+    },
+    "stance": {
+      "row": 1,
+      "frames": 11,
+      "fps": 10,
+      "loop": true
+    },
+    "walk": {
+      "row": 2,
+      "frames": 8,
+      "fps": 12,
+      "loop": true
+    },
+    "attack": {
+      "row": 3,
+      "frames": 23,
+      "fps": 16,
+      "loop": false
+    },
+    "hit": {
+      "row": 4,
+      "frames": 3,
+      "fps": 12,
+      "loop": false
+    },
+    "death": {
+      "row": 5,
+      "frames": 12,
+      "fps": 12,
+      "loop": false
+    },
+    "cast": {
+      "row": 6,
+      "frames": 12,
+      "fps": 14,
+      "loop": false
+    },
+    "castStart": {
+      "row": 7,
+      "frames": 9,
+      "fps": 14,
+      "loop": false
+    },
+    "castLoop": {
+      "row": 8,
+      "frames": 4,
+      "fps": 10,
+      "loop": true
+    },
+    "castEnd": {
+      "row": 9,
+      "frames": 3,
+      "fps": 14,
+      "loop": false
+    }
+  },
+  "moves": {
+    "L": {
+      "anim": "attack",
+      "from": 1,
+      "impact": 5,
+      "to": 8
+    },
+    "H": {
+      "anim": "cast",
+      "from": 0,
+      "impact": 8,
+      "to": 11
+    },
+    "J": {
+      "anim": "attack",
+      "from": 3,
+      "impact": 5,
+      "to": 8
+    },
+    "S": {
+      "anim": "castStart",
+      "from": 0,
+      "impact": 8,
+      "to": 8
+    },
+    "X": {
+      "anim": "attack",
+      "from": 9,
+      "impact": 15,
+      "to": 22
+    }
+  },
+  "states": {
+    "idle": {
+      "anim": "idle"
+    },
+    "walk": {
+      "anim": "walk"
+    },
+    "jump": {
+      "anim": "walk",
+      "frame": 3
+    },
+    "hit": {
+      "anim": "hit"
+    },
+    "block": {
+      "anim": "hit",
+      "frame": 0
+    },
+    "down": {
+      "anim": "death"
+    },
+    "ko": {
+      "anim": "death"
+    },
+    "win": {
+      "anim": "castLoop"
+    }
+  },
+  "credit": "Open Duelyst (CC0 1.0)"
+}

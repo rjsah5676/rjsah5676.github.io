@@ -1,0 +1,173 @@
+/**
+ * 키보드·게임패드·터치 입력 → 프레임당 8비트 (sim.ts IN)
+ */
+import { IN } from "@/lib/fight/sim";
+
+type KeyMap = Record<string, number>;
+
+/** 1P: WASD + J K L I */
+const P1: KeyMap = {
+  KeyA: IN.L,
+  KeyD: IN.R,
+  KeyW: IN.U,
+  KeyS: IN.D,
+  KeyJ: IN.A,
+  KeyK: IN.B,
+  KeyL: IN.C,
+  KeyI: IN.X,
+};
+/** AI 대전에선 1P가 방향키 + Z X C V 도 씀 */
+const P1_ALT: KeyMap = {
+  ArrowLeft: IN.L,
+  ArrowRight: IN.R,
+  ArrowUp: IN.U,
+  ArrowDown: IN.D,
+  KeyZ: IN.A,
+  KeyX: IN.B,
+  KeyC: IN.C,
+  KeyV: IN.X,
+  Space: IN.U,
+};
+/** 2P: 방향키 + , . ; ' (또는 숫자패드 1 2 3 0) — /는 사이트 검색 단축키라 안 씀 */
+const P2: KeyMap = {
+  ArrowLeft: IN.L,
+  ArrowRight: IN.R,
+  ArrowUp: IN.U,
+  ArrowDown: IN.D,
+  Comma: IN.A,
+  Period: IN.B,
+  Semicolon: IN.C,
+  Quote: IN.X,
+  Numpad1: IN.A,
+  Numpad2: IN.B,
+  Numpad3: IN.C,
+  Numpad0: IN.X,
+};
+
+export const KEY_GUIDE = {
+  p1: "WASD 이동·점프 · J 약 · K 강 · L 필살 · I 초필살",
+  p1Alt: "방향키 · Z 약 · X 강 · C 필살 · V 초필살",
+  p2: "방향키 · , 약 · . 강 · ; 필살 · ' 초필살 (숫자패드 1 2 3 0)",
+};
+
+const GAME_KEYS = new Set([...Object.keys(P1), ...Object.keys(P1_ALT), ...Object.keys(P2)]);
+/** 대전 중엔 사이트 검색(/) 단축키도 막음 — 2P 손이 근처에 있어서 잘못 눌리기 쉬움 */
+const SWALLOW = new Set(["Slash"]);
+
+/** 왼쪽+오른쪽 동시 → 중립, 위+아래 → 위 */
+function clean(v: number) {
+  if ((v & (IN.L | IN.R)) === (IN.L | IN.R)) v &= ~(IN.L | IN.R);
+  if ((v & (IN.U | IN.D)) === (IN.U | IN.D)) v &= ~IN.D;
+  return v;
+}
+
+function padBits(p: Gamepad | null): number {
+  if (!p) return 0;
+  const b = (i: number) => !!p.buttons[i]?.pressed;
+  const ax = p.axes[0] ?? 0,
+    ay = p.axes[1] ?? 0;
+  let v = 0;
+  if (b(14) || ax < -0.5) v |= IN.L;
+  if (b(15) || ax > 0.5) v |= IN.R;
+  if (b(12) || ay < -0.6) v |= IN.U;
+  if (b(13) || ay > 0.6) v |= IN.D;
+  if (b(0)) v |= IN.A; // A / ×
+  if (b(2)) v |= IN.B; // X / □
+  if (b(1)) v |= IN.C; // B / ○
+  if (b(3) || b(5) || b(7)) v |= IN.X; // Y / △, RB, RT
+  return v;
+}
+
+export class FightInput {
+  private keys = new Set<string>();
+  /** 한 프레임보다 짧게 톡 친 키도 놓치지 않게, 다음 read까지 눌린 걸로 침 */
+  private taps = new Set<string>();
+  /** 화면 버튼 (1P) */
+  touch = 0;
+  /** true면 2인 대전(키보드 나눠 쓰기) */
+  twoPlayer = false;
+  /** 대전 중일 때만 키를 가로챔 (메뉴에선 사이트 단축키 등이 그대로 동작) */
+  active = false;
+
+  private down = (e: KeyboardEvent) => {
+    if (!this.active) return;
+    if (SWALLOW.has(e.code)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+    if (GAME_KEYS.has(e.code)) {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      e.preventDefault();
+      // 사이트 검색 같은 다른 단축키가 같이 반응하지 않게
+      e.stopImmediatePropagation();
+      this.keys.add(e.code);
+      this.taps.add(e.code);
+    }
+  };
+  private up = (e: KeyboardEvent) => {
+    this.keys.delete(e.code);
+  };
+  private blur = () => {
+    this.keys.clear();
+    this.taps.clear();
+  };
+
+  attach() {
+    window.addEventListener("keydown", this.down, true);
+    window.addEventListener("keyup", this.up, true);
+    window.addEventListener("blur", this.blur);
+  }
+  detach() {
+    window.removeEventListener("keydown", this.down, true);
+    window.removeEventListener("keyup", this.up, true);
+    window.removeEventListener("blur", this.blur);
+  }
+
+  private fromKeys(map: KeyMap) {
+    let v = 0;
+    for (const k of this.keys) if (map[k]) v |= map[k];
+    for (const k of this.taps) if (map[k]) v |= map[k];
+    return v;
+  }
+
+  read(player: 0 | 1): number {
+    const pads =
+      typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : [];
+    const list = Array.from(pads ?? []).filter((p): p is Gamepad => !!p);
+    if (player === 0) {
+      let v = this.fromKeys(P1) | this.touch | padBits(list[0] ?? null);
+      if (!this.twoPlayer) v |= this.fromKeys(P1_ALT);
+      this.consume(this.twoPlayer ? [P1] : [P1, P1_ALT]);
+      return clean(v);
+    }
+    const v = this.fromKeys(P2) | padBits(list[1] ?? null);
+    this.consume([P2]);
+    return clean(v);
+  }
+
+  /** 이번 프레임에 읽은 톡 입력은 지움 */
+  private consume(maps: KeyMap[]) {
+    for (const k of this.taps) if (maps.some((m) => m[k])) this.taps.delete(k);
+  }
+
+  setTouch(v: number) {
+    this.touch = v;
+  }
+  configure(twoPlayer: boolean) {
+    this.twoPlayer = twoPlayer;
+    this.active = true;
+  }
+  stop() {
+    this.active = false;
+    this.keys.clear();
+    this.taps.clear();
+    this.touch = 0;
+  }
+
+  /** 아무 공격 버튼이나 눌렀나 (결과 화면 넘기기 등) */
+  anyButton() {
+    return (this.read(0) | this.read(1)) & (IN.A | IN.B | IN.C | IN.X);
+  }
+}

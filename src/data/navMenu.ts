@@ -8,6 +8,7 @@ import imgMine from "@/img/menu/mine.jpg";
 import imgChess from "@/img/menu/chess.jpg";
 import imgJanggi from "@/img/menu/janggi.jpg";
 import imgOmok from "@/img/menu/omok.jpg";
+import imgFight from "@/img/menu/fight.jpg";
 import imgRhythm from "@/img/menu/rhythm.jpg";
 import imgSketch from "@/img/menu/sketch.jpg";
 import imgLadder from "@/img/menu/ladder.jpg";
@@ -120,6 +121,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "온라인 오목",
         desc: "렌주룰 금수 판정, 실시간 온라인 대국·AI 대국·랭킹전",
         icon: "⚫",
+      },
+      {
+        href: "/games/fight",
+        image: imgFight,
+        label: "픽셀 격투",
+        desc: "1:1 도트 격투, AI 6단계 대전·랭킹, 한 키보드 2인",
+        icon: "🥊",
       },
       {
         href: "/games/mine",
