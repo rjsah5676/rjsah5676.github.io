@@ -1,0 +1,208 @@
+{
+  "image": "/fight/kai.webp",
+  "cell": [
+    120,
+    69
+  ],
+  "anchor": [
+    65,
+    66
+  ],
+  "scale": 1.016,
+  "pixel": true,
+  "facing": "right",
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "walk": {
+      "row": 1,
+      "frames": 4,
+      "fps": 10,
+      "loop": true
+    },
+    "jump": {
+      "row": 2,
+      "frames": 1,
+      "fps": 1,
+      "loop": false
+    },
+    "light": {
+      "row": 3,
+      "frames": 4,
+      "fps": 20,
+      "loop": false
+    },
+    "heavy": {
+      "row": 4,
+      "frames": 3,
+      "fps": 14,
+      "loop": false
+    },
+    "air": {
+      "row": 5,
+      "frames": 1,
+      "fps": 1,
+      "loop": false
+    },
+    "air2": {
+      "row": 6,
+      "frames": 1,
+      "fps": 1,
+      "loop": false
+    },
+    "cast": {
+      "row": 7,
+      "frames": 3,
+      "fps": 12,
+      "loop": false
+    },
+    "super": {
+      "row": 8,
+      "frames": 5,
+      "fps": 10,
+      "loop": false
+    },
+    "hit": {
+      "row": 9,
+      "frames": 1,
+      "fps": 1,
+      "loop": false
+    },
+    "block": {
+      "row": 10,
+      "frames": 1,
+      "fps": 1,
+      "loop": false
+    },
+    "dash": {
+      "row": 11,
+      "frames": 2,
+      "fps": 12,
+      "loop": false
+    },
+    "win": {
+      "row": 12,
+      "frames": 2,
+      "fps": 3,
+      "loop": true
+    }
+  },
+  "moves": {
+    "L": {
+      "anim": "light",
+      "from": 0,
+      "impact": 2,
+      "to": 3
+    },
+    "H": {
+      "anim": "heavy",
+      "from": 0,
+      "impact": 1,
+      "to": 2
+    },
+    "J": {
+      "anim": "air",
+      "from": 0,
+      "impact": 0,
+      "to": 0
+    },
+    "K": {
+      "anim": "air2",
+      "from": 0,
+      "impact": 0,
+      "to": 0
+    },
+    "S": {
+      "anim": "cast",
+      "from": 0,
+      "impact": 1,
+      "to": 2
+    },
+    "X": {
+      "anim": "super",
+      "from": 0,
+      "impact": 1,
+      "to": 4
+    }
+  },
+  "chain": {
+    "L": [
+      {
+        "anim": "light",
+        "from": 0,
+        "impact": 1,
+        "to": 1
+      },
+      {
+        "anim": "light",
+        "from": 1,
+        "impact": 2,
+        "to": 3
+      },
+      {
+        "anim": "light",
+        "from": 3,
+        "impact": 1,
+        "to": 0
+      },
+      {
+        "anim": "dash",
+        "from": 0,
+        "impact": 1,
+        "to": 1
+      }
+    ],
+    "H": [
+      {
+        "anim": "heavy",
+        "from": 0,
+        "impact": 1,
+        "to": 2
+      },
+      {
+        "anim": "air",
+        "from": 0,
+        "impact": 0,
+        "to": 0
+      }
+    ]
+  },
+  "states": {
+    "idle": {
+      "anim": "idle"
+    },
+    "walk": {
+      "anim": "walk"
+    },
+    "jump": {
+      "anim": "jump",
+      "frame": 0
+    },
+    "hit": {
+      "anim": "hit"
+    },
+    "block": {
+      "anim": "block",
+      "frame": 0
+    },
+    "down": {
+      "anim": "hit",
+      "frame": 0
+    },
+    "ko": {
+      "anim": "hit",
+      "frame": 0
+    },
+    "win": {
+      "anim": "win"
+    },
+    "dash": {
+      "anim": "dash"
+    }
+  },
+  "layDown": true
+}
