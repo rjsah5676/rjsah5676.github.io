@@ -253,7 +253,9 @@ export class FightAI {
     if (f.st === "atk" && f.hit && o.st === "hit") {
       if (this.comboDecision === null) this.comboDecision = this.r() < L.combo;
       if (this.comboDecision) {
-        if (f.mv === "L") press(f.chain < 4 && this.r() < 0.6 ? IN.A : IN.B);
+        // 끌어당긴 뒤: 잡기로 띄우거나 약 콤보
+        if (f.mv === "S" && o.pulled) press(this.r() < 0.5 ? IN.A | IN.B : IN.A);
+        else if (f.mv === "L") press(f.chain < 4 && this.r() < 0.6 ? IN.A : IN.B);
         else if (f.mv === "H") {
           if (f.meter >= 100 && this.r() < 0.6) press(IN.X);
           else if (f.cd === 0 && !sm.proj) press(IN.C);

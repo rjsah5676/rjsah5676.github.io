@@ -93,6 +93,12 @@ export interface MoveDef {
   shock?: number;
   /** 약 4단 마무리로 쓰일 때 상대를 위로 띄움 (어퍼컷) → 점프 캔슬해 공중 콤보 */
   launcher?: boolean;
+  /** 공중에서 쓰면 이 값들로 바뀜 (같은 키, 다른 기술 — 예: 소영 공중 지도편달 = 아래로 내려치기) */
+  air?: Partial<MoveDef>;
+  /** 공중에서 시작할 때 떨어지던 걸 잠깐 멈춤 (위로 이 속도) */
+  hover?: number;
+  /** 공중의 상대를 맞히면 아래로 내리꽂음 (땅에 닿으면 짧게 튀어 오르고 경직 유지) */
+  spike?: boolean;
   proj?: ProjDef;
 }
 
@@ -263,7 +269,7 @@ const RAW: CharSrc[] = [
     name: "이그나",
     title: "불꽃 술사",
     desc: "불꽃 탄과 긴 불꽃 베기로 거리를 두고 태우는 술사",
-    hp: 1170,
+    hp: 1220,
     walk: 1160,
     jumpVx: 980,
     dash: 2500,
@@ -376,7 +382,7 @@ const RAW: CharSrc[] = [
     name: "소영",
     title: "선생님 · 채찍",
     desc: "긴 채찍으로 거리를 지배하는 엄한 선생님. 붙으면 약함",
-    hp: 1270,
+    hp: 1210,
     walk: 1020,
     jumpVx: 900,
     dash: 2300,
@@ -389,7 +395,7 @@ const RAW: CharSrc[] = [
     tagline: "STRICT BUT KIND",
     difficulty: 3,
     idName: "지도편달",
-    idDesc: "아주 긴 채찍으로 낚아채 내 앞으로 끌어당김 — 이어서 약·발차기",
+    idDesc: "아주 긴 채찍으로 낚아채 바로 앞까지 끌어당김 — 맞히면 약 콤보·잡기가 확정으로 이어짐. 공중에선 바로 아래로 길게 내리꽂음",
     ultName: "보충수업",
     ultDesc: "채찍을 휘몰아 앞뒤를 모두 6번 후려침",
     moves: {
@@ -453,16 +459,34 @@ const RAW: CharSrc[] = [
         // 아이덴티티 「지도편달」: 아주 긴 채찍으로 끌어당김
         startup: 12,
         active: 4,
-        recovery: 18,
-        dmg: 55,
+        recovery: 24,
+        dmg: 45,
         chip: 6,
-        hitstun: 26,
+        hitstun: 34,
         blockstun: 12,
         push: 1300,
         hitstop: 8,
         meter: 7,
         box: { x: 20, y: 50, w: 170, h: 18 },
         pull: true,
+        // 끌어당긴 뒤 약·잡기·필살기로 바로 이어짐 (확정) — 잡기로 띄워 공중 콤보도 가능
+        cancel: ["L", "T", "X"],
+        // 공중에서 쓰면 「지도편달·하」: 공중에 잠깐 멈춰 바로 아래로 채찍을 길게 내리꽂음 (발밑 약 170px) —
+        // 아래 발판의 상대를 위에서 찌르기, 맞으면 땅으로 처박혀 경직이 길어서 내려가 이어 칠 수 있음
+        air: {
+          startup: 9,
+          active: 6,
+          recovery: 14,
+          dmg: 62,
+          hitstun: 30,
+          push: 300,
+          hitstop: 9,
+          box: { x: -24, y: 12, w: 48, h: 182 },
+          pull: false,
+          spike: true,
+          cancel: undefined,
+          hover: 380,
+        },
       },
       X: {
         // 필살기 「보충수업」: 앞뒤 넓게 6연타

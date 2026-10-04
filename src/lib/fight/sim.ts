@@ -153,6 +153,15 @@ export interface Fighter {
   float: number;
   /** 감전 남은 프레임: 걷기·대시가 느려지고, 감전시킨 캐릭터의 공격에 더 아픔 */
   shock: number;
+  /** 지금 기술을 공중에서 시작했나 (공중 버전 기술용) */
+  aerial: number;
+  /** 아래로 내리꽂힌 상태: 땅에 닿으면 한 번 튀어 오름 */
+  spiked: number;
+  /** 끌려오는 중: 남은 프레임과 도착할 x (그동안 매 프레임 남은 거리를 나눠서 이동) */
+  pullT: number;
+  pullX: number;
+  /** 끌어당기기에 맞아 경직 중 (이 동안엔 잡기도 들어감) — 경직이 풀리면 0 */
+  pulled: number;
   /** 남은 무적 프레임 (다시 내려온 뒤) */
   inv: number;
   /** 최근 입력 (마지막이 이번 프레임) */
@@ -236,7 +245,12 @@ export interface State {
 const charOf = (f: Fighter): CharDef => CHARS[f.ch];
 const isFinisher = (f: Fighter) => !!f.mv && !!CHAIN_MAX[f.mv] && f.chain >= CHAIN_MAX[f.mv]!;
 const finishRec = (f: Fighter) => (isFinisher(f) ? (FINISH_REC[f.mv as MoveId] ?? 0) : 0);
-const moveOf = (f: Fighter): MoveDef | null => (f.mv ? charOf(f).moves[f.mv] : null);
+/** 지금 기술의 정의 (공중에서 시작했고 공중 버전이 있으면 그걸로) */
+const moveOf = (f: Fighter): MoveDef | null => {
+  if (!f.mv) return null;
+  const m = charOf(f).moves[f.mv];
+  return f.aerial && m.air ? { ...m, ...m.air } : m;
+};
 const totalOf = (m: MoveDef) => m.startup + m.active + m.recovery;
 const mapOf = (s: State): MapDef => MAPS[s.map] ?? MAPS[0];
 
@@ -301,6 +315,11 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     gcT: 0,
     float: 0,
     shock: 0,
+    aerial: 0,
+    spiked: 0,
+    pullT: 0,
+    pullX: 0,
+    pulled: 0,
     inv: 0,
     hist: new Array(HIST).fill(0),
   };
@@ -392,6 +411,11 @@ export function hash(s: State): number {
     mix(f.gcT);
     mix(f.float);
     mix(f.shock);
+    mix(f.aerial);
+    mix(f.spiked);
+    mix(f.pullT);
+    mix(f.pullX);
+    mix(f.pulled);
     mix(f.inv);
     mix(f.st.length * 31 + f.st.charCodeAt(0));
     mix(f.mv ? f.mv.charCodeAt(0) : 0);
@@ -501,7 +525,9 @@ function startMove(s: State, i: number, id: MoveId) {
   f.mv = id;
   f.t = 0;
   f.hit = 0;
-  const m = charOf(f).moves[id];
+  f.aerial = airborneS(s, f) ? 1 : 0;
+  const m = moveOf(f)!;
+  if (f.aerial && m.hover) f.vh = Math.max(f.vh, m.hover);
   if (id === "S") f.cd = charOf(f).cd;
   if (id === "G") f.meter = Math.max(0, f.meter - GUARD_COUNTER_COST);
   if (id === "T" || id === "G") f.vx = 0;
@@ -534,7 +560,11 @@ function tryAttack(s: State, i: number, allow: MoveId[]): boolean {
     return true;
   }
   // 잡기: 약+발차기 동시 (땅에서만)
-  if (allow.includes("T") && (cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, IN.A | IN.B, 2)) {
+  // (캔슬로 이을 땐 히트스톱 중에 눌렀다 뗀 것도 인정: 최근 12프레임 안에 약·발차기를 둘 다 눌렀으면)
+  const throwIn = f.hit
+    ? pressed(f, IN.A, 12) && pressed(f, IN.B, 12)
+    : (cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, IN.A | IN.B, 2);
+  if (allow.includes("T") && throwIn) {
     startMove(s, i, "T");
     return true;
   }
@@ -831,6 +861,7 @@ function control(s: State, i: number) {
       }
       if (f.stun > 0) f.stun--;
       if (f.stun <= 0) {
+        f.pulled = 0;
         if (onGround(s, f)) {
           f.st = "idle";
           f.t = 0;
@@ -887,6 +918,15 @@ function control(s: State, i: number) {
 function landed(s: State, i: number, f: Fighter) {
   f.jumps = 0;
   f.float = 0;
+  if (f.spiked && f.st === "hit") {
+    // 내리꽂혀 땅에 닿음: 살짝 튀어 오름
+    f.spiked = 0;
+    f.vh = 900;
+    f.h += SUB;
+    s.ev.push({ k: "clash", p: i, x: f.x, h: f.h, v: 1 });
+    return;
+  }
+  f.spiked = 0;
   f.airUsed = 0;
   f.airDash = 0;
   f.dashT = 0;
@@ -903,7 +943,7 @@ function landed(s: State, i: number, f: Fighter) {
     }
   }
   f.dive = 0;
-  if (f.st === "jump" || (f.st === "atk" && (f.mv === "J" || f.mv === "K" || lm?.lunge || lm?.rush))) {
+  if (f.st === "jump" || (f.st === "atk" && (f.mv === "J" || f.mv === "K" || lm?.lunge || lm?.rush || (f.aerial && f.mv && charOf(f).moves[f.mv].air)))) {
     f.st = "idle";
     f.mv = "";
     f.t = 0;
@@ -959,6 +999,11 @@ function physics(s: State, i: number) {
   const map = mapOf(s);
   const m = moveOf(f);
   if (f.inv > 0) f.inv--;
+  if (f.pullT > 0) {
+    moveX(f, Math.trunc((f.pullX - f.x) / f.pullT));
+    f.pullT--;
+    f.vx = 0;
+  }
   const on = standingOn(map, f);
   if (on) {
     if (f.st === "atk" && m?.step && f.t < m.startup) moveX(f, m.step * f.face);
@@ -1100,8 +1145,14 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     d.stun = Math.max(6, Math.trunc((m.hitstun * (100 - decay)) / 100)) + (counter ? 6 : 0);
     if (counter) s.ev.push({ k: "counter", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
     d.vx = fin ? Math.trunc((dir * m.push * 16) / 10) : dir * m.push;
-    // 끌어당기는 기술: 반대로 (때린 쪽 앞까지)
-    if (m.pull) d.vx = -Math.trunc((dir * m.push * 12) / 10);
+    // 끌어당기는 기술: 때린 쪽 바로 앞(약 34px)에 멈추게 — 땅 마찰(60/프레임)로 멈추는 거리에 맞춘 속도
+    if (m.pull) {
+      // 8프레임 동안 때린 쪽 바로 앞(30px)까지 끌려옴 → 바로 약·잡기로 이어 칠 수 있음
+      d.vx = 0;
+      d.pullX = a.x + a.face * 30 * SUB;
+      d.pullT = 8;
+      d.pulled = 1;
+    }
     const a0 = s.p[ai];
     // 공중 콤보 한도: 공중에서 일정 수 넘게 맞으면 강제 다운 (저글 한계)
     const juggleOut = wasAir && d.combo >= JUGGLE_MAX;
@@ -1118,6 +1169,14 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
         d.stun = Math.max(d.stun, JUGGLE_STUN);
       }
     }
+    if (m.spike && wasAir && !kd) {
+      // 내리꽂기: 공중의 상대를 땅으로 처박음 → 바닥에서 한 번 튀고 경직 유지 (착지해 이어 치기)
+      d.vh = -2200;
+      d.vx = Math.trunc((dir * m.push) / 2);
+      d.spiked = 1;
+      d.float = 0;
+      d.stun = Math.max(d.stun, m.hitstun + 6);
+    }
     if (fin && mid === "L" && m.launcher && !kd && !wasAir) {
       // 약 4단 마무리: 위로 띄움 → 점프 캔슬해서 공중 콤보
       d.vh = CHAIN_LAUNCH_VH;
@@ -1127,7 +1186,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.stun = Math.max(d.stun, 36);
       s.ev.push({ k: "launch", p: ai, x: d.x, h: d.h, v: 1 });
     }
+    if (!m.pull && mid !== "T") d.pulled = 0;
     if (mid === "T") {
+      d.pulled = 0;
       // 잡기: 잠깐 붙잡혀 있다가(그 사이 약+발차기로 풀 수 있음) 던져짐 — 던지는 건 hit 상태에서 처리
       d.grabbed = THROW_TECH_T;
       d.stun = m.hitstun;
@@ -1228,10 +1289,10 @@ function attacks(s: State) {
     const r = hitRect(s.p[i]);
     const h = hurtRect(s.p[1 - i]);
     if (!r || !h || !overlap(r, h)) continue;
-    // 잡기는 땅에 서 있는(경직 아닌) 상대만
+    // 잡기는 땅에 서 있는(경직 아닌) 상대만 — 단, 끌어당겨 온 상대는 경직 중이어도 잡을 수 있음
     if (s.p[i].mv === "T") {
       const o = s.p[1 - i];
-      if (airborneS(s, o) || o.st === "hit") continue;
+      if (airborneS(s, o) || (o.st === "hit" && !o.pulled)) continue;
     }
     hits.push(i);
   }

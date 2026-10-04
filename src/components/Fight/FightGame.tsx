@@ -305,7 +305,15 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [fs, setFs] = useState(false);
   useEffect(() => {
-    const on = () => setFs(document.fullscreenElement === rootRef.current && !!rootRef.current);
+    const on = () => {
+      const now = document.fullscreenElement === rootRef.current && !!rootRef.current;
+      setFs(now);
+      // 전체화면에선 Esc를 게임이 받게 (일시정지·뒤로) — 키보드 잠금이 되는 브라우저(크롬·엣지)만, 나머지는 Esc가 전체화면을 끔
+      const kb = (navigator as Navigator & { keyboard?: { lock?: (k: string[]) => Promise<void>; unlock?: () => void } })
+        .keyboard;
+      if (now) kb?.lock?.(["Escape"]).catch(() => {});
+      else kb?.unlock?.();
+    };
     document.addEventListener("fullscreenchange", on);
     return () => document.removeEventListener("fullscreenchange", on);
   }, []);
@@ -477,6 +485,11 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         r.draw(s);
         return;
       }
+      // 그림이 다 불러와질 때까지는 판을 멈춰 두고 검은 화면 (임시 그림이 잠깐 보이는 것 방지, 보통 한두 프레임)
+      if (!r.ready(s)) {
+        r.drawLoading();
+        return;
+      }
       acc += dt;
       let steps = 0;
       while (acc >= 1000 / 60 && steps < 4) {
@@ -594,7 +607,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
           </button>
           <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-            전체화면은 Esc로 나와요 · 온라인 대전은 준비 중
+            전체화면에선 Esc = 일시정지, 나올 땐 일시정지 메뉴나 ✕ · 온라인 대전은 준비 중
           </span>
         </div>
         <div className="mt-3 rounded-lg bg-black/20 px-3 py-2.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-relaxed text-white/50">
@@ -733,6 +746,9 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
                 className={btn}
               >
                 ↻ 다시하기
+              </button>
+              <button type="button" onClick={toggleFs} className={btn}>
+                {fs ? "전체화면 해제" : "⛶ 전체화면"}
               </button>
               <button type="button" onClick={toMenu} className={btn}>
                 메뉴로

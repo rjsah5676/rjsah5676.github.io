@@ -159,6 +159,19 @@ export class FightRenderer {
     }
   }
 
+  /** 시작 전에 그림이 다 준비됐나 (캐릭터 시트 둘 + 맵 배경) — 덜 됐으면 대신 그린 임시 그림이 잠깐 보이지 않게 */
+  ready(s: State) {
+    const map = MAPS[s.map] ?? MAPS[0];
+    return !!this.sheets[0] && !!this.sheets[1] && (!map.bg || !!this.bgImage(map.id, map.bg));
+  }
+  /** 준비 중 화면 (검은 바탕) */
+  drawLoading() {
+    const g = this.g;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = "#07080C";
+    g.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
   /** 맵 배경 그림 (MapDef.bg) — 없으면 코드로 그린 배경 */
   private bgImg = new Map<string, HTMLImageElement | null>();
   private bgImage(id: string, src?: string) {

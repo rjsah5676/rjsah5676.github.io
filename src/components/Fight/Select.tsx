@@ -2,13 +2,14 @@
 
 /**
  * 격투게임 시작 전 화면: 모드 선택(AI는 난이도까지) → 캐릭터 선택 → 맵 선택 → VS.
- * 키보드: 1P A·D 고르기 · J/Space 결정 · K 취소, 2P ←→ · Enter 결정 · . 취소 (마우스·터치도 됨)
+ * 키보드: 1P A·D 고르기 · J/Space 결정 · Esc 취소, 2P ←→ · Enter 결정 · . 취소 (마우스·터치도 됨)
  * AI 대전이면 1P가 자기 캐릭터를 고른 뒤 상대(CPU) 캐릭터도 고름. 지금 고르는 쪽은 빛나는 테두리로 표시.
  */
 import { useEffect, useRef, useState } from "react";
 import { CHARS, type CharDef } from "@/lib/fight/chars";
 import { MAPS } from "@/lib/fight/maps";
 import { AI_LEVELS } from "@/lib/fight/ai";
+import { loadSheet } from "@/lib/fight/sprites";
 
 export type Mode = "ai" | "2p";
 export interface Setup {
@@ -40,7 +41,7 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
         </span>
       </div>
       <div
-        className={`${KR} text-[3.6cqw] leading-none font-extrabold drop-shadow-[0_0.3cqw_0_#000]`}
+        className={`${KR} text-[3.2cqw] leading-none font-extrabold drop-shadow-[0_0.3cqw_0_#000]`}
         style={{ color: c.color }}
       >
         {c.name}
@@ -51,18 +52,18 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
       >
         “{c.quote}”
       </div>
-      <div className={`${KR} max-w-[20cqw] text-[1.1cqw] leading-snug text-white/60`}>{c.desc}</div>
-      <div className={`${KR} mt-[0.3cqw] max-w-[20cqw] text-[1.05cqw] leading-snug text-white/75`}>
-        <span className="mr-[0.6cqw] rounded-[0.3cqw] bg-[#FDE047]/90 px-[0.5cqw] font-bold text-black">
+      {/* 기술 이름은 배지로 한 줄, 설명은 그 아래 따로 (설명이 배지 옆으로 끼어들며 어색하게 꺾이지 않게) */}
+      <div className={`${KR} mt-[0.3cqw] flex w-full flex-col gap-[0.25cqw] ${right ? "items-end" : ""}`}>
+        <span className="rounded-[0.3cqw] bg-[#FDE047]/90 px-[0.5cqw] text-[1.05cqw] font-bold text-black">
           아이덴티티 · {c.idName}
         </span>
-        {c.idDesc}
+        <span className="text-[1.05cqw] leading-snug break-keep text-white/75">{c.idDesc}</span>
       </div>
-      <div className={`${KR} max-w-[20cqw] text-[1.05cqw] leading-snug text-white/75`}>
-        <span className="mr-[0.6cqw] rounded-[0.3cqw] bg-[#22D3EE]/90 px-[0.5cqw] font-bold text-black">
+      <div className={`${KR} flex w-full flex-col gap-[0.25cqw] ${right ? "items-end" : ""}`}>
+        <span className="rounded-[0.3cqw] bg-[#22D3EE]/90 px-[0.5cqw] text-[1.05cqw] font-bold text-black">
           필살기 · {c.ultName}
         </span>
-        {c.ultDesc}
+        <span className="text-[1.05cqw] leading-snug break-keep text-white/75">{c.ultDesc}</span>
       </div>
     </div>
   );
@@ -117,9 +118,14 @@ export default function Select({
     onPreview(stage === "map" || stage === "vs" ? mapCur : null);
   }, [stage, mapCur, onPreview]);
 
-  // VS 화면 잠깐 보여 주고 시작
+  // VS 화면 잠깐 보여 주고 시작 (그동안 캐릭터 시트·맵 그림을 미리 불러 둠)
   useEffect(() => {
     if (stage !== "vs") return;
+    const { setup: st } = stRef.current;
+    loadSheet(CHARS[st.c1].id).catch(() => {});
+    loadSheet(CHARS[st.c2].id).catch(() => {});
+    const mi = st.map >= 0 ? st.map : st.rolled;
+    if (mi !== undefined && MAPS[mi]?.bg) new Image().src = MAPS[mi].bg!;
     const t = setTimeout(onStart, 1500);
     return () => clearTimeout(t);
   }, [stage, onStart]);
@@ -220,7 +226,7 @@ export default function Select({
         return;
       }
       const k = e.code;
-      const p1 = { l: k === "KeyA", r: k === "KeyD", ok: k === "KeyJ" || k === "Space", no: k === "KeyK" };
+      const p1 = { l: k === "KeyA", r: k === "KeyD", ok: k === "KeyJ" || k === "Space", no: k === "Escape" };
       const p2 = {
         l: k === "ArrowLeft",
         r: k === "ArrowRight",
@@ -398,7 +404,7 @@ export default function Select({
                 />
                 )}
                 <div
-                  className={`absolute top-[8.5cqw] z-10 ${sd === 0 ? "left-[27cqw]" : "right-[27cqw] flex flex-col items-end text-right"} w-[22cqw] rounded-[1cqw] bg-black/45 px-[1cqw] py-[0.8cqw] backdrop-blur-[2px]`}
+                  className={`absolute top-[9.4cqw] z-10 ${sd === 0 ? "left-[27cqw]" : "right-[27cqw] flex flex-col items-end text-right"} w-[22cqw] rounded-[1cqw] bg-black/45 px-[1cqw] py-[0.8cqw] backdrop-blur-[2px]`}
                 >
                   <div className={`mb-[0.6cqw] flex items-center gap-[0.6cqw] ${sd === 1 ? "flex-row-reverse" : ""}`}>
                     <span
@@ -432,7 +438,7 @@ export default function Select({
           })}
 
           {/* 가운데 아래 얼굴 칸 */}
-          <div className="absolute bottom-[1.5cqw] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-[1cqw] rounded-[1cqw] bg-black/50 px-[1.2cqw] pt-[1.8cqw] pb-[1cqw] backdrop-blur-[2px]">
+          <div className="absolute bottom-[1cqw] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-[0.6cqw] rounded-[1cqw] bg-black/50 px-[1.2cqw] pt-[1.6cqw] pb-[0.7cqw] backdrop-blur-[2px]">
             <div className="flex gap-[1cqw]">
               {(() => {
                 const r1 = rnd[0] && !lock[0],
@@ -449,7 +455,7 @@ export default function Select({
                     className="relative cursor-pointer"
                   >
                     <span
-                      className={`flex h-[7.5cqw] w-[7cqw] items-center justify-center rounded-[0.5cqw] border-[0.3cqw] bg-black/60 font-mono text-[4cqw] font-black text-white/80 ${
+                      className={`flex h-[6.4cqw] w-[6.4cqw] items-center justify-center rounded-[0.5cqw] border-[0.3cqw] bg-black/60 font-mono text-[4cqw] font-black text-white/80 ${
                         r1 && r2 ? "border-[#A78BFA]" : r1 ? "border-[#3B82F6]" : r2 ? "border-[#F43F5E]" : "border-white/20"
                       } ${r1 || r2 ? "animate-pulse" : ""}`}
                     >
@@ -482,7 +488,7 @@ export default function Select({
                                         <img
                       src={face(c)}
                       alt={c.name}
-                      className={`h-[7.5cqw] w-[9.4cqw] rounded-[0.5cqw] border-[0.3cqw] object-cover ${PX} ${glow ? "animate-pulse" : ""} ${
+                      className={`h-[6.4cqw] w-[8cqw] rounded-[0.5cqw] border-[0.3cqw] object-cover ${PX} ${glow ? "animate-pulse" : ""} ${
                         on1 && on2
                           ? "border-[#A78BFA]"
                           : on1
@@ -506,9 +512,9 @@ export default function Select({
             <div className={`${KR} text-center text-[1.1cqw] text-white/45`}>
               {ai
                 ? side === 0
-                  ? "내 캐릭터 고르기 — A·D(←→) 이동, J(Enter)·한 번 더 클릭 결정, K 뒤로"
-                  : "상대(CPU) 캐릭터 고르기 — K(.) 내 캐릭터 다시"
-                : "1P A·D + J 결정 · 2P ←→ + Enter 결정 (K / . 취소)"}
+                  ? "내 캐릭터 고르기 — A·D(←→) 이동, J(Enter)·한 번 더 클릭 결정, Esc 뒤로"
+                  : "상대(CPU) 캐릭터 고르기 — Esc(.) 내 캐릭터 다시"
+                : "1P A·D + J 결정 · 2P ←→ + Enter 결정 (Esc / . 취소)"}
             </div>
           </div>
         </>

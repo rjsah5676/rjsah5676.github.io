@@ -133,7 +133,7 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
       const m = CHARS[f.ch].moves[f.mv as MoveId];
       // 잡기·가드 반격은 그림이 없으면 약·발차기 그림으로
       // 공중 아이덴티티 그림 (급강하 등)
-      if (f.mv === "S" && air && has("Sair")) return byTime("Sair", f.t);
+      if (f.mv === "S" && (air || f.aerial) && has("Sair")) return byTime("Sair", f.t);
       const ma =
         sh.chain?.[f.mv as MoveId]?.[f.chain - 1] ??
         sh.moves[f.mv as MoveId] ??
