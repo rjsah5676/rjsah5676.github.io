@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 from scipy import ndimage
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -165,7 +165,15 @@ def build(cid: str, src: Path):
     (OUT / f"{cid}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1) + "\n")
     # 효과 그림 (탄 등)
     for fx, fd in spec.get("fx", {}).items():
-        p, _ = cut(sheet, fd["box"], "center")
+        # 이펙트는 빛 번짐 아래 체크무늬까지 지운 시트(dechecker --glow)를 따로 쓸 수 있음
+        fsheet = np.asarray(Image.open(src / fd["sheet"]).convert("RGBA")) if "sheet" in fd else sheet
+        _lab_cache.clear()
+        p, _ = cut(fsheet, fd["box"], "center")
+        if "neutralAlpha" in fd:
+            # 물보라 속 회색·흰 얼룩(남은 체크무늬)은 반투명하게
+            rgb = p[..., :3].astype(int)
+            neutral = (rgb.max(2) - rgb.min(2) < 14) & (p[..., 3] > 0)
+            p[..., 3] = np.where(neutral, np.minimum(p[..., 3], fd["neutralAlpha"]), p[..., 3])
         (OUT / "fx").mkdir(exist_ok=True)
         Image.fromarray(p, "RGBA").save(OUT / "fx" / f"{fx}.webp", "WEBP", quality=88, method=6)
     print(cid, "frames", len(frames), "atlas", atlas.shape[1], "x", atlas.shape[0], "scale", scale)
@@ -184,7 +192,16 @@ def art(src: Path):
         OUT / "art" / "zena-face.webp", "WEBP", quality=88, method=6
     )
     for cid, (f, *box) in A["full"].items():
-        im = Image.open(src / f).convert("RGBA").crop(box)
+        im = Image.open(src / f).convert("RGBA")
+        # 옆·아래 다른 그림(앉은 그림 머리 등)과 붙은 곳은 다각형으로 지움 (시트 좌표)
+        polys = A.get("fullClear", {}).get(cid, [])
+        if polys:
+            mask = Image.new("L", im.size, 255)
+            d = ImageDraw.Draw(mask)
+            for poly in polys:
+                d.polygon([tuple(pt) for pt in poly], fill=0)
+            im.putalpha(Image.fromarray(np.minimum(np.asarray(im)[..., 3], np.asarray(mask))))
+        im = im.crop(box)
         a = np.asarray(im).copy()
         # 가장 큰 덩어리(전신 그림)만 — 옆의 작은 스프라이트·앉은 그림 조각 빼기
         lab, n = ndimage.label(ndimage.binary_dilation(a[..., 3] > 40, np.ones((5, 5))))

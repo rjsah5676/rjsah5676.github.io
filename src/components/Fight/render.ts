@@ -173,6 +173,10 @@ export class FightRenderer {
         this.parts.push({ x, y: y - 10, vx: 0, vy: -0.5, life: 34, max: 34, color: col, size: 1.3, kind: "text", text: txt });
         this.parts.push({ x, y, vx: 0, vy: 0, life: 12, max: 12, color: col, size: 13, kind: "ring" });
         if (e.k === "counter") this.shake = Math.max(this.shake, 3);
+      } else if (e.k === "launch") {
+        this.parts.push({ x, y: y - 30, vx: 0, vy: -0.6, life: 30, max: 30, color: "#FFE08A", size: 1.2, kind: "text", text: "LAUNCH!" });
+        this.parts.push({ x, y, vx: 0, vy: 0, life: 14, max: 14, color: "#FFE08A", size: 14, kind: "ring" });
+        this.shake = Math.max(this.shake, 3);
       } else if (e.k === "throw") {
         this.parts.push({ x, y, vx: 0, vy: 0, life: 12, max: 12, color: "#fff", size: 12, kind: "ring" });
         this.shake = Math.max(this.shake, 4);

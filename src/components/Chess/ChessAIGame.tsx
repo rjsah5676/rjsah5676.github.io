@@ -253,6 +253,19 @@ export default function ChessAIGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [over]);
 
+  /** 끝난 뒤 같은 상대로 바로 한 판 더 (색은 처음 고른 대로, 랜덤이면 다시 뽑음) */
+  const restart = () => {
+    setMyColor(me === "r" ? (Math.random() < 0.5 ? "w" : "b") : me);
+    setResigned(false);
+    setSubmitted(false);
+    setClock(NEW_CLOCK);
+    setHint(null);
+    setHints(0);
+    newGame();
+    setMoves([]);
+    say("greet");
+  };
+
   if (!moves) {
     const start = () => {
       const c: Color = me === "r" ? (Math.random() < 0.5 ? "w" : "b") : me;
@@ -475,8 +488,13 @@ export default function ChessAIGame() {
                 ⚑ 기권
               </button>
             ))}
-          <button type="button" onClick={() => setMoves(null)} className={over ? primaryBtn : btn}>
-            {over ? "새 대국" : "상대 바꾸기"}
+          {over && (
+            <button type="button" onClick={restart} className={primaryBtn}>
+              ↻ 다시 하기
+            </button>
+          )}
+          <button type="button" onClick={() => setMoves(null)} className={btn}>
+            상대 바꾸기
           </button>
         </div>
         <div className="thin-scroll max-h-44 overflow-y-auto rounded-xl border border-white/10 bg-[#1C1E24] p-2 lg:max-h-72">

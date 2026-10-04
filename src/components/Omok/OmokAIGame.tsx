@@ -234,6 +234,18 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [over]);
 
+  /** 끝난 뒤 같은 상대·설정으로 바로 한 판 더 */
+  const restart = () => {
+    setResigned(false);
+    setSubmitted(false);
+    setClock(NEW_CLOCK);
+    setHint(null);
+    setHints(0);
+    setWarn("");
+    setMoves([]);
+    say("greet");
+  };
+
   if (!moves) {
     return (
       <div className="mx-auto max-w-md rounded-xl border border-white/10 bg-[#1C1E24] p-5">
@@ -477,8 +489,13 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
                 ⚑ 기권
               </button>
             ))}
-          <button type="button" onClick={() => setMoves(null)} className={over ? primaryBtn : btn}>
-            {over ? "새 대국" : "설정으로"}
+          {over && (
+            <button type="button" onClick={restart} className={primaryBtn}>
+              ↻ 다시 하기
+            </button>
+          )}
+          <button type="button" onClick={() => setMoves(null)} className={btn}>
+            {over ? "상대·설정 바꾸기" : "설정으로"}
           </button>
         </div>
         <OmokNotation moves={moves} />

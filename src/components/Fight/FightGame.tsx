@@ -467,6 +467,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             sfxHit(1, elOf(e.p));
             if (e.p === 0) hits++;
           } else if (e.k === "tech") sfxBlock();
+          else if (e.k === "launch") sfxDash();
           else if (e.k === "proj") sfxProj(elOf(e.p), s.p[e.p].mv === "X");
           else if (e.k === "super") sfxSuper();
           else if (e.k === "ko") sfxKO();
@@ -570,8 +571,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           )}
           <div className="mt-1 text-white/40">
             약 4단·발차기 2단, 마지막 동작은 세지만 빈틈 큼 · 발차기·아이덴티티는 막히면 막은 쪽이 먼저 움직임(반격
-            기회) · 맞기 직전 가드 = 저스트 가드 · 가드 중 K = 가드 반격(게이지 25) · J+K 잡기(가드 불가, 잡힌 직후 J+K로
-            풀기) · 기술 내는 중·대시 중에 맞으면 카운터 · 같은 방향 두 번 대시 · 2단 점프, 공중 공격 점프마다 2번 ·
+            기회) · 맞기 직전 가드 = 저스트 가드 · 막은 직후 K = 가드 반격(게이지 25) · J+K 잡기(가드 불가, 위로 띄움, 잡힌 직후 J+K로
+            풀기) · 방향키는 공격·가드 중에도 바로 돌아섬 · 기술 내는 중·대시 중에 맞으면 카운터 · 같은 방향 두 번 대시 · 2단 점프, 공중 공격 점프마다 2번 ·
             떨어지면 위에서 다시 등장 · 게이지 MAX에 필살기 · Esc 일시정지
           </div>
         </div>

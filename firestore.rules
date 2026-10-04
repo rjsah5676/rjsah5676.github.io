@@ -203,6 +203,16 @@ service cloud.firestore {
                         && (!changed().hasAny(['pausedAt']) || resource.data.hostUid == request.auth.uid)
                         && !(resource.data.status == 'waiting' && request.resource.data.status == 'playing'
                              && resource.data.hostUid != request.auth.uid))
+                      // 다시 하기: 끝난 방에서 대국자가 흑백(선후)을 맞바꿔 바로 새 대국 시작
+                      || (isPlayerOf(resource.data)
+                        && resource.data.status == 'ended'
+                        && request.resource.data.status == 'playing'
+                        && request.resource.data.whiteUid == resource.data.blackUid
+                        && request.resource.data.blackUid == resource.data.whiteUid
+                        && request.resource.data.whiteName == resource.data.blackName
+                        && request.resource.data.blackName == resource.data.whiteName
+                        && request.resource.data.moves.size() == 0
+                        && !changed().hasAny(['hostUid', 'createdAt', 'locked', 'spectators']))
                       // 대기방 빈 자리 착석 (본인 uid로만, 시작은 방장이)
                       || (resource.data.status == 'waiting'
                         && request.resource.data.status == 'waiting'
@@ -310,6 +320,16 @@ service cloud.firestore {
                         && (!changed().hasAny(['pausedAt']) || resource.data.hostUid == request.auth.uid)
                         && !(resource.data.status == 'waiting' && request.resource.data.status == 'playing'
                              && resource.data.hostUid != request.auth.uid))
+                      // 다시 하기: 끝난 방에서 대국자가 흑백(선후)을 맞바꿔 바로 새 대국 시작
+                      || (isPlayerOf(resource.data)
+                        && resource.data.status == 'ended'
+                        && request.resource.data.status == 'playing'
+                        && request.resource.data.whiteUid == resource.data.blackUid
+                        && request.resource.data.blackUid == resource.data.whiteUid
+                        && request.resource.data.whiteName == resource.data.blackName
+                        && request.resource.data.blackName == resource.data.whiteName
+                        && request.resource.data.moves.size() == 0
+                        && !changed().hasAny(['hostUid', 'createdAt', 'locked', 'spectators']))
                       // 대기방 빈 자리 착석 (본인 uid로만, 시작은 방장이)
                       || (resource.data.status == 'waiting'
                         && request.resource.data.status == 'waiting'
@@ -417,6 +437,16 @@ service cloud.firestore {
                         && (!changed().hasAny(['pausedAt']) || resource.data.hostUid == request.auth.uid)
                         && !(resource.data.status == 'waiting' && request.resource.data.status == 'playing'
                              && resource.data.hostUid != request.auth.uid))
+                      // 다시 하기: 끝난 방에서 대국자가 흑백(선후)을 맞바꿔 바로 새 대국 시작
+                      || (isPlayerOf(resource.data)
+                        && resource.data.status == 'ended'
+                        && request.resource.data.status == 'playing'
+                        && request.resource.data.whiteUid == resource.data.blackUid
+                        && request.resource.data.blackUid == resource.data.whiteUid
+                        && request.resource.data.whiteName == resource.data.blackName
+                        && request.resource.data.blackName == resource.data.whiteName
+                        && request.resource.data.moves.size() == 0
+                        && !changed().hasAny(['hostUid', 'createdAt', 'locked', 'spectators']))
                       // 대기방 빈 자리 착석 (본인 uid로만, 시작은 방장이)
                       || (resource.data.status == 'waiting'
                         && request.resource.data.status == 'waiting'

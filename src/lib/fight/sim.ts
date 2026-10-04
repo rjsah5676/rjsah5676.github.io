@@ -8,7 +8,7 @@
  *  - 입력은 프레임마다 9비트 (방향 4 + 버튼 5)
  *
  * 좌표: x = 가로, h = 화면 아래에서 높이(위가 +). 화면 y = VIEW_H - h.
- * 발판은 한쪽 통과(밑에서 뚫고 올라감, ↓+점프로 내려감). 화면 밑으로 떨어지면
+ * 발판은 한쪽 통과(밑에서 뚫고 올라감, 끝으로 걸어 내려감). 화면 밑으로 떨어지면
  * 위에서 잠깐 무적으로 다시 내려옴 (피해 없음).
  * 조작: 좌우로 걷고 그쪽을 봄, ←←/→→ 대시(공중 1번), 점프(공중에서 한 번 더),
  * ↓ 누르고 있으면 가드. 공중에선 약·발차기·아이덴티티 — 점프마다 2번까지.
@@ -91,8 +91,11 @@ const FINISH_REC: Partial<Record<MoveId, number>> = { L: 14, H: 16 };
 const DASH_T = 13;
 /** 한 번 뜰 때 쓸 수 있는 공중 공격 수 (2단 점프하면 다시 채워짐) */
 const AIR_ATTACKS = 2;
-/** ↓+점프로 내려갈 때 발판 무시 프레임 */
-const DROP_T = 14;
+/** 막은 뒤 가드 반격을 받아 주는 여유 프레임 (막는 경직 + 이만큼) */
+const GC_GRACE = 10;
+/** 잡기 성공 후 위로 띄우는 세기와 그동안의 경직 */
+const LAUNCH_VH = 2300;
+const LAUNCH_STUN = 46;
 
 export type FState =
   "idle" | "walk" | "dash" | "jump" | "atk" | "hit" | "block" | "down" | "rise" | "ko" | "win";
@@ -138,8 +141,8 @@ export interface Fighter {
   grabbed: number;
   /** 쓴 점프 수 (땅에 닿으면 0) */
   jumps: number;
-  /** 남은 발판 통과 프레임 (↓+점프) */
-  drop: number;
+  /** 가드 반격을 쓸 수 있는 남은 프레임 (공격을 막으면 채워짐) */
+  gcT: number;
   /** 남은 무적 프레임 (다시 내려온 뒤) */
   inv: number;
   /** 최근 입력 (마지막이 이번 프레임) */
@@ -178,6 +181,7 @@ export type EvKind =
   | "dash"
   | "fall"
   | "throw"
+  | "launch"
   | "tech"
   | "just"
   | "counter";
@@ -283,7 +287,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     guardT: 255,
     grabbed: 0,
     jumps: 0,
-    drop: 0,
+    gcT: 0,
     inv: 0,
     hist: new Array(HIST).fill(0),
   };
@@ -372,7 +376,7 @@ export function hash(s: State): number {
     mix(f.guardT);
     mix(f.grabbed);
     mix(f.airDash);
-    mix(f.drop);
+    mix(f.gcT);
     mix(f.inv);
     mix(f.st.length * 31 + f.st.charCodeAt(0));
     mix(f.mv ? f.mv.charCodeAt(0) : 0);
@@ -584,16 +588,34 @@ function airAttack(s: State, i: number): boolean {
   return false;
 }
 
+/** 좌우 중 하나만 누르고 있으면 그쪽을 봄 */
+function steerFace(f: Fighter) {
+  if (holding(f, IN.R) && !holding(f, IN.L)) f.face = 1;
+  else if (holding(f, IN.L) && !holding(f, IN.R)) f.face = -1;
+}
+
+/** 가드 반격: 공격을 막은 동안·직후(gcT)에 발차기 + 게이지 25 (막는 경직·히트스톱 중 미리 눌러도 됨) */
+function guardCounter(s: State, i: number): boolean {
+  const f = s.p[i];
+  if (f.gcT <= 0 || f.meter < GUARD_COUNTER_COST || !pressed(f, IN.B, 8)) return false;
+  const o = s.p[1 - i];
+  f.face = o.x >= f.x ? 1 : -1;
+  f.gcT = 0;
+  startMove(s, i, "G");
+  return true;
+}
+
 function control(s: State, i: number) {
   const f = s.p[i];
   const c = charOf(f);
   const map = mapOf(s);
   f.t++;
+  if (f.gcT > 0) f.gcT--;
   switch (f.st) {
     case "idle":
     case "walk": {
+      if (guardCounter(s, i)) return;
       if (tryAttack(s, i, ["X", "T", "S", "H", "L"])) return;
-      const on = standingOn(map, f);
       if (doubleTap(f, IN.R) || doubleTap(f, IN.L)) {
         f.face = doubleTap(f, IN.R) ? 1 : -1;
         f.st = "dash";
@@ -604,20 +626,11 @@ function control(s: State, i: number) {
         return;
       }
       if (pressed(f, JUMP_BITS, 3)) {
-        if (holding(f, IN.D) && on && !on.solid) {
-          // 발판 아래로
-          f.drop = DROP_T;
-          f.h -= SUB;
-          f.st = "jump";
-          f.t = 0;
-          f.jumps = 1;
-          f.vh = 0;
-          return;
-        }
         jump(s, i, JUMP_V);
         return;
       }
       if (holding(f, IN.D)) {
+        steerFace(f);
         f.st = "block";
         f.t = 0;
         f.stun = 0;
@@ -638,7 +651,16 @@ function control(s: State, i: number) {
     }
     case "dash":
       f.dashT--;
-      if (tryAttack(s, i, ["X", "S", "H", "L"])) return;
+      if (tryAttack(s, i, ["X", "T", "S", "H", "L"])) return;
+      if (holding(f, f.face > 0 ? IN.L : IN.R) && !holding(f, f.face > 0 ? IN.R : IN.L)) {
+        // 반대쪽을 누르면 바로 돌아서 멈춤 (방향키 우선)
+        f.face = f.face > 0 ? -1 : 1;
+        f.vx = 0;
+        f.dashT = 0;
+        f.st = "idle";
+        f.t = 0;
+        return;
+      }
       if (pressed(f, JUMP_BITS, 3)) {
         const keep = f.vx;
         jump(s, i, JUMP_V);
@@ -674,6 +696,14 @@ function control(s: State, i: number) {
     case "atk": {
       const m = moveOf(f)!;
       const air = airborneS(s, f);
+      // 잡기 입력 너그럽게: 약(또는 발차기)을 먼저 눌러 시작 중이어도 몇 프레임 안에 나머지를 누르면 잡기
+      if (!air && (f.mv === "L" || f.mv === "H") && f.chain === 1 && f.t <= 3 &&
+          (cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, f.mv === "L" ? IN.B : IN.A, 2)) {
+        startMove(s, i, "T");
+        return;
+      }
+      // 방향키 우선: 기술 중에도 누르는 쪽으로 돎 (돌진기는 돌진 시작 전까지만)
+      if (f.mv !== "T" && f.mv !== "G" && (!(m.rush || m.lunge) || f.t < m.startup)) steerFace(f);
       if (air) {
         if ((!m.lunge && !m.rush) || f.t > m.startup + m.active) airSteer(f);
       } else if ((f.mv === "L" || f.mv === "H") && f.vx * f.face < c.walk) {
@@ -740,10 +770,13 @@ function control(s: State, i: number) {
       if (f.grabbed > 0) {
         f.grabbed--;
         if (f.grabbed === 0) {
-          // 못 풀었으면 던져짐
-          f.vh = 1500;
-          f.kd = 1;
-          f.vx = -f.face * 1500;
+          // 못 풀었으면 위로 띄워짐 (다운 아님 → 뛰어올라 공중 콤보)
+          const o = s.p[1 - i];
+          f.vh = LAUNCH_VH;
+          f.kd = 0;
+          f.vx = o.face * 220;
+          f.stun = LAUNCH_STUN;
+          s.ev.push({ k: "launch", p: 1 - i, x: f.x, h: f.h, v: 0 });
         }
         // 잡기 풀기: 잡힌 직후 약+발차기 (히트스톱 동안 누른 것도 인정)
         if ((cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, IN.A | IN.B, THROW_TECH_T + 12)) {
@@ -783,13 +816,20 @@ function control(s: State, i: number) {
       return;
     case "block":
       if (f.guardT < 255) f.guardT++;
-      // 가드 반격: 막는 경직 중(또는 막은 직후) 발차기 + 게이지
-      if (f.meter >= GUARD_COUNTER_COST && f.stun > 0 && pressed(f, IN.B, 2)) {
-        startMove(s, i, "G");
+      if (guardCounter(s, i)) return;
+      // 막은 채로 좌우를 누르면 그쪽을 봄
+      steerFace(f);
+      if (f.stun > 0) {
+        f.stun--;
         return;
       }
-      if (f.stun > 0) f.stun--;
-      if (f.stun <= 0 && !holding(f, IN.D)) {
+      // 막는 경직이 아니면 다른 버튼은 바로 실행 (공격·점프·대시)
+      if (tryAttack(s, i, ["X", "T", "S", "H", "L"])) return;
+      if (pressed(f, JUMP_BITS, 3)) {
+        jump(s, i, JUMP_V);
+        return;
+      }
+      if (!holding(f, IN.D)) {
         f.st = "idle";
         f.t = 0;
       }
@@ -876,7 +916,7 @@ function respawn(s: State, i: number) {
   f.airUsed = 0;
   f.airDash = 0;
   f.dashT = 0;
-  f.drop = 0;
+  f.gcT = 0;
   f.inv = RESPAWN_INV;
 }
 
@@ -884,7 +924,6 @@ function physics(s: State, i: number) {
   const f = s.p[i];
   const map = mapOf(s);
   const m = moveOf(f);
-  if (f.drop > 0) f.drop--;
   if (f.inv > 0) f.inv--;
   const on = standingOn(map, f);
   if (on) {
@@ -924,7 +963,6 @@ function physics(s: State, i: number) {
     for (const p of map.plats) {
       const top = p.y * SUB;
       if (!inX(p, f.x) || top > prev || top < next) continue;
-      if (!p.solid && f.drop > 0) continue;
       if (!land || p.y > land.y) land = p;
     }
     if (land) {
@@ -954,8 +992,8 @@ function separate(s: State) {
 
 function canBlock(s: State, d: Fighter, fromX: number) {
   if (airborneS(s, d)) return false;
-  // 보고 있는 쪽에서 온 공격만 막음 (등 뒤는 못 막음)
-  if ((fromX - d.x) * d.face < 0) return false;
+  // 막기는 앞뒤 다 막음 (뒤로 걷다 막아도, 발밑 기둥도) — 막으면 때린 쪽으로 돌아봄
+  void fromX;
   return d.st === "block" || ((d.st === "idle" || d.st === "walk") && holding(d, IN.D));
 }
 
@@ -979,6 +1017,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     d.t = 0;
     d.mv = "";
     d.stun = just ? Math.max(2, m.blockstun >> 1) : m.blockstun;
+    if (srcX !== d.x) d.face = srcX > d.x ? 1 : -1;
+    d.gcT = d.stun + GC_GRACE;
     if (!wasBlocking) d.guardT = 0;
     d.guardT = Math.max(d.guardT, JUST_T + 1);
     // 막은 쪽은 조금, 때린 쪽도 밀려남 (가드 밀림 — 계속 붙어서 때리기 어렵게)

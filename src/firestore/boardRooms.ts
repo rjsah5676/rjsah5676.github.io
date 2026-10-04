@@ -66,6 +66,8 @@ export interface BoardRoom<R extends string = string> {
   /** ply = 요청 당시 moves.length (그 사이 수가 진행되면 무효) */
   undoReq: { uid: string; ply: number } | null;
   drawOffer: string;
+  /** 다시 하기를 먼저 누른 대국자 uid ("" = 없음) */
+  rematch: string;
   spectators: Record<string, string>;
   /** 비밀번호 방 (링크의 초대키로 들어오면 비번 없이 입장) */
   locked: boolean;
@@ -224,6 +226,7 @@ export function createBoardRooms<G, R extends string>(cfg: BoardRoomConfig<G, R>
       reason: d.reason ?? "",
       undoReq: d.undoReq ?? null,
       drawOffer: d.drawOffer ?? "",
+      rematch: d.rematch ?? "",
       pausedAt: d.pausedAt ?? null,
       spectators: d.spectators ?? {},
       locked: d.locked === true,
@@ -616,6 +619,50 @@ export function createBoardRooms<G, R extends string>(cfg: BoardRoomConfig<G, R>
     });
   }
 
+  // ───────────────────── 다시 하기 ─────────────────────
+
+  /**
+   * 끝난 방에서 같은 상대와 바로 한 판 더 (방 새로 만들 필요 없음).
+   * 한쪽이 누르면 신청, 다른 쪽도 누르면 흑백(선후)을 바꿔 바로 새 대국 시작.
+   */
+  async function requestRematch(roomId: string, uid: string) {
+    await runTransaction(db, async (tx) => {
+      const room = await readRoom(tx, roomId);
+      const me = colorOf(room, uid);
+      if (room.status !== "ended" || !me) return;
+      if (!room.whiteUid || !room.blackUid) throw new Error("상대가 나갔습니다.");
+      if (!room.rematch || room.rematch === uid) {
+        tx.update(roomRef(roomId), { rematch: uid, updatedAt: serverTimestamp() });
+        return;
+      }
+      const ms = room.timeMin * 60_000;
+      tx.update(roomRef(roomId), {
+        whiteUid: room.blackUid,
+        whiteName: room.blackName,
+        blackUid: room.whiteUid,
+        blackName: room.whiteName,
+        status: "playing",
+        moves: [],
+        fen: cfg.initialFen(room.variant),
+        whiteMs: ms,
+        blackMs: ms,
+        turnStartedAt: serverTimestamp(),
+        pausedAt: null,
+        result: "",
+        reason: "",
+        undoReq: null,
+        drawOffer: "",
+        rematch: "",
+        updatedAt: serverTimestamp(),
+      });
+    });
+  }
+
+  /** 다시 하기 신청 취소 / 거절 */
+  async function cancelRematch(roomId: string) {
+    await updateDoc(roomRef(roomId), { rematch: "" });
+  }
+
   // ───────────────────── 무르기 ─────────────────────
 
   async function requestUndo(room: Room, uid: string) {
@@ -788,6 +835,8 @@ export function createBoardRooms<G, R extends string>(cfg: BoardRoomConfig<G, R>
     requestUndo,
     cancelUndo,
     respondUndo,
+    requestRematch,
+    cancelRematch,
     pauseGame,
     resumeGame,
     addTime,

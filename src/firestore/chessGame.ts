@@ -112,6 +112,8 @@ export const {
   requestUndo,
   cancelUndo,
   respondUndo,
+  requestRematch,
+  cancelRematch,
   pauseGame,
   resumeGame,
   addTime,

@@ -38,7 +38,7 @@ export default function SketchChat({
     <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-white/10 bg-[#1C1E24]">
       <div
         ref={boxRef}
-        className="min-h-[160px] flex-1 space-y-1 overflow-y-auto px-3 py-2 font-['Nanum_Gothic',sans-serif] text-[13px] leading-relaxed"
+        className="thin-scroll min-h-[160px] flex-1 space-y-1 overflow-y-auto px-3 py-2 font-['Nanum_Gothic',sans-serif] text-[13px] leading-relaxed"
       >
         {list.length === 0 && <p className="text-white/25">채팅·정답을 여기에 입력하세요</p>}
         {list.map((m) =>

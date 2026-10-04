@@ -42,6 +42,8 @@ import {
   resign,
   respondDraw,
   respondUndo,
+  requestRematch,
+  cancelRematch,
   serverNow,
   subscribePresence,
   subscribeRoom,
@@ -827,8 +829,35 @@ export default function JanggiRoomView({
             </div>
           )}
 
+          {room.status === "ended" && me && (
+            // 다시 하기: 방 그대로, 선후를 바꿔 한 판 더 (둘 다 누르면 바로 시작)
+            <div className="flex flex-wrap items-center gap-2">
+              {room.rematch === uid ? (
+                <>
+                  <span className="font-mono text-xs text-white/55">상대 응답 기다리는 중…</span>
+                  <button type="button" onClick={() => run(cancelRematch(roomId))} className={btn}>
+                    취소
+                  </button>
+                </>
+              ) : room.rematch ? (
+                <>
+                  <span className="font-mono text-xs text-[#9BE7FF]">상대가 한 판 더 원해요</span>
+                  <button type="button" onClick={() => run(requestRematch(roomId, uid))} className={primaryBtn}>
+                    ↻ 다시 하기
+                  </button>
+                  <button type="button" onClick={() => run(cancelRematch(roomId))} className={btn}>
+                    거절
+                  </button>
+                </>
+              ) : (
+                <button type="button" onClick={() => run(requestRematch(roomId, uid))} className={primaryBtn}>
+                  ↻ 다시 하기 (선후 교대)
+                </button>
+              )}
+            </div>
+          )}
           {room.status === "ended" && (
-            <button type="button" onClick={onExit} className={primaryBtn}>
+            <button type="button" onClick={onExit} className={me ? btn : primaryBtn}>
               로비로 돌아가기
             </button>
           )}

@@ -362,11 +362,13 @@ export class FightAI {
         return finish();
       }
       if (dy < -50 && dist < 300) {
+        // 아래에 있는 상대: 발판 끝으로 걸어 내려감 (하단 점프 없음)
         const on = platBelow(map, f.x, f.h);
-        const below = on && platBelow(map, f.x, f.h - SUB);
-        if (on && !on.solid && below) {
-          out |= IN.D;
-          press(IN.J);
+        if (on && !on.solid) {
+          const toL = f.x - on.x0 * SUB,
+            toR = on.x1 * SUB - f.x;
+          const side = Math.abs(o.x - on.x0 * SUB) < Math.abs(o.x - on.x1 * SUB) ? -1 : 1;
+          out |= (toL < 6 * SUB ? 1 : toR < 6 * SUB ? -1 : side) > 0 ? IN.R : IN.L;
           return finish();
         }
       }
@@ -461,6 +463,8 @@ export class FightAI {
       press(IN.C);
     // 우산 활강: 점프를 다 쓴 뒤 내려올 때 (토글하면 2단 점프가 돼 버리니 꾹 누름)
     if (c.glide && f.st === "jump" && f.vh < 0 && f.jumps >= 2 && dist > 60) out |= IN.J;
+    // 기술 중엔 뒤로 누르지 않음 (방향키 우선이라 누르면 돌아섬)
+    if (f.st === "atk" && !air) out &= ~away;
     // 걷다가 낭떠러지면 멈춤 (아래에 발판이 없으면)
     if (!air && (out & (IN.L | IN.R))) {
       const dir = out & IN.R ? 1 : -1;

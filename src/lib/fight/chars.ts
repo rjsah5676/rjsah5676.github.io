@@ -359,7 +359,7 @@ const RAW: CharSrc[] = [
     name: "소영",
     title: "선생님 · 채찍",
     desc: "긴 채찍으로 거리를 지배하는 엄한 선생님. 붙으면 약함",
-    hp: 1300,
+    hp: 1270,
     walk: 1020,
     jumpVx: 900,
     dash: 2300,
@@ -405,17 +405,18 @@ const RAW: CharSrc[] = [
         cancel: ["S", "X"],
       },
       J: {
+        // 공중 채찍: 앞쪽 아래로 길게 휘둘러 공중에서도 리치로 견제 (뛰어드는 상대·아래 발판 상대)
         startup: 6,
-        active: 7,
+        active: 9,
         recovery: 8,
-        dmg: 50,
+        dmg: 58,
         chip: 0,
-        hitstun: 15,
+        hitstun: 18,
         blockstun: 10,
-        push: 900,
-        hitstop: 5,
-        meter: 5,
-        box: { x: 4, y: 44, w: 70, h: 22 },
+        push: 1000,
+        hitstop: 6,
+        meter: 6,
+        box: { x: 0, y: 60, w: 96, h: 56 },
       },
       K: {
         startup: 8,
@@ -469,7 +470,7 @@ const RAW: CharSrc[] = [
     name: "릴리",
     title: "유치원생 · 우산과 물",
     desc: "우산으로 둥실 떠다니며 물방울을 띄우는 꼬마. 작아서 잘 안 맞음",
-    hp: 1120,
+    hp: 1170,
     walk: 1120,
     jumpVx: 1050,
     dash: 2500,
@@ -693,20 +694,19 @@ const RAW: CharSrc[] = [
  */
 const ON_BLOCK: Record<MoveId, number> = { L: -1, H: -4, J: 0, K: -2, S: -8, X: -16, T: 0, G: -10 };
 
-/** 잡기: 가드 불가, 대신 사거리가 아주 짧고 헛치면 빈틈이 큼. 잡히는 순간 약+발차기로 풀 수 있음 */
+/** 잡기(띄우기): 가드 불가, 사거리 짧음. 잡히는 순간 약+발차기로 풀 수 있고, 못 풀면 위로 띄워져 공중 콤보 시작 */
 const THROW: MoveDef = {
   startup: 5,
-  active: 2,
-  recovery: 24,
-  dmg: 110,
+  active: 3,
+  recovery: 14,
+  dmg: 60,
   chip: 0,
   hitstun: 30,
   blockstun: 0,
-  push: 1500,
+  push: 0,
   hitstop: 10,
   meter: 8,
-  box: { x: 0, y: 56, w: 30, h: 44 },
-  kd: true,
+  box: { x: 0, y: 56, w: 38, h: 44 },
 };
 /** 가드 반격: 막는 중에 발차기 → 게이지 25를 써서 바로 밀쳐 냄 (시작 동안 무적) */
 const GUARD_COUNTER: MoveDef = {
