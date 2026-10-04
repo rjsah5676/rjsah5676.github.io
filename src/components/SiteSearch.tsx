@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NAV_GROUPS } from "@/data/navMenu";
 import { chosung } from "@/lib/food";
+import { lockScroll } from "@/lib/scrollLock";
 
 /**
  * 사이트 빠른 이동 (Ctrl/⌘ + K, 또는 '/').
@@ -84,11 +85,10 @@ export default function SiteSearch() {
     setQ("");
     setSel(0);
     const id = requestAnimationFrame(() => inputRef.current?.focus());
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     return () => {
       cancelAnimationFrame(id);
-      document.body.style.overflow = prev;
+      unlock();
     };
   }, [open]);
 

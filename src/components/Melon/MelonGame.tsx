@@ -18,6 +18,7 @@ import endSound from "@/sounds/melongame/endbgm.mp3";
 import "@/css/Page/melon.css";
 import GameHeader from "@/components/GameHeader";
 import { MELON_GUIDE } from "@/data/gameGuides";
+import { lockScroll } from "@/lib/scrollLock";
 import { rankDateLabel } from "@/lib/rankDate";
 import { getTopMelonScores, addMelonScore, type MelonScore } from "@/firestore/melonGame";
 import {
@@ -233,8 +234,7 @@ export default function MelonGame() {
   useEffect(() => {
     if (!big) return;
     const el = wrapRef.current;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     document.body.classList.add("game-full");
     const orient = screen.orientation as ScreenOrientation & {
       lock?: (o: string) => Promise<void>;
@@ -249,7 +249,7 @@ export default function MelonGame() {
     document.addEventListener("fullscreenchange", onFs);
     return () => {
       document.removeEventListener("fullscreenchange", onFs);
-      document.body.style.overflow = prev;
+      unlock();
       document.body.classList.remove("game-full");
       try {
         orient.unlock?.();

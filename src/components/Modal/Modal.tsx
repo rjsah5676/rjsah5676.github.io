@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { lockScroll } from "@/lib/scrollLock";
 
 export type ModalCloseReason = "backdrop" | "escape" | "popstate";
 
@@ -89,8 +90,7 @@ export default function Modal({
   useEffect(() => {
     if (!open) return;
     const prevFocus = document.activeElement as HTMLElement | null;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCloseRef.current("escape");
@@ -102,7 +102,7 @@ export default function Modal({
 
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
+      unlock();
       prevFocus?.focus?.();
     };
   }, [open, initialFocusRef]);
@@ -113,7 +113,7 @@ export default function Modal({
     // 모바일(sm 미만)은 아래에서 올라오는 시트: 가로는 화면 꽉 차게, 세로는 최대 92dvh 안에서 스크롤
     <div className="fixed inset-0 z-[100000] flex items-end justify-center sm:items-center sm:p-4">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm [animation:modal-fade_150ms_ease-out]"
+        className="absolute inset-0 touch-none bg-black/60 backdrop-blur-sm [animation:modal-fade_150ms_ease-out]"
         onClick={closeOnBackdrop ? () => onCloseRef.current("backdrop") : undefined}
         aria-hidden="true"
       />
@@ -123,7 +123,7 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        className={`thin-scroll modal-panel relative max-h-[92dvh] w-full ${SIZE[size]} overflow-x-hidden overflow-y-auto rounded-t-2xl border border-white/10 bg-[#1C1E24] px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] break-words shadow-2xl outline-none sm:max-h-[88dvh] sm:rounded-2xl sm:p-7`}
+        className={`thin-scroll modal-panel relative max-h-[92dvh] w-full ${SIZE[size]} overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-2xl border border-white/10 bg-[#1C1E24] px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] break-words shadow-2xl outline-none sm:max-h-[88dvh] sm:rounded-2xl sm:p-7`}
       >
         {closeButton && (
           <button
