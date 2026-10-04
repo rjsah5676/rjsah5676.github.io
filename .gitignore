@@ -33,3 +33,6 @@ yarn-error.log*
 
 # 식약처 영양성분 원본 CSV (npm run foods 로 public/data/foods.json 생성)
 /data/raw/
+
+# Claude가 만든 스샷·원본 시트 (작업용, 커밋 안 함)
+/Claude outputs/
