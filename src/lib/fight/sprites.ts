@@ -12,7 +12,7 @@
  */
 import type { MoveId } from "./chars";
 import { CHARS } from "./chars";
-import { finishRec, type Fighter, type State } from "./sim";
+import { finishRec, isAir, type Fighter, type State } from "./sim";
 
 export interface AnimDef {
   row: number;
@@ -52,6 +52,12 @@ export interface SpriteSheet {
   chain?: Partial<Record<MoveId, MoveAnim[]>>;
   states: Record<string, StateAnim>;
   credit?: string;
+  /**
+   * v2 에셋(scripts/fight-atlas-v2.py): 있으면 쓰는 동작 —
+   * dashEnd(대시 멈춤) · jump 3장(도약·상승·하강) · jump2(2단 점프) · land(착지) · block 2장(막음·막는 충격)
+   * hitAir(공중 피격) · down 4장(날아감·뒤집힘·쿵·누움) · rise(일어남) · Sair(공중 아이덴티티) · SairLand(그 착지)
+   */
+  v2?: boolean;
 }
 
 export interface LoadedSheet extends SpriteSheet {
@@ -96,6 +102,12 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
     if (a.loop) return loopAt(st.anim, t);
     return { anim: a, frame: clampI((t * a.fps) / 60, 0, a.frames - 1) };
   };
+  const has = (n: string) => !!sh.anims[n];
+  const byTime = (name: string, t: number) => {
+    const a = sh.anims[name];
+    return { anim: a, frame: a.loop ? Math.floor((t * a.fps) / 60) % a.frames : clampI((t * a.fps) / 60, 0, a.frames - 1) };
+  };
+  const air = isAir(s, f);
   switch (f.st) {
     case "idle":
       return stateAnim("idle", s.f + f.ch * 17);
@@ -107,12 +119,21 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
       return sh.states.dash ? stateAnim("dash", f.t) : loopAt(sh.states.walk.anim, f.t * 2);
     case "jump":
       if (f.dashT > 0 && sh.states.dash) return stateAnim("dash", f.t);
+      // 2단 점프 공중제비
+      if (has("jump2") && f.jumps >= 2 && f.t < 16) return byTime("jump2", f.t);
       // 우산 활강 (천천히 떨어지는 중)
       if (sh.anims.glide && CHARS[f.ch].glide && f.vh <= -(CHARS[f.ch].glide ?? 0) + 5) return loopAt("glide", f.t);
+      if (sh.anims.jump.frames >= 3) {
+        // 도약 → 상승 → 하강
+        const k = f.t < 5 && f.vh > 0 ? 0 : f.vh > 150 ? 1 : 2;
+        return { anim: sh.anims.jump, frame: k };
+      }
       return stateAnim("jump", f.t);
     case "atk": {
       const m = CHARS[f.ch].moves[f.mv as MoveId];
       // 잡기·가드 반격은 그림이 없으면 약·발차기 그림으로
+      // 공중 아이덴티티 그림 (급강하 등)
+      if (f.mv === "S" && air && has("Sair")) return byTime("Sair", f.t);
       const ma =
         sh.chain?.[f.mv as MoveId]?.[f.chain - 1] ??
         sh.moves[f.mv as MoveId] ??
@@ -128,20 +149,34 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
       return { anim: a, frame: clampI(fr, ma.from, Math.min(ma.to, a.frames - 1)) };
     }
     case "hit":
+      if (air && has("down") && f.kd) return byTime("down", Math.min(f.t, 24) * 0.5); // 날아감·뒤집힘
+      if (air && has("hitAir")) return byTime("hitAir", f.t);
       return stateAnim("hit", f.t);
     case "block":
+      // 막는 충격 (막는 경직 중)
+      if (sh.anims.block.frames >= 2) return { anim: sh.anims.block, frame: f.stun > 0 ? 1 : 0 };
       return stateAnim("block", f.t);
     case "down": {
+      if (has("rise")) {
+        // 쿵 → 누움
+        const a = sh.anims.down;
+        return { anim: a, frame: Math.min(a.frames - 1, Math.max(a.frames - 2, a.frames - 2 + Math.floor(f.t / 8))) };
+      }
       const a = sh.anims[sh.states.down.anim];
       const mid = Math.floor(a.frames * 0.7);
       return { anim: a, frame: clampI((f.t * a.fps) / 60, 0, mid) };
     }
     case "rise": {
+      if (has("rise")) return { anim: sh.anims.rise, frame: clampI((f.t * sh.anims.rise.frames) / 14, 0, sh.anims.rise.frames - 1) };
       const a = sh.anims[sh.states.down.anim];
       const mid = Math.floor(a.frames * 0.7);
       return { anim: a, frame: clampI(mid - (mid * f.t) / 14, 0, mid) };
     }
     case "ko":
+      if (has("rise")) {
+        const a = sh.anims.down;
+        return air ? { anim: a, frame: Math.min(1, Math.floor(f.t / 10)) } : { anim: a, frame: a.frames - 1 };
+      }
       return stateAnim("ko", f.t);
     case "win":
       return stateAnim("win", f.t);

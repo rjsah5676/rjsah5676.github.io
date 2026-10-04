@@ -59,6 +59,27 @@ const PROJ_ART: Record<string, Partial<Record<"S" | "X", [string, number, number
   zena: { S: ["zena-spear", 1.1, 0.8] },
 };
 
+/**
+ * v2 에셋 그림 효과 (public/fight/fx/<캐릭터>-<이름>-<n>.webp): 이름 → [장 수, 월드 크기 배율, 빛(더하기 합성)인가]
+ * 원본 대비 0.48로 저장되고 캐릭터 시트 scale(≈2.15)의 0.8배 → 월드 px = 그림 px / (scale × 0.8)
+ */
+const FX_SETS: Record<string, Record<string, [number, number, boolean]>> = {
+  kai: { spark: [4, 0.75, true], guard: [2, 0.6, true], dust: [4, 0.5, false], rush: [4, 0.7, true], burst: [4, 1.3, true] },
+};
+interface FxAnim {
+  key: string;
+  n: number;
+  x: number;
+  y: number;
+  t: number;
+  dur: number;
+  flip: boolean;
+  k: number;
+  glow: boolean;
+  /** 아래 가운데 기준 (먼지 등 바닥 것) */
+  ground: boolean;
+}
+
 function glowAt(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
   g.save();
   g.globalCompositeOperation = "lighter";
@@ -79,6 +100,34 @@ export class FightRenderer {
   private shake = 0;
   /** 캐릭터별 움직임 연출 상태 (숨쉬기·착지·잔상 등) */
   private motion: [Motion, Motion] = [new Motion(), new Motion()];
+  private fx: FxAnim[] = [];
+
+  /** 그림 효과 하나 띄우기 (그 캐릭터에 그 효과 그림이 있을 때만) — 성공하면 true */
+  private spawnFx(ch: number, name: string, x: number, y: number, face: number, dur = 16, ground = false) {
+    const id = CHARS[ch].id;
+    const d = FX_SETS[id]?.[name];
+    if (!d) return false;
+    this.fx.push({ key: `${id}-${name}`, n: d[0], x, y, t: 0, dur, flip: face < 0, k: d[1], glow: d[2], ground });
+    return true;
+  }
+
+  private drawFx() {
+    const g = this.g;
+    for (const e of this.fx) {
+      const k = Math.min(e.n - 1, Math.floor((e.t / e.dur) * e.n));
+      const im = fxImg(`${e.key}-${k}`);
+      if (!im) continue;
+      const w = (im.width / 1.72) * e.k,
+        h = (im.height / 1.72) * e.k;
+      g.save();
+      if (e.glow) g.globalCompositeOperation = "lighter";
+      g.globalAlpha = Math.min(1, 1.6 * (1 - e.t / e.dur) + 0.2);
+      g.translate(e.x, e.y);
+      if (e.flip) g.scale(-1, 1);
+      g.drawImage(im, -w / 2, e.ground ? -h : -h / 2, w, h);
+      g.restore();
+    }
+  }
   private flash = 0;
   private flashColor = "#fff";
   sheets: (LoadedSheet | null)[] = [null, null];
@@ -150,6 +199,16 @@ export class FightRenderer {
     for (const e of evs) {
       const x = e.x / SUB,
         y = screenY(e.h);
+      if (e.k === "hit" || e.k === "throw") {
+        const a = s.p[e.p];
+        this.spawnFx(a.ch, "spark", x, y, a.face, 12);
+      } else if (e.k === "block" || e.k === "just") {
+        const d = s.p[1 - e.p];
+        this.spawnFx(d.ch, "guard", d.x / SUB + d.face * 12, y, d.face, 12);
+      } else if (e.k === "dash") {
+        const a = s.p[e.p];
+        if (e.v === 0) this.spawnFx(a.ch, "dust", a.x / SUB - a.face * 22, screenY(a.h), a.face, 18, true);
+      }
       if (e.k === "hit") {
         const power = e.m === "X" ? 2 : e.m === "H" || e.m === "S" ? 1 : 0;
         const ch = CHARS[s.p[e.p].ch];
@@ -249,6 +308,8 @@ export class FightRenderer {
       p.life--;
     }
     this.parts = this.parts.filter((p) => p.life > 0);
+    for (const e of this.fx) e.t++;
+    this.fx = this.fx.filter((e) => e.t < e.dur);
     this.shake *= 0.8;
   }
 
@@ -360,7 +421,14 @@ export class FightRenderer {
       g.fillRect(x - 8, y - 60, 16, 60);
       return;
     }
-    const { anim, frame } = pickFrame(sh, f, s);
+    let { anim, frame } = pickFrame(sh, f, s);
+    // 착지·대시 멈춤·급강하 착지 그림 (상태가 막 바뀐 직후 잠깐)
+    const mo0 = this.motion[i];
+    if (mo0.after && sh.anims[mo0.after.name]) {
+      const a = sh.anims[mo0.after.name];
+      anim = a;
+      frame = Math.min(a.frames - 1, Math.floor((mo0.after.t * a.frames) / mo0.after.dur));
+    }
     const fr = frameRect(sh, anim, frame);
     const sc = sh.scale ?? 1;
     const flashHit = (f.st === "hit" && f.t < 2) || (s.stop > 0 && f.st === "hit");
@@ -386,6 +454,24 @@ export class FightRenderer {
     // 움직임 연출 (발 기준 늘이기·기울이기·밀기, 잔상)
     const mo = this.motion[i];
     mo.update(f, s, `${anim.list?.[frame] ?? anim.row * 100 + frame}`, fr, x, y);
+    for (const sp of mo.spawn.splice(0))
+      this.spawnFx(f.ch, sp.name, x + sp.dx * f.face, y + sp.dy, f.face, sp.name === "burst" ? 26 : 18, true);
+    // 돌진 아이덴티티: 주먹 앞에 바람 덩어리
+    const cm = f.st === "atk" && f.mv ? CHARS[f.ch].moves[f.mv as keyof typeof CHARS[number]["moves"]] : null;
+    if (cm && f.mv === "S" && cm.rush && !isAirF(s, f) && f.t >= cm.startup - 2 && f.t < cm.startup + cm.active + 2) {
+      const d = FX_SETS[CHARS[f.ch].id]?.rush;
+      const im = d && fxImg(`${CHARS[f.ch].id}-rush-${Math.min(3, Math.floor((f.t - cm.startup + 2) / 3))}`);
+      if (im && d) {
+        const w = (im.width / 1.72) * d[1],
+          h = (im.height / 1.72) * d[1];
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        g.translate(x + f.face * 30, y - 30);
+        if (f.face < 0) g.scale(-1, 1);
+        g.drawImage(im, -w * 0.55, -h / 2, w, h);
+        g.restore();
+      }
+    }
     g.save();
     // 다시 내려온 직후 무적: 깜빡이지 않고 살짝만 투명하게
     const baseA = f.inv > 0 ? 0.75 : 1;
@@ -652,6 +738,7 @@ export class FightRenderer {
     }
     for (let i = 0; i < 2; i++) this.drawTag(s.p[i], i);
     this.drawProj(s);
+    this.drawFx();
 
     for (const p of this.parts) {
       const a = p.life / p.max;

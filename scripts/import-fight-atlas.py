@@ -184,6 +184,8 @@ def art(src: Path):
     (OUT / "art").mkdir(exist_ok=True)
     por = Image.open(src / A["portraits"]).convert("RGBA")
     for cid, box in A["faces"].items():
+        if cid in V2:
+            continue
         face = por.crop(box).convert("RGB")
         face.thumbnail((320, 352), Image.LANCZOS)
         face.save(OUT / "art" / f"{cid}-face.webp", "WEBP", quality=88, method=6)
@@ -192,6 +194,8 @@ def art(src: Path):
         OUT / "art" / "zena-face.webp", "WEBP", quality=88, method=6
     )
     for cid, (f, *box) in A["full"].items():
+        if cid in V2:
+            continue
         im = Image.open(src / f).convert("RGBA")
         # 옆·아래 다른 그림(앉은 그림 머리 등)과 붙은 곳은 다각형으로 지움 (시트 좌표)
         polys = A.get("fullClear", {}).get(cid, [])
@@ -215,9 +219,12 @@ def art(src: Path):
     print("art ok")
 
 
+# v2 에셋(scripts/fight-atlas-v2.py)으로 바꾼 캐릭터는 여기서 건드리지 않음
+V2 = set(json.loads((ROOT / "scripts" / "fight-sprites-v2.json").read_text())) - {"_doc"}
+
 if __name__ == "__main__":
     src = Path(sys.argv[1])
-    ids = sys.argv[2:] or [k for k in SPEC if not k.startswith("_")]
+    ids = sys.argv[2:] or [k for k in SPEC if not k.startswith("_") and k not in V2]
     for cid in ids:
         build(cid, src)
     art(src)

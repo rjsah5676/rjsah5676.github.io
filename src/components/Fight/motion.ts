@@ -50,6 +50,12 @@ export class Motion {
   smear = 0;
   smearRect: FrameRect | null = null;
   ghosts: Ghost[] = [];
+  /** 상태가 바뀐 직후 잠깐 보여 줄 그림 (착지·대시 멈춤·급강하 착지) — 시트에 그 동작이 있을 때만 */
+  after: { name: string; t: number; dur: number } | null = null;
+  /** 그림 효과 생성 요청 (render 가 꺼내 씀) */
+  spawn: { name: string; dx: number; dy: number }[] = [];
+  private prevSt = "";
+  private prevAirS = false;
   pose: Pose = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, faceVis: 1 };
 
   /** 그릴 때마다 호출. 시뮬 프레임이 넘어간 만큼만 상태를 진행 */
@@ -78,6 +84,27 @@ export class Motion {
     }
     const air = isAir(s, f);
     if (this.prevAir && !air) this.land = LAND_T;
+    // 잠깐 그림
+    if (this.after) {
+      this.after.t++;
+      if (this.after.t >= this.after.dur || (f.st !== "idle" && f.st !== "walk")) this.after = null;
+    }
+    if (!air && (f.st === "idle" || f.st === "walk")) {
+      if (this.prevAirS) {
+        this.after = { name: "SairLand", t: 0, dur: 20 };
+        this.spawn.push({ name: "dust", dx: 0, dy: 0 });
+      } else if (this.prevAir && this.prevSt === "jump") {
+        this.after = { name: "land", t: 0, dur: 7 };
+        this.spawn.push({ name: "dust", dx: 0, dy: 0 });
+      } else if (this.prevSt === "dash" && f.st === "idle") this.after = { name: "dashEnd", t: 0, dur: 7 };
+    }
+    // 필살기 마지막 타: 앞쪽에 큰 충격파
+    if (f.st === "atk" && f.mv === "X") {
+      const xm = CHARS[f.ch].moves.X;
+      if (xm.multi && f.t === xm.startup + xm.active - 2) this.spawn.push({ name: "burst", dx: 46, dy: 0 });
+    }
+    this.prevSt = f.st;
+    this.prevAirS = f.st === "atk" && f.mv === "S" && air;
     if (!this.prevAir && air && f.vh > 0) this.takeoff = TAKEOFF_T;
     this.prevAir = air;
     if (this.land > 0) this.land--;
