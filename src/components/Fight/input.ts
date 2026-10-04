@@ -1,20 +1,25 @@
 /**
- * 키보드·게임패드·터치 입력 → 프레임당 8비트 (sim.ts IN)
+ * 키보드·게임패드·터치 입력 → 프레임당 9비트 (sim.ts IN). 위·아래는 깊이(안쪽·앞쪽), 점프는 따로.
  */
 import { IN } from "@/lib/fight/sim";
 
 type KeyMap = Record<string, number>;
 
-/** 1P: WASD + J K L I */
+/** 1P: WASD 이동 + 스페이스 점프, 공격은 J K L I (2인 대전 땐 왼손 쪽 F G H T도) */
 const P1: KeyMap = {
   KeyA: IN.L,
   KeyD: IN.R,
   KeyW: IN.U,
   KeyS: IN.D,
+  Space: IN.J,
   KeyJ: IN.A,
   KeyK: IN.B,
   KeyL: IN.C,
   KeyI: IN.X,
+  KeyF: IN.A,
+  KeyG: IN.B,
+  KeyH: IN.C,
+  KeyT: IN.X,
 };
 /** AI 대전에선 1P가 방향키 + Z X C V 도 씀 */
 const P1_ALT: KeyMap = {
@@ -26,14 +31,16 @@ const P1_ALT: KeyMap = {
   KeyX: IN.B,
   KeyC: IN.C,
   KeyV: IN.X,
-  Space: IN.U,
 };
-/** 2P: 방향키 + , . ; ' (또는 숫자패드 1 2 3 0) — /는 사이트 검색 단축키라 안 씀 */
+/** 2P: 방향키 + Enter 점프 + , . ; ' (또는 숫자패드 1 2 3 0 + 숫자패드 Enter) — /는 사이트 검색 단축키라 안 씀 */
 const P2: KeyMap = {
   ArrowLeft: IN.L,
   ArrowRight: IN.R,
   ArrowUp: IN.U,
   ArrowDown: IN.D,
+  Enter: IN.J,
+  ShiftRight: IN.J,
+  NumpadEnter: IN.J,
   Comma: IN.A,
   Period: IN.B,
   Semicolon: IN.C,
@@ -45,9 +52,10 @@ const P2: KeyMap = {
 };
 
 export const KEY_GUIDE = {
-  p1: "WASD 이동·점프 · J 약 · K 강 · L 필살 · I 초필살",
+  p1: "WASD 이동(W·S 안쪽·앞쪽) · Space 점프 · J 약 · K 강 · L 필살 · I 초필살",
   p1Alt: "방향키 · Z 약 · X 강 · C 필살 · V 초필살",
-  p2: "방향키 · , 약 · . 강 · ; 필살 · ' 초필살 (숫자패드 1 2 3 0)",
+  p1Two: "WASD 이동 · Space 점프 · F 약 · G 강 · H 필살 · T 초필살",
+  p2: "방향키 · Enter 점프 · , 약 · . 강 · ; 필살 · ' 초필살 (숫자패드 1 2 3 0)",
 };
 
 const GAME_KEYS = new Set([...Object.keys(P1), ...Object.keys(P1_ALT), ...Object.keys(P2)]);
@@ -71,10 +79,11 @@ function padBits(p: Gamepad | null): number {
   if (b(15) || ax > 0.5) v |= IN.R;
   if (b(12) || ay < -0.6) v |= IN.U;
   if (b(13) || ay > 0.6) v |= IN.D;
-  if (b(0)) v |= IN.A; // A / ×
-  if (b(2)) v |= IN.B; // X / □
-  if (b(1)) v |= IN.C; // B / ○
-  if (b(3) || b(5) || b(7)) v |= IN.X; // Y / △, RB, RT
+  if (b(0)) v |= IN.J; // A / × 점프
+  if (b(2)) v |= IN.A; // X / □ 약
+  if (b(3)) v |= IN.B; // Y / △ 강
+  if (b(1)) v |= IN.C; // B / ○ 필살
+  if (b(5) || b(7)) v |= IN.X; // RB, RT 초필살
   return v;
 }
 
@@ -168,6 +177,6 @@ export class FightInput {
 
   /** 아무 공격 버튼이나 눌렀나 (결과 화면 넘기기 등) */
   anyButton() {
-    return (this.read(0) | this.read(1)) & (IN.A | IN.B | IN.C | IN.X);
+    return (this.read(0) | this.read(1)) & (IN.A | IN.B | IN.C | IN.X | IN.J);
   }
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CHARS } from "@/lib/fight/chars";
+import { MAPS } from "@/lib/fight/maps";
 import { AI_LEVELS, FightAI } from "@/lib/fight/ai";
 import {
   IN,
@@ -37,6 +38,8 @@ interface Setup {
   c1: number;
   c2: number;
   level: number;
+  /** MAPS 인덱스, -1 = 랜덤 */
+  map: number;
 }
 
 const SAVE_KEY = "fight:setup";
@@ -162,18 +165,22 @@ function TouchPad({ input }: { input: FightInput }) {
           ▶
         </PadBtn>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <PadBtn bit={IN.C} onPad={onPad} className="h-14 w-16 text-sm">
+      <div className="grid grid-cols-3 gap-2">
+        <PadBtn bit={IN.C} onPad={onPad} className="h-14 w-14 text-sm">
           필살
         </PadBtn>
-        <PadBtn bit={IN.X} onPad={onPad} className="h-14 w-16 text-sm text-[#FDE047]">
+        <PadBtn bit={IN.X} onPad={onPad} className="h-14 w-14 text-sm text-[#FDE047]">
           초필살
         </PadBtn>
-        <PadBtn bit={IN.A} onPad={onPad} className="h-14 w-16 text-sm">
+        <span />
+        <PadBtn bit={IN.A} onPad={onPad} className="h-14 w-14 text-sm">
           약
         </PadBtn>
-        <PadBtn bit={IN.B} onPad={onPad} className="h-14 w-16 text-sm">
+        <PadBtn bit={IN.B} onPad={onPad} className="h-14 w-14 text-sm">
           강
+        </PadBtn>
+        <PadBtn bit={IN.J} onPad={onPad} className="h-14 w-14 text-sm">
+          점프
         </PadBtn>
       </div>
     </div>
@@ -282,7 +289,7 @@ function Meter({ v, right }: { v: number; right?: boolean }) {
 }
 
 export default function FightGame({ onRanked }: { onRanked?: () => void }) {
-  const [setup, setSetup] = useState<Setup>({ mode: "ai", c1: 0, c2: 1, level: 2 });
+  const [setup, setSetup] = useState<Setup>({ mode: "ai", c1: 0, c2: 1, level: 2, map: -1 });
   const [playing, setPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
   const [hud, setHud] = useState<Hud | null>(null);
@@ -302,17 +309,19 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const rendererRef = useRef<FightRenderer | null>(null);
   const restartRef = useRef<() => void>(() => {});
 
+  /* eslint-disable react-hooks/set-state-in-effect -- 지난 설정 복원 (마운트 1회) */
   useEffect(() => {
     try {
       const v = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null") as Setup | null;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 지난 설정 복원 (마운트 1회)
-      if (v && CHARS[v.c1] && CHARS[v.c2] && AI_LEVELS[v.level]) setSetup(v);
+      if (v && CHARS[v.c1] && CHARS[v.c2] && AI_LEVELS[v.level])
+        setSetup({ ...v, map: typeof v.map === "number" && (v.map === -1 || MAPS[v.map]) ? v.map : -1 });
       const m = localStorage.getItem(MUTE_KEY) === "1";
       setMuted(m);
       setFightVolume(m ? 0 : 0.8);
     } catch {}
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
   useEffect(() => {
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(setup));
@@ -340,7 +349,9 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     r.showBoxes = boxes;
     rendererRef.current = r;
     input.configure(setup.mode === "2p");
-    let s = newMatch([setup.c1, setup.c2]);
+    const pickMap = () =>
+      setup.map >= 0 ? setup.map : Math.floor(Math.random() * MAPS.length);
+    let s = newMatch([setup.c1, setup.c2], pickMap());
     let ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
     let hits = 0;
     let lastHud = "";
@@ -356,7 +367,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       })
       .catch(() => {});
     restartRef.current = () => {
-      s = newMatch([setup.c1, setup.c2]);
+      s = newMatch([setup.c1, setup.c2], pickMap());
       ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
       hits = 0;
       doneReported = false;
@@ -541,6 +552,30 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           })}
         </div>
 
+        <div className="mt-4">
+          <div className="mb-1.5 font-mono text-xs text-white/40">맵</div>
+          <div className="flex flex-wrap gap-1.5">
+            {[{ id: "random", name: "🎲 랜덤", desc: "매 판 무작위" }, ...MAPS].map((m, i) => (
+              <button
+                key={m.id}
+                type="button"
+                title={m.desc}
+                onClick={() => setSetup((s) => ({ ...s, map: i - 1 }))}
+                className={`cursor-pointer rounded-full px-3 py-1 font-['Nanum_Gothic',sans-serif] text-xs transition-colors ${
+                  setup.map === i - 1
+                    ? "bg-[#6C63FF] text-white"
+                    : "bg-white/5 text-white/60 hover:bg-white/10"
+                }`}
+              >
+                {m.name}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
+            {setup.map >= 0 ? MAPS[setup.map].desc : "운동장·체육관·옥상·복도 중 무작위"}
+          </p>
+        </div>
+
         {setup.mode === "ai" && (
           <div className="mt-4">
             <div className="mb-1.5 font-mono text-xs text-white/40">AI 단계</div>
@@ -565,7 +600,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
 
         <div className="mt-4 rounded-lg bg-black/20 px-3 py-2.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-relaxed text-white/50">
           <div>
-            <b className="text-white/70">1P</b> {KEY_GUIDE.p1}
+            <b className="text-white/70">1P</b> {setup.mode === "ai" ? KEY_GUIDE.p1 : KEY_GUIDE.p1Two}
           </div>
           {setup.mode === "ai" ? (
             <div className="text-white/40">또는 {KEY_GUIDE.p1Alt}</div>
@@ -575,8 +610,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             </div>
           )}
           <div className="mt-1 text-white/40">
-            뒤로 누르고 있으면 가드 · ↓↘→+공격도 필살 · 게이지 MAX에 초필살(강+필살 동시도 가능) ·
-            게임패드 지원 · Esc 일시정지
+            위·아래로 깊이를 옮겨 비켜설 수 있어요 · 뒤로 누르고 있으면 가드 · 게이지 MAX에 초필살(강+필살
+            동시도 가능) · 발판 위로 점프 · 게임패드 지원 · Esc 일시정지
           </div>
         </div>
 
@@ -729,7 +764,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         </button>
         {!coarse && (
           <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-            {setup.mode === "ai" ? KEY_GUIDE.p1 : `1P ${KEY_GUIDE.p1} / 2P ${KEY_GUIDE.p2}`}
+            {setup.mode === "ai" ? KEY_GUIDE.p1 : `1P ${KEY_GUIDE.p1Two} / 2P ${KEY_GUIDE.p2}`}
           </span>
         )}
       </div>

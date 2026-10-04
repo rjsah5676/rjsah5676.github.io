@@ -1,61 +1,63 @@
 {
-  "image": "/fight/mio.png",
+  "image": "/fight/mio.webp",
   "cell": [
-    96,
-    80
+    113,
+    87
   ],
   "anchor": [
-    40,
-    78
+    55,
+    84
   ],
+  "scale": 1.12,
+  "pixel": true,
   "facing": "right",
   "anims": {
     "idle": {
       "row": 0,
-      "frames": 6,
-      "fps": 7,
+      "frames": 5,
+      "fps": 6,
       "loop": true
     },
     "walk": {
       "row": 1,
-      "frames": 8,
-      "fps": 12,
+      "frames": 6,
+      "fps": 10,
       "loop": true
     },
     "jump": {
       "row": 2,
-      "frames": 2,
+      "frames": 4,
       "fps": 8,
       "loop": false
     },
     "light": {
       "row": 3,
-      "frames": 6,
-      "fps": 18,
+      "frames": 5,
+      "fps": 20,
       "loop": false
     },
     "heavy": {
       "row": 4,
-      "frames": 8,
-      "fps": 16,
+      "frames": 5,
+      "fps": 14,
       "loop": false
     },
     "air": {
       "row": 5,
-      "frames": 4,
-      "fps": 16,
+      "frames": 2,
+      "fps": 12,
       "loop": false
     },
     "cast": {
       "row": 6,
-      "frames": 7,
-      "fps": 14,
+      "frames": 5,
+      "fps": 12,
       "loop": false
     },
     "super": {
       "row": 7,
-      "frames": 9,
-      "fps": 14,
+      "frames": 8,
+      "fps": 12,
       "loop": false
     },
     "hit": {
@@ -72,14 +74,14 @@
     },
     "down": {
       "row": 10,
-      "frames": 6,
+      "frames": 4,
       "fps": 12,
       "loop": false
     },
     "win": {
       "row": 11,
       "frames": 6,
-      "fps": 8,
+      "fps": 5,
       "loop": true
     }
   },
@@ -88,31 +90,31 @@
       "anim": "light",
       "from": 0,
       "impact": 2,
-      "to": 5
+      "to": 4
     },
     "H": {
       "anim": "heavy",
       "from": 0,
-      "impact": 3,
-      "to": 7
+      "impact": 2,
+      "to": 4
     },
     "J": {
       "anim": "air",
       "from": 0,
-      "impact": 2,
-      "to": 3
+      "impact": 1,
+      "to": 1
     },
     "S": {
       "anim": "cast",
       "from": 0,
-      "impact": 4,
-      "to": 6
+      "impact": 3,
+      "to": 4
     },
     "X": {
       "anim": "super",
       "from": 0,
-      "impact": 4,
-      "to": 8
+      "impact": 6,
+      "to": 7
     }
   },
   "states": {
@@ -124,7 +126,7 @@
     },
     "jump": {
       "anim": "jump",
-      "frame": 0
+      "frame": 1
     },
     "hit": {
       "anim": "hit"
@@ -142,6 +144,5 @@
     "win": {
       "anim": "win"
     }
-  },
-  "credit": "오리지널 (코드로 그림)"
+  }
 }

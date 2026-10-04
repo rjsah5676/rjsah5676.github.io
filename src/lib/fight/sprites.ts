@@ -36,6 +36,10 @@ export interface SpriteSheet {
   anchor: [number, number];
   /** 그림이 보고 있는 쪽 (반대쪽은 뒤집어서 그림) */
   facing?: "left" | "right";
+  /** 월드 1px당 그림 px (크게 그려서 부드럽게 줄여 보여 줄 때, 없으면 1) */
+  scale?: number;
+  /** 도트 그림이면 true — 확대할 때 뭉개지 않고 픽셀 그대로 */
+  pixel?: boolean;
   anims: Record<string, AnimDef>;
   moves: Record<MoveId, MoveAnim>;
   states: Record<string, StateAnim>;

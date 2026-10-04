@@ -1,19 +1,20 @@
 {
-  "image": "/fight/haru.png",
+  "image": "/fight/haru.webp",
   "cell": [
-    96,
-    80
+    336,
+    276
   ],
   "anchor": [
-    40,
-    78
+    138,
+    268
   ],
+  "scale": 3,
   "facing": "right",
   "anims": {
     "idle": {
       "row": 0,
-      "frames": 6,
-      "fps": 7,
+      "frames": 8,
+      "fps": 8,
       "loop": true
     },
     "walk": {
@@ -143,5 +144,5 @@
       "anim": "win"
     }
   },
-  "credit": "오리지널 (코드로 그림)"
+  "credit": "오리지널 (scripts/draw-fight-chars.py로 그림)"
 }

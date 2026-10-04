@@ -47,6 +47,8 @@ export interface MoveDef {
   cancel?: MoveId[];
   /** 다운시킴 */
   kd?: boolean;
+  /** 깊이 판정 폭(px, 없으면 10) — 이만큼 앞뒤로 어긋나도 맞음 */
+  zr?: number;
   /** 시작 동안 앞으로 나가는 속도 */
   step?: number;
   proj?: ProjDef;
@@ -77,15 +79,15 @@ export const CHARS: CharDef[] = [
   {
     id: "haru",
     name: "하루",
-    title: "붉은 검객",
-    desc: "카타나 한 자루, 무난한 기본기와 크게 베는 강공격",
+    title: "검도부 · 불꽃",
+    desc: "목검에 불꽃을 두른 검도부 에이스, 무난한 기본기",
     hp: 1300,
     walk: 420,
     back: 340,
     jumpVx: 520,
-    hurt: { x: -10, y: 46, w: 20, h: 46 },
-    width: 22,
-    color: "#FFD166",
+    hurt: { x: -8, y: 60, w: 16, h: 60 },
+    width: 18,
+    color: "#FF7A2A",
     moves: {
       L: {
         startup: 5,
@@ -98,7 +100,7 @@ export const CHARS: CharDef[] = [
         push: 600,
         hitstop: 6,
         meter: 5,
-        box: { x: 4, y: 36, w: 30, h: 20 },
+        box: { x: 6, y: 46, w: 34, h: 24 },
         cancel: ["H", "S", "X"],
       },
       H: {
@@ -112,7 +114,7 @@ export const CHARS: CharDef[] = [
         push: 900,
         hitstop: 10,
         meter: 10,
-        box: { x: 0, y: 50, w: 38, h: 46 },
+        box: { x: 2, y: 64, w: 44, h: 56 },
         cancel: ["S", "X"],
         step: 180,
       },
@@ -127,7 +129,7 @@ export const CHARS: CharDef[] = [
         push: 500,
         hitstop: 7,
         meter: 6,
-        box: { x: 0, y: 30, w: 32, h: 28 },
+        box: { x: 0, y: 40, w: 40, h: 34 },
       },
       S: {
         startup: 14,
@@ -141,7 +143,7 @@ export const CHARS: CharDef[] = [
         hitstop: 7,
         meter: 8,
         box: { x: 0, y: 0, w: 0, h: 0 },
-        proj: { speed: 900, y: 30, w: 16, h: 14, life: 140 },
+        proj: { speed: 900, y: 36, w: 16, h: 14, life: 140 },
       },
       X: {
         startup: 6,
@@ -154,7 +156,7 @@ export const CHARS: CharDef[] = [
         push: 1400,
         hitstop: 16,
         meter: 0,
-        box: { x: -6, y: 60, w: 70, h: 60 },
+        box: { x: -6, y: 70, w: 64, h: 70 },
         kd: true,
         step: 300,
       },
@@ -163,15 +165,15 @@ export const CHARS: CharDef[] = [
   {
     id: "ren",
     name: "렌",
-    title: "그림자 닌자",
-    desc: "쌍쿠나이, 빠른 발과 짧은 공격, 체력은 적음",
+    title: "야구부 · 번개",
+    desc: "번개 배트와 강속구, 빠르지만 체력은 적음",
     hp: 1200,
     walk: 500,
     back: 400,
     jumpVx: 600,
-    hurt: { x: -10, y: 47, w: 20, h: 47 },
-    width: 22,
-    color: "#B9A3FF",
+    hurt: { x: -8, y: 62, w: 16, h: 62 },
+    width: 18,
+    color: "#FFE45C",
     moves: {
       L: {
         startup: 4,
@@ -184,7 +186,7 @@ export const CHARS: CharDef[] = [
         push: 560,
         hitstop: 5,
         meter: 5,
-        box: { x: 2, y: 38, w: 26, h: 22 },
+        box: { x: 4, y: 46, w: 34, h: 24 },
         cancel: ["H", "S", "X"],
       },
       H: {
@@ -198,7 +200,7 @@ export const CHARS: CharDef[] = [
         push: 850,
         hitstop: 9,
         meter: 10,
-        box: { x: -4, y: 48, w: 36, h: 44 },
+        box: { x: -2, y: 62, w: 46, h: 54 },
         cancel: ["S", "X"],
         step: 220,
       },
@@ -213,7 +215,7 @@ export const CHARS: CharDef[] = [
         push: 480,
         hitstop: 6,
         meter: 6,
-        box: { x: -2, y: 32, w: 34, h: 30 },
+        box: { x: 0, y: 40, w: 40, h: 34 },
       },
       S: {
         startup: 12,
@@ -227,7 +229,7 @@ export const CHARS: CharDef[] = [
         hitstop: 6,
         meter: 8,
         box: { x: 0, y: 0, w: 0, h: 0 },
-        proj: { speed: 1150, y: 32, w: 14, h: 12, life: 110 },
+        proj: { speed: 1150, y: 38, w: 14, h: 12, life: 110 },
       },
       X: {
         startup: 5,
@@ -240,7 +242,7 @@ export const CHARS: CharDef[] = [
         push: 1300,
         hitstop: 15,
         meter: 0,
-        box: { x: -10, y: 56, w: 66, h: 56 },
+        box: { x: -8, y: 68, w: 60, h: 68 },
         kd: true,
         step: 420,
       },
@@ -249,15 +251,15 @@ export const CHARS: CharDef[] = [
   {
     id: "mio",
     name: "미오",
-    title: "푸른 창술사",
-    desc: "긴 창끝 견제, 느리지만 묵직함",
+    title: "학생회 · 물과 바람",
+    desc: "물 탄환과 회오리 발차기, 묵직한 한 방",
     hp: 1400,
     walk: 340,
     back: 290,
     jumpVx: 460,
-    hurt: { x: -10, y: 46, w: 20, h: 46 },
-    width: 24,
-    color: "#7FE3FF",
+    hurt: { x: -8, y: 58, w: 16, h: 58 },
+    width: 18,
+    color: "#6FDCFF",
     moves: {
       L: {
         startup: 6,
@@ -270,7 +272,7 @@ export const CHARS: CharDef[] = [
         push: 620,
         hitstop: 6,
         meter: 5,
-        box: { x: 8, y: 34, w: 42, h: 14 },
+        box: { x: 6, y: 44, w: 30, h: 14 },
         cancel: ["H", "S", "X"],
       },
       H: {
@@ -284,7 +286,7 @@ export const CHARS: CharDef[] = [
         push: 1000,
         hitstop: 11,
         meter: 10,
-        box: { x: 0, y: 46, w: 44, h: 38 },
+        box: { x: 0, y: 58, w: 46, h: 46 },
         cancel: ["S", "X"],
         step: 140,
       },
@@ -299,7 +301,7 @@ export const CHARS: CharDef[] = [
         push: 520,
         hitstop: 7,
         meter: 6,
-        box: { x: 2, y: 28, w: 38, h: 26 },
+        box: { x: 0, y: 38, w: 40, h: 32 },
       },
       S: {
         startup: 16,
@@ -313,7 +315,7 @@ export const CHARS: CharDef[] = [
         hitstop: 8,
         meter: 8,
         box: { x: 0, y: 0, w: 0, h: 0 },
-        proj: { speed: 720, y: 26, w: 22, h: 20, life: 170 },
+        proj: { speed: 720, y: 34, w: 22, h: 20, life: 170 },
       },
       X: {
         startup: 7,
@@ -326,7 +328,7 @@ export const CHARS: CharDef[] = [
         push: 1500,
         hitstop: 17,
         meter: 0,
-        box: { x: -4, y: 64, w: 76, h: 64 },
+        box: { x: -6, y: 72, w: 66, h: 72 },
         kd: true,
         step: 260,
       },

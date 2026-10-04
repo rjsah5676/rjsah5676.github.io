@@ -1,21 +1,25 @@
 /**
- * 격투게임 캔버스 그리기 (320×180 도트 화면을 정수배로 키워서).
+ * 격투게임 캔버스 그리기 — 월드 320×180을 화면 해상도에 맞게 키워서 부드럽게 (2.5D: x·깊이·높이).
  * 시뮬레이션 상태를 읽기만 하고 바꾸지 않음. 불꽃·흔들림 같은 연출은 여기서만 가짐.
  */
 import { CHARS, SUB } from "@/lib/fight/chars";
+import { MAPS, type Plat } from "@/lib/fight/maps";
 import {
-  FLOOR,
   VIEW_H,
   VIEW_W,
   boxRect,
+  groundAt,
   hitRect,
   hurtRect,
   projRect,
+  screenY,
   type Ev,
   type Fighter,
+  type Rect,
   type State,
 } from "@/lib/fight/sim";
 import { pickFrame, type LoadedSheet } from "@/lib/fight/sprites";
+import { drawPlat, drawStage } from "./stages";
 
 interface Particle {
   x: number;
@@ -26,98 +30,17 @@ interface Particle {
   max: number;
   color: string;
   size: number;
-  kind: "spark" | "ring" | "dust" | "text";
+  kind: "spark" | "ring" | "dust" | "text" | "flame" | "bolt" | "shard";
   text?: string;
 }
 
-const px = (v: number) => Math.round(v / SUB);
-
-/** 0~1 값 하나로 만드는 결정적 잡음 (배경용) */
-function hash1(n: number) {
-  const s = Math.sin(n * 127.1) * 43758.5453;
-  return s - Math.floor(s);
-}
-
-function makeBackground(): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = VIEW_W;
-  c.height = VIEW_H;
-  const g = c.getContext("2d")!;
-  // 하늘: 해질녘
-  const sky = g.createLinearGradient(0, 0, 0, 130);
-  sky.addColorStop(0, "#1B1035");
-  sky.addColorStop(0.45, "#4A2463");
-  sky.addColorStop(0.8, "#C2546B");
-  sky.addColorStop(1, "#F29E6D");
-  g.fillStyle = sky;
-  g.fillRect(0, 0, VIEW_W, 130);
-  // 별
-  for (let i = 0; i < 60; i++) {
-    const x = Math.floor(hash1(i) * VIEW_W);
-    const y = Math.floor(hash1(i + 99) * 60);
-    g.fillStyle = `rgba(255,255,255,${0.3 + hash1(i + 7) * 0.6})`;
-    g.fillRect(x, y, 1, 1);
-  }
-  // 해
-  g.fillStyle = "#FFD9A0";
-  g.beginPath();
-  g.arc(236, 104, 22, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = "#FFE9C7";
-  g.beginPath();
-  g.arc(236, 104, 15, 0, Math.PI * 2);
-  g.fill();
-  // 산 두 겹 (도트 느낌으로 1px 단위)
-  const ridge = (base: number, amp: number, seed: number, color: string) => {
-    g.fillStyle = color;
-    for (let x = 0; x < VIEW_W; x++) {
-      const h =
-        Math.sin(x / 37 + seed) * amp * 0.5 +
-        Math.sin(x / 13 + seed * 2) * amp * 0.25 +
-        Math.sin(x / 5.3 + seed * 3) * amp * 0.08;
-      const y = Math.round(base - amp * 0.4 - h);
-      g.fillRect(x, y, 1, 140 - y);
-    }
-  };
-  ridge(112, 34, 1.3, "#5B2C5E");
-  ridge(124, 26, 4.1, "#3A1D45");
-  // 멀리 탑
-  g.fillStyle = "#2A1433";
-  for (const [x, w, h] of [
-    [40, 10, 34],
-    [276, 8, 28],
-  ]) {
-    g.fillRect(x, 130 - h, w, h);
-    g.fillRect(x - 3, 130 - h, w + 6, 3);
-    g.fillRect(x - 2, 130 - h + 10, w + 4, 2);
-  }
-  // 바닥: 돌판
-  const fl = g.createLinearGradient(0, 130, 0, VIEW_H);
-  fl.addColorStop(0, "#5E4A5A");
-  fl.addColorStop(1, "#2B2230");
-  g.fillStyle = fl;
-  g.fillRect(0, 130, VIEW_W, VIEW_H - 130);
-  g.fillStyle = "#7A6274";
-  g.fillRect(0, 130, VIEW_W, 1);
-  // 원근 줄눈
-  g.strokeStyle = "rgba(20,10,25,0.45)";
-  g.lineWidth = 1;
-  for (let i = -12; i <= 12; i++) {
-    g.beginPath();
-    g.moveTo(160 + i * 14 + 0.5, 131);
-    g.lineTo(160 + i * 46 + 0.5, VIEW_H);
-    g.stroke();
-  }
-  for (const y of [138, 148, 162, 176]) {
-    g.fillStyle = "rgba(20,10,25,0.4)";
-    g.fillRect(0, y, VIEW_W, 1);
-  }
-  return c;
-}
+/** 캐릭터별 능력 (탄·타격 이펙트 모양) */
+const ELEMENT: Record<string, "fire" | "bolt" | "ice"> = { haru: "fire", ren: "bolt", mio: "ice" };
 
 export class FightRenderer {
   private g: CanvasRenderingContext2D;
   private bg: HTMLCanvasElement | null = null;
+  private bgKey = "";
   private tmp: HTMLCanvasElement | null = null;
   private parts: Particle[] = [];
   private shake = 0;
@@ -130,100 +53,65 @@ export class FightRenderer {
     this.g = canvas.getContext("2d")!;
   }
 
-  /** 캔버스 크기를 보이는 크기 × 화면 배율에 맞춤 (정수배) */
+  /** 캔버스 크기를 보이는 크기 × 화면 배율로 */
   resize() {
     const r = this.canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const k = Math.max(1, Math.floor((r.width * dpr) / VIEW_W));
-    if (this.canvas.width !== VIEW_W * k) {
-      this.canvas.width = VIEW_W * k;
-      this.canvas.height = VIEW_H * k;
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const w = Math.max(VIEW_W, Math.round(r.width * dpr));
+    const h = Math.round((w * VIEW_H) / VIEW_W);
+    if (this.canvas.width !== w) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+      this.bgKey = "";
     }
+  }
+
+  private stage(s: State, k: number) {
+    const key = `${s.map}:${this.canvas.width}`;
+    if (this.bg && this.bgKey === key) return this.bg;
+    const c = this.bg ?? document.createElement("canvas");
+    c.width = this.canvas.width;
+    c.height = this.canvas.height;
+    const g = c.getContext("2d")!;
+    g.setTransform(k, 0, 0, k, 0, 0);
+    drawStage(g, MAPS[s.map] ?? MAPS[0]);
+    this.bg = c;
+    this.bgKey = key;
+    return c;
   }
 
   /** 시뮬레이션 이벤트 → 연출 */
   events(evs: Ev[], s: State) {
     for (const e of evs) {
       const x = e.x / SUB,
-        y = e.y / SUB;
+        y = screenY(e.z, e.h);
       if (e.k === "hit") {
         const power = e.m === "X" ? 2 : e.m === "H" || e.m === "S" ? 1 : 0;
-        const color = CHARS[s.p[e.p].ch].color;
-        for (let i = 0; i < 8 + power * 6; i++) {
+        const ch = CHARS[s.p[e.p].ch];
+        const el = ELEMENT[ch.id] ?? "fire";
+        for (let i = 0; i < 10 + power * 6; i++) {
           const a = Math.random() * Math.PI * 2;
           const sp = 1 + Math.random() * (2 + power * 1.5);
           this.parts.push({
-            x,
-            y,
-            vx: Math.cos(a) * sp,
-            vy: Math.sin(a) * sp,
-            life: 14 + power * 4,
-            max: 14 + power * 4,
-            color: i % 3 ? "#FFF6D6" : color,
-            size: power ? 2 : 1,
-            kind: "spark",
+            x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 16 + power * 4, max: 16 + power * 4,
+            color: i % 3 ? "#FFF6D6" : ch.color, size: 1 + power * 0.5,
+            kind: el === "fire" ? "flame" : el === "bolt" ? "bolt" : "shard",
           });
         }
-        this.parts.push({
-          x,
-          y,
-          vx: 0,
-          vy: 0,
-          life: 10,
-          max: 10,
-          color: "#fff",
-          size: 6 + power * 4,
-          kind: "ring",
-        });
+        this.parts.push({ x, y, vx: 0, vy: 0, life: 10, max: 10, color: "#fff", size: 7 + power * 4, kind: "ring" });
         this.shake = Math.max(this.shake, 2 + power * 3);
         this.parts.push({
-          x,
-          y: y - 12,
-          vx: 0,
-          vy: -0.4,
-          life: 36,
-          max: 36,
-          color: "#FFE08A",
-          size: 1,
-          kind: "text",
-          text: String(e.v),
+          x, y: y - 14, vx: 0, vy: -0.4, life: 36, max: 36, color: "#FFE08A", size: 1, kind: "text", text: String(e.v),
         });
       } else if (e.k === "block") {
-        this.parts.push({
-          x,
-          y,
-          vx: 0,
-          vy: 0,
-          life: 12,
-          max: 12,
-          color: "#8FD3FF",
-          size: 10,
-          kind: "ring",
-        });
-        for (let i = 0; i < 5; i++)
+        this.parts.push({ x, y, vx: 0, vy: 0, life: 12, max: 12, color: "#8FD3FF", size: 11, kind: "ring" });
+        for (let i = 0; i < 6; i++)
           this.parts.push({
-            x,
-            y,
-            vx: (Math.random() - 0.5) * 3,
-            vy: -Math.random() * 2,
-            life: 10,
-            max: 10,
-            color: "#CFEFFF",
-            size: 1,
-            kind: "spark",
+            x, y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2, life: 10, max: 10,
+            color: "#CFEFFF", size: 1, kind: "spark",
           });
       } else if (e.k === "clash") {
-        this.parts.push({
-          x,
-          y,
-          vx: 0,
-          vy: 0,
-          life: 14,
-          max: 14,
-          color: "#fff",
-          size: 14,
-          kind: "ring",
-        });
+        this.parts.push({ x, y, vx: 0, vy: 0, life: 14, max: 14, color: "#fff", size: 15, kind: "ring" });
         this.shake = Math.max(this.shake, 3);
       } else if (e.k === "super") {
         this.flash = 10;
@@ -232,18 +120,11 @@ export class FightRenderer {
         this.flash = 9;
         this.flashColor = "#fff";
         this.shake = 8;
-      } else if (e.k === "jump") {
+      } else if (e.k === "jump" || e.k === "land") {
         for (let i = 0; i < 4; i++)
           this.parts.push({
-            x: x + (Math.random() - 0.5) * 10,
-            y: FLOOR / SUB,
-            vx: (Math.random() - 0.5) * 1.2,
-            vy: -0.3,
-            life: 14,
-            max: 14,
-            color: "#B9A2B0",
-            size: 1,
-            kind: "dust",
+            x: x + (Math.random() - 0.5) * 10, y, vx: (Math.random() - 0.5) * 1.2, vy: -0.3,
+            life: 14, max: 14, color: "rgba(230,220,210,0.8)", size: 1.5, kind: "dust",
           });
       }
     }
@@ -253,16 +134,18 @@ export class FightRenderer {
   tick(s: State) {
     if (this.flash > 0) this.flash--;
     if (s.stop > 0 || s.freeze > 0) {
-      // 히트스톱 중엔 불꽃도 멈춤 (흔들림·번쩍임만)
       this.shake *= 0.85;
       return;
     }
     for (const p of this.parts) {
       p.x += p.vx;
       p.y += p.vy;
-      if (p.kind === "spark") {
+      if (p.kind === "spark" || p.kind === "shard" || p.kind === "bolt") {
         p.vx *= 0.88;
         p.vy = p.vy * 0.88 + 0.08;
+      } else if (p.kind === "flame") {
+        p.vx *= 0.9;
+        p.vy = p.vy * 0.9 - 0.06;
       }
       p.life--;
     }
@@ -273,32 +156,33 @@ export class FightRenderer {
   private drawFighter(f: Fighter, i: number, s: State) {
     const g = this.g;
     const sh = this.sheets[i];
-    const x = f.x / SUB,
-      y = f.y / SUB;
-    // 그림자
-    const lift = Math.max(0, (FLOOR - f.y) / SUB);
-    g.fillStyle = `rgba(0,0,0,${0.35 - Math.min(0.2, lift / 200)})`;
+    const map = MAPS[s.map] ?? MAPS[0];
+    const x = f.x / SUB;
+    const ground = groundAt(map, f.x, f.z);
+    const gy = screenY(f.z, ground);
+    const y = screenY(f.z, f.h);
+    const lift = Math.max(0, (f.h - ground) / SUB);
+    // 그림자 (발판 위면 발판 위에)
+    g.fillStyle = `rgba(0,0,0,${0.32 - Math.min(0.18, lift / 200)})`;
     g.beginPath();
-    g.ellipse(Math.round(x), FLOOR / SUB + 1, Math.max(6, 14 - lift / 6), 3, 0, 0, Math.PI * 2);
+    g.ellipse(x, gy, Math.max(6, 12 - lift / 6), 2.6, 0, 0, Math.PI * 2);
     g.fill();
     if (!sh) {
       g.fillStyle = CHARS[f.ch].color;
-      g.fillRect(Math.round(x) - 10, Math.round(y) - 44, 20, 44);
+      g.fillRect(x - 8, y - 60, 16, 60);
       return;
     }
     const { anim, frame } = pickFrame(sh, f, s);
     const [cw, ch] = sh.cell;
     const [ax, ay] = sh.anchor;
+    const sc = sh.scale ?? 1;
     const sx = frame * cw,
       sy = anim.row * ch;
-    const dx = Math.round(x),
-      dy = Math.round(y) - ay;
     const flashHit = (f.st === "hit" && f.t < 2) || (s.stop > 0 && f.st === "hit");
     let src: CanvasImageSource = sh.img;
     let ssx = sx,
       ssy = sy;
     if (flashHit) {
-      // 맞은 순간 하얗게 번쩍
       if (!this.tmp) this.tmp = document.createElement("canvas");
       const t = this.tmp;
       t.width = cw;
@@ -307,7 +191,7 @@ export class FightRenderer {
       tg.clearRect(0, 0, cw, ch);
       tg.drawImage(sh.img, sx, sy, cw, ch, 0, 0, cw, ch);
       tg.globalCompositeOperation = "source-atop";
-      tg.fillStyle = "rgba(255,255,255,0.75)";
+      tg.fillStyle = "rgba(255,255,255,0.7)";
       tg.fillRect(0, 0, cw, ch);
       tg.globalCompositeOperation = "source-over";
       src = t;
@@ -315,13 +199,16 @@ export class FightRenderer {
       ssy = 0;
     }
     g.save();
-    if (f.st === "rise" && f.t % 4 < 2) g.globalAlpha = 0.6; // 일어나는 중 무적 깜빡임
+    if (f.st === "rise" && f.t % 4 < 2) g.globalAlpha = 0.6;
+    if (sh.pixel) g.imageSmoothingEnabled = false;
     const flip = sh.facing === "left" ? f.face > 0 : f.face < 0;
-    if (!flip) g.drawImage(src, ssx, ssy, cw, ch, dx - ax, dy, cw, ch);
+    const dw = cw / sc,
+      dh = ch / sc;
+    if (!flip) g.drawImage(src, ssx, ssy, cw, ch, x - ax / sc, y - ay / sc, dw, dh);
     else {
-      g.translate(dx, 0);
+      g.translate(x, 0);
       g.scale(-1, 1);
-      g.drawImage(src, ssx, ssy, cw, ch, -ax, dy, cw, ch);
+      g.drawImage(src, ssx, ssy, cw, ch, -ax / sc, y - ay / sc, dw, dh);
     }
     g.restore();
   }
@@ -329,106 +216,203 @@ export class FightRenderer {
   private drawProj(s: State) {
     const g = this.g;
     for (const p of s.proj) {
-      const col = CHARS[s.p[p.o].ch].color;
+      const ch = CHARS[s.p[p.o].ch];
+      const el = ELEMENT[ch.id] ?? "fire";
       const r = projRect(p, s);
-      const cx = px((r.l + r.r) / 2),
-        cy = px((r.t + r.b) / 2);
-      const w = px(r.r - r.l);
+      const cx = (r.l + r.r) / 2 / SUB;
+      const cy = screenY(p.z, p.h);
+      const w = (r.r - r.l) / SUB;
       const dir = Math.sign(p.vx);
-      // 꼬리
-      for (let k = 3; k >= 1; k--) {
-        g.globalAlpha = 0.18 * (4 - k);
-        g.fillStyle = col;
-        const s2 = Math.max(2, w / 2 - k);
-        g.fillRect(cx - dir * k * 6 - s2, cy - s2 / 1.4, s2 * 2, (s2 * 2) / 1.4);
+      const t = s.f;
+      // 그림자
+      g.fillStyle = "rgba(0,0,0,0.2)";
+      g.beginPath();
+      g.ellipse(cx, screenY(p.z, 0), w / 2, 1.6, 0, 0, Math.PI * 2);
+      g.fill();
+      if (el === "fire") {
+        for (let k = 4; k >= 0; k--) {
+          g.globalAlpha = 0.25 + (4 - k) * 0.15;
+          g.fillStyle = k > 2 ? "#FF5A1F" : k > 0 ? "#FF9A3A" : "#FFE27A";
+          g.beginPath();
+          g.ellipse(cx - dir * k * 3.2, cy + Math.sin(t * 0.6 + k) * 0.8, w / 2 + 1 - k * 0.4, w / 2.4 - k * 0.3, 0, 0, Math.PI * 2);
+          g.fill();
+        }
+      } else if (el === "bolt") {
+        const grd = g.createRadialGradient(cx, cy, 0, cx, cy, w / 1.4);
+        grd.addColorStop(0, "#FFFFFF");
+        grd.addColorStop(0.4, "#FFF27A");
+        grd.addColorStop(1, "rgba(255,228,92,0)");
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(cx, cy, w / 1.4, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = "#FFF6B0";
+        g.lineWidth = 0.7;
+        for (let k = 0; k < 4; k++) {
+          const a = t * 0.9 + k * 1.6;
+          g.beginPath();
+          g.moveTo(cx, cy);
+          g.lineTo(cx + Math.cos(a) * w * 0.5, cy + Math.sin(a) * w * 0.4);
+          g.lineTo(cx + Math.cos(a + 0.4) * w * 0.85, cy + Math.sin(a + 0.4) * w * 0.7);
+          g.stroke();
+        }
+        // 공 (야구공)
+        g.fillStyle = "#FFFFFF";
+        g.beginPath();
+        g.arc(cx, cy, w / 4, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = "#E8344E";
+        g.lineWidth = 0.4;
+        g.beginPath();
+        g.arc(cx - w / 8, cy, w / 6, -1, 1);
+        g.stroke();
+      } else {
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(dir > 0 ? 0 : Math.PI);
+        g.globalAlpha = 0.35;
+        g.fillStyle = "#BFF3FF";
+        g.beginPath();
+        g.moveTo(-w, 0);
+        g.lineTo(0, -w / 3);
+        g.lineTo(0, w / 3);
+        g.fill();
+        g.globalAlpha = 1;
+        g.fillStyle = "#E9FCFF";
+        g.strokeStyle = "#3EB6E8";
+        g.lineWidth = 0.6;
+        g.beginPath();
+        g.moveTo(w / 2, 0);
+        g.lineTo(0, -w / 3.2);
+        g.lineTo(-w / 2.2, 0);
+        g.lineTo(0, w / 3.2);
+        g.closePath();
+        g.fill();
+        g.stroke();
+        g.restore();
       }
       g.globalAlpha = 1;
-      const pulse = (s.f >> 2) % 2;
-      g.fillStyle = col;
-      g.beginPath();
-      g.arc(cx, cy, w / 2 + pulse, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = "#FFFDF2";
-      g.beginPath();
-      g.arc(cx + dir, cy, w / 4, 0, Math.PI * 2);
-      g.fill();
+    }
+  }
+
+  private rect(r: Rect | null, color: string) {
+    if (!r) return;
+    const g = this.g;
+    const top = screenY(r.z, r.hi);
+    const bot = screenY(r.z, r.lo);
+    g.strokeStyle = color;
+    g.lineWidth = 0.6;
+    g.strokeRect(r.l / SUB, top, (r.r - r.l) / SUB, bot - top);
+    if (r.zr) {
+      // 깊이 판정 폭 표시
+      g.setLineDash([1.5, 1.5]);
+      g.strokeRect(r.l / SUB, screenY(r.z + r.zr, r.lo), (r.r - r.l) / SUB, (r.zr * 2) / SUB);
+      g.setLineDash([]);
     }
   }
 
   private drawBoxes(s: State) {
     const g = this.g;
-    const rect = (r: { l: number; r: number; t: number; b: number } | null, color: string) => {
-      if (!r) return;
-      g.strokeStyle = color;
-      g.lineWidth = 1;
-      g.strokeRect(px(r.l) + 0.5, px(r.t) + 0.5, px(r.r - r.l) - 1, px(r.b - r.t) - 1);
-    };
     for (const f of s.p) {
-      rect(hurtRect(f), "#4ADE80");
-      rect(hitRect(f), "#F43F5E");
-      // 기준점(발 가운데)
+      this.rect(hurtRect(f), "#4ADE80");
+      this.rect(hitRect(f), "#F43F5E");
       g.fillStyle = "#FDE047";
-      g.fillRect(px(f.x) - 1, px(f.y) - 1, 3, 3);
-      // 밀어내기 폭
+      g.fillRect(f.x / SUB - 1, screenY(f.z, f.h) - 1, 2, 2);
       const w = CHARS[f.ch].width;
-      rect(boxRect(f, { x: -w / 2, y: 2, w, h: 2 }), "#60A5FA");
+      this.rect(boxRect(f, { x: -w / 2, y: 1, w, h: 1 }, 0), "#60A5FA");
     }
-    for (const p of s.proj) rect(projRect(p, s), "#F43F5E");
+    for (const p of s.proj) this.rect(projRect(p, s), "#F43F5E");
   }
 
   draw(s: State) {
     const g = this.g;
     const k = this.canvas.width / VIEW_W;
-    g.setTransform(k, 0, 0, k, 0, 0);
-    g.imageSmoothingEnabled = false;
-    if (!this.bg) this.bg = makeBackground();
-    const sx = this.shake > 0.5 ? Math.round((Math.random() - 0.5) * this.shake) : 0;
-    const sy = this.shake > 0.5 ? Math.round((Math.random() - 0.5) * this.shake * 0.6) : 0;
-    g.save();
-    g.translate(sx, sy);
-    g.drawImage(this.bg, 0, 0);
+    const map = MAPS[s.map] ?? MAPS[0];
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = "high";
+    const sx = this.shake > 0.5 ? (Math.random() - 0.5) * this.shake : 0;
+    const sy = this.shake > 0.5 ? (Math.random() - 0.5) * this.shake * 0.6 : 0;
+    g.drawImage(this.stage(s, k), sx * k, sy * k);
+    g.setTransform(k, 0, 0, k, sx * k, sy * k);
 
-    // 초필살 연출: 배경 어둡게
     if (s.freeze > 0) {
       g.fillStyle = "rgba(0,0,0,0.55)";
       g.fillRect(-10, -10, VIEW_W + 20, VIEW_H + 20);
     }
-    // 뒤에 있는(맞는 중) 캐릭터 먼저
-    const order = s.p[0].st === "atk" && s.p[1].st !== "atk" ? [1, 0] : [0, 1];
-    for (const i of order) this.drawFighter(s.p[i], i, s);
+    // 안쪽(깊이 큰 것)부터: 발판과 캐릭터를 함께 정렬
+    type Item = { key: number; draw: () => void };
+    const items: Item[] = [];
+    map.plats.forEach((p: Plat) => items.push({ key: p.z0 * SUB + 0.5, draw: () => drawPlat(g, p) }));
+    s.p.forEach((f, i) => {
+      let key = f.z;
+      // 발판 위(또는 그 높이 이상)에 있으면 발판보다 나중에
+      for (const p of map.plats) {
+        const inside = f.x >= p.x0 * SUB && f.x <= p.x1 * SUB && f.z >= p.z0 * SUB && f.z <= p.z1 * SUB;
+        if (inside && f.h >= p.h * SUB - SUB) key = Math.min(key, p.z0 * SUB - 1);
+      }
+      // 같은 깊이면 공격 중인 쪽을 앞에
+      key -= f.st === "atk" ? 0.25 : 0;
+      items.push({ key, draw: () => this.drawFighter(f, i, s) });
+    });
+    items.sort((a, b) => b.key - a.key);
+    for (const it of items) it.draw();
     this.drawProj(s);
 
     for (const p of this.parts) {
       const a = p.life / p.max;
+      g.globalAlpha = Math.min(1, a * 1.5);
       if (p.kind === "spark" || p.kind === "dust") {
-        g.globalAlpha = Math.min(1, a * 1.5);
         g.fillStyle = p.color;
-        g.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+        g.beginPath();
+        g.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2);
+        g.fill();
+      } else if (p.kind === "flame") {
+        g.fillStyle = a > 0.6 ? "#FFE27A" : a > 0.3 ? "#FF9A3A" : "#FF5A1F";
+        g.beginPath();
+        g.ellipse(p.x, p.y, p.size, p.size * 1.6, 0, 0, Math.PI * 2);
+        g.fill();
+      } else if (p.kind === "bolt") {
+        g.strokeStyle = a > 0.5 ? "#FFFFFF" : "#FFE45C";
+        g.lineWidth = 0.6;
+        g.beginPath();
+        g.moveTo(p.x, p.y);
+        g.lineTo(p.x - p.vx * 1.5 + 1, p.y - p.vy * 1.5 - 1);
+        g.lineTo(p.x - p.vx * 3, p.y - p.vy * 3);
+        g.stroke();
+      } else if (p.kind === "shard") {
+        g.fillStyle = a > 0.5 ? "#FFFFFF" : "#9FE8FF";
+        g.beginPath();
+        g.moveTo(p.x, p.y - p.size * 1.6);
+        g.lineTo(p.x + p.size * 0.7, p.y);
+        g.lineTo(p.x, p.y + p.size * 1.6);
+        g.lineTo(p.x - p.size * 0.7, p.y);
+        g.fill();
       } else if (p.kind === "ring") {
         g.globalAlpha = a;
         g.strokeStyle = p.color;
-        g.lineWidth = 2;
+        g.lineWidth = 1.4;
         g.beginPath();
-        g.arc(Math.round(p.x), Math.round(p.y), p.size * (1.6 - a), 0, Math.PI * 2);
+        g.arc(p.x, p.y, p.size * (1.6 - a), 0, Math.PI * 2);
         g.stroke();
       } else if (p.kind === "text" && p.text) {
-        g.globalAlpha = Math.min(1, a * 2);
-        g.font = "bold 8px ui-monospace, monospace";
+        g.font = "bold 8px ui-sans-serif, system-ui, sans-serif";
         g.textAlign = "center";
-        g.fillStyle = "#000";
-        g.fillText(p.text, Math.round(p.x) + 1, Math.round(p.y) + 1);
+        g.lineWidth = 2;
+        g.strokeStyle = "rgba(0,0,0,0.8)";
+        g.strokeText(p.text, p.x, p.y);
         g.fillStyle = p.color;
-        g.fillText(p.text, Math.round(p.x), Math.round(p.y));
+        g.fillText(p.text, p.x, p.y);
       }
     }
     g.globalAlpha = 1;
     if (this.showBoxes) this.drawBoxes(s);
-    g.restore();
 
     if (this.flash > 0) {
+      g.setTransform(1, 0, 0, 1, 0, 0);
       g.globalAlpha = this.flash / 20;
       g.fillStyle = this.flashColor;
-      g.fillRect(0, 0, VIEW_W, VIEW_H);
+      g.fillRect(0, 0, this.canvas.width, this.canvas.height);
       g.globalAlpha = 1;
     }
   }

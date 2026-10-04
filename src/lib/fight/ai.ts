@@ -4,7 +4,7 @@
  * 오프라인 전용이라 결정론일 필요는 없지만, 같은 시드면 같은 행동을 하도록 자체 난수를 씀.
  */
 import { CHARS, SUB } from "./chars";
-import { IN, airborne, type Fighter, type State } from "./sim";
+import { IN, isAir, type Fighter, type State } from "./sim";
 
 export interface AILevel {
   id: string;
@@ -144,7 +144,7 @@ export class FightAI {
       this.blockDecision = null;
     }
     const oJumpIn =
-      airborne(o) && (o.vx === 0 || Math.sign(o.vx) === Math.sign(f.x - o.x)) && dist < 120;
+      isAir(s, o) && (o.vx === 0 || Math.sign(o.vx) === Math.sign(f.x - o.x)) && dist < 120;
     if (oJumpIn) {
       if (this.sawJump < 0) this.sawJump = s.f;
     } else {
@@ -169,13 +169,16 @@ export class FightAI {
     if (f.st !== "atk") this.comboDecision = null;
 
     const free = f.st === "idle" || f.st === "walk";
-    const incoming = s.proj.find((p) => p.o !== me && Math.sign(p.vx) === Math.sign(f.x - p.x));
+    const incoming = s.proj.find(
+      (p) => p.o !== me && Math.sign(p.vx) === Math.sign(f.x - p.x) && Math.abs(p.z - f.z) < 10 * SUB
+    );
+    const aligned = Math.abs(o.z - f.z) / SUB <= 8;
     const projDist = incoming ? Math.abs(incoming.x - f.x) / SUB : 999;
 
     if (free) {
       // 막기: 상대 공격을 알아챘고, 닿을 거리면
       const reach = o.mv ? CHARS[o.ch].moves[o.mv].box.x + CHARS[o.ch].moves[o.mv].box.w + 18 : 0;
-      if (oAtk && noticed(this.sawAtk) && (dist < reach || o.mv === "X")) {
+      if (oAtk && noticed(this.sawAtk) && aligned && (dist < reach || o.mv === "X")) {
         if (this.blockDecision === null) this.blockDecision = this.r() < L.block;
         if (this.blockDecision) {
           this.lastPress = back;
@@ -186,9 +189,10 @@ export class FightAI {
       if (incoming && projDist < 70 && projDist > 20) {
         if (this.blockDecision === null) this.blockDecision = this.r() < L.block;
         if (this.blockDecision) {
-          if (this.r() < 0.3 && projDist > 40) out |= IN.U | fwd;
+          // 깊이로 비켜서 피하거나 막기
+          if (this.r() < 0.45 && projDist > 30) out |= f.z > (incoming.z ?? 0) ? IN.U : IN.D;
           else out |= back;
-          this.lastPress = out & ~(IN.U | IN.L | IN.R);
+          this.lastPress = out & (IN.A | IN.B | IN.C | IN.X);
           return out;
         }
       }
@@ -225,19 +229,19 @@ export class FightAI {
         out |= back;
         break;
       case "jumpIn":
-        if (free) out |= IN.U | fwd;
-        else if (f.st === "jump" && dist < 50 && f.vy > 0) press(IN.B);
+        if (free) out |= fwd | (this.r() < 0.2 ? IN.J : 0);
+        else if (f.st === "jump" && dist < 50 && f.vh < 0) press(IN.B);
         break;
       case "poke":
         if (dist > hReach) out |= fwd;
-        else if (free) press(IN.B);
+        else if (free && aligned) press(IN.B);
         break;
       case "jab":
         if (dist > lReach) out |= fwd;
-        else if (free) press(IN.A);
+        else if (free && aligned) press(IN.A);
         break;
       case "fireball":
-        if (free && !s.proj.some((p) => p.o === me)) press(IN.C);
+        if (free && aligned && !s.proj.some((p) => p.o === me)) press(IN.C);
         break;
       case "block":
         out |= back;
@@ -246,7 +250,10 @@ export class FightAI {
         break;
     }
     if (free && dist > 90 && this.r() < L.special && !s.proj.some((p) => p.o === me)) press(IN.C);
-    this.lastPress = out & (IN.A | IN.B | IN.C | IN.X);
+    // 깊이 맞추기 (물러나는 중이 아니면 상대와 같은 줄로)
+    const dz = (o.z - f.z) / SUB;
+    if (free && this.intent !== "retreat" && Math.abs(dz) > 4 + (1 - L.aggro) * 4) out |= dz > 0 ? IN.U : IN.D;
+    this.lastPress = out & (IN.A | IN.B | IN.C | IN.X | IN.J);
     return out;
   }
 
