@@ -265,6 +265,17 @@ export class FightRenderer {
             x, y: y - 20, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, life: 14, max: 14,
             color: "#FFF27A", size: 1, kind: "bolt",
           });
+      } else if (e.k === "trap" || e.k === "pop") {
+        const pop = e.k === "pop";
+        if (!pop)
+          this.parts.push({ x, y: y - 18, vx: 0, vy: -0.5, life: 32, max: 32, color: "#9BE7FF", size: 1.2, kind: "text", text: "BUBBLE!" });
+        for (let i = 0; i < (pop ? 12 : 6); i++) {
+          const a = (i / (pop ? 12 : 6)) * Math.PI * 2;
+          this.parts.push({
+            x: x + Math.cos(a) * 14, y: y + Math.sin(a) * 14, vx: Math.cos(a) * (pop ? 2.2 : 0.8), vy: Math.sin(a) * (pop ? 2.2 : 0.8),
+            life: 14, max: 14, color: "#CFF3FF", size: 1.1, kind: "spark",
+          });
+        }
       } else if (e.k === "launch") {
         this.parts.push({ x, y: y - 30, vx: 0, vy: -0.6, life: 30, max: 30, color: "#FFE08A", size: 1.2, kind: "text", text: "LAUNCH!" });
         this.parts.push({ x, y, vx: 0, vy: 0, life: 14, max: 14, color: "#FFE08A", size: 14, kind: "ring" });
@@ -546,6 +557,30 @@ export class FightRenderer {
     g.globalAlpha = baseA;
     this.blit(src, ssx, ssy, fr, sc, x, y, mo.pose, mirror);
     g.restore();
+    if (f.trapT > 0) {
+      // 비눗방울에 갇힘: 몸을 감싸는 투명한 방울 (살짝 출렁)
+      const hh = Math.min(70, (frameRect(sh, sh.anims[sh.states.idle.anim], 0).ay / sc) * 0.95);
+      const cy = y - hh / 2,
+        rr = hh * 0.62 + Math.sin(s.f * 0.15) * 1.5;
+      g.save();
+      const grd = g.createRadialGradient(x - rr * 0.3, cy - rr * 0.35, rr * 0.1, x, cy, rr);
+      grd.addColorStop(0, "rgba(255,255,255,0.35)");
+      grd.addColorStop(0.6, "rgba(150,220,255,0.12)");
+      grd.addColorStop(0.92, "rgba(120,200,255,0.35)");
+      grd.addColorStop(1, "rgba(200,240,255,0.7)");
+      g.fillStyle = grd;
+      g.beginPath();
+      g.ellipse(x, cy, rr, rr * 1.05, 0, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "rgba(220,245,255,0.8)";
+      g.lineWidth = 1;
+      g.stroke();
+      g.fillStyle = "rgba(255,255,255,0.85)";
+      g.beginPath();
+      g.ellipse(x - rr * 0.38, cy - rr * 0.45, rr * 0.16, rr * 0.08, -0.6, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+    }
   }
 
   /** 한 프레임 그리기: 발(x, y)을 기준으로 연출 변형을 걸어서 */

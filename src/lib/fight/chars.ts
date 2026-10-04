@@ -99,6 +99,8 @@ export interface MoveDef {
   hover?: number;
   /** 공중의 상대를 맞히면 아래로 내리꽂음 (땅에 닿으면 짧게 튀어 오르고 경직 유지) */
   spike?: boolean;
+  /** 맞히면 상대를 물방울에 가둠 (프레임 수) — 둥실 떠서 못 움직이고, 버튼 연타로 빨리 빠져나옴, 맞으면 터짐 */
+  trap?: number;
   proj?: ProjDef;
 }
 
@@ -382,7 +384,7 @@ const RAW: CharSrc[] = [
     name: "소영",
     title: "선생님 · 채찍",
     desc: "긴 채찍으로 거리를 지배하는 엄한 선생님. 붙으면 약함",
-    hp: 1210,
+    hp: 1180,
     walk: 1020,
     jumpVx: 900,
     dash: 2300,
@@ -481,7 +483,7 @@ const RAW: CharSrc[] = [
           hitstun: 30,
           push: 300,
           hitstop: 9,
-          box: { x: -24, y: 12, w: 48, h: 182 },
+          box: { x: -24, y: 12, w: 48, h: 165 },
           pull: false,
           spike: true,
           cancel: undefined,
@@ -526,7 +528,7 @@ const RAW: CharSrc[] = [
     tagline: "KINDERGARTEN GIRL",
     difficulty: 2,
     idName: "비눗방울",
-    idDesc: "느리게 떠가는 큰 물방울 — 오래 남아서 길목을 막고, 맞으면 오래 갇힘",
+    idDesc: "느리게 떠가는 큰 비눗방울 — 오래 남아서 길목을 막고, 맞으면 방울에 갇혀 둥실 떠오름 (때리면 터짐, 연타로 탈출)",
     ultName: "장마 파도",
     ultDesc: "바닥을 휩쓰는 큰 파도가 지나가며 5번 때림",
     moves: {
@@ -590,7 +592,7 @@ const RAW: CharSrc[] = [
         startup: 10,
         active: 1,
         recovery: 14,
-        dmg: 70,
+        dmg: 55,
         chip: 10,
         hitstun: 34,
         blockstun: 14,
@@ -599,6 +601,7 @@ const RAW: CharSrc[] = [
         meter: 7,
         box: { x: 0, y: 0, w: 0, h: 0 },
         proj: { speed: 520, y: 40, w: 34, h: 34, life: 230, flat: true },
+        trap: 55,
       },
       X: {
         // 필살기 「장마 파도」: 바닥을 따라가는 큰 파도 5연타
@@ -754,7 +757,7 @@ const THROW: MoveDef = {
   meter: 8,
   box: { x: 0, y: 56, w: 38, h: 44 },
 };
-/** 가드 반격: 막는 중에 발차기 → 게이지 25를 써서 바로 밀쳐 냄 (시작 동안 무적) */
+/** 가드 반격: 막은 직후 발차기 → 게이지 25를 써서 상대를 위로 띄움 (시작 동안 무적, 점프 캔슬 → 공중 콤보) */
 const GUARD_COUNTER: MoveDef = {
   startup: 4,
   active: 4,
@@ -763,11 +766,10 @@ const GUARD_COUNTER: MoveDef = {
   chip: 0,
   hitstun: 22,
   blockstun: 10,
-  push: 1800,
+  push: 300,
   hitstop: 8,
   meter: 0,
   box: { x: -6, y: 64, w: 62, h: 64 },
-  kd: true,
 };
 export const GUARD_COUNTER_COST = 25;
 

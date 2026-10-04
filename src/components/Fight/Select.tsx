@@ -75,6 +75,7 @@ export default function Select({
   onStart,
   onPreview,
   entry = "mode",
+  onBack,
 }: {
   setup: Setup;
   setSetup: (f: (s: Setup) => Setup) => void;
@@ -83,6 +84,8 @@ export default function Select({
   onPreview: (map: number | null) => void;
   /** 처음 보여 줄 화면 (판이 끝나고 "캐릭터 선택"을 누르면 char) */
   entry?: "mode" | "char";
+  /** 맨 처음 화면에서 뒤로(Esc) — 더 갈 곳이 없으니 전체화면 끄기 등 */
+  onBack?: () => void;
 }) {
   const [stage, setStage] = useState<"mode" | "char" | "map" | "vs">(entry);
   const [lock, setLock] = useState<[boolean, boolean]>([false, false]);
@@ -238,6 +241,7 @@ export default function Select({
       e.preventDefault();
       if (stage === "mode") {
         if (p1.ok || p2.ok) toChars();
+        else if (p1.no) onBack?.();
         return;
       }
       if (stage === "char") {

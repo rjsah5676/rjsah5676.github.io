@@ -95,13 +95,13 @@ const AIR_ATTACKS = 2;
 const GC_GRACE = 10;
 /** 잡기 성공 후 위로 띄우는 세기와 그동안의 경직 */
 const LAUNCH_VH = 2300;
-const LAUNCH_STUN = 46;
+const LAUNCH_STUN = 60;
 /** 약 4단 마무리로 띄우는 세기 */
 const CHAIN_LAUNCH_VH = 1900;
 /** 띄워진 상대를 공중에서 다시 때리면: 다시 떠오르는 세기, 밀림 비율(%), 최소 경직 */
 const JUGGLE_VH = 950;
 const JUGGLE_PUSH = 45;
-const JUGGLE_STUN = 28;
+const JUGGLE_STUN = 36;
 
 export type FState =
   "idle" | "walk" | "dash" | "jump" | "atk" | "hit" | "block" | "down" | "rise" | "ko" | "win";
@@ -162,6 +162,8 @@ export interface Fighter {
   pullX: number;
   /** 끌어당기기에 맞아 경직 중 (이 동안엔 잡기도 들어감) — 경직이 풀리면 0 */
   pulled: number;
+  /** 비눗방울에 갇힌 남은 프레임 (둥실 떠 있고 못 움직임) */
+  trapT: number;
   /** 남은 무적 프레임 (다시 내려온 뒤) */
   inv: number;
   /** 최근 입력 (마지막이 이번 프레임) */
@@ -202,6 +204,8 @@ export type EvKind =
   | "throw"
   | "launch"
   | "shock"
+  | "trap"
+  | "pop"
   | "tech"
   | "just"
   | "counter";
@@ -320,6 +324,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     pullT: 0,
     pullX: 0,
     pulled: 0,
+    trapT: 0,
     inv: 0,
     hist: new Array(HIST).fill(0),
   };
@@ -416,6 +421,7 @@ export function hash(s: State): number {
     mix(f.pullT);
     mix(f.pullX);
     mix(f.pulled);
+    mix(f.trapT);
     mix(f.inv);
     mix(f.st.length * 31 + f.st.charCodeAt(0));
     mix(f.mv ? f.mv.charCodeAt(0) : 0);
@@ -801,9 +807,9 @@ function control(s: State, i: number) {
       if (
         f.hit &&
         !air &&
-        (f.mv === "T" || (f.mv === "L" && isFinisher(f) && m.launcher)) &&
-        f.t >= m.startup + m.active &&
-        pressed(f, JUMP_BITS, 3)
+        (f.mv === "T" || f.mv === "G" || (f.mv === "L" && isFinisher(f) && m.launcher)) &&
+        f.t >= m.startup + 2 &&
+        pressed(f, JUMP_BITS, 10)
       ) {
         f.mv = "";
         jump(s, i, JUMP_V);
@@ -827,6 +833,16 @@ function control(s: State, i: number) {
       return;
     }
     case "hit":
+      if (f.trapT > 0) {
+        // 갇힘: 버튼(공격·점프)을 새로 누를 때마다 더 빨리 빠져나옴
+        f.trapT--;
+        if (pressed(f, IN.A | IN.B | IN.C | IN.J, 1)) f.trapT = Math.max(0, f.trapT - 4);
+        if (f.trapT === 0) {
+          f.stun = 6;
+          s.ev.push({ k: "pop", p: 1 - i, x: f.x, h: f.h + 30 * SUB, v: 0 });
+        }
+        return;
+      }
       if (f.grabbed > 0) {
         f.grabbed--;
         if (f.grabbed === 0) {
@@ -991,6 +1007,7 @@ function respawn(s: State, i: number) {
   f.dashT = 0;
   f.gcT = 0;
   f.float = 0;
+  f.trapT = 0;
   f.inv = RESPAWN_INV;
 }
 
@@ -999,6 +1016,13 @@ function physics(s: State, i: number) {
   const map = mapOf(s);
   const m = moveOf(f);
   if (f.inv > 0) f.inv--;
+  if (f.trapT > 0) {
+    // 방울 안: 천천히 떠오르다 멈춤 (중력 없음)
+    f.vx = 0;
+    f.vh = f.trapT > 40 ? 160 : 0;
+    f.h += f.vh;
+    return;
+  }
   if (f.pullT > 0) {
     moveX(f, Math.trunc((f.pullX - f.x) / f.pullT));
     f.pullT--;
@@ -1030,7 +1054,10 @@ function physics(s: State, i: number) {
     if (standingOn(map, f)) return;
   }
   // 공중 (띄워진 상대는 천천히 떨어짐)
-  f.vh = Math.max(-MAX_FALL, f.vh - (f.float && f.st === "hit" ? Math.trunc((GRAVITY * 7) / 10) : GRAVITY));
+  // (띄워진 상대: 중력 45%, 떨어지는 최고 속도도 낮게 → 공중 콤보 넣을 시간)
+  if (f.float === 1 && f.st === "hit") f.vh = Math.max(-1100, f.vh - Math.trunc((GRAVITY * 45) / 100));
+  else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-1400, f.vh - GRAVITY);
+  else f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
   const gl = charOf(f).glide;
   if (gl && f.vh < -gl && (f.st === "jump" || f.st === "atk") && holding(f, JUMP_BITS)) f.vh = -gl;
@@ -1135,6 +1162,11 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     if (d.shock > 0 && shocker) base = Math.trunc((base * 110) / 100);
     const dmg = m.multi || m.summon ? m.dmg : scaleDmg(base, d.combo);
     const wasAir = airborneS(s, d);
+    if (d.trapT > 0) {
+      // 갇힌 상대를 때리면 방울이 터짐
+      d.trapT = 0;
+      s.ev.push({ k: "pop", p: ai, x: d.x, h: d.h + 30 * SUB, v: 0 });
+    }
     d.hp -= dmg;
     d.combo++;
     d.st = "hit";
@@ -1164,7 +1196,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       if (wasAir && !kd && d.float) {
         // 띄워진 상대 공중 콤보(저글): 멀리 안 날아가고 다시 살짝 떠올라 다음 타를 넣을 수 있음
         // 때린 쪽이 아직 떠오르는 중이면 그 속도에 맞춰 같이 떠오름 (위로 지나쳐 버리지 않게)
-        d.vh = Math.max(JUGGLE_VH, airborneS(s, a) ? a.vh - 150 : 0);
+        // 이후엔 때린 쪽과 같은 중력(float=2)으로 같이 움직여서 다음 타가 닿음
+        d.vh = airborneS(s, a) ? Math.max(a.vh, JUGGLE_VH - 400) : JUGGLE_VH;
+        d.float = 2;
         d.vx = Math.trunc((dir * m.push * JUGGLE_PUSH) / 100);
         d.stun = Math.max(d.stun, JUGGLE_STUN);
       }
@@ -1176,6 +1210,15 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.spiked = 1;
       d.float = 0;
       d.stun = Math.max(d.stun, m.hitstun + 6);
+    }
+    if (mid === "G" && !wasAir) {
+      // 가드 반격: 막은 직후 발차기로 상대를 위로 띄움 → 점프 캔슬해서 공중 콤보
+      d.vh = LAUNCH_VH;
+      d.kd = 0;
+      d.float = 1;
+      d.vx = dir * 300;
+      d.stun = Math.max(d.stun, LAUNCH_STUN - 10);
+      s.ev.push({ k: "launch", p: ai, x: d.x, h: d.h, v: 2 });
     }
     if (fin && mid === "L" && m.launcher && !kd && !wasAir) {
       // 약 4단 마무리: 위로 띄움 → 점프 캔슬해서 공중 콤보
@@ -1195,6 +1238,16 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.vx = 0;
       d.vh = 0;
       d.kd = 0;
+    }
+    if (m.trap && !kd) {
+      // 비눗방울에 갇힘: 그 자리에서 둥실 떠오름
+      d.trapT = m.trap;
+      d.stun = m.trap + 4;
+      d.vx = 0;
+      d.vh = 0;
+      d.kd = 0;
+      d.float = 0;
+      s.ev.push({ k: "trap", p: ai, x: d.x, h: d.h + 30 * SUB, v: 0 });
     }
     if (m.shock) {
       if (d.shock === 0) s.ev.push({ k: "shock", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });

@@ -596,7 +596,16 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     return (
       <div ref={rootRef} className={rootCls}>
         <div className="fs-screen relative [container-type:inline-size]">
-          <Select setup={setup} setSetup={setSetup} onStart={start} onPreview={previewMap} entry={entry} />
+          <Select
+            setup={setup}
+            setSetup={setSetup}
+            onStart={start}
+            onPreview={previewMap}
+            entry={entry}
+            onBack={() => {
+              if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+            }}
+          />
           {fsBtn()}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -623,7 +632,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           )}
           <div className="mt-1 text-white/40">
             약 4단·발차기 2단, 마지막 동작은 세지만 빈틈 큼 · 발차기·아이덴티티는 막히면 막은 쪽이 먼저 움직임(반격
-            기회) · 맞기 직전 가드 = 저스트 가드 · 막은 직후 K = 가드 반격(게이지 25) · J+K 잡기(가드 불가, 위로 띄움 → 바로 점프해 공중 콤보, 잡힌 직후 J+K로
+            기회) · 맞기 직전 가드 = 저스트 가드 · 막은 직후 K = 가드 반격(게이지 25, 위로 띄움) · J+K 잡기(가드 불가, 위로 띄움 → 바로 점프해 공중 콤보, 잡힌 직후 J+K로
             풀기) · 방향키는 공격·가드 중에도 바로 돌아섬 · 기술 내는 중·대시 중에 맞으면 카운터 · 같은 방향 두 번 대시 · 2단 점프, 공중 공격 점프마다 2번 ·
             떨어지면 위에서 다시 등장 · 게이지 MAX에 필살기 · Esc 일시정지
           </div>

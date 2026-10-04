@@ -58,6 +58,16 @@ def feet(piece: np.ndarray, anchor="feet"):
         return w / 2, h / 2
     if anchor == "bottom":
         return w / 2, h
+    if anchor == "upper":
+        # 몸이 위쪽, 아래로 긴 무기·이펙트가 뻗은 그림: 줄마다 폭을 보고, 가장 넓은 줄(몸)에서
+        # 아래로 내려가며 폭이 확 좁아지는 곳(무기만 남는 곳)을 발로 봄
+        cnt = a.sum(1).astype(float)
+        top = int(np.argmax(cnt[: max(1, int(h * 0.7))]))
+        foot = top
+        while foot < h - 1 and cnt[foot] >= cnt[top] * 0.18:
+            foot += 1
+        ys, xs = np.where(a[max(0, foot - 12) : foot + 1])
+        return (float(xs.mean()) if len(xs) else w / 2), float(foot)
     lab, n = ndimage.label(ndimage.binary_dilation(a, np.ones((3, 3))))
     if n == 0:
         return w / 2, h

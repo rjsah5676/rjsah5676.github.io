@@ -167,6 +167,11 @@ export class FightAI {
       return finish();
     }
 
+    // ── 비눗방울에 갇힘: 연타로 탈출 (단계가 높을수록 빠르게) ──
+    if (f.trapT > 0) {
+      if (this.r() < L.block) press(IN.A);
+      return finish();
+    }
     // ── 잡혔다: 풀기 (단계별 확률) ──
     if (f.grabbed > 0) {
       if (this.techDecision === null) this.techDecision = this.r() < L.block * 0.8;
@@ -232,7 +237,7 @@ export class FightAI {
 
     // ── 띄운 상대 공중 콤보 (잡기·약 4단 마무리 뒤) ──
     if (o.st === "hit" && o.float && !o.kd && this.r() < L.combo + 0.2) {
-      if (f.st === "atk" && f.hit && (f.mv === "T" || (f.mv === "L" && f.chain >= 4))) {
+      if (f.st === "atk" && f.hit && (f.mv === "T" || f.mv === "G" || (f.mv === "L" && f.chain >= 4))) {
         // 점프 캔슬
         press(IN.J);
         return finish();
