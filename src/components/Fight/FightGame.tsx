@@ -26,6 +26,12 @@ import {
   sfxProj,
   sfxSuper,
   sfxWhoosh,
+  sfxJust,
+  sfxCounter,
+  sfxTech,
+  sfxLaunch,
+  sfxMeter,
+  sfxRespawn,
   setFightVolume,
   type Element,
 } from "@/lib/fight/sfx";
@@ -486,6 +492,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     playBgm(MAPS[s.map].bgm ?? MENU_BGM, true);
     let ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
     let hits = 0;
+    const prevMeter = [0, 0];
     let lastHud = "";
     let acc = 0;
     let last = performance.now();
@@ -562,12 +569,15 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           if (e.k === "hit") {
             sfxHit(e.m === "X" ? 2 : e.m === "H" || e.m === "S" || e.m === "K" ? 1 : 0, elOf(e.p));
             if (e.p === (ol?.seat ?? 0)) hits++;
-          } else if (e.k === "block" || e.k === "just") sfxBlock();
+          } else if (e.k === "block") sfxBlock();
+          else if (e.k === "just") sfxJust();
+          else if (e.k === "counter") sfxCounter();
+          else if (e.k === "fall") sfxRespawn();
           else if (e.k === "throw") {
             sfxHit(1, elOf(e.p));
             if (e.p === (ol?.seat ?? 0)) hits++;
-          } else if (e.k === "tech") sfxBlock();
-          else if (e.k === "launch") sfxDash();
+          } else if (e.k === "tech") sfxTech();
+          else if (e.k === "launch") sfxLaunch();
           else if (e.k === "proj") sfxProj(elOf(e.p), s.p[e.p].mv === "X");
           else if (e.k === "super") sfxSuper();
           else if (e.k === "ko") sfxKO();
@@ -579,6 +589,9 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         }
         for (let i = 0; i < 2; i++) {
           const f = s.p[i];
+          // 필살기 게이지가 막 찼을 때
+          if (f.meter >= METER_MAX && prevMeter[i] < METER_MAX && s.phase === "fight") sfxMeter();
+          prevMeter[i] = f.meter;
           if (f.st === "atk" && (prevSt[i] !== "atk" || f.t < prevT[i]) && f.mv !== "S")
             sfxWhoosh(f.mv === "H" || f.mv === "K" || f.mv === "X", SFX_EL[CHARS[f.ch].id] ?? "wind");
         }

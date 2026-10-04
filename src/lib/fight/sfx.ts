@@ -1,5 +1,6 @@
 /**
- * 격투게임 효과음 — Web Audio로 즉석 합성 (파일 없음).
+ * 격투게임 효과음 — 기본 타격·동작·라운드·메뉴는 8bit 효과음 파일(public/fight/sfx, こんとどぅふぇ 무료 소재:
+ * 상업 이용 OK·크레딧 불필요, 파일 단독 재배포 금지), 파일이 없거나 아직 안 불러온 소리와 능력별 덧소리는 Web Audio 즉석 합성.
  * 아케이드 격투게임 느낌을 내려고 소리를 겹쳐 만듦:
  *   타격 = 딱 하는 고음 클릭 + 찌그러뜨린(포화) 저음 쿵 + 거친 노이즈 + 짧은 잔향
  *   가드 = 둔탁한 쿵 + 금속성 울림, 휘두르기 = 위로 쓸리는 바람 소리
@@ -45,10 +46,74 @@ function ac(): AudioContext | null {
       verb.connect(vg).connect(comp);
     }
     if (ctx.state === "suspended") void ctx.resume();
+    loadSamples(ctx);
     return ctx;
   } catch {
     return null;
   }
+}
+
+// ───────────── 효과음 파일 ─────────────
+
+/** 파일 이름 → 음량 (파일은 최대 음량을 맞춰 둠, 8bit 사각파는 크게 들려서 낮게) */
+const SAMPLES: Record<string, number> = {
+  "hit-l": 0.5,
+  "hit-h": 0.62,
+  "hit-x": 0.75,
+  counter: 0.5,
+  block: 0.42,
+  just: 0.45,
+  tech: 0.45,
+  "whoosh-l": 0.22,
+  "whoosh-h": 0.28,
+  jump: 0.2,
+  dash: 0.28,
+  super: 0.45,
+  meter: 0.32,
+  ko: 0.75,
+  round: 0.45,
+  fight: 0.5,
+  respawn: 0.32,
+  "ui-move": 0.3,
+  "ui-ok": 0.35,
+  "ui-back": 0.3,
+  "ui-shuffle": 0.22,
+  "ui-ready": 0.35,
+};
+const buffers = new Map<string, AudioBuffer>();
+let samplesLoading = false;
+function loadSamples(c: AudioContext) {
+  if (samplesLoading) return;
+  samplesLoading = true;
+  for (const name of Object.keys(SAMPLES)) {
+    fetch(`/fight/sfx/${name}.mp3`)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
+      .then((b) => c.decodeAudioData(b))
+      .then((buf) => buffers.set(name, buf))
+      .catch(() => {});
+  }
+}
+/** 효과음 파일 재생 (아직 없으면 false → 합성음으로) — 같은 소리가 반복돼도 덜 질리게 음높이를 살짝 흔듦 */
+function sample(name: string, gain = 1, rate = 1): boolean {
+  const c = ac();
+  const buf = buffers.get(name);
+  if (!c || !buf || !bus) return false;
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = rate * (1 + (Math.random() - 0.5) * 0.06);
+  const g = c.createGain();
+  g.gain.value = (SAMPLES[name] ?? 0.4) * gain;
+  src.connect(g).connect(bus);
+  src.start();
+  return true;
+}
+/** 메뉴 소리 (선택 화면·대기실) */
+export function sfxUi(kind: "move" | "ok" | "back" | "shuffle" | "ready") {
+  sample(`ui-${kind}`);
+}
+/** 앱 시작 직후 미리 불러오기 (첫 소리가 합성음으로 나가지 않게) — 사용자 입력 뒤에 불러야 소리가 남 */
+export function preloadFightSfx() {
+  ac();
 }
 
 export function setFightVolume(v: number) {
@@ -148,12 +213,17 @@ export function sfxHit(power: number, el: Element = "wind") {
   const c = ac();
   if (!c) return;
   const t = c.currentTime;
-  // 1) 딱 — 고음 클릭
-  burst(c, t, 4500, 0.7, 0.55, 0.018, "highpass");
-  // 2) 쿵 — 찌그러뜨린 저음 (세질수록 낮고 길게)
-  tone(c, t, "sine", 210 - power * 40, 42, 0.95, 0.09 + power * 0.07, 3.5, 0.15);
-  // 3) 퍽 — 거친 중음 노이즈
-  burst(c, t, 1200 - power * 250, 0.9, 0.5 + power * 0.12, 0.06 + power * 0.05, "bandpass", 0.25);
+  if (!sample(power >= 2 ? "hit-x" : power >= 1 ? "hit-h" : "hit-l")) {
+    // 1) 딱 — 고음 클릭
+    burst(c, t, 4500, 0.7, 0.55, 0.018, "highpass");
+    // 2) 쿵 — 찌그러뜨린 저음 (세질수록 낮고 길게)
+    tone(c, t, "sine", 210 - power * 40, 42, 0.95, 0.09 + power * 0.07, 3.5, 0.15);
+    // 3) 퍽 — 거친 중음 노이즈
+    burst(c, t, 1200 - power * 250, 0.9, 0.5 + power * 0.12, 0.06 + power * 0.05, "bandpass", 0.25);
+  } else {
+    // 파일 소리 밑에 살짝 묵직한 저음만 깔아 줌
+    tone(c, t, "sine", 160 - power * 30, 45, 0.35 + power * 0.1, 0.08 + power * 0.05, 2);
+  }
   // 능력별 덧소리
   if (el === "fire") burst(c, t + 0.01, 2600, 0.6, 0.22, 0.18 + power * 0.08, "highpass", 0.3, 900);
   else if (el === "water") {
@@ -176,6 +246,7 @@ export function sfxHit(power: number, el: Element = "wind") {
 export function sfxBlock() {
   const c = ac();
   if (!c) return;
+  if (sample("block")) return;
   const t = c.currentTime;
   tone(c, t, "sine", 140, 70, 0.5, 0.07, 2);
   tone(c, t, "square", 1900, 1500, 0.07, 0.09, 0, 0.4);
@@ -194,6 +265,7 @@ export function sfxWhoosh(heavy: boolean, el: Element = "wind") {
     burst(c, t + (heavy ? 0.11 : 0.07), 5000, 0.8, heavy ? 0.6 : 0.45, 0.02, "highpass", 0.3);
     return;
   }
+  if (sample(heavy ? "whoosh-h" : "whoosh-l")) return;
   burst(c, t, heavy ? 450 : 800, 1.4, heavy ? 0.26 : 0.16, heavy ? 0.16 : 0.1, "bandpass", 0, heavy ? 2200 : 3000);
 }
 
@@ -225,6 +297,7 @@ export function sfxProj(el: Element = "fire", big = false) {
 export function sfxDash() {
   const c = ac();
   if (!c) return;
+  if (sample("dash")) return;
   const t = c.currentTime;
   burst(c, t, 600, 1, 0.18, 0.12, "bandpass", 0, 2600);
   tone(c, t, "sine", 120, 60, 0.15, 0.06);
@@ -234,6 +307,7 @@ export function sfxDash() {
 export function sfxSuper() {
   const c = ac();
   if (!c) return;
+  if (sample("super")) return;
   const t = c.currentTime;
   // 우웅 — 기 모으는 소리 + 번쩍
   tone(c, t, "sawtooth", 80, 320, 0.25, 0.55, 2.5, 0.4);
@@ -246,6 +320,7 @@ export function sfxSuper() {
 export function sfxJump() {
   const c = ac();
   if (!c) return;
+  if (sample("jump")) return;
   const t = c.currentTime;
   burst(c, t, 700, 1, 0.1, 0.07, "bandpass", 0, 1500);
 }
@@ -260,6 +335,11 @@ export function sfxKO() {
   const c = ac();
   if (!c) return;
   const t = c.currentTime;
+  if (sample("ko")) {
+    // 묵직한 여운만 덧붙임
+    tone(c, t, "sine", 110, 30, 0.5, 0.9, 3, 0.4);
+    return;
+  }
   burst(c, t, 4500, 0.7, 0.6, 0.02, "highpass");
   tone(c, t, "sine", 120, 28, 1, 1.1, 4, 0.5);
   burst(c, t, 300, 0.5, 0.8, 1.2, "lowpass", 0.7, 60);
@@ -271,6 +351,7 @@ export function sfxBell(high: boolean) {
   const c = ac();
   if (!c) return;
   const t = c.currentTime;
+  if (sample(high ? "fight" : "round")) return;
   if (!high) {
     tone(c, t, "sine", 98, 92, 0.5, 1.2, 1.5, 0.6);
     tone(c, t, "triangle", 196, 190, 0.18, 1, 0, 0.6);
@@ -287,4 +368,29 @@ export function sfxBell(high: boolean) {
     tone(c, t, "sawtooth", f, f * 0.98, v, 0.6, 3, 0.5);
   burst(c, t, 4500, 0.7, 0.5, 0.03, "highpass", 0.4);
   tone(c, t, "sine", 80, 40, 0.8, 0.3, 3);
+}
+
+/** 띄우기 (위로 솟구침) */
+export function sfxLaunch() {
+  sfxDash();
+}
+/** 카운터 히트 (타격음 위에 겹침) */
+export function sfxCounter() {
+  sample("counter", 0.8);
+}
+/** 저스트 가드 */
+export function sfxJust() {
+  if (!sample("just")) sfxBlock();
+}
+/** 잡기 풀기 */
+export function sfxTech() {
+  if (!sample("tech")) sfxBlock();
+}
+/** 필살기 게이지 MAX */
+export function sfxMeter() {
+  sample("meter");
+}
+/** 떨어졌다 다시 등장 */
+export function sfxRespawn() {
+  sample("respawn");
 }

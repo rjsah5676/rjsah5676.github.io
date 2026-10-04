@@ -8,6 +8,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { CHARS, type CharDef } from "@/lib/fight/chars";
 import { MAPS } from "@/lib/fight/maps";
 import { loadSheet } from "@/lib/fight/sprites";
+import { sfxUi } from "@/lib/fight/sfx";
 import { useChessUser } from "@/components/Chess/useChessUser";
 import {
   cleanupEmptyRoom,
@@ -388,10 +389,10 @@ function Room({
       }
       if (!me) return;
       const n = CHARS.length;
-      const move = (d: number) => !me.ready && s.setChar((((me.ch + 1 + d) % (n + 1)) + n + 1) % (n + 1) - 1);
+      const move = (d: number) => !me.ready && (sfxUi("move"), s.setChar((((me.ch + 1 + d) % (n + 1)) + n + 1) % (n + 1) - 1));
       if (k === "KeyA" || k === "ArrowLeft") move(-1);
       else if (k === "KeyD" || k === "ArrowRight") move(1);
-      else if (k === "KeyJ" || k === "Space" || k === "Enter") s.setReady(!me.ready);
+      else if (k === "KeyJ" || k === "Space" || k === "Enter") (sfxUi(me.ready ? "back" : "ready"), s.setReady(!me.ready));
       else return;
       e.preventDefault();
     };
@@ -605,7 +606,7 @@ function Room({
                   key={i}
                   type="button"
                   disabled={me.ready}
-                  onClick={() => s.setChar(i)}
+                  onClick={() => (sfxUi("move"), s.setChar(i))}
                   className="cursor-pointer disabled:cursor-not-allowed"
                 >
                   {c ? (
@@ -630,7 +631,7 @@ function Room({
           </div>
           <div className={`${KR} text-[1cqw] text-white/40`}>A·D(←→) 고르기 · J(Enter) 준비 · Esc 나가기 · 둘 다 준비하면 시작</div>
         </div>
-        <button type="button" disabled={!foe && !me.ready} onClick={() => s.setReady(!me.ready)} className={`${bigBtn} mb-[1.6cqw] min-w-[12cqw]`}>
+        <button type="button" disabled={!foe && !me.ready} onClick={() => (sfxUi(me.ready ? "back" : "ready"), s.setReady(!me.ready))} className={`${bigBtn} mb-[1.6cqw] min-w-[12cqw]`}>
           {me.ready ? "준비 취소" : foe ? "준비" : "상대 대기"}
         </button>
       </div>

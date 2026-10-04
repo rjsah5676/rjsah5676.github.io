@@ -10,6 +10,7 @@ import { CHARS, type CharDef } from "@/lib/fight/chars";
 import { MAPS } from "@/lib/fight/maps";
 import { AI_LEVELS } from "@/lib/fight/ai";
 import { loadSheet } from "@/lib/fight/sprites";
+import { sfxUi } from "@/lib/fight/sfx";
 
 export type Mode = "ai" | "2p" | "online";
 export interface Setup {
@@ -58,7 +59,7 @@ function SkillRow({ c, k }: { c: CharDef; k: "S" | "X" }) {
         <span className="text-[1.05cqw] leading-snug break-keep text-white/80">{isId ? c.idDesc : c.ultDesc}</span>
         {isId && (
           <span className={`flex items-start gap-[0.4cqw]`}>
-            <SkillIcon key={`${c.id}-A`} c={c} k="A" small />
+            {c.airLabel && <SkillIcon key={`${c.id}-A`} c={c} k="A" small />}
             <span className="text-[0.95cqw] leading-snug break-keep text-white/55">
               <b className="text-[#FDE047]/80">{c.airLabel ?? "점프 중 L"}</b> {c.airDesc}
             </span>
@@ -143,7 +144,12 @@ export default function Select({
       const q = k / Math.max(1, count - 1);
       t += Math.round(50 + 230 * q * q * q);
       const kk = k;
-      timers.current.push(setTimeout(() => show(kk, kk === count - 1), t));
+      timers.current.push(
+        setTimeout(() => {
+          sfxUi("shuffle");
+          show(kk, kk === count - 1);
+        }, t)
+      );
     }
     // 멈춘 뒤 뽑힌 걸 잠깐 보여 주고 결정
     timers.current.push(setTimeout(done, t + 950));
@@ -173,6 +179,7 @@ export default function Select({
 
   /** 칸 순서: 랜덤(-1), 0..n-1 */
   const setCursor = (side: 0 | 1, pos: number) => {
+    sfxUi("move");
     setRnd((r) => (side === 0 ? [pos < 0, r[1]] : [r[0], pos < 0]));
     if (pos >= 0) setSetup((s) => (side === 0 ? { ...s, c1: pos } : { ...s, c2: pos }));
   };
@@ -182,6 +189,7 @@ export default function Select({
     setCursor(side, ((cur + 1 + d + n + 1) % (n + 1)) - 1);
   };
   const lockSide = (side: 0 | 1) => {
+    sfxUi("ok");
     const l: [boolean, boolean] = [...stRef.current.lock];
     l[side] = true;
     setLock(l);
@@ -210,6 +218,7 @@ export default function Select({
   const confirmMap = (cur: number) => {
     if (stRef.current.shuf !== null) return;
     if (cur >= 0) {
+      sfxUi("ok");
       setSetup((s) => ({ ...s, map: cur, rolled: undefined }));
       setStage("vs");
       return;
@@ -231,6 +240,7 @@ export default function Select({
     );
   };
   const cancel = (side: 0 | 1) => {
+    sfxUi("back");
     const l: [boolean, boolean] = [...stRef.current.lock];
     if (l[side]) l[side] = false;
     else if (side === 1 && ai) l[0] = false;
@@ -247,6 +257,7 @@ export default function Select({
     setStage("char");
   };
   const toChars = () => {
+    sfxUi("ok");
     if (stRef.current.setup.mode === "online") {
       onOnline?.();
       return;
@@ -301,10 +312,14 @@ export default function Select({
         }
       } else if (stage === "map") {
         const i = mapOptions.indexOf(mapCur);
+        if (p1.l || p2.l || p1.r || p2.r) sfxUi("move");
         if (p1.l || p2.l) setMapCur(mapOptions[(i - 1 + mapOptions.length) % mapOptions.length]);
         if (p1.r || p2.r) setMapCur(mapOptions[(i + 1) % mapOptions.length]);
         if (p1.ok || p2.ok) confirmMap(mapCur);
-        if (p1.no || p2.no) backToChars();
+        if (p1.no || p2.no) {
+          sfxUi("back");
+          backToChars();
+        }
       }
     };
     window.addEventListener("keydown", onKey);
@@ -354,7 +369,10 @@ export default function Select({
                 <button
                   key={m}
                   type="button"
-                  onClick={() => setSetup((s) => ({ ...s, mode: m }))}
+                  onClick={() => {
+                    sfxUi("move");
+                    setSetup((s) => ({ ...s, mode: m }));
+                  }}
                   className={`${KR} flex w-[17cqw] cursor-pointer flex-col items-center gap-[0.3cqw] rounded-[0.8cqw] border-[0.25cqw] px-[1cqw] py-[1.1cqw] backdrop-blur-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                     on
                       ? "border-[#FDE047] bg-[#FDE047]/15 shadow-[0_0_2cqw_rgba(253,224,71,0.35)]"
