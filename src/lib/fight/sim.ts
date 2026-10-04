@@ -160,6 +160,8 @@ export interface Fighter {
   /** 끌려오는 중: 남은 프레임과 도착할 x (그동안 매 프레임 남은 거리를 나눠서 이동) */
   pullT: number;
   pullX: number;
+  /** 위로 끌어올릴 높이 (pulled = 2 일 때) */
+  pullH: number;
   /** 끌어당기기에 맞아 경직 중 (이 동안엔 잡기도 들어감) — 경직이 풀리면 0 */
   pulled: number;
   /** 비눗방울에 갇힌 남은 프레임 (둥실 떠 있고 못 움직임) */
@@ -323,6 +325,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     spiked: 0,
     pullT: 0,
     pullX: 0,
+    pullH: 0,
     pulled: 0,
     trapT: 0,
     inv: 0,
@@ -420,6 +423,7 @@ export function hash(s: State): number {
     mix(f.spiked);
     mix(f.pullT);
     mix(f.pullX);
+    mix(f.pullH);
     mix(f.pulled);
     mix(f.trapT);
     mix(f.inv);
@@ -815,6 +819,21 @@ function control(s: State, i: number) {
         jump(s, i, JUMP_V);
         return;
       }
+      // 공중 끌어올리기가 맞으면: 판정 끝난 뒤 바로 점프·공중 약·발차기로 이어감 (공중 콤보)
+      if (f.hit && f.aerial && m.pullUp && f.t >= m.startup + m.active - 2) {
+        if (f.jumps < 2 && pressed(f, JUMP_BITS, 10)) {
+          f.mv = "";
+          jump(s, i, JUMP2_V);
+          return;
+        }
+        const nb = pressed(f, IN.B, 10) ? "K" : pressed(f, IN.A, 10) ? "J" : null;
+        if (nb) {
+          if (holding(f, IN.R)) f.face = 1;
+          else if (holding(f, IN.L)) f.face = -1;
+          startMove(s, i, nb);
+          return;
+        }
+      }
       // 약·발차기 연속 동작: 판정이 나온 뒤부터 끝날 때까지 같은 버튼으로 다음 동작 (헛쳐도 됨)
       const cm = CHAIN_MAX[f.mv as MoveId];
       if (cm && f.chain < cm && f.t >= m.startup + (f.hit ? 1 : m.active) && onGround(s, f)) {
@@ -1025,6 +1044,10 @@ function physics(s: State, i: number) {
   }
   if (f.pullT > 0) {
     moveX(f, Math.trunc((f.pullX - f.x) / f.pullT));
+    if (f.pulled === 2) {
+      f.h += Math.trunc((f.pullH - f.h) / f.pullT);
+      f.vh = 0;
+    }
     f.pullT--;
     f.vx = 0;
   }
@@ -1202,6 +1225,18 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
         d.vx = Math.trunc((dir * m.push * JUGGLE_PUSH) / 100);
         d.stun = Math.max(d.stun, JUGGLE_STUN);
       }
+    }
+    if (m.pullUp && !kd) {
+      // 끌어올리기: 때린 쪽 앞 공중(발 높이보다 살짝 아래)으로 끌려옴 → 띄워진 상태(천천히 떨어짐)
+      d.pulled = 2;
+      d.pullX = a.x + a.face * 36 * SUB;
+      d.pullH = Math.max(d.h, a.h - 30 * SUB);
+      d.vh = 0;
+      d.vx = 0;
+      d.kd = 0;
+      d.float = 1;
+      d.stun = Math.max(d.stun, 40);
+      s.ev.push({ k: "launch", p: ai, x: d.x, h: d.h, v: 3 });
     }
     if (m.spike && wasAir && !kd) {
       // 내리꽂기: 공중의 상대를 땅으로 처박음 → 바닥에서 한 번 튀고 경직 유지 (착지해 이어 치기)

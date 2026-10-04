@@ -38,6 +38,9 @@ import Select, { type Setup } from "./Select";
 import { scrollToGameTop } from "@/components/GameHeader";
 import { RankSubmit } from "@/components/AIRank";
 import { clockLabel, fightScore } from "@/lib/aiScore";
+import Online, { type MatchCfg } from "./Online";
+import { OnlineMatch } from "./onlineMatch";
+import type { RoomSession } from "@/realtime/fight";
 
 
 const SAVE_KEY = "fight:setup";
@@ -135,6 +138,7 @@ function TouchPad({ input }: { input: FightInput }) {
 }
 
 interface Hud {
+  ch: [number, number];
   hp: [number, number];
   meter: [number, number];
   /** 아이덴티티 남은 대기 비율 (0 = 준비됨) */
@@ -153,6 +157,7 @@ interface Hud {
 
 function hudOf(s: State): Hud {
   return {
+    ch: [s.p[0].ch, s.p[1].ch],
     hp: [hpRatio(s.p[0]), hpRatio(s.p[1])],
     meter: [s.p[0].meter, s.p[1].meter],
     cd: [s.p[0].cd / CHARS[s.p[0].ch].cd, s.p[1].cd / CHARS[s.p[1].ch].cd],
@@ -301,6 +306,24 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const pausedRef = useRef(false);
   const rendererRef = useRef<FightRenderer | null>(null);
   const restartRef = useRef<() => void>(() => {});
+  // ── 온라인: 방 연결은 경기 화면을 오가도 유지 ──
+  const [onlineOn, setOnlineOn] = useState(false);
+  const [sess, setSessState] = useState<RoomSession | null>(null);
+  const sessRef = useRef<RoomSession | null>(null);
+  const setSess = useCallback((v: RoomSession | null) => {
+    if (sessRef.current && sessRef.current !== v) sessRef.current.leave();
+    sessRef.current = v;
+    setSessState(v);
+  }, []);
+  useEffect(() => () => void sessRef.current?.leave(), []);
+  const cfgRef = useRef<MatchCfg | null>(null);
+  /** 그리기용 (cfgRef와 같은 값) */
+  const [olCfg, setOlCfg] = useState<MatchCfg | null>(null);
+  const [played] = useState(() => new Set<string>());
+  /** 온라인 경기가 비정상으로 끝남 (상대가 나감·연결 끊김) */
+  const [netEnd, setNetEnd] = useState("");
+  const leaveMatchRef = useRef<(bye: boolean) => void>(() => {});
+  const [initialRoom, setInitialRoom] = useState<string | null>(null);
   // 전체화면: 선택 화면·게임 화면이 같은 바깥 div 안에서 바뀌어서 화면이 넘어가도 전체화면 유지
   const rootRef = useRef<HTMLDivElement>(null);
   const [fs, setFs] = useState(false);
@@ -348,6 +371,13 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       setFightVolume(m ? 0 : 0.8);
     } catch {}
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
+    // 초대 링크 (?room=ID) → 바로 온라인 방으로
+    const room = new URLSearchParams(window.location.search).get("room");
+    if (room && /^[-\w]{6,40}$/.test(room)) {
+      setInitialRoom(room);
+      setOnlineOn(true);
+      setSetup((st) => ({ ...st, mode: "online" }));
+    }
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -430,16 +460,28 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const r = new FightRenderer(canvas);
-    r.tags = ["1P", setup.mode === "ai" ? "CPU" : "2P"];
+    const ol = cfgRef.current;
+    r.tags = ol ? (ol.seat === 0 ? ["YOU", "2P"] : ["1P", "YOU"]) : ["1P", setup.mode === "ai" ? "CPU" : "2P"];
     rendererRef.current = r;
     input.configure(setup.mode === "2p");
     const pickMap = () =>
       setup.map >= 0 ? setup.map : Math.floor(Math.random() * MAPS.length);
     // 랜덤 맵: 첫 판은 선택 화면에서 섞어 뽑힌 맵, 다시하기는 새로 뽑음
-    let s = newMatch(
-      [setup.c1, setup.c2],
-      setup.map < 0 && setup.rolled !== undefined && MAPS[setup.rolled] ? setup.rolled : pickMap()
-    );
+    let s = ol
+      ? newMatch(ol.chars, ol.map)
+      : newMatch(
+          [setup.c1, setup.c2],
+          setup.map < 0 && setup.rolled !== undefined && MAPS[setup.rolled] ? setup.rolled : pickMap()
+        );
+    const net = ol ? sessRef.current?.net : null;
+    let om = ol && net ? new OnlineMatch(s, ol.seat, net, ol.match, ol.delay, ol.maxRb) : null;
+    if (om) s = om.state;
+    let netDead = ol !== null && !om;
+    if (netDead) setNetEnd("상대와 연결되지 않았어요");
+    leaveMatchRef.current = (bye) => {
+      om?.close(bye && !doneReported);
+      om = null;
+    };
     playBgm(MAPS[s.map].bgm ?? MENU_BGM, true);
     let ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
     let hits = 0;
@@ -450,12 +492,13 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     let doneReported = false;
     setResult(null);
     setSubmitted(false);
-    Promise.all([loadSheet(CHARS[setup.c1].id), loadSheet(CHARS[setup.c2].id)])
+    Promise.all([loadSheet(CHARS[s.p[0].ch].id), loadSheet(CHARS[s.p[1].ch].id)])
       .then(([a, b]) => {
         r.sheets = [a, b];
       })
       .catch(() => {});
     restartRef.current = () => {
+      if (ol) return;
       s = newMatch([setup.c1, setup.c2], pickMap());
       playBgm(MAPS[s.map].bgm ?? MENU_BGM, true);
       ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
@@ -469,7 +512,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     r.resize();
     window.addEventListener("resize", onResize);
     const onVis = () => {
-      if (document.visibilityState === "hidden") setPaused(true);
+      if (document.visibilityState === "hidden" && !ol) setPaused(true);
     };
     document.addEventListener("visibilitychange", onVis);
     const onKey = (e: KeyboardEvent) => {
@@ -481,7 +524,11 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(100, now - last);
       last = now;
-      if (pausedRef.current) {
+      if (pausedRef.current && !ol) {
+        r.draw(s);
+        return;
+      }
+      if (ol && (netDead || !om)) {
         r.draw(s);
         return;
       }
@@ -495,21 +542,29 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       while (acc >= 1000 / 60 && steps < 4) {
         acc -= 1000 / 60;
         steps++;
-        const p1 = input.read(0);
-        const p2 = setup.mode === "2p" ? input.read(1) : ai.next(s, 1);
         const prevSt = [s.p[0].st, s.p[1].st];
         const prevT = [s.p[0].t, s.p[1].t];
-        step(s, [p1, p2]);
+        if (om) {
+          // 온라인: 앞서 있으면 한 프레임 쉬고, 상대 입력이 너무 늦으면 기다림 (되감기는 세션이 알아서)
+          if (om.shouldWait()) continue;
+          // 일시정지 메뉴가 열려 있어도 경기는 계속 (입력만 안 보냄)
+          if (!om.tick(pausedRef.current ? 0 : input.read(0))) continue;
+          s = om.state;
+        } else {
+          const p1 = input.read(0);
+          const p2 = setup.mode === "2p" ? input.read(1) : ai.next(s, 1);
+          step(s, [p1, p2]);
+        }
         // 소리
         const elOf = (p: number) => SFX_EL[CHARS[s.p[p].ch].id] ?? "wind";
         for (const e of s.ev) {
           if (e.k === "hit") {
             sfxHit(e.m === "X" ? 2 : e.m === "H" || e.m === "S" || e.m === "K" ? 1 : 0, elOf(e.p));
-            if (e.p === 0) hits++;
+            if (e.p === (ol?.seat ?? 0)) hits++;
           } else if (e.k === "block" || e.k === "just") sfxBlock();
           else if (e.k === "throw") {
             sfxHit(1, elOf(e.p));
-            if (e.p === 0) hits++;
+            if (e.p === (ol?.seat ?? 0)) hits++;
           } else if (e.k === "tech") sfxBlock();
           else if (e.k === "launch") sfxDash();
           else if (e.k === "proj") sfxProj(elOf(e.p), s.p[e.p].mv === "X");
@@ -532,13 +587,23 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         r.tick(s);
         if (s.phase === "over" && !doneReported) {
           doneReported = true;
-          const win = s.winner === 0;
+          const me = ol?.seat ?? 0;
           setResult({
-            win,
+            win: s.winner === me,
             seconds: Math.round(s.f / 60),
             hits,
-            hp: Math.round(hpRatio(s.p[0]) * 100),
+            hp: Math.round(hpRatio(s.p[me]) * 100),
           });
+          if (ol) sessRef.current?.endMatch(ol.match);
+        }
+      }
+      // 온라인: 상대가 나갔거나 연결이 끊김
+      if (om && !doneReported) {
+        const foeGone = sessRef.current?.room && !sessRef.current.foe;
+        if (om.peerLeft || foeGone || om.lostPeer) {
+          netDead = true;
+          setNetEnd(om.peerLeft || foeGone ? "상대가 나갔어요 — 기권승!" : "상대와 연결이 끊겼어요");
+          if (ol) sessRef.current?.endMatch(ol.match);
         }
       }
       if (acc > 200) acc = 0;
@@ -558,24 +623,49 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       window.removeEventListener("keydown", onKey);
       input.stop();
       rendererRef.current = null;
+      leaveMatchRef.current(true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 시작할 때의 설정으로 한 판
   }, [playing]);
 
   const start = useCallback(() => {
+    cfgRef.current = null;
+    setOlCfg(null);
     setPaused(false);
     setPlaying(true);
     setTimeout(scrollToGameTop, 50);
   }, []);
+  const startOnline = useCallback((cfg: MatchCfg) => {
+    played.add(cfg.match);
+    cfgRef.current = cfg;
+    setOlCfg(cfg);
+    setNetEnd("");
+    setPaused(false);
+    setPlaying(true);
+    setTimeout(scrollToGameTop, 50);
+  }, [played]);
 
   const [entry, setEntry] = useState<"mode" | "char">("mode");
   const toMenu = useCallback(() => {
+    // 온라인 경기에서 나오면 대기실로 (방에는 그대로)
+    if (cfgRef.current) leaveMatchRef.current(true);
+    cfgRef.current = null;
+    setOlCfg(null);
+    setNetEnd("");
     setEntry("mode");
     playBgm(MENU_BGM, true);
     setPlaying(false);
     setPaused(false);
     setHud(null);
   }, [playBgm]);
+  /** 온라인: 대기실로 (again = 바로 준비) */
+  const toRoom = useCallback(
+    (again: boolean) => {
+      toMenu();
+      if (again) sessRef.current?.setReady(true);
+    },
+    [toMenu]
+  );
   const toChars = useCallback(() => {
     toMenu();
     setEntry("char");
@@ -596,16 +686,32 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     return (
       <div ref={rootRef} className={rootCls}>
         <div className="fs-screen relative [container-type:inline-size]">
-          <Select
-            setup={setup}
-            setSetup={setSetup}
-            onStart={start}
-            onPreview={previewMap}
-            entry={entry}
-            onBack={() => {
-              if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-            }}
-          />
+          {onlineOn ? (
+            <Online
+              session={sess}
+              setSession={setSess}
+              initialRoom={initialRoom}
+              played={played}
+              onMatch={startOnline}
+              onExit={() => {
+                setSess(null);
+                setInitialRoom(null);
+                setOnlineOn(false);
+              }}
+            />
+          ) : (
+            <Select
+              setup={setup}
+              setSetup={setSetup}
+              onStart={start}
+              onOnline={() => setOnlineOn(true)}
+              onPreview={previewMap}
+              entry={entry}
+              onBack={() => {
+                if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+              }}
+            />
+          )}
           {fsBtn()}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -616,14 +722,14 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
           </button>
           <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-            전체화면에선 Esc = 일시정지, 나올 땐 일시정지 메뉴나 ✕ · 온라인 대전은 준비 중
+            전체화면에선 Esc = 일시정지, 나올 땐 일시정지 메뉴나 ✕
           </span>
         </div>
         <div className="mt-3 rounded-lg bg-black/20 px-3 py-2.5 font-['Nanum_Gothic',sans-serif] text-[11px] leading-relaxed text-white/50">
           <div>
-            <b className="text-white/70">1P</b> {setup.mode === "ai" ? KEY_GUIDE.p1 : KEY_GUIDE.p1Two}
+            <b className="text-white/70">1P</b> {setup.mode !== "2p" ? KEY_GUIDE.p1 : KEY_GUIDE.p1Two}
           </div>
-          {setup.mode === "ai" ? (
+          {setup.mode !== "2p" ? (
             <div className="text-white/40">또는 {KEY_GUIDE.p1Alt}</div>
           ) : (
             <div>
@@ -641,10 +747,11 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     );
   }
 
-  const names: [string, string] = [
-    "1P",
-    setup.mode === "ai" ? `CPU ${level.name}` : "2P",
-  ];
+  const ol = olCfg;
+  const names: [string, string] = ol
+    ? [ol.names[0] + (ol.seat === 0 ? " (나)" : ""), ol.names[1] + (ol.seat === 1 ? " (나)" : "")]
+    : ["1P", setup.mode === "ai" ? `CPU ${level.name}` : "2P"];
+  const meSeat = ol?.seat ?? 0;
 
   let banner: { text: string; sub?: string; color?: string } | null = null;
   if (hud) {
@@ -659,23 +766,23 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
               text:
                 hud.roundWinner === 2
                   ? "무승부"
-                  : `${CHARS[hud.roundWinner === 0 ? setup.c1 : setup.c2].name} 승리`,
+                  : `${CHARS[hud.ch[hud.roundWinner]].name} 승리`,
             };
     else if (hud.phase === "over")
       banner = {
         text:
           hud.winner === 2
             ? "DRAW"
-            : setup.mode === "ai"
-              ? hud.winner === 0
+            : setup.mode === "ai" || ol
+              ? hud.winner === meSeat
                 ? "YOU WIN!"
                 : "YOU LOSE"
               : `${hud.winner === 0 ? "1P" : "2P"} WIN!`,
-        color: hud.winner === 0 || setup.mode === "2p" ? "#FDE047" : "#F87171",
+        color: hud.winner === meSeat || (setup.mode === "2p" && !ol) ? "#FDE047" : "#F87171",
       };
   }
 
-  const winCh = hud && hud.phase === "over" && hud.winner !== 2 ? CHARS[hud.winner === 0 ? setup.c1 : setup.c2] : null;
+  const winCh = hud && hud.phase === "over" && hud.winner !== 2 ? CHARS[hud.ch[hud.winner]] : null;
   return (
     <div ref={rootRef} className={rootCls}>
       <div className="fs-screen relative w-full overflow-hidden rounded-xl border border-white/10 bg-black [container-type:inline-size]">
@@ -703,7 +810,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         {hud && (
           <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-[1.6cqw]">
             <div className="flex items-start gap-[2cqw]">
-              <PlayerHud ch={setup.c1} hp={hud.hp[0]} meter={hud.meter[0]} cd={hud.cd[0]} wins={hud.wins[0]} tag={names[0]} />
+              <PlayerHud ch={hud.ch[0]} hp={hud.hp[0]} meter={hud.meter[0]} cd={hud.cd[0]} wins={hud.wins[0]} tag={names[0]} />
               <div className="flex w-[7cqw] shrink-0 flex-col items-center pt-[0.4cqw]">
                 <span
                   className={`font-mono text-[4cqw] leading-none font-black drop-shadow-[0_0.3cqw_0_#000] ${hud.sec <= 10 && hud.phase === "fight" ? "text-[#F87171]" : "text-white"}`}
@@ -711,7 +818,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
                   {Math.min(ROUND_SEC, hud.sec)}
                 </span>
               </div>
-              <PlayerHud ch={setup.c2} hp={hud.hp[1]} meter={hud.meter[1]} cd={hud.cd[1]} wins={hud.wins[1]} tag={names[1]} right />
+              <PlayerHud ch={hud.ch[1]} hp={hud.hp[1]} meter={hud.meter[1]} cd={hud.cd[1]} wins={hud.wins[1]} tag={names[1]} right />
             </div>
             <div />
             {hud.combo.map(
@@ -741,31 +848,64 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         )}
         {paused && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/65">
-            <div className="font-mono text-lg text-white">일시정지</div>
+            <div className="font-mono text-lg text-white">{ol ? "메뉴" : "일시정지"}</div>
+            {ol && <div className={`${KR} text-xs text-white/55`}>온라인 대전은 멈추지 않아요 — 메뉴가 열린 동안 내 캐릭터는 가만히 있어요</div>}
             <div className="flex gap-2">
               <button type="button" onClick={() => setPaused(false)} className={primaryBtn}>
                 ▶ 계속
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  restartRef.current();
-                  setPaused(false);
-                }}
-                className={btn}
-              >
-                ↻ 다시하기
-              </button>
+              {!ol && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    restartRef.current();
+                    setPaused(false);
+                  }}
+                  className={btn}
+                >
+                  ↻ 다시하기
+                </button>
+              )}
               <button type="button" onClick={toggleFs} className={btn}>
                 {fs ? "전체화면 해제" : "⛶ 전체화면"}
               </button>
               <button type="button" onClick={toMenu} className={btn}>
-                메뉴로
+                {ol ? "기권하고 대기실로" : "메뉴로"}
               </button>
             </div>
           </div>
         )}
-        {result && (
+        {netEnd && !result && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-[1.6cqw] bg-black/60">
+            <div className={`${KR} text-[3cqw] font-extrabold text-white drop-shadow-[0_0.3cqw_0_#000]`}>{netEnd}</div>
+            <button
+              type="button"
+              onClick={() => toRoom(false)}
+              className="cursor-pointer rounded-full bg-[#6C63FF] px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#2E2A7A] hover:bg-[#5b52f0]"
+            >
+              대기실로
+            </button>
+          </div>
+        )}
+        {result && ol && (
+          <div className="absolute inset-x-0 bottom-[14%] flex justify-center gap-[1.4cqw]">
+            <button
+              type="button"
+              onClick={() => toRoom(true)}
+              className="cursor-pointer rounded-full bg-[#6C63FF] px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#2E2A7A] hover:bg-[#5b52f0]"
+            >
+              ↻ 한 판 더 (준비)
+            </button>
+            <button
+              type="button"
+              onClick={() => toRoom(false)}
+              className="cursor-pointer rounded-full border-[0.2cqw] border-white bg-black/75 px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#000] hover:bg-white hover:text-black"
+            >
+              대기실로
+            </button>
+          </div>
+        )}
+        {result && !ol && (
           <div className="absolute inset-x-0 bottom-[14%] flex justify-center gap-[1.4cqw]">
             <button
               type="button"
@@ -789,10 +929,10 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => setPaused((p) => !p)} className={btn}>
-          {paused ? "▶ 계속" : "⏸ 일시정지"}
+          {paused ? "▶ 계속" : ol ? "☰ 메뉴" : "⏸ 일시정지"}
         </button>
         <button type="button" onClick={toMenu} className={btn}>
-          메뉴로
+          {ol ? "대기실로" : "메뉴로"}
         </button>
         <button type="button" onClick={toggleFs} className={btn}>
           ⛶ 전체화면
@@ -802,12 +942,12 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         </button>
         {!coarse && (
           <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-            {setup.mode === "ai" ? KEY_GUIDE.p1 : `1P ${KEY_GUIDE.p1Two} / 2P ${KEY_GUIDE.p2}`}
+            {setup.mode !== "2p" || ol ? KEY_GUIDE.p1 : `1P ${KEY_GUIDE.p1Two} / 2P ${KEY_GUIDE.p2}`}
           </span>
         )}
       </div>
 
-      {result && setup.mode === "ai" && result.win && (
+      {result && setup.mode === "ai" && !ol && result.win && (
         <div className="mt-3 max-w-md">
           <RankSubmit
             coll="fight_ai_rankings"

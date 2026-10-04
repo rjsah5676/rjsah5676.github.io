@@ -11,7 +11,7 @@ import { MAPS } from "@/lib/fight/maps";
 import { AI_LEVELS } from "@/lib/fight/ai";
 import { loadSheet } from "@/lib/fight/sprites";
 
-export type Mode = "ai" | "2p";
+export type Mode = "ai" | "2p" | "online";
 export interface Setup {
   mode: Mode;
   c1: number;
@@ -73,6 +73,7 @@ export default function Select({
   setup,
   setSetup,
   onStart,
+  onOnline,
   onPreview,
   entry = "mode",
   onBack,
@@ -80,6 +81,8 @@ export default function Select({
   setup: Setup;
   setSetup: (f: (s: Setup) => Setup) => void;
   onStart: () => void;
+  /** 온라인 대전 → 로비 */
+  onOnline?: () => void;
   /** 맵 선택에서 커서가 가리키는 맵 (배경음악 미리 듣기, -1·null = 끔) */
   onPreview: (map: number | null) => void;
   /** 처음 보여 줄 화면 (판이 끝나고 "캐릭터 선택"을 누르면 char) */
@@ -214,6 +217,10 @@ export default function Select({
     setStage("char");
   };
   const toChars = () => {
+    if (stRef.current.setup.mode === "online") {
+      onOnline?.();
+      return;
+    }
     setLock([false, false]);
     setStage("char");
   };
@@ -309,16 +316,15 @@ export default function Select({
               [
                 ["ai", "AI 대전", "CPU와 1:1"],
                 ["2p", "2인 대전", "한 키보드로 둘이서"],
-                ["online", "온라인 대전", "준비 중"],
+                ["online", "온라인 대전", "방 만들고 1:1"],
               ] as const
             ).map(([m, label, sub]) => {
-              const on = m !== "online" && setup.mode === m;
+              const on = setup.mode === m;
               return (
                 <button
                   key={m}
                   type="button"
-                  disabled={m === "online"}
-                  onClick={() => m !== "online" && setSetup((s) => ({ ...s, mode: m }))}
+                  onClick={() => setSetup((s) => ({ ...s, mode: m }))}
                   className={`${KR} flex w-[17cqw] cursor-pointer flex-col items-center gap-[0.3cqw] rounded-[0.8cqw] border-[0.25cqw] px-[1cqw] py-[1.1cqw] backdrop-blur-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                     on
                       ? "border-[#FDE047] bg-[#FDE047]/15 shadow-[0_0_2cqw_rgba(253,224,71,0.35)]"

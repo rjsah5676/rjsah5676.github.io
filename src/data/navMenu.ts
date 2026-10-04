@@ -98,7 +98,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/games/fight",
         image: imgFight,
         label: "픽셀 격투",
-        desc: "1:1 플랫폼 격투, AI 모드 · 2인 모드 · 온라인 모드(준비 중)",
+        desc: "1:1 플랫폼 격투, AI 모드 · 2인 모드 · 온라인 모드",
         icon: "🥊",
       },
       {

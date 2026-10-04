@@ -31,7 +31,7 @@ export default function FightPage() {
           title="픽셀 격투"
           en="Pixel Fighter"
           accent="#FF8A3D"
-          desc="도트 캐릭터 5명의 1:1 플랫폼 대전, AI 또는 친구와 한 키보드로"
+          desc="도트 캐릭터 5명의 1:1 플랫폼 대전 — AI, 한 키보드 2인, 온라인"
           guide={FIGHT_GUIDE}
           rank={{
             sub: "AI 대전",

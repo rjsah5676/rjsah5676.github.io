@@ -99,6 +99,8 @@ export interface MoveDef {
   hover?: number;
   /** 공중의 상대를 맞히면 아래로 내리꽂음 (땅에 닿으면 짧게 튀어 오르고 경직 유지) */
   spike?: boolean;
+  /** 끌어당길 때 위로도 (공중 기술: 때린 쪽 앞 공중으로 끌어올림 → 공중 콤보) */
+  pullUp?: boolean;
   /** 맞히면 상대를 물방울에 가둠 (프레임 수) — 둥실 떠서 못 움직이고, 버튼 연타로 빨리 빠져나옴, 맞으면 터짐 */
   trap?: number;
   proj?: ProjDef;
@@ -397,7 +399,7 @@ const RAW: CharSrc[] = [
     tagline: "STRICT BUT KIND",
     difficulty: 3,
     idName: "지도편달",
-    idDesc: "아주 긴 채찍으로 낚아채 바로 앞까지 끌어당김 — 맞히면 약 콤보·잡기가 확정으로 이어짐. 공중에선 바로 아래로 길게 내리꽂음",
+    idDesc: "아주 긴 채찍으로 낚아채 바로 앞까지 끌어당김 — 맞히면 약 콤보·잡기가 확정으로 이어짐. 공중에선 바로 아래로 길게 내리쳐 맞으면 내 앞 공중으로 끌어올림",
     ultName: "보충수업",
     ultDesc: "채찍을 휘몰아 앞뒤를 모두 6번 후려침",
     moves: {
@@ -473,19 +475,19 @@ const RAW: CharSrc[] = [
         pull: true,
         // 끌어당긴 뒤 약·잡기·필살기로 바로 이어짐 (확정) — 잡기로 띄워 공중 콤보도 가능
         cancel: ["L", "T", "X"],
-        // 공중에서 쓰면 「지도편달·하」: 공중에 잠깐 멈춰 바로 아래로 채찍을 길게 내리꽂음 (발밑 약 170px) —
-        // 아래 발판의 상대를 위에서 찌르기, 맞으면 땅으로 처박혀 경직이 길어서 내려가 이어 칠 수 있음
+        // 공중에서 쓰면 「지도편달·하」: 공중에 잠깐 멈춰 바로 아래로 채찍을 길게 내리침 (발밑 약 170px) —
+        // 맞으면 내 앞 공중으로 끌어올림 → 바로 점프·약·발차기로 이어 공중 콤보
         air: {
           startup: 9,
           active: 6,
           recovery: 14,
-          dmg: 62,
-          hitstun: 30,
-          push: 300,
+          dmg: 52,
+          hitstun: 34,
+          push: 0,
           hitstop: 9,
           box: { x: -24, y: 12, w: 48, h: 165 },
-          pull: false,
-          spike: true,
+          pull: true,
+          pullUp: true,
           cancel: undefined,
           hover: 380,
         },
