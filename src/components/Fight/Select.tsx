@@ -30,7 +30,7 @@ const KR = "font-['Nanum_Gothic',sans-serif]";
 const MENU_BG = "/fight/bg/menu.webp";
 
 /** 기술 아이콘 (public/fight/icon/<id>-S|X.webp) — 아직 없으면 안 보임 */
-function SkillIcon({ c, k }: { c: CharDef; k: "S" | "X" }) {
+function SkillIcon({ c, k, small }: { c: CharDef; k: "S" | "X" | "A"; small?: boolean }) {
   const [ok, setOk] = useState(true);
   if (!ok) return null;
   return (
@@ -38,7 +38,7 @@ function SkillIcon({ c, k }: { c: CharDef; k: "S" | "X" }) {
       src={`/fight/icon/${c.id}-${k}.webp`}
       alt=""
       onError={() => setOk(false)}
-      className={`h-[2.4cqw] w-[2.4cqw] shrink-0 rounded-[0.35cqw] border border-white/30 bg-black/40 object-cover ${PX}`}
+      className={`${small ? "h-[1.7cqw] w-[1.7cqw]" : "h-[2.6cqw] w-[2.6cqw]"} shrink-0 rounded-[0.35cqw] border border-white/30 bg-black/40 object-cover ${PX}`}
     />
   );
 }
@@ -56,8 +56,11 @@ function SkillRow({ c, k, right }: { c: CharDef; k: "S" | "X"; right?: boolean }
         </span>
         <span className="text-[1.05cqw] leading-snug break-keep text-white/80">{isId ? c.idDesc : c.ultDesc}</span>
         {isId && (
-          <span className="text-[0.95cqw] leading-snug break-keep text-white/55">
-            <b className="text-[#FDE047]/80">점프 중 L</b> {c.airDesc}
+          <span className={`flex items-start gap-[0.4cqw] ${right ? "flex-row-reverse" : ""}`}>
+            <SkillIcon key={`${c.id}-A`} c={c} k="A" small />
+            <span className="text-[0.95cqw] leading-snug break-keep text-white/55">
+              <b className="text-[#FDE047]/80">점프 중 L</b> {c.airDesc}
+            </span>
           </span>
         )}
       </div>
@@ -440,7 +443,7 @@ export default function Select({
                 />
                 )}
                 <div
-                  className={`absolute top-[9.4cqw] z-10 ${sd === 0 ? "left-[27cqw]" : "right-[27cqw] flex flex-col items-end text-right"} w-[22cqw] rounded-[1cqw] bg-black/45 px-[1cqw] py-[0.8cqw] backdrop-blur-[2px]`}
+                  className={`absolute top-[8.8cqw] z-10 ${sd === 0 ? "left-[27cqw]" : "right-[27cqw] flex flex-col items-end text-right"} w-[22cqw] rounded-[1cqw] bg-black/45 px-[1cqw] py-[0.8cqw] backdrop-blur-[2px]`}
                 >
                   <div className={`mb-[0.6cqw] flex items-center gap-[0.6cqw] ${sd === 1 ? "flex-row-reverse" : ""}`}>
                     <span

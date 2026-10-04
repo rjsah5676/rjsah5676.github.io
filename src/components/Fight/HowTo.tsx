@@ -29,7 +29,13 @@ const TECH: [string, string][] = [
   ["저스트 가드", "맞기 직전에 가드 — 경직 절반, 깎임 없음, 게이지 +"],
   ["띄우기 콤보", "띄운 뒤 바로 점프(미리 눌러도 됨) → 공중 약·발차기 → 2단 점프로 한 번 더"],
   ["카운터", "상대가 기술을 내는 중이거나 대시 중에 맞히면 1.25배, 경직도 길어요"],
-  ["상태 이상", "🔥화상(이그나) 체력이 조금씩 닳음 · ⚡감전(제나) 잠깐 굳고 느려짐 · 🫧방울(릴리) 갇힘, 연타로 탈출"],
+];
+
+/** 상태 이상: [이름, 누가, 색, 설명] */
+const STATUS: [string, string, string, string][] = [
+  ["화상", "이그나", "#FF8A3D", "화염구·업화주에 맞으면 한동안 체력이 조금씩 닳아요 (화상으로는 안 쓰러짐)"],
+  ["감전", "제나", "#FDE047", "뇌창·천뢰강림에 맞으면 잠깐 몸이 굳고, 한동안 느려지며 제나에게 더 아프게 맞아요"],
+  ["방울", "릴리", "#7DD3FC", "비눗방울에 맞으면 갇혀서 둥실 떠요 — 버튼 연타로 빨리 탈출, 맞으면 터져요"],
 ];
 
 export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; chars?: [number, number] }) {
@@ -113,6 +119,23 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
             </div>
           ))}
         </dl>
+        <div className="mt-2.5 border-t border-white/10 pt-2">
+          <div className="mb-1 text-[10.5px] text-white/35">상태 이상</div>
+          <div className="grid gap-1">
+            {STATUS.map(([n, who, col, d]) => (
+              <div key={n} className="flex items-start gap-2">
+                <span
+                  className="mt-px shrink-0 rounded px-1.5 text-[10.5px] font-bold text-black"
+                  style={{ background: col }}
+                >
+                  {n}
+                </span>
+                <span className="w-9 shrink-0 text-white/45">{who}</span>
+                <span className="min-w-0 break-keep">{d}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
