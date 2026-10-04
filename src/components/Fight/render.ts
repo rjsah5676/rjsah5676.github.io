@@ -72,6 +72,7 @@ const PROJ_ART: Record<string, Partial<Record<"S" | "X", [string, number, number
 const FX_SETS: Record<string, Record<string, [number, number, boolean]>> = {
   kai: { spark: [4, 0.75, true], guard: [2, 0.6, true], dust: [4, 0.5, false], rush: [4, 0.7, true], burst: [4, 1.3, true] },
   igna: { spark: [4, 0.7, true], guard: [2, 0.6, true], dust: [4, 0.5, false] },
+  soyoung: { spark: [4, 0.6, true], guard: [2, 0.6, true], dust: [4, 0.5, false], burst: [4, 1.0, true] },
 };
 interface FxAnim {
   key: string;

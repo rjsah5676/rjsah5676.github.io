@@ -295,15 +295,13 @@ export default function Select({
             // 지금 고르는 쪽: AI 대전은 차례인 한쪽, 2인 대전은 아직 안 고른 쪽 모두
             const active = !lock[sd] && (ai ? side === sd : true);
             return (
-              <div
-                key={sd}
-                className={`absolute bottom-0 ${sd === 0 ? "left-[1cqw]" : "right-[1cqw]"} flex h-[78%] items-end gap-[1.5cqw] ${sd === 1 ? "flex-row-reverse" : ""}`}
-              >
-                                <img
+              <div key={sd} className="contents">
+                {/* 전신 그림: 폭이 넓은 그림이어도 설명 글씨 칸을 밀지 않게 따로 띄움 (뒤에 깔림) */}
+                <img
                   key={c.id}
                   src={art(c)}
                   alt={c.name}
-                  className={`h-full w-auto ${PX} transition-[filter,opacity] duration-300 [animation:modal-fade_250ms_ease-out] ${sd === 1 ? "scale-x-[-1]" : ""} ${
+                  className={`absolute bottom-0 ${sd === 0 ? "left-[1cqw] object-left-bottom" : "right-[1cqw] object-right-bottom"} h-[78%] w-[30cqw] object-contain ${PX} transition-[filter,opacity] duration-300 [animation:modal-fade_250ms_ease-out] ${sd === 1 ? "scale-x-[-1]" : ""} ${
                     active || lock[sd] ? "" : "opacity-45 brightness-50"
                   }`}
                   style={{
@@ -314,7 +312,9 @@ export default function Select({
                         : undefined,
                   }}
                 />
-                <div className="mb-[18cqw]">
+                <div
+                  className={`absolute bottom-[19cqw] ${sd === 0 ? "left-[25cqw]" : "right-[25cqw] flex flex-col items-end text-right"} w-[23cqw]`}
+                >
                   <div className={`mb-[0.6cqw] flex items-center gap-[0.6cqw] ${sd === 1 ? "flex-row-reverse" : ""}`}>
                     <span
                       className="rounded-[0.3cqw] px-[0.7cqw] font-mono text-[1.3cqw] font-black text-white"
