@@ -1,5 +1,5 @@
 /**
- * 키보드·게임패드·터치 입력 → 프레임당 9비트 (sim.ts IN). 위·아래는 깊이(안쪽·앞쪽), 점프는 따로.
+ * 키보드·게임패드·터치 입력 → 프레임당 9비트 (sim.ts IN). 위·점프키 = 점프(공중에서 한 번 더), 아래 = 가드, 아래+점프 = 발판 아래로.
  */
 import { IN } from "@/lib/fight/sim";
 
@@ -52,10 +52,10 @@ const P2: KeyMap = {
 };
 
 export const KEY_GUIDE = {
-  p1: "WASD 이동(W·S 안쪽·앞쪽) · Space 점프 · J 약 · K 강 · L 필살 · I 초필살",
-  p1Alt: "방향키 · Z 약 · X 강 · C 필살 · V 초필살",
-  p1Two: "WASD 이동 · Space 점프 · F 약 · G 강 · H 필살 · T 초필살",
-  p2: "방향키 · Enter 점프 · , 약 · . 강 · ; 필살 · ' 초필살 (숫자패드 1 2 3 0)",
+  p1: "A·D 이동 · W/Space 점프(2단) · S 가드(S+점프 내려가기) · J 약 · K 강 · L 필살 · I 초필살",
+  p1Alt: "방향키(↑ 점프 · ↓ 가드) · Z 약 · X 강 · C 필살 · V 초필살",
+  p1Two: "A·D 이동 · W/Space 점프 · S 가드 · F 약 · G 강 · H 필살 · T 초필살",
+  p2: "←→ 이동 · ↑/Enter 점프 · ↓ 가드 · , 약 · . 강 · ; 필살 · ' 초필살 (숫자패드 1 2 3 0)",
 };
 
 const GAME_KEYS = new Set([...Object.keys(P1), ...Object.keys(P1_ALT), ...Object.keys(P2)]);

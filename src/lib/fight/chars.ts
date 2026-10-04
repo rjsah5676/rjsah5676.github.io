@@ -47,8 +47,6 @@ export interface MoveDef {
   cancel?: MoveId[];
   /** 다운시킴 */
   kd?: boolean;
-  /** 깊이 판정 폭(px, 없으면 10) — 이만큼 앞뒤로 어긋나도 맞음 */
-  zr?: number;
   /** 시작 동안 앞으로 나가는 속도 */
   step?: number;
   proj?: ProjDef;
@@ -60,8 +58,9 @@ export interface CharDef {
   title: string;
   desc: string;
   hp: number;
+  /** 걷기 속도 (SUB/프레임) */
   walk: number;
-  back: number;
+  /** 점프 가로 속도·공중 최고 가로 속도 */
   jumpVx: number;
   /** 피격 박스 */
   hurt: Box;
@@ -72,7 +71,7 @@ export interface CharDef {
   moves: Record<MoveId, MoveDef>;
 }
 
-export const JUMP_VY = -1770; // 약 6.9px/f → 최고 높이 약 60px
+export const JUMP_VY = -2650; // 약 10.4px/f → 최고 높이 약 134px (2단 점프로 약 240px)
 export const GRAVITY = 102; // 0.4px/f²
 
 export const CHARS: CharDef[] = [
@@ -82,9 +81,8 @@ export const CHARS: CharDef[] = [
     title: "검도부 · 불꽃",
     desc: "목검에 불꽃을 두른 검도부 에이스, 무난한 기본기",
     hp: 1300,
-    walk: 420,
-    back: 340,
-    jumpVx: 520,
+    walk: 820,
+    jumpVx: 760,
     hurt: { x: -8, y: 60, w: 16, h: 60 },
     width: 18,
     color: "#FF7A2A",
@@ -168,9 +166,8 @@ export const CHARS: CharDef[] = [
     title: "야구부 · 번개",
     desc: "번개 배트와 강속구, 빠르지만 체력은 적음",
     hp: 1200,
-    walk: 500,
-    back: 400,
-    jumpVx: 600,
+    walk: 900,
+    jumpVx: 820,
     hurt: { x: -8, y: 62, w: 16, h: 62 },
     width: 18,
     color: "#FFE45C",
@@ -254,9 +251,8 @@ export const CHARS: CharDef[] = [
     title: "학생회 · 물과 바람",
     desc: "물 탄환과 회오리 발차기, 묵직한 한 방",
     hp: 1400,
-    walk: 340,
-    back: 290,
-    jumpVx: 460,
+    walk: 760,
+    jumpVx: 700,
     hurt: { x: -8, y: 58, w: 16, h: 58 },
     width: 18,
     color: "#6FDCFF",

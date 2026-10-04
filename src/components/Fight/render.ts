@@ -1,16 +1,16 @@
 /**
- * 격투게임 캔버스 그리기 — 월드 320×180을 화면 해상도에 맞게 키워서 부드럽게 (2.5D: x·깊이·높이).
+ * 격투게임 캔버스 그리기 — 월드(VIEW_W×VIEW_H)를 화면 해상도에 맞게 키워서 부드럽게 (플랫폼 대전: x·높이).
  * 시뮬레이션 상태를 읽기만 하고 바꾸지 않음. 불꽃·흔들림 같은 연출은 여기서만 가짐.
  */
 import { CHARS, SUB } from "@/lib/fight/chars";
-import { MAPS, type Plat } from "@/lib/fight/maps";
+import { MAPS } from "@/lib/fight/maps";
 import {
   VIEW_H,
   VIEW_W,
   boxRect,
-  groundAt,
   hitRect,
   hurtRect,
+  platBelow,
   projRect,
   screenY,
   type Ev,
@@ -66,15 +66,38 @@ export class FightRenderer {
     }
   }
 
+  /** 맵 배경 그림 (MapDef.bg) — 없으면 코드로 그린 배경 */
+  private bgImg = new Map<string, HTMLImageElement | null>();
+  private bgImage(id: string, src?: string) {
+    if (!src) return null;
+    if (!this.bgImg.has(id)) {
+      this.bgImg.set(id, null);
+      const im = new Image();
+      im.onload = () => {
+        this.bgImg.set(id, im);
+        this.bgKey = "";
+      };
+      im.src = src;
+    }
+    return this.bgImg.get(id) ?? null;
+  }
+
   private stage(s: State, k: number) {
-    const key = `${s.map}:${this.canvas.width}`;
+    const map = MAPS[s.map] ?? MAPS[0];
+    const img = this.bgImage(map.id, map.bg);
+    const key = `${s.map}:${this.canvas.width}:${img ? 1 : 0}`;
     if (this.bg && this.bgKey === key) return this.bg;
     const c = this.bg ?? document.createElement("canvas");
     c.width = this.canvas.width;
     c.height = this.canvas.height;
     const g = c.getContext("2d")!;
     g.setTransform(k, 0, 0, k, 0, 0);
-    drawStage(g, MAPS[s.map] ?? MAPS[0]);
+    if (img) {
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = "high";
+      g.drawImage(img, 0, 0, VIEW_W, VIEW_H);
+    } else drawStage(g, map);
+    if (!map.bgPlats) for (const p of map.plats) drawPlat(g, p);
     this.bg = c;
     this.bgKey = key;
     return c;
@@ -84,7 +107,7 @@ export class FightRenderer {
   events(evs: Ev[], s: State) {
     for (const e of evs) {
       const x = e.x / SUB,
-        y = screenY(e.z, e.h);
+        y = screenY(e.h);
       if (e.k === "hit") {
         const power = e.m === "X" ? 2 : e.m === "H" || e.m === "S" ? 1 : 0;
         const ch = CHARS[s.p[e.p].ch];
@@ -120,6 +143,13 @@ export class FightRenderer {
         this.flash = 9;
         this.flashColor = "#fff";
         this.shake = 8;
+      } else if (e.k === "fall") {
+        const fx = Math.min(VIEW_W - 30, Math.max(30, x));
+        this.parts.push({
+          x: fx, y: VIEW_H - 30, vx: 0, vy: -0.5, life: 60, max: 60, color: "#FF8A8A", size: 1.4, kind: "text",
+          text: `낙하 -${e.v}`,
+        });
+        this.shake = Math.max(this.shake, 5);
       } else if (e.k === "jump" || e.k === "land") {
         for (let i = 0; i < 4; i++)
           this.parts.push({
@@ -158,15 +188,28 @@ export class FightRenderer {
     const sh = this.sheets[i];
     const map = MAPS[s.map] ?? MAPS[0];
     const x = f.x / SUB;
-    const ground = groundAt(map, f.x, f.z);
-    const gy = screenY(f.z, ground);
-    const y = screenY(f.z, f.h);
-    const lift = Math.max(0, (f.h - ground) / SUB);
-    // 그림자 (발판 위면 발판 위에)
-    g.fillStyle = `rgba(0,0,0,${0.32 - Math.min(0.18, lift / 200)})`;
-    g.beginPath();
-    g.ellipse(x, gy, Math.max(6, 12 - lift / 6), 2.6, 0, 0, Math.PI * 2);
-    g.fill();
+    const below = platBelow(map, f.x, f.h);
+    const y = screenY(f.h);
+    if (below) {
+      // 그림자 (아래 발판 위에)
+      const lift = Math.max(0, (f.h - below.y * SUB) / SUB);
+      if (lift < 260) {
+        g.fillStyle = `rgba(0,0,0,${0.35 - Math.min(0.25, lift / 900)})`;
+        g.beginPath();
+        g.ellipse(x, screenY(below.y * SUB), Math.max(5, 13 - lift / 25), 2.6, 0, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    if (f.h / SUB > VIEW_H) {
+      // 화면 위에서 내려오는 중: 위치 표시
+      g.fillStyle = CHARS[f.ch].color;
+      g.beginPath();
+      g.moveTo(x, 14);
+      g.lineTo(x - 7, 4);
+      g.lineTo(x + 7, 4);
+      g.fill();
+      return;
+    }
     if (!sh) {
       g.fillStyle = CHARS[f.ch].color;
       g.fillRect(x - 8, y - 60, 16, 60);
@@ -199,7 +242,7 @@ export class FightRenderer {
       ssy = 0;
     }
     g.save();
-    if (f.st === "rise" && f.t % 4 < 2) g.globalAlpha = 0.6;
+    if ((f.st === "rise" || f.inv > 0) && f.t % 4 < 2) g.globalAlpha = 0.55;
     if (sh.pixel) g.imageSmoothingEnabled = false;
     const flip = sh.facing === "left" ? f.face > 0 : f.face < 0;
     const dw = cw / sc,
@@ -220,15 +263,10 @@ export class FightRenderer {
       const el = ELEMENT[ch.id] ?? "fire";
       const r = projRect(p, s);
       const cx = (r.l + r.r) / 2 / SUB;
-      const cy = screenY(p.z, p.h);
+      const cy = screenY(p.h);
       const w = (r.r - r.l) / SUB;
       const dir = Math.sign(p.vx);
       const t = s.f;
-      // 그림자
-      g.fillStyle = "rgba(0,0,0,0.2)";
-      g.beginPath();
-      g.ellipse(cx, screenY(p.z, 0), w / 2, 1.6, 0, 0, Math.PI * 2);
-      g.fill();
       if (el === "fire") {
         for (let k = 4; k >= 0; k--) {
           g.globalAlpha = 0.25 + (4 - k) * 0.15;
@@ -298,17 +336,11 @@ export class FightRenderer {
   private rect(r: Rect | null, color: string) {
     if (!r) return;
     const g = this.g;
-    const top = screenY(r.z, r.hi);
-    const bot = screenY(r.z, r.lo);
+    const top = screenY(r.hi);
+    const bot = screenY(r.lo);
     g.strokeStyle = color;
-    g.lineWidth = 0.6;
+    g.lineWidth = 0.8;
     g.strokeRect(r.l / SUB, top, (r.r - r.l) / SUB, bot - top);
-    if (r.zr) {
-      // 깊이 판정 폭 표시
-      g.setLineDash([1.5, 1.5]);
-      g.strokeRect(r.l / SUB, screenY(r.z + r.zr, r.lo), (r.r - r.l) / SUB, (r.zr * 2) / SUB);
-      g.setLineDash([]);
-    }
   }
 
   private drawBoxes(s: State) {
@@ -317,9 +349,9 @@ export class FightRenderer {
       this.rect(hurtRect(f), "#4ADE80");
       this.rect(hitRect(f), "#F43F5E");
       g.fillStyle = "#FDE047";
-      g.fillRect(f.x / SUB - 1, screenY(f.z, f.h) - 1, 2, 2);
+      g.fillRect(f.x / SUB - 1, screenY(f.h) - 1, 2, 2);
       const w = CHARS[f.ch].width;
-      this.rect(boxRect(f, { x: -w / 2, y: 1, w, h: 1 }, 0), "#60A5FA");
+      this.rect(boxRect(f, { x: -w / 2, y: 1, w, h: 1 }), "#60A5FA");
     }
     for (const p of s.proj) this.rect(projRect(p, s), "#F43F5E");
   }
@@ -327,7 +359,6 @@ export class FightRenderer {
   draw(s: State) {
     const g = this.g;
     const k = this.canvas.width / VIEW_W;
-    const map = MAPS[s.map] ?? MAPS[0];
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.imageSmoothingEnabled = true;
     g.imageSmoothingQuality = "high";
@@ -340,23 +371,9 @@ export class FightRenderer {
       g.fillStyle = "rgba(0,0,0,0.55)";
       g.fillRect(-10, -10, VIEW_W + 20, VIEW_H + 20);
     }
-    // 안쪽(깊이 큰 것)부터: 발판과 캐릭터를 함께 정렬
-    type Item = { key: number; draw: () => void };
-    const items: Item[] = [];
-    map.plats.forEach((p: Plat) => items.push({ key: p.z0 * SUB + 0.5, draw: () => drawPlat(g, p) }));
-    s.p.forEach((f, i) => {
-      let key = f.z;
-      // 발판 위(또는 그 높이 이상)에 있으면 발판보다 나중에
-      for (const p of map.plats) {
-        const inside = f.x >= p.x0 * SUB && f.x <= p.x1 * SUB && f.z >= p.z0 * SUB && f.z <= p.z1 * SUB;
-        if (inside && f.h >= p.h * SUB - SUB) key = Math.min(key, p.z0 * SUB - 1);
-      }
-      // 같은 깊이면 공격 중인 쪽을 앞에
-      key -= f.st === "atk" ? 0.25 : 0;
-      items.push({ key, draw: () => this.drawFighter(f, i, s) });
-    });
-    items.sort((a, b) => b.key - a.key);
-    for (const it of items) it.draw();
+    // 발판은 배경에 구워 둠 → 캐릭터 (공격 중인 쪽을 앞에)
+    const order = s.p[0].st === "atk" && s.p[1].st !== "atk" ? [1, 0] : [0, 1];
+    for (const i of order) this.drawFighter(s.p[i], i, s);
     this.drawProj(s);
 
     for (const p of this.parts) {

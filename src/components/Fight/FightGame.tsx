@@ -158,8 +158,8 @@ function TouchPad({ input }: { input: FightInput }) {
         <PadBtn bit={IN.L} onPad={onPad} className="h-12 w-12 text-lg">
           ◀
         </PadBtn>
-        <PadBtn bit={IN.D} onPad={onPad} className="h-12 w-12 text-sm">
-          ▼
+        <PadBtn bit={IN.D} onPad={onPad} className="h-12 w-12 text-xs">
+          가드
         </PadBtn>
         <PadBtn bit={IN.R} onPad={onPad} className="h-12 w-12 text-lg">
           ▶
@@ -610,8 +610,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             </div>
           )}
           <div className="mt-1 text-white/40">
-            위·아래로 깊이를 옮겨 비켜설 수 있어요 · 뒤로 누르고 있으면 가드 · 게이지 MAX에 초필살(강+필살
-            동시도 가능) · 발판 위로 점프 · 게임패드 지원 · Esc 일시정지
+            발판 사이를 2단 점프로 오가요 · 아래로 떨어지면 체력이 깎이고 위에서 다시 등장 · 게이지 MAX에
+            초필살(강+필살 동시도 가능) · 게임패드 지원 · Esc 일시정지
           </div>
         </div>
 

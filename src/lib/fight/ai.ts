@@ -4,7 +4,7 @@
  * 오프라인 전용이라 결정론일 필요는 없지만, 같은 시드면 같은 행동을 하도록 자체 난수를 씀.
  */
 import { CHARS, SUB } from "./chars";
-import { IN, isAir, type Fighter, type State } from "./sim";
+import { IN, VIEW_H, isAir, mapOf, platBelow, type Fighter, type State } from "./sim";
 
 export interface AILevel {
   id: string;
@@ -123,10 +123,13 @@ export class FightAI {
     const o = s.p[1 - me];
     if (s.phase !== "fight") return 0;
     const c = CHARS[f.ch];
-    const fwd = f.face > 0 ? IN.R : IN.L;
-    const back = f.face > 0 ? IN.L : IN.R;
+    const map = mapOf(s);
+    const toward = o.x > f.x ? IN.R : IN.L;
+    const away = o.x > f.x ? IN.L : IN.R;
     const dist = Math.abs(o.x - f.x) / SUB;
+    const dy = (o.h - f.h) / SUB;
     const L = this.level;
+    const air = isAir(s, f);
     let out = 0;
 
     // 버튼은 한 프레임 누르고 떼야 새로 눌린 걸로 침
@@ -134,6 +137,29 @@ export class FightAI {
       if (this.lastPress & b) return;
       out |= b;
     };
+    const finish = () => {
+      this.lastPress = out & (IN.A | IN.B | IN.C | IN.X | IN.J);
+      return out;
+    };
+
+    // ── 떨어지는 중: 가까운 발판으로 복귀 ──
+    if (air && f.st !== "hit" && f.st !== "ko") {
+      // 지금 속도로 가면 착지할 발판이 없으면
+      const under = platBelow(map, f.x + f.vx * 24, f.h);
+      if (!under || f.h / SUB > VIEW_H) {
+        let best = map.plats[0];
+        let bd = Infinity;
+        for (const p of map.plats) {
+          const cx = ((p.x0 + p.x1) / 2) * SUB;
+          const d = Math.abs(cx - f.x) + Math.max(0, p.y * SUB - f.h) * 2;
+          if (d < bd) ((bd = d), (best = p));
+        }
+        const cx = ((best.x0 + best.x1) / 2) * SUB;
+        out |= cx > f.x ? IN.R : IN.L;
+        if (f.jumps < 2 && f.vh < 0 && f.h < best.y * SUB + 40 * SUB) press(IN.J);
+        return finish();
+      }
+    }
 
     // ── 상대 공격 감지 (반응 지연) ──
     const oAtk = o.st === "atk" && o.mv !== "J";
@@ -143,8 +169,7 @@ export class FightAI {
       this.sawAtk = -1;
       this.blockDecision = null;
     }
-    const oJumpIn =
-      isAir(s, o) && (o.vx === 0 || Math.sign(o.vx) === Math.sign(f.x - o.x)) && dist < 120;
+    const oJumpIn = isAir(s, o) && dy > 20 && dy < 120 && dist < 90 && o.vh < 0;
     if (oJumpIn) {
       if (this.sawJump < 0) this.sawJump = s.f;
     } else {
@@ -163,55 +188,75 @@ export class FightAI {
           else if (!s.proj.some((p) => p.o === me)) press(IN.C);
         }
       }
-      this.lastPress = out;
-      return out;
+      return finish();
     }
     if (f.st !== "atk") this.comboDecision = null;
 
-    const free = f.st === "idle" || f.st === "walk";
+    const free = f.st === "idle" || f.st === "walk" || f.st === "block";
+    const aligned = Math.abs(dy) < 30;
     const incoming = s.proj.find(
-      (p) => p.o !== me && Math.sign(p.vx) === Math.sign(f.x - p.x) && Math.abs(p.z - f.z) < 10 * SUB
+      (p) => p.o !== me && Math.sign(p.vx) === Math.sign(f.x - p.x) && Math.abs(p.h - f.h - 30 * SUB) < 30 * SUB
     );
-    const aligned = Math.abs(o.z - f.z) / SUB <= 8;
     const projDist = incoming ? Math.abs(incoming.x - f.x) / SUB : 999;
 
-    if (free) {
-      // 막기: 상대 공격을 알아챘고, 닿을 거리면
+    if (free && !air) {
+      // 막기 (↓): 상대 공격을 알아챘고, 닿을 거리면
       const reach = o.mv ? CHARS[o.ch].moves[o.mv].box.x + CHARS[o.ch].moves[o.mv].box.w + 18 : 0;
       if (oAtk && noticed(this.sawAtk) && aligned && (dist < reach || o.mv === "X")) {
         if (this.blockDecision === null) this.blockDecision = this.r() < L.block;
         if (this.blockDecision) {
-          this.lastPress = back;
-          return back;
+          out = IN.D;
+          return finish();
         }
       }
       // 탄: 막거나 뛰어넘기
-      if (incoming && projDist < 70 && projDist > 20) {
+      if (incoming && projDist < 90 && projDist > 16) {
         if (this.blockDecision === null) this.blockDecision = this.r() < L.block;
         if (this.blockDecision) {
-          // 깊이로 비켜서 피하거나 막기
-          if (this.r() < 0.45 && projDist > 30) out |= f.z > (incoming.z ?? 0) ? IN.U : IN.D;
-          else out |= back;
-          this.lastPress = out & (IN.A | IN.B | IN.C | IN.X);
-          return out;
+          if (this.r() < 0.5) press(IN.J);
+          else out |= IN.D;
+          return finish();
         }
       }
       // 대공
-      if (oJumpIn && noticed(this.sawJump) && dist < 70) {
+      if (oJumpIn && noticed(this.sawJump)) {
         if (this.aaDecision === null) this.aaDecision = this.r() < L.antiAir;
-        if (this.aaDecision && dist < 55) {
+        if (this.aaDecision && dist < 50) {
+          out |= toward;
           press(IN.B);
-          this.lastPress = out;
-          return out;
+          return finish();
         }
       }
       // 초필살: 상대가 빈틈이 크거나 가까우면
       const sx = c.moves.X.box;
-      if (f.meter >= 100 && dist < sx.x + sx.w + 8 && (o.st === "atk" || this.r() < 0.02)) {
+      if (f.meter >= 100 && aligned && dist < sx.x + sx.w + 8 && (o.st === "atk" || this.r() < 0.02)) {
+        out |= toward;
         press(IN.X);
-        this.lastPress = out;
-        return out;
+        return finish();
       }
+    }
+
+    // ── 높이 맞추기: 위로 점프 / 아래로 내려가기 ──
+    if (free && !air && f.st !== "block") {
+      if (dy > 50 && dist < 260) {
+        out |= dist > 30 ? toward : 0;
+        press(IN.J);
+        return finish();
+      }
+      if (dy < -50 && dist < 300) {
+        const on = platBelow(map, f.x, f.h);
+        const below = on && platBelow(map, f.x, f.h - SUB);
+        if (on && !on.solid && below) {
+          out |= IN.D;
+          press(IN.J);
+          return finish();
+        }
+      }
+    }
+    if (f.st === "jump" && dy > 70 && f.vh < 200 && f.jumps < 2) {
+      out |= toward;
+      press(IN.J);
+      return finish();
     }
 
     // ── 행동 정하기 (몇 프레임씩 유지) ──
@@ -220,41 +265,54 @@ export class FightAI {
     }
     const lReach = c.moves.L.box.x + c.moves.L.box.w + 6;
     const hReach = c.moves.H.box.x + c.moves.H.box.w + 4;
+    const faceOk = (f.face > 0) === (o.x > f.x);
+    const hitBtn = (b: number) => {
+      if (!faceOk) out |= toward;
+      else press(b);
+    };
     switch (this.intent) {
       case "approach":
-        out |= fwd;
-        if (dist < lReach && free && this.r() < L.aggro * 0.2) press(IN.A);
+        out |= toward;
+        if (dist < lReach && free && aligned && this.r() < L.aggro * 0.2) hitBtn(IN.A);
         break;
       case "retreat":
-        out |= back;
+        out |= away;
         break;
       case "jumpIn":
-        if (free) out |= fwd | (this.r() < 0.2 ? IN.J : 0);
-        else if (f.st === "jump" && dist < 50 && f.vh < 0) press(IN.B);
+        if (free) {
+          out |= toward;
+          if (this.r() < 0.2) press(IN.J);
+        } else if (f.st === "jump" && dist < 50 && dy < 10) {
+          out |= toward;
+          press(IN.B);
+        }
         break;
       case "poke":
-        if (dist > hReach) out |= fwd;
-        else if (free && aligned) press(IN.B);
+        if (dist > hReach) out |= toward;
+        else if (free && aligned) hitBtn(IN.B);
         break;
       case "jab":
-        if (dist > lReach) out |= fwd;
-        else if (free && aligned) press(IN.A);
+        if (dist > lReach) out |= toward;
+        else if (free && aligned) hitBtn(IN.A);
         break;
       case "fireball":
-        if (free && aligned && !s.proj.some((p) => p.o === me)) press(IN.C);
+        if (free && aligned && !s.proj.some((p) => p.o === me)) hitBtn(IN.C);
         break;
       case "block":
-        out |= back;
+        if (free && !air) out = IN.D;
         break;
       default:
         break;
     }
-    if (free && dist > 90 && this.r() < L.special && !s.proj.some((p) => p.o === me)) press(IN.C);
-    // 깊이 맞추기 (물러나는 중이 아니면 상대와 같은 줄로)
-    const dz = (o.z - f.z) / SUB;
-    if (free && this.intent !== "retreat" && Math.abs(dz) > 4 + (1 - L.aggro) * 4) out |= dz > 0 ? IN.U : IN.D;
-    this.lastPress = out & (IN.A | IN.B | IN.C | IN.X | IN.J);
-    return out;
+    if (free && aligned && dist > 120 && faceOk && this.r() < L.special && !s.proj.some((p) => p.o === me))
+      press(IN.C);
+    // 걷다가 낭떠러지면 멈춤 (아래에 발판이 없으면)
+    if (!air && (out & (IN.L | IN.R))) {
+      const dir = out & IN.R ? 1 : -1;
+      const ax = f.x + dir * 24 * SUB;
+      if (!platBelow(map, ax, f.h)) out &= ~(IN.L | IN.R);
+    }
+    return finish();
   }
 
   private decide(s: State, me: 0 | 1, dist: number) {
