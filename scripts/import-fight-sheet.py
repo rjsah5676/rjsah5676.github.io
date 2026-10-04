@@ -3,7 +3,12 @@
 AI로 뽑은 격투 스프라이트 시트(단색 배경, 줄마다 동작 여러 개 섞여 있는 그림)를
 게임 시트 형식(public/fight/<id>.webp + .json)으로 바꿔 준다.
 
-  python3 scripts/import-fight-sheet.py <원본.png> <캐릭터id>
+  python3 scripts/import-fight-sheet.py <원본.png> <캐릭터id> [--wm x0,y0,x1,y1] [--split y]
+
+  - 캐릭터id 가 PRESETS 에 있으면 그 배치(줄·프레임 골라 쓰기)를 씀 (예: mio — 예시 시트)
+  - 없으면 표준 배치: 12줄 = STD_ORDER 순서 동작 한 줄씩, 줄 안의 프레임 전부
+    (docs/fight-art-guide.md 의 프롬프트로 뽑은 시트)
+  - 몸 키를 재서 게임 키(BODY_H px)에 맞게 scale 자동 계산
 
 하는 일
   1. 배경색(가장 흔한 색) 키 아웃 → 부드러운 알파, 테두리 배경색 번짐 제거
@@ -22,15 +27,13 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
-# 원본 기준 좌표(px). 오른쪽 아래 별 워터마크.
-WATERMARKS = [(840, 930, 905, 1000)]
-# 붙어서 한 줄로 잡히는 곳을 이 y에서 자름
-SPLITS = [638]
 # 이 거리 이하로 떨어진 조각은 같은 프레임으로 합침 (물방울 등)
 MERGE_GAP = 10
+# 게임 속 몸 키(px) — 피격 박스 높이와 맞춤
+BODY_H = 62
 
-# 동작 이름 → [(원본 줄, 프레임 번호), ...]  (0부터, 왼쪽→오른쪽)
-ANIMS = {
+# 예시 시트(미오) 배치: 동작 이름 → [(원본 줄, 프레임 번호), ...]  (0부터, 왼쪽→오른쪽)
+MIO_ANIMS = {
     "idle": dict(src=[(0, i) for i in range(5)], fps=6, loop=True),
     "walk": dict(src=[(0, 5), (0, 6), (0, 7), (1, 5), (1, 6), (1, 7)], fps=10, loop=True),
     "jump": dict(src=[(2, 0), (2, 1), (2, 2), (2, 3)], fps=8, loop=False),
@@ -44,13 +47,35 @@ ANIMS = {
     "down": dict(src=[(10, i) for i in range(2, 6)], fps=12, loop=False),
     "win": dict(src=[(11, i) for i in range(6)], fps=5, loop=True),
 }
-MOVES = {
+MIO_MOVES = {
     "L": dict(anim="light", **{"from": 0}, impact=2, to=4),
     "H": dict(anim="heavy", **{"from": 0}, impact=2, to=4),
     "J": dict(anim="air", **{"from": 0}, impact=1, to=1),
     "S": dict(anim="cast", **{"from": 0}, impact=3, to=4),
     "X": dict(anim="super", **{"from": 0}, impact=6, to=7),
 }
+PRESETS = {
+    # Gemini 워터마크(별) 오른쪽 아래, 오브 때문에 붙은 7·8줄을 y638에서 자름
+    "mio": dict(wm=[(840, 930, 905, 1000)], splits=[638], anims=MIO_ANIMS, moves=MIO_MOVES),
+}
+
+# 표준 배치: 줄 순서 = 동작 (fps, 반복)
+STD_ORDER = [
+    ("idle", 6, True),
+    ("walk", 10, True),
+    ("jump", 8, False),
+    ("light", 18, False),
+    ("heavy", 14, False),
+    ("air", 12, False),
+    ("cast", 12, False),
+    ("super", 12, False),
+    ("hit", 12, False),
+    ("block", 1, False),
+    ("down", 12, False),
+    ("win", 6, True),
+]
+# 기술 → 동작, 맞는 순간은 그 줄 프레임 수의 이 비율 지점
+STD_MOVES = {"L": ("light", 0.5), "H": ("heavy", 0.5), "J": ("air", 0.5), "S": ("cast", 0.6), "X": ("super", 0.6)}
 STATES = {
     "idle": {"anim": "idle"},
     "walk": {"anim": "walk"},
@@ -61,8 +86,6 @@ STATES = {
     "ko": {"anim": "down"},
     "win": {"anim": "win"},
 }
-# 원본 몸 키(px) ÷ 게임 몸 키(px)
-SCALE = 1.12
 
 
 def bands(a, gap):
@@ -80,7 +103,7 @@ def bands(a, gap):
     return out
 
 
-def main(src: str, cid: str):
+def main(src: str, cid: str, wm: list, splits: list):
     rgba = Image.open(src).convert("RGB")
     im = np.asarray(rgba).astype(np.float32)
     H, W, _ = im.shape
@@ -104,7 +127,11 @@ def main(src: str, cid: str):
     alpha = np.where(hard, 0.0, 1.0)
     rim = hard & ndimage.binary_dilation(~hard)
     alpha[rim] = np.clip((dist[rim] - 10) / 30, 0, 0.8)
-    for x0, y0, x1, y1 in WATERMARKS:
+    preset = PRESETS.get(cid)
+    if preset:
+        wm = wm or preset["wm"]
+        splits = splits or preset["splits"]
+    for x0, y0, x1, y1 in wm:
         alpha[y0:y1, x0:x1] = 0
     a3 = np.maximum(alpha, 1e-3)[..., None]
     rgb = np.clip((im - (1 - a3) * bg) / a3, 0, 255)
@@ -116,7 +143,7 @@ def main(src: str, cid: str):
     body = mask & ~fx
 
     rows = bands(mask.any(1), 3)
-    for sy in SPLITS:
+    for sy in splits:
         for i, (a, z) in enumerate(rows):
             if a < sy < z:
                 rows[i:i + 1] = [[a, sy - 1], [sy, z]]
@@ -140,6 +167,20 @@ def main(src: str, cid: str):
         frames.append(fr)
         print(f"줄 {len(frames) - 1}: y{a}-{z} 프레임 {len(fr)}")
 
+    if preset:
+        anims, moves = preset["anims"], preset["moves"]
+    else:
+        if len(frames) != len(STD_ORDER):
+            sys.exit(f"줄이 {len(frames)}개 — 표준 배치는 {len(STD_ORDER)}줄이어야 함 (--split 로 붙은 줄을 자르거나 PRESETS 추가)")
+        anims = {
+            n: dict(src=[(i, k) for k in range(len(frames[i]))], fps=fps, loop=loop)
+            for i, (n, fps, loop) in enumerate(STD_ORDER)
+        }
+        moves = {}
+        for mid, (an, ratio) in STD_MOVES.items():
+            n = len(anims[an]["src"])
+            moves[mid] = {"anim": an, "from": 0, "impact": min(n - 1, int(n * ratio)), "to": n - 1}
+
     def anchor(box):
         x0, y0, x1, y1 = box
         bm = body[y0:y1 + 1, x0:x1 + 1]
@@ -147,17 +188,19 @@ def main(src: str, cid: str):
         if len(ys) == 0:
             ys, xs = np.where(mask[y0:y1 + 1, x0:x1 + 1])
         top = ys.min()
-        head = xs[ys < top + 18]
         foot = ys.max()
-        return x0 + head.mean(), y0 + foot
+        head = xs[ys < top + max(6, (foot - top) * 0.25)]
+        return x0 + head.mean(), y0 + foot, foot - top
 
     picks = {}
+    heights = [anchor(frames[ri][fi])[2] for ri, fi in anims["idle"]["src"]]
+    scale = round(float(np.median(heights)) / BODY_H, 3)
     left = right = up = down = 0
-    for name, ad in ANIMS.items():
+    for name, ad in anims.items():
         lst = []
         for ri, fi in ad["src"]:
             box = frames[ri][fi]
-            ax, ay = anchor(box)
+            ax, ay, _ = anchor(box)
             left = max(left, ax - box[0])
             right = max(right, box[2] + 1 - ax)
             up = max(up, ay - box[1])
@@ -168,7 +211,7 @@ def main(src: str, cid: str):
     L, R, U, D = (int(np.ceil(v)) + pad for v in (left, right, up, down))
     cw, ch = L + R, U + D
     ncol = max(len(v) for v in picks.values())
-    out = np.zeros((ch * len(ANIMS), cw * ncol, 4), np.uint8)
+    out = np.zeros((ch * len(anims), cw * ncol, 4), np.uint8)
     src_rgba = np.dstack([rgb, alpha * 255]).astype(np.uint8)
     for row, (name, lst) in enumerate(picks.items()):
         for col, (box, ax, ay) in enumerate(lst):
@@ -187,14 +230,14 @@ def main(src: str, cid: str):
         "image": f"/fight/{cid}.webp",
         "cell": [cw, ch],
         "anchor": [L, U],
-        "scale": SCALE,
+        "scale": scale,
         "pixel": True,
         "facing": "right",
         "anims": {
             n: {"row": i, "frames": len(picks[n]), "fps": ad["fps"], "loop": ad["loop"]}
-            for i, (n, ad) in enumerate(ANIMS.items())
+            for i, (n, ad) in enumerate(anims.items())
         },
-        "moves": MOVES,
+        "moves": moves,
         "states": STATES,
     }
     (outdir / f"{cid}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n")
@@ -202,4 +245,17 @@ def main(src: str, cid: str):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    args = sys.argv[1:]
+    wm, splits, pos = [], [], []
+    i = 0
+    while i < len(args):
+        if args[i] == "--wm":
+            wm.append(tuple(int(v) for v in args[i + 1].split(",")))
+            i += 2
+        elif args[i] == "--split":
+            splits.append(int(args[i + 1]))
+            i += 2
+        else:
+            pos.append(args[i])
+            i += 1
+    main(pos[0], pos[1], wm, splits)

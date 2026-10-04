@@ -75,7 +75,7 @@ export const MAPS: MapDef[] = [
       { x0: 240, x1: 420, y: 420, kind: "sign" },
       { x0: 732, x1: 912, y: 430, kind: "sign" },
     ],
-    spawn: [320, 832],
+    spawn: [320, 760],
     respawn: [200, 576, 950],
   },
   {

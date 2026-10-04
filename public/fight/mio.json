@@ -1,14 +1,14 @@
 {
   "image": "/fight/mio.webp",
   "cell": [
-    113,
+    114,
     87
   ],
   "anchor": [
     55,
     84
   ],
-  "scale": 1.12,
+  "scale": 1.081,
   "pixel": true,
   "facing": "right",
   "anims": {
