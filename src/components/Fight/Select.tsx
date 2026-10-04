@@ -38,25 +38,25 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
         </span>
       </div>
       <div
-        className={`${KR} text-[4.4cqw] leading-none font-extrabold drop-shadow-[0_0.3cqw_0_#000]`}
+        className={`${KR} text-[3.6cqw] leading-none font-extrabold drop-shadow-[0_0.3cqw_0_#000]`}
         style={{ color: c.color }}
       >
         {c.name}
       </div>
       <div
         key={c.id}
-        className={`${KR} relative my-[0.4cqw] max-w-[21cqw] rounded-[0.8cqw] border border-white/25 bg-black/55 px-[1cqw] py-[0.6cqw] text-[1.3cqw] leading-snug text-white italic [animation:modal-fade_300ms_ease-out]`}
+        className={`${KR} relative my-[0.2cqw] max-w-[21cqw] rounded-[0.8cqw] border border-white/25 bg-black/55 px-[0.9cqw] py-[0.4cqw] text-[1.15cqw] leading-snug text-white italic [animation:modal-fade_300ms_ease-out]`}
       >
         “{c.quote}”
       </div>
-      <div className={`${KR} max-w-[19cqw] text-[1.2cqw] text-white/60`}>{c.desc}</div>
-      <div className={`${KR} mt-[0.6cqw] max-w-[19cqw] text-[1.1cqw] leading-snug text-white/75`}>
+      <div className={`${KR} max-w-[20cqw] text-[1.1cqw] leading-snug text-white/60`}>{c.desc}</div>
+      <div className={`${KR} mt-[0.3cqw] max-w-[20cqw] text-[1.05cqw] leading-snug text-white/75`}>
         <span className="mr-[0.6cqw] rounded-[0.3cqw] bg-[#FDE047]/90 px-[0.5cqw] font-bold text-black">
           아이덴티티 · {c.idName}
         </span>
         {c.idDesc}
       </div>
-      <div className={`${KR} max-w-[19cqw] text-[1.1cqw] leading-snug text-white/75`}>
+      <div className={`${KR} max-w-[20cqw] text-[1.05cqw] leading-snug text-white/75`}>
         <span className="mr-[0.6cqw] rounded-[0.3cqw] bg-[#22D3EE]/90 px-[0.5cqw] font-bold text-black">
           필살기 · {c.ultName}
         </span>
@@ -301,7 +301,7 @@ export default function Select({
                   key={c.id}
                   src={art(c)}
                   alt={c.name}
-                  className={`absolute bottom-0 ${sd === 0 ? "left-[1cqw] object-left-bottom" : "right-[1cqw] object-right-bottom"} h-[78%] w-[30cqw] object-contain ${PX} transition-[filter,opacity] duration-300 [animation:modal-fade_250ms_ease-out] ${sd === 1 ? "scale-x-[-1]" : ""} ${
+                  className={`absolute bottom-0 ${sd === 0 ? "left-[1cqw] object-left-bottom" : "right-[1cqw] object-right-bottom"} z-0 h-[78%] w-[26cqw] object-contain ${PX} transition-[filter,opacity] duration-300 [animation:modal-fade_250ms_ease-out] ${sd === 1 ? "scale-x-[-1]" : ""} ${
                     active || lock[sd] ? "" : "opacity-45 brightness-50"
                   }`}
                   style={{
@@ -313,7 +313,7 @@ export default function Select({
                   }}
                 />
                 <div
-                  className={`absolute bottom-[19cqw] ${sd === 0 ? "left-[25cqw]" : "right-[25cqw] flex flex-col items-end text-right"} w-[23cqw]`}
+                  className={`absolute top-[8.5cqw] z-10 ${sd === 0 ? "left-[27cqw]" : "right-[27cqw] flex flex-col items-end text-right"} w-[22cqw] rounded-[1cqw] bg-black/45 px-[1cqw] py-[0.8cqw] backdrop-blur-[2px]`}
                 >
                   <div className={`mb-[0.6cqw] flex items-center gap-[0.6cqw] ${sd === 1 ? "flex-row-reverse" : ""}`}>
                     <span
@@ -326,7 +326,7 @@ export default function Select({
                       <span className="font-mono text-[1.4cqw] font-black text-[#FDE047] italic">READY!</span>
                     ) : active ? (
                       <span className={`${KR} animate-pulse text-[1.3cqw] font-bold`} style={{ color: col }}>
-                        {ai && sd === 1 ? "▼ 상대 캐릭터를 고르세요" : "▼ 선택 중"}
+                        {ai && sd === 1 ? "▼ 상대 고르는 중" : "▼ 선택 중"}
                       </span>
                     ) : (
                       <span className={`${KR} text-[1.2cqw] text-white/35`}>대기</span>
@@ -339,7 +339,7 @@ export default function Select({
           })}
 
           {/* 가운데 아래 얼굴 칸 */}
-          <div className="absolute bottom-[2.5cqw] left-1/2 flex -translate-x-1/2 flex-col items-center gap-[1cqw]">
+          <div className="absolute bottom-[1.5cqw] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-[1cqw] rounded-[1cqw] bg-black/50 px-[1.2cqw] pt-[1.8cqw] pb-[1cqw] backdrop-blur-[2px]">
             <div className="flex gap-[1cqw]">
               {CHARS.map((c, i) => {
                 const on1 = setup.c1 === i,

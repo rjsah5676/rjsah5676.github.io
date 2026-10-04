@@ -55,13 +55,13 @@ function fxImg(name: string): HTMLImageElement | null {
 /** v2 에셋의 움직이는 탄 그림 (fx/<캐릭터>-<이름>-0..n): 캐릭터·기술 → [이름, 장 수, 판정 높이 대비 배율, 판정 중심 가로 위치] */
 const PROJ_ANIM: Record<string, Partial<Record<"S" | "X", [string, number, number, number]>>> = {
   igna: { S: ["igna-fireball", 4, 2.6, 0.8] },
+  lily: { S: ["lily-bubble", 4, 1.3, 0.72], X: ["lily-wave", 4, 1.55, 0.5] },
 };
 /** v2 에셋의 소환(불기둥 등) 그림: 캐릭터 → [이름, 장 수] — 바닥 기준, 판정 높이에 맞춤 */
 const PILLAR_ANIM: Record<string, [string, number]> = { igna: ["igna-pillar", 4] };
 /** 캐릭터·기술별 탄 그림: [그림, 판정 크기 대비 그림 높이 배율, 판정 중심이 그림 가로 어디쯤(0~1)] */
 const PROJ_ART: Record<string, Partial<Record<"S" | "X", [string, number, number]>>> = {
   igna: { S: ["igna-fireball", 1.7, 0.78] },
-  lily: { S: ["lily-bubble", 1.25, 0.5], X: ["lily-wave", 1.25, 0.55] },
   zena: { S: ["zena-spear", 1.1, 0.8] },
 };
 
@@ -73,6 +73,7 @@ const FX_SETS: Record<string, Record<string, [number, number, boolean]>> = {
   kai: { spark: [4, 0.75, true], guard: [2, 0.6, true], dust: [4, 0.5, false], rush: [4, 0.7, true], burst: [4, 1.3, true] },
   igna: { spark: [4, 0.7, true], guard: [2, 0.6, true], dust: [4, 0.5, false] },
   soyoung: { spark: [4, 0.6, true], guard: [2, 0.6, true], dust: [4, 0.5, false], burst: [4, 1.0, true] },
+  lily: { spark: [4, 0.6, true], guard: [2, 0.6, true], dust: [4, 0.5, false] },
 };
 interface FxAnim {
   key: string;
