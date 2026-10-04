@@ -6,7 +6,7 @@ import { addAIRank, getAIRanks, type AIRankColl, type AIRankRow } from "@/firest
 import { clockLabel, pointsOf, type ScoreResult } from "@/lib/aiScore";
 
 /*
- * 체스·장기 AI 랭킹 모드 공통 UI: 내 차례 시간 재기, 랭킹 모드 스위치, 기록 등록, 순위표.
+ * 체스·장기·오목 AI 랭킹 모드 공통 UI: 내 차례 시간 재기, 랭킹 모드 스위치, 기록 등록, 순위표.
  */
 
 export interface TurnClock {
@@ -39,7 +39,15 @@ export function useTurnClock(active: boolean) {
 }
 
 /** 대국 시작 화면의 랭킹 모드 스위치 */
-export function RankedToggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+export function RankedToggle({
+  on,
+  onChange,
+  desc = "무르기 불가 · 이기면 상대 실력, 기물 차이, 적은 수, 짧은 시간으로 점수를 매겨요",
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+  desc?: string;
+}) {
   return (
     <button
       type="button"
@@ -52,9 +60,7 @@ export function RankedToggle({ on, onChange }: { on: boolean; onChange: (v: bool
     >
       <span className="flex flex-col gap-0.5">
         <span className="font-['Nanum_Gothic',sans-serif] text-sm text-white">🏆 랭킹 모드</span>
-        <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/45">
-          무르기 불가 · 이기면 상대 실력, 기물 차이, 적은 수, 짧은 시간으로 점수를 매겨요
-        </span>
+        <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/45">{desc}</span>
       </span>
       <span
         className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${on ? "bg-[#FDE047]/80" : "bg-white/15"}`}

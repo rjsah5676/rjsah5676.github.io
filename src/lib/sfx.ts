@@ -39,6 +39,7 @@ function env(c: AudioContext, peak: number, attack: number, decay: number, at = 
  * 체스·장기 착수음 (녹음 파일: public/audio/sfx/*.mp3)
  * move-self 내 수 · move-opponent 상대 수 · capture 잡기 · castle 캐슬링
  * check 체크/장군 · promote 승진 · premove 한수쉼
+ * set을 주면 public/audio/sfx/{set}/ 에서 (체스는 "chess" — 나무 기물 소리 녹음을 잘라 만든 세트)
  */
 export type PieceSound =
   "move-self" | "move-opponent" | "capture" | "castle" | "check" | "promote" | "premove";
@@ -53,22 +54,23 @@ const PIECE_SOUNDS: PieceSound[] = [
 ];
 
 const samples = new Map<string, Promise<AudioBuffer | null>>();
-function sample(c: AudioContext, name: PieceSound) {
-  let p = samples.get(name);
+function sample(c: AudioContext, name: PieceSound, set?: string) {
+  const path = `/audio/sfx/${set ? `${set}/` : ""}${name}.mp3`;
+  let p = samples.get(path);
   if (!p) {
-    p = fetch(`/audio/sfx/${name}.mp3`)
+    p = fetch(path)
       .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
       .then((b) => c.decodeAudioData(b))
       .catch(() => null);
-    samples.set(name, p);
+    samples.set(path, p);
   }
   return p;
 }
 
-export function playPiece(name: PieceSound, vol = 1) {
+export function playPiece(name: PieceSound, vol = 1, set?: string) {
   const c = ac();
   if (!c) return;
-  void sample(c, name).then((buf) => {
+  void sample(c, name, set).then((buf) => {
     if (!buf) return;
     const src = c.createBufferSource();
     src.buffer = buf;
@@ -80,10 +82,10 @@ export function playPiece(name: PieceSound, vol = 1) {
 }
 
 /** 첫 착수 때 늦지 않게 미리 받아 둠 */
-export function preloadPieceSounds() {
+export function preloadPieceSounds(set?: string) {
   const c = ac();
   if (!c) return;
-  PIECE_SOUNDS.forEach((n) => void sample(c, n));
+  PIECE_SOUNDS.forEach((n) => void sample(c, n, set));
 }
 
 /** 깃발 꽂기 "톡" (뽑을 땐 음이 내려감) */

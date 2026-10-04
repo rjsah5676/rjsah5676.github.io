@@ -11,15 +11,15 @@ import { db } from "../firebase";
 import { toDate } from "@/lib/rankDate";
 
 /**
- * 체스·장기 AI 랭킹 모드 기록 (이긴 판만).
+ * 체스·장기·오목 AI 랭킹 모드 기록 (이긴 판만).
  * 점수 계산은 lib/aiScore, 여기선 저장·조회만.
  */
-export type AIRankColl = "chess_ai_rankings" | "janggi_ai_rankings";
+export type AIRankColl = "chess_ai_rankings" | "janggi_ai_rankings" | "omok_ai_rankings";
 
 export interface AIRankEntry {
   name: string;
   score: number;
-  /** 상대 (체스: 레이팅 숫자 문자열, 장기: 봇 id) */
+  /** 상대 (체스: 레이팅 숫자 문자열, 장기·오목: 봇 id) */
   opp: string;
   moves: number;
   seconds: number;

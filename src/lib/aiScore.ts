@@ -57,3 +57,13 @@ export function janggiScore(
   if (!checkmate) parts.push({ label: "판정승", detail: "외통 아님", factor: 0.6 });
   return combine(tier, parts);
 }
+
+/** 오목: 적은 수(25수 이내일수록), 짧은 시간(10분 이내일수록), 백으로 이기면 ×1.2 (흑이 선수라 유리) */
+export function omokScore(tier: number, moves: number, seconds: number, asWhite: boolean) {
+  const parts: ScorePart[] = [
+    { label: "내 수", detail: `${moves}수`, factor: 1 + Math.max(0, 25 - moves) / 25 },
+    { label: "사용 시간", detail: mmss(seconds), factor: 1 + Math.max(0, 600 - seconds) / 1200 },
+  ];
+  if (asWhite) parts.push({ label: "백으로 승리", detail: "후수", factor: 1.2 });
+  return combine(tier, parts);
+}

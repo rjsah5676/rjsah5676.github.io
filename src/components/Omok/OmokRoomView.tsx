@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { chessSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
-import { Chess } from "chess.js";
-import ChessBoard from "./ChessBoard";
-import ChessChat from "./ChessChat";
-import { timeLabel, useActiveRoomPrompt } from "./ChessLobby";
+import { omokSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
+import OmokBoard, { StoneDot } from "./OmokBoard";
+import { END_REASON, SIDE_KO } from "./OmokParts";
+import { OmokNotation } from "./OmokAIGame";
+import ChessChat from "@/components/Chess/ChessChat";
+import { timeLabel, useActiveRoomPrompt } from "@/components/Chess/ChessLobby";
+import { Omok, RULE_LABEL, parseSq } from "@/lib/omok/engine";
 import {
   ABANDON_AFTER_MS,
   ADD_TIME_MS,
@@ -29,13 +31,13 @@ import {
   joinAsSpectator,
   hasRoomAccess,
   inviteLink,
-  unlockChessRoom,
+  unlockRoom,
   leaveRoom,
   liveClock,
   makeMove,
   offerDraw,
+  parseRule,
   replay,
-  repetitionCount,
   requestUndo,
   resign,
   respondDraw,
@@ -45,36 +47,16 @@ import {
   subscribeRoom,
   turnOf,
   undoPlies,
-  uciToMove,
-  type ChessRoom,
+  subscribeChat,
+  sendChat,
+  type OmokRoom,
   type Color,
   type EndReason,
   type Presence,
-} from "@/firestore/chessGame";
+} from "@/firestore/omokGame";
 
-const REASON: Record<EndReason, string> = {
-  "": "",
-  checkmate: "체크메이트",
-  timeout: "시간 초과",
-  resign: "기권",
-  abandon: "상대 이탈",
-  stalemate: "스테일메이트",
-  insufficient: "기물 부족",
-  threefold: "3회 동형반복",
-  fifty: "50수 규칙",
-  agreement: "합의",
-  paused: "2시간 넘게 일시정지",
-};
-const COLOR_KO = { w: "백", b: "흑" } as const;
-const HOLLOW: Record<string, string> = {
-  q: "♕\uFE0E",
-  r: "♖\uFE0E",
-  b: "♗\uFE0E",
-  n: "♘\uFE0E",
-  p: "♙\uFE0E",
-};
-const VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
-const START_COUNT: Record<string, number> = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+const REASON: Record<EndReason, string> = { "": "", ...END_REASON } as Record<EndReason, string>;
+const COLOR_KO = SIDE_KO;
 
 const btn =
   "cursor-pointer rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs whitespace-nowrap text-white/75 transition-colors hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
@@ -94,33 +76,6 @@ function fmtLeft(ms: number) {
   return h > 0 ? `${h}시간 ${min % 60}분` : `${min}분`;
 }
 
-/** color 쪽이 잡은 상대 기물 목록 + 기물 점수 차이 */
-function captured(game: Chess) {
-  const count = {
-    w: { ...Object.fromEntries(Object.keys(START_COUNT).map((k) => [k, 0])) },
-    b: {},
-  } as Record<Color, Record<string, number>>;
-  count.b = { ...count.w };
-  game
-    .board()
-    .flat()
-    .forEach((p) => {
-      if (p && p.type !== "k") count[p.color][p.type]++;
-    });
-  const out = { w: [] as string[], b: [] as string[] };
-  const points = { w: 0, b: 0 };
-  for (const t of ["q", "r", "b", "n", "p"]) {
-    // 프로모션으로 기물 수가 시작보다 많아질 수 있어서 0 미만은 무시
-    const takenByW = Math.max(0, START_COUNT[t] - count.b[t]); // 백이 잡은 흑 기물
-    const takenByB = Math.max(0, START_COUNT[t] - count.w[t]);
-    for (let i = 0; i < takenByW; i++) out.w.push(t);
-    for (let i = 0; i < takenByB; i++) out.b.push(t);
-    points.w += takenByW * VALUE[t];
-    points.b += takenByB * VALUE[t];
-  }
-  return { list: out, points };
-}
-
 function PlayerBar({
   name,
   color,
@@ -129,9 +84,6 @@ function PlayerBar({
   active,
   online,
   isMe,
-  caps,
-  points,
-  diff,
 }: {
   name: string;
   color: Color;
@@ -140,45 +92,26 @@ function PlayerBar({
   active: boolean;
   online: boolean | null;
   isMe: boolean;
-  caps: string[];
-  /** 잡은 기물 점수 합 (폰1 · 나이트/비숍3 · 룩5 · 퀸9) */
-  points: number;
-  /** 상대보다 앞선 점수 (0 이하면 표시 안 함) */
-  diff: number;
 }) {
   const low = timed && clockMs < 20_000;
   return (
     <div className="flex items-center justify-between gap-3 py-2">
-      <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            className={`h-2 w-2 shrink-0 rounded-full ${online === null ? "bg-white/20" : online ? "bg-emerald-400" : "bg-red-400"}`}
-            title={online === null ? "빈 자리" : online ? "접속 중" : "연결 끊김"}
-          />
-          <span className="truncate font-['Nanum_Gothic',sans-serif] text-sm text-white/90">
-            {name || "대기 중…"}
-            {isMe && <span className="ml-1 text-[#8B84FF]">(나)</span>}
-          </span>
-          <span className="shrink-0 font-mono text-[10px] text-white/35">{COLOR_KO[color]}</span>
-        </div>
-        {/* 잡은 기물 + 점수 (어두운 배경에서도 보이게 외곽선 글리프) */}
-        <div className="flex min-h-[18px] min-w-0 items-center gap-1.5 pl-4">
-          <span className="flex min-w-0 items-center overflow-hidden">
-            {caps.map((t, i) => (
-              <span key={i} className="-mr-0.5 text-[17px] leading-none text-white/65">
-                {HOLLOW[t]}
-              </span>
-            ))}
-          </span>
-          {points > 0 && (
-            <span className="shrink-0 font-mono text-[11px] text-white/40">{points}점</span>
-          )}
-          {diff > 0 && (
-            <span className="shrink-0 rounded bg-[#6C63FF]/25 px-1.5 font-mono text-[11px] text-[#B7B2FF]">
-              +{diff}
-            </span>
-          )}
-        </div>
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          className={`h-2 w-2 shrink-0 rounded-full ${online === null ? "bg-white/20" : online ? "bg-emerald-400" : "bg-red-400"}`}
+          title={online === null ? "빈 자리" : online ? "접속 중" : "연결 끊김"}
+        />
+        <span
+          className="flex rounded-full"
+          style={{ boxShadow: active ? "0 0 0 3px #6C63FF88" : undefined }}
+        >
+          <StoneDot white={color === "b"} size={18} />
+        </span>
+        <span className="truncate font-['Nanum_Gothic',sans-serif] text-sm text-white/90">
+          {name || "대기 중…"}
+          {isMe && <span className="ml-1 text-[#8B84FF]">(나)</span>}
+        </span>
+        <span className="shrink-0 font-mono text-[11px] text-white/40">{COLOR_KO[color]}</span>
       </div>
       {timed && (
         <div
@@ -209,7 +142,7 @@ interface Props {
   onGoRoom: (roomId: string) => void;
 }
 
-export default function ChessRoomView({
+export default function OmokRoomView({
   roomId,
   uid,
   nick,
@@ -217,11 +150,11 @@ export default function ChessRoomView({
   invite,
   onExit,
   onGoRoom,
-}: Props) {
-  const [room, setRoom] = useState<ChessRoom | null | undefined>(undefined);
+  numbers,
+}: Props & { numbers: boolean }) {
+  const [room, setRoom] = useState<OmokRoom | null | undefined>(undefined);
   const [presence, setPresence] = useState<Record<string, Presence>>({});
   const [now, setNow] = useState(() => serverNow());
-  const [flip, setFlip] = useState(false);
   const [msg, setMsg] = useState("");
   const [confirmResign, setConfirmResign] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -265,7 +198,7 @@ export default function ChessRoomView({
       if (await hasRoomAccess(room, uid)) return setAccess(true);
       if (invite) {
         try {
-          await unlockChessRoom(roomId, uid, { invite });
+          await unlockRoom(roomId, uid, { invite });
           return setAccess(true);
         } catch {}
       }
@@ -275,7 +208,7 @@ export default function ChessRoomView({
   const submitPw = async () => {
     setPwError("");
     try {
-      await unlockChessRoom(roomId, uid, { password: pw });
+      await unlockRoom(roomId, uid, { password: pw });
       setAccess(true);
     } catch (e) {
       setPwError((e as Error).message);
@@ -323,10 +256,8 @@ export default function ChessRoomView({
   }, [room]);
 
   const moves = room?.moves;
-  const game = useMemo(() => replay(moves ?? []), [moves]);
-  const history = useMemo(() => game.history(), [game]);
-  const repeats = useMemo(() => repetitionCount(moves ?? []), [moves]);
-
+  const variant = room?.variant ?? "";
+  const game = useMemo(() => replay(moves ?? [], variant), [moves, variant]);
   // 서버 반영되면 낙관적 수 제거
   const [prevLen, setPrevLen] = useState(moves?.length ?? 0);
   if (moves && moves.length !== prevLen) {
@@ -337,9 +268,9 @@ export default function ChessRoomView({
   const display = useMemo(() => {
     if (!room || !pending || pending.base !== room.moves.length)
       return { fen: room?.fen ?? "", last: room?.moves.at(-1) };
-    const g = new Chess(room.fen);
+    const g = Omok.fromFen(room.fen);
     try {
-      g.move(uciToMove(pending.uci));
+      g.move(pending.uci);
       return { fen: g.fen(), last: pending.uci };
     } catch {
       return { fen: room.fen, last: room.moves.at(-1) };
@@ -348,8 +279,7 @@ export default function ChessRoomView({
   // 낙관적 수까지 포함한 화면상 수 — 서버 반영 때 한 번 더 울리지 않도록
   useMoveSound(
     room && display.fen ? room.moves.length + (display.fen !== room.fen ? 1 : 0) : -1,
-    chessSoundInfo(display.fen, display.last, me),
-    "chess"
+    omokSoundInfo(display.fen, display.last, me)
   );
 
   const clock = room ? liveClock(room, now) : { w: 0, b: 0 };
@@ -421,7 +351,7 @@ export default function ChessRoomView({
     );
   }
 
-  const orientation: Color = me ?? (flip ? "b" : "w");
+  const orientation: Color = me ?? "w";
   const opp: Color = orientation === "w" ? "b" : "w";
   const seat = (c: Color) => ({
     uid: c === "w" ? room.whiteUid : room.blackUid,
@@ -442,7 +372,6 @@ export default function ChessRoomView({
   const oppOffline = !!oppColor && playing && !paused && isOnline(oppColor) === false;
   const oppAwayMs = now - oppLastSeen;
 
-  const caps = captured(game);
   const canMove = playing && !paused && !!me && turn === me && !pending;
   const pauseLeftMs =
     paused && room.pausedAt ? PAUSE_LIMIT_MS - (now - room.pausedAt.toMillis()) : 0;
@@ -459,6 +388,8 @@ export default function ChessRoomView({
     });
 
   const onMove = (uci: string) => {
+    const why = game.illegal(parseSq(uci));
+    if (why) return setMsg(why);
     setMsg("");
     setPending({ base: room.moves.length, uci });
     makeMove(roomId, uid, uci).catch((e: Error) => {
@@ -505,16 +436,19 @@ export default function ChessRoomView({
     status = (
       <>
         {me ? (turn === me ? "내 차례" : "상대 차례") : `${COLOR_KO[turn]} 차례`}
-        {game.inCheck() && <span className="ml-2 text-red-400">체크!</span>}
-        {repeats === 2 && (
-          <span className="ml-2 text-amber-300/90">같은 국면 2회째 · 한 번 더 나오면 무승부</span>
+        {turn === me && game.rule === "renju" && room.moves.length === 0 && (
+          <span className="mt-1 block text-[11px] text-amber-200/70">
+            렌주룰: 첫 수는 천원(가운데)에 둬요
+          </span>
+        )}
+        {turn === me && game.forbiddenPoints().length > 0 && (
+          <span className="mt-1 block text-[11px] text-red-300/80">
+            ✕ 표시는 금수 자리라 둘 수 없어요
+          </span>
         )}
       </>
     );
   }
-
-  const pairs: [string, string | undefined][] = [];
-  for (let i = 0; i < history.length; i += 2) pairs.push([history[i], history[i + 1]]);
 
   return (
     <div ref={topRef} className="mx-auto max-w-5xl scroll-mt-28 px-3 pt-8 pb-24 sm:px-6">
@@ -527,14 +461,11 @@ export default function ChessRoomView({
           <span className="truncate font-['Nanum_Gothic',sans-serif] text-white/90">
             {room.name}
           </span>
-          <span className="shrink-0 font-mono text-xs text-white/40">{timeLabel(room)}</span>
+          <span className="shrink-0 font-mono text-xs text-white/40">
+            {timeLabel(room)} · {RULE_LABEL[parseRule(room.variant)]}
+          </span>
         </div>
         <div className="flex gap-1.5">
-          {!me && (
-            <button type="button" onClick={() => setFlip((f) => !f)} className={btn}>
-              ⇅ 뒤집기
-            </button>
-          )}
           <button type="button" onClick={copyLink} className={btn}>
             {copied ? "복사됨!" : "🔗 초대 링크"}
           </button>
@@ -543,7 +474,7 @@ export default function ChessRoomView({
 
       <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
         {/* 보드 */}
-        <div className="w-full max-w-[max(300px,min(560px,calc(100dvh-190px)))]">
+        <div className="w-full max-w-[max(300px,min(560px,calc(100dvh-280px)))]">
           <PlayerBar
             {...seat(opp)}
             color={opp}
@@ -552,17 +483,21 @@ export default function ChessRoomView({
             active={playing && !paused && turn === opp}
             online={isOnline(opp)}
             isMe={seat(opp).uid === uid}
-            caps={caps.list[opp]}
-            points={caps.points[opp]}
-            diff={caps.points[opp] - caps.points[orientation]}
           />
           <div className="relative">
-            <ChessBoard
+            <OmokBoard
               fen={display.fen}
-              orientation={orientation}
               canMove={canMove}
               lastMove={display.last}
               onMove={onMove}
+              winLine={room.status === "ended" ? game.winLine : undefined}
+              numbers={
+                numbers
+                  ? display.fen !== room.fen && pending
+                    ? [...room.moves, pending.uci]
+                    : room.moves
+                  : null
+              }
             />
             {paused && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/60 p-4 text-center">
@@ -643,9 +578,6 @@ export default function ChessRoomView({
             active={playing && !paused && turn === orientation}
             online={isOnline(orientation)}
             isMe={seat(orientation).uid === uid}
-            caps={caps.list[orientation]}
-            points={caps.points[orientation]}
-            diff={caps.points[orientation] - caps.points[opp]}
           />
         </div>
 
@@ -825,7 +757,7 @@ export default function ChessRoomView({
                 onClick={() => run(offerDraw(roomId, uid))}
                 className={btn}
               >
-                ½ 무승부 제안
+                무승부 제안
               </button>
               {confirmResign ? (
                 <>
@@ -858,26 +790,17 @@ export default function ChessRoomView({
           )}
 
           {/* 기보 */}
-          <div className="thin-scroll max-h-44 overflow-y-auto rounded-xl border border-white/10 bg-[#1C1E24] p-2 lg:max-h-72">
-            {pairs.length === 0 ? (
-              <p className="py-3 text-center font-mono text-xs text-white/30">
-                아직 둔 수가 없습니다
-              </p>
-            ) : (
-              <div className="grid grid-cols-[2.2rem_1fr_1fr] gap-y-0.5 font-mono text-xs">
-                {pairs.map(([w, b], i) => (
-                  <div key={i} className="contents">
-                    <span className="px-1 text-white/30">{i + 1}.</span>
-                    <span className="px-1 text-white/80">{w}</span>
-                    <span className="px-1 text-white/80">{b ?? ""}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <OmokNotation moves={room.moves} />
 
           {/* 채팅 */}
-          <ChessChat room={room} uid={uid} nick={nick} canSend={participating} />
+          <ChessChat
+            room={room}
+            uid={uid}
+            nick={nick}
+            canSend={participating}
+            api={{ subscribeChat, sendChat }}
+            marks={{ white: ["● ", "흑"], black: ["○ ", "백"] }}
+          />
 
           {/* 관전자 */}
           <div className="px-1 font-mono text-[11px] text-white/35">

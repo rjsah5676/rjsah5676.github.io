@@ -671,6 +671,210 @@ export const JANGGI_GUIDE: GuideDoc = {
   ],
 };
 
+/** 금수 예시: 7×7 작은 판에 흑 돌과 ✕(금수 자리) */
+function ForbidBoard({
+  stones,
+  x,
+  label,
+}: {
+  stones: [number, number][];
+  x: [number, number];
+  label: string;
+}) {
+  const C = 18,
+    M = 12,
+    W = C * 6 + M * 2;
+  return (
+    <figure className="flex flex-col items-center gap-1.5">
+      <svg viewBox={`0 0 ${W} ${W}`} width={112} height={112} className="rounded-md" aria-hidden>
+        <rect width={W} height={W} fill="#E2BC7C" />
+        {Array.from({ length: 7 }, (_, k) => (
+          <g key={k} stroke="#5C3F1E" strokeWidth={0.8}>
+            <line x1={M} y1={M + k * C} x2={M + 6 * C} y2={M + k * C} />
+            <line x1={M + k * C} y1={M} x2={M + k * C} y2={M + 6 * C} />
+          </g>
+        ))}
+        {stones.map(([cx, cy]) => (
+          <circle key={`${cx},${cy}`} cx={M + cx * C} cy={M + cy * C} r={7.5} fill="#151515" />
+        ))}
+        <g stroke="#DC2626" strokeWidth={2.6} strokeLinecap="round">
+          <line
+            x1={M + x[0] * C - 5}
+            y1={M + x[1] * C - 5}
+            x2={M + x[0] * C + 5}
+            y2={M + x[1] * C + 5}
+          />
+          <line
+            x1={M + x[0] * C + 5}
+            y1={M + x[1] * C - 5}
+            x2={M + x[0] * C - 5}
+            y2={M + x[1] * C + 5}
+          />
+        </g>
+      </svg>
+      <figcaption className="text-xs text-white/70">{label}</figcaption>
+    </figure>
+  );
+}
+
+function ForbidDemo() {
+  return (
+    <div className="flex flex-wrap justify-center gap-3">
+      <ForbidBoard
+        label="3-3"
+        x={[3, 3]}
+        stones={[
+          [1, 3],
+          [2, 3],
+          [3, 1],
+          [3, 2],
+        ]}
+      />
+      <ForbidBoard
+        label="4-4"
+        x={[3, 3]}
+        stones={[
+          [0, 3],
+          [1, 3],
+          [2, 3],
+          [3, 0],
+          [3, 1],
+          [3, 2],
+        ]}
+      />
+      <ForbidBoard
+        label="장목 (6목)"
+        x={[3, 3]}
+        stones={[
+          [0, 3],
+          [1, 3],
+          [2, 3],
+          [4, 3],
+          [5, 3],
+        ]}
+      />
+    </div>
+  );
+}
+
+export const OMOK_GUIDE: GuideDoc = {
+  slides: [
+    {
+      title: "상대와 규칙 고르기",
+      visual: <Poster emoji="⚫" chips={["18급 ~ 5단 AI", "렌주룰", "일반룰", "자유룰"]} />,
+      body: (
+        <>
+          흑(선수)·백 중 내 돌과 AI 상대를 고르고 규칙을 정해요. 흑이 먼저 두고,
+          가로·세로·대각선으로 다섯 개를 먼저 이으면 승리.
+        </>
+      ),
+    },
+    {
+      title: "렌주룰 금수 (흑만)",
+      visual: <ForbidDemo />,
+      body: (
+        <>
+          먼저 두는 흑이 너무 유리해서 흑은 <B>3-3 · 4-4 · 장목</B> 자리에 둘 수 없어요. 판에 빨간
+          ✕로 표시돼요. 단, 그 수로 바로 5목이 되면 둘 수 있어요.
+        </>
+      ),
+    },
+    {
+      title: "💡 힌트와 수 번호",
+      visual: <Poster emoji="💡" chips={["가장 센 AI의 추천 수", "① 수 번호 보기"]} />,
+      body: (
+        <>
+          힌트는 가장 센 AI가 생각한 자리를 초록 점선으로 보여 줘요. 수 번호로 둔 순서도 볼 수
+          있어요.
+        </>
+      ),
+    },
+    {
+      title: "🏆 AI 랭킹전 · 온라인 대국",
+      visual: <Poster emoji="🏆" chips={["렌주룰 랭킹전", "실시간 온라인 대국", "관전 · 채팅"]} />,
+      body: (
+        <>
+          랭킹전은 렌주룰로, 무르기·힌트 없이. <B>더 센 AI를 이긴 기록이 항상 위</B>예요. 친구와는{" "}
+          <B>온라인 대국</B> 탭에서 방을 만들어 둬요.
+        </>
+      ),
+    },
+  ],
+  lead: (
+    <>
+      15×15 판에서 두는 오목. 렌주룰 금수(3-3·4-4·장목)까지 정확히 판정하고, 친구와 온라인으로 또는
+      AI와 둘 수 있어요.
+    </>
+  ),
+  facts: ["🌐 온라인 대국", "🤖 AI 8단계", "🏆 AI 랭킹전", "✕ 금수 표시"],
+  sections: [
+    {
+      icon: "📜",
+      title: "규칙 세 가지",
+      items: [
+        <>
+          <B>렌주룰(국제룰)</B>: 첫 수는 천원(가운데). 흑만 3-3·4-4·장목(6목 이상) 금지. 흑은 정확히
+          5목, 백은 장목도 승리.
+        </>,
+        <>
+          <B>일반룰</B>: 흑·백 모두 3-3 금지(4-4는 허용). 양쪽 다 정확히 5목만 승리, 장목은 무효.
+        </>,
+        <>
+          <B>자유룰</B>: 금수 없이 5목 이상이면 승리.
+        </>,
+        <>판이 가득 차면 무승부예요.</>,
+      ],
+    },
+    {
+      icon: "✕",
+      title: "금수 판정",
+      items: [
+        <>
+          <B>삼</B>은 한 수 더 두면 양쪽이 열린 4(막아도 반대쪽으로 5목)가 되는 모양이에요. 한쪽이
+          막힌 3은 삼이 아니에요.
+        </>,
+        <>
+          <B>거짓 삼</B>: 열린 4를 만들 자리가 전부 금수라 실제로는 4로 못 키우는 삼은 삼으로 치지
+          않아요 (렌주 공식 규칙대로 끝까지 따져 봐요).
+        </>,
+        <>4-3(4 하나 + 삼 하나)은 금수가 아니에요. 5목이 되는 수는 금수 모양이어도 둘 수 있어요.</>,
+        <>
+          금수 자리는 판에 빨간 ✕로 표시되고 눌러도 놓이지 않아요. 렌주룰에서 백은 흑의 금수 자리로
+          흑을 몰아 이길 수도 있어요.
+        </>,
+      ],
+    },
+    { icon: "🌐", title: "온라인 대국", items: ONLINE_ROOM_ITEMS },
+    {
+      icon: "🤖",
+      title: "AI와 두기",
+      items: [
+        <>
+          오목 새싹(18급)부터 알파오목(5단)까지 8단계. 센 단계는 연속 4로 몰아붙이는 수순(VCF)을
+          읽어요.
+        </>,
+        <>
+          <B>💡 힌트</B>를 누르면 가장 센 AI가 생각한 추천 자리를 판에 표시해 줘요.
+        </>,
+        <>무르기는 내 차례로 돌아갈 때까지 되돌려요. 대국은 브라우저에 저장돼요.</>,
+        <>휴대폰에서는 한 번 눌러 자리를 고르고, 같은 자리를 한 번 더 누르면 돌이 놓여요.</>,
+      ],
+    },
+    {
+      icon: "🏆",
+      title: "AI 랭킹전",
+      items: [
+        ...RANKED_ITEMS(
+          "(백으로 이기면 1.2배)",
+          "적은 수(25수 이내일수록)",
+          "짧은 시간(10분 이내일수록)"
+        ),
+        <>랭킹전은 렌주룰로만 둬요.</>,
+      ],
+    },
+  ],
+};
+
 export const MINE_GUIDE: GuideDoc = {
   slides: [
     {

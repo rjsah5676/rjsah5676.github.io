@@ -135,7 +135,11 @@ export default function ChessAIGame() {
 
   const bot: ChessBot = CHESS_BOTS.find((b) => b.rating === rating) ?? CHESS_BOTS[2];
   const game = useMemo(() => replay(moves ?? []), [moves]);
-  useMoveSound(moves ? moves.length : -1, chessSoundInfo(game.fen(), moves?.at(-1), myColor));
+  useMoveSound(
+    moves ? moves.length : -1,
+    chessSoundInfo(game.fen(), moves?.at(-1), myColor),
+    "chess"
+  );
   const end = moves ? endText(game, myColor) : null;
   const over = !!end || resigned;
   const aiColor: Color = myColor === "w" ? "b" : "w";
