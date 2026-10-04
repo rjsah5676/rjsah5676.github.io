@@ -43,12 +43,13 @@ function SkillIcon({ c, k, small }: { c: CharDef; k: "S" | "X" | "A"; small?: bo
   );
 }
 
-function SkillRow({ c, k, right }: { c: CharDef; k: "S" | "X"; right?: boolean }) {
+/** 오른쪽(2P) 패널에서도 좌우 반전 없이 아이콘 왼쪽 · 글자 왼쪽 정렬 (반전하면 읽기 힘듦) */
+function SkillRow({ c, k }: { c: CharDef; k: "S" | "X" }) {
   const isId = k === "S";
   return (
-    <div className={`${KR} mt-[0.3cqw] flex w-full items-start gap-[0.6cqw] ${right ? "flex-row-reverse text-right" : ""}`}>
+    <div className={`${KR} mt-[0.3cqw] flex w-full items-start gap-[0.6cqw] text-left`}>
       <SkillIcon key={c.id} c={c} k={k} />
-      <div className={`flex min-w-0 flex-1 flex-col gap-[0.2cqw] ${right ? "items-end" : ""}`}>
+      <div className={`flex min-w-0 flex-1 flex-col gap-[0.2cqw] items-start`}>
         <span
           className={`rounded-[0.3cqw] px-[0.5cqw] text-[1.05cqw] font-bold text-black ${isId ? "bg-[#FDE047]/90" : "bg-[#22D3EE]/90"}`}
         >
@@ -56,7 +57,7 @@ function SkillRow({ c, k, right }: { c: CharDef; k: "S" | "X"; right?: boolean }
         </span>
         <span className="text-[1.05cqw] leading-snug break-keep text-white/80">{isId ? c.idDesc : c.ultDesc}</span>
         {isId && (
-          <span className={`flex items-start gap-[0.4cqw] ${right ? "flex-row-reverse" : ""}`}>
+          <span className={`flex items-start gap-[0.4cqw]`}>
             <SkillIcon key={`${c.id}-A`} c={c} k="A" small />
             <span className="text-[0.95cqw] leading-snug break-keep text-white/55">
               <b className="text-[#FDE047]/80">{c.airLabel ?? "점프 중 L"}</b> {c.airDesc}
@@ -92,8 +93,8 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
         “{c.quote}”
       </div>
       {/* 기술: 아이콘 + 이름 배지 한 줄, 설명은 그 아래 (점프 중 L이 다르면 한 줄 더) */}
-      <SkillRow c={c} k="S" right={right} />
-      <SkillRow c={c} k="X" right={right} />
+      <SkillRow c={c} k="S" />
+      <SkillRow c={c} k="X" />
     </div>
   );
 }

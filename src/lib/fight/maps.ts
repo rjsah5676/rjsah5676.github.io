@@ -41,7 +41,7 @@ export const MAPS: MapDef[] = [
     plats: [
       { x0: 0, x1: 764, y: 132, solid: true, kind: "floor" },
       // 책상 돌단 (왼쪽 끝 너머 학당 안쪽은 발판 아님 → 떨어짐)
-      { x0: 253, x1: 563, y: 226, kind: "desk" },
+      { x0: 340, x1: 563, y: 226, kind: "desk" },
       // 「學問」 현판 위
       { x0: 0, x1: 145, y: 432, kind: "beam" },
       { x0: 582, x1: 717, y: 230, kind: "hang" },
