@@ -73,7 +73,7 @@ const SAMPLES: Record<string, number> = {
   round: 0.45,
   fight: 0.5,
   respawn: 0.07,
-  "ui-move": 0.3,
+  "ui-move": 0.2,
   "ui-ok": 0.35,
   "ui-back": 0.3,
   "ui-shuffle": 0.22,
