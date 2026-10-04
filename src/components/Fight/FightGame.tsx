@@ -164,7 +164,7 @@ function hudOf(s: State): Hud {
         ? Math.min(s.pt, 70)
         : s.phase === "fight"
           ? Math.min(s.pt, 40)
-          : Math.min(s.pt, 60),
+          : Math.min(s.pt, s.phase === "over" ? 80 : 60),
     round: s.round,
     roundWinner: s.roundWinner,
     winner: s.winner,
@@ -301,13 +301,40 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const pausedRef = useRef(false);
   const rendererRef = useRef<FightRenderer | null>(null);
   const restartRef = useRef<() => void>(() => {});
+  // 전체화면: 선택 화면·게임 화면이 같은 바깥 div 안에서 바뀌어서 화면이 넘어가도 전체화면 유지
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [fs, setFs] = useState(false);
+  useEffect(() => {
+    const on = () => setFs(document.fullscreenElement === rootRef.current && !!rootRef.current);
+    document.addEventListener("fullscreenchange", on);
+    return () => document.removeEventListener("fullscreenchange", on);
+  }, []);
+  const toggleFs = () => {
+    const el = rootRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else if (typeof el.requestFullscreen === "function") el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+  };
+  const rootCls = fs
+    ? "flex h-full w-full flex-col items-center justify-center bg-black [&>*:not(.fs-screen)]:hidden [&>.fs-screen]:w-[min(100vw,calc(100vh*16/9))]"
+    : "mx-auto w-full max-w-[min(960px,calc((100dvh-170px)*16/9))]";
+  const fsBtn = (bottom = false) => (
+    <button
+      type="button"
+      onClick={toggleFs}
+      title={fs ? "전체화면 끝내기" : "전체화면"}
+      className={`pointer-events-auto absolute ${bottom ? "bottom-[1.2cqw]" : "top-[1.2cqw]"} right-[1.2cqw] z-30 cursor-pointer rounded-[0.6cqw] bg-black/55 px-[0.9cqw] py-[0.3cqw] font-mono text-[1.6cqw] text-white/75 hover:bg-white/25`}
+    >
+      {fs ? "✕" : "⛶"}
+    </button>
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect -- 지난 설정 복원 (마운트 1회) */
   useEffect(() => {
     try {
       const v = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null") as Setup | null;
       if (v && CHARS[v.c1] && CHARS[v.c2] && AI_LEVELS[v.level])
-        setSetup({ ...v, map: typeof v.map === "number" && (v.map === -1 || MAPS[v.map]) ? v.map : -1 });
+        setSetup({ ...v, rolled: undefined, map: typeof v.map === "number" && (v.map === -1 || MAPS[v.map]) ? v.map : -1 });
       const m = localStorage.getItem(MUTE_KEY) === "1";
       setMuted(m);
       setFightVolume(m ? 0 : 0.8);
@@ -400,7 +427,11 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     input.configure(setup.mode === "2p");
     const pickMap = () =>
       setup.map >= 0 ? setup.map : Math.floor(Math.random() * MAPS.length);
-    let s = newMatch([setup.c1, setup.c2], pickMap());
+    // 랜덤 맵: 첫 판은 선택 화면에서 섞어 뽑힌 맵, 다시하기는 새로 뽑음
+    let s = newMatch(
+      [setup.c1, setup.c2],
+      setup.map < 0 && setup.rolled !== undefined && MAPS[setup.rolled] ? setup.rolled : pickMap()
+    );
     playBgm(MAPS[s.map].bgm ?? MENU_BGM, true);
     let ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
     let hits = 0;
@@ -550,8 +581,11 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
 
   if (!playing) {
     return (
-      <div className="mx-auto w-full max-w-[min(960px,calc((100dvh-170px)*16/9))]">
-        <Select setup={setup} setSetup={setSetup} onStart={start} onPreview={previewMap} entry={entry} />
+      <div ref={rootRef} className={rootCls}>
+        <div className="fs-screen relative [container-type:inline-size]">
+          <Select setup={setup} setSetup={setSetup} onStart={start} onPreview={previewMap} entry={entry} />
+          {fsBtn()}
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <button type="button" onClick={toggleMute} className={btn}>
             {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
@@ -614,10 +648,31 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       };
   }
 
+  const winCh = hud && hud.phase === "over" && hud.winner !== 2 ? CHARS[hud.winner === 0 ? setup.c1 : setup.c2] : null;
   return (
-    <div className="mx-auto w-full max-w-[min(960px,calc((100dvh-170px)*16/9))]">
-      <div className="relative w-full overflow-hidden rounded-xl border border-white/10 bg-black [container-type:inline-size]">
+    <div ref={rootRef} className={rootCls}>
+      <div className="fs-screen relative w-full overflow-hidden rounded-xl border border-white/10 bg-black [container-type:inline-size]">
         <canvas ref={canvasRef} className="block aspect-video w-full [image-rendering:pixelated]" />
+        {fsBtn(true)}
+        {winCh && hud && hud.pt >= 80 && (
+          // 최종 승리: 이긴 캐릭터 얼굴 + 도발 대사
+          <div
+            className={`pointer-events-none absolute top-[50%] ${hud.winner === 0 ? "left-[4%]" : "right-[4%] flex-row-reverse"} flex items-center gap-[1.2cqw] [animation:modal-fade_300ms_ease-out]`}
+          >
+            <img
+              src={`/fight/art/${winCh.id}-face.webp`}
+              alt=""
+              className="h-[9cqw] w-[9cqw] rounded-[0.8cqw] border-[0.3cqw] object-cover shadow-[0_0_2cqw_rgba(0,0,0,0.7)]"
+              style={{ borderColor: winCh.color }}
+            />
+            <div className="max-w-[32cqw] rounded-[1cqw] border-[0.2cqw] border-white/70 bg-black/75 px-[1.4cqw] py-[0.9cqw] font-['Nanum_Gothic',sans-serif]">
+              <div className="text-[1.3cqw] font-extrabold" style={{ color: winCh.color }}>
+                {winCh.name}
+              </div>
+              <div className="text-[1.7cqw] leading-snug font-bold text-white">“{winCh.winQuote}”</div>
+            </div>
+          </div>
+        )}
         {hud && (
           <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-[1.6cqw]">
             <div className="flex items-start gap-[2cqw]">

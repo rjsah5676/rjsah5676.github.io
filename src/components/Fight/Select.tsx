@@ -18,6 +18,8 @@ export interface Setup {
   level: number;
   /** MAPS 인덱스, -1 = 랜덤 */
   map: number;
+  /** 랜덤 맵을 고를 때 섞기 연출로 뽑힌 맵 (이번 판 시작에만 씀, 저장 안 함) */
+  rolled?: number;
 }
 
 const face = (c: CharDef) => `/fight/art/${c.id}-face.webp`;
@@ -84,10 +86,30 @@ export default function Select({
   const [stage, setStage] = useState<"mode" | "char" | "map" | "vs">(entry);
   const [lock, setLock] = useState<[boolean, boolean]>([false, false]);
   const [mapCur, setMapCur] = useState(setup.map);
-  const stRef = useRef({ stage, lock, setup, mapCur });
+  /** 캐릭터 칸 커서가 '랜덤'에 있나 (쪽마다) */
+  const [rnd, setRnd] = useState<[boolean, boolean]>([false, false]);
+  /** 랜덤 섞는 중 (캐릭터: 쪽 번호, 맵: "map") — 그동안 입력 막음 */
+  const [shuf, setShuf] = useState<0 | 1 | "map" | null>(null);
+  /** 맵 섞는 동안 보여 줄 맵 (배경음악은 안 바꿈) */
+  const [mapFlash, setMapFlash] = useState<number | null>(null);
+  const stRef = useRef({ stage, lock, setup, mapCur, rnd, shuf });
   useEffect(() => {
-    stRef.current = { stage, lock, setup, mapCur };
+    stRef.current = { stage, lock, setup, mapCur, rnd, shuf };
   });
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  /** 슬롯머신처럼 점점 느려지며 칸을 넘기다 마지막에 멈춤 */
+  const spin = (count: number, show: (k: number, last: boolean) => void, done: () => void) => {
+    let t = 0;
+    for (let k = 0; k < count; k++) {
+      // 처음엔 빠르게, 끝으로 갈수록 느려짐 (전체 약 1.8초)
+      const q = k / Math.max(1, count - 1);
+      t += Math.round(50 + 230 * q * q * q);
+      const kk = k;
+      timers.current.push(setTimeout(() => show(kk, kk === count - 1), t));
+    }
+    timers.current.push(setTimeout(done, t + 380));
+  };
 
   // 맵 선택 중엔 커서가 있는 맵의 음악, 그 밖의 화면에선 끔
   useEffect(() => {
@@ -106,13 +128,64 @@ export default function Select({
   /** 지금 커서를 움직이는 쪽 (AI 대전: 1P가 끝나면 CPU 쪽) */
   const pickSide = (l: [boolean, boolean]) => (ai ? (l[0] ? 1 : 0) : -1);
 
-  const move = (side: 0 | 1, d: number) =>
-    setSetup((s) => (side === 0 ? { ...s, c1: (s.c1 + d + n) % n } : { ...s, c2: (s.c2 + d + n) % n }));
-  const confirm = (side: 0 | 1) => {
+  /** 칸 순서: 랜덤(-1), 0..n-1 */
+  const setCursor = (side: 0 | 1, pos: number) => {
+    setRnd((r) => (side === 0 ? [pos < 0, r[1]] : [r[0], pos < 0]));
+    if (pos >= 0) setSetup((s) => (side === 0 ? { ...s, c1: pos } : { ...s, c2: pos }));
+  };
+  const move = (side: 0 | 1, d: number) => {
+    const { rnd, setup } = stRef.current;
+    const cur = rnd[side] ? -1 : side === 0 ? setup.c1 : setup.c2;
+    setCursor(side, ((cur + 1 + d + n + 1) % (n + 1)) - 1);
+  };
+  const lockSide = (side: 0 | 1) => {
     const l: [boolean, boolean] = [...stRef.current.lock];
     l[side] = true;
     setLock(l);
     if (l[0] && l[1]) setStage("map");
+  };
+  const confirm = (side: 0 | 1) => {
+    const { rnd, shuf } = stRef.current;
+    if (shuf !== null) return;
+    if (!rnd[side]) return lockSide(side);
+    // 랜덤: 얼굴 칸을 돌다가 하나에 멈춤
+    const pick = Math.floor(Math.random() * n);
+    const start = Math.floor(Math.random() * n);
+    const count = 14 + ((pick - start - 14 + n * 4) % n) + 1;
+    setShuf(side);
+    setRnd((r) => (side === 0 ? [false, r[1]] : [r[0], false]));
+    spin(
+      count,
+      (k) => setSetup((s) => (side === 0 ? { ...s, c1: (start + k) % n } : { ...s, c2: (start + k) % n })),
+      () => {
+        setShuf(null);
+        lockSide(side);
+      }
+    );
+  };
+  /** 맵 결정 (랜덤이면 섞기 연출 뒤 VS) */
+  const confirmMap = (cur: number) => {
+    if (stRef.current.shuf !== null) return;
+    if (cur >= 0) {
+      setSetup((s) => ({ ...s, map: cur, rolled: undefined }));
+      setStage("vs");
+      return;
+    }
+    const m = MAPS.length;
+    const pick = Math.floor(Math.random() * m);
+    const count = 10 + ((pick - 10 + m * 6) % m) + 1;
+    setShuf("map");
+    spin(
+      count,
+      (k) => setMapFlash(k % m),
+      () => {
+        setShuf(null);
+        setMapFlash(null);
+        setSetup((s) => ({ ...s, map: -1, rolled: pick }));
+        setMapCur(pick);
+        setStage("vs");
+      }
+    );
   };
   const cancel = (side: 0 | 1) => {
     const l: [boolean, boolean] = [...stRef.current.lock];
@@ -140,7 +213,11 @@ export default function Select({
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
-      const { stage, lock, mapCur } = stRef.current;
+      const { stage, lock, mapCur, shuf } = stRef.current;
+      if (shuf !== null) {
+        e.preventDefault();
+        return;
+      }
       const k = e.code;
       const p1 = { l: k === "KeyA", r: k === "KeyD", ok: k === "KeyJ" || k === "Space", no: k === "KeyK" };
       const p2 = {
@@ -178,10 +255,7 @@ export default function Select({
         const i = mapOptions.indexOf(mapCur);
         if (p1.l || p2.l) setMapCur(mapOptions[(i - 1 + mapOptions.length) % mapOptions.length]);
         if (p1.r || p2.r) setMapCur(mapOptions[(i + 1) % mapOptions.length]);
-        if (p1.ok || p2.ok) {
-          setSetup((s) => ({ ...s, map: mapCur }));
-          setStage("vs");
-        }
+        if (p1.ok || p2.ok) confirmMap(mapCur);
         if (p1.no || p2.no) backToChars();
       }
     };
@@ -193,7 +267,8 @@ export default function Select({
   const c1 = CHARS[setup.c1],
     c2 = CHARS[setup.c2];
   const side = pickSide(lock);
-  const mapShown = mapCur >= 0 ? MAPS[mapCur] : null;
+  const mapShownIdx = mapFlash ?? mapCur;
+  const mapShown = mapShownIdx >= 0 ? MAPS[mapShownIdx] : null;
   const thumb = (i: number) => (i >= 0 ? MAPS[i].bg?.replace(".webp", "-thumb.webp") : undefined);
 
   return (
@@ -297,11 +372,19 @@ export default function Select({
             return (
               <div key={sd} className="contents">
                 {/* 전신 그림: 폭이 넓은 그림이어도 설명 글씨 칸을 밀지 않게 따로 띄움 (뒤에 깔림) */}
+                {rnd[sd] ? (
+                  <div
+                    className={`absolute top-[16%] ${sd === 0 ? "left-[6cqw]" : "right-[6cqw]"} z-0 flex h-[70%] w-[16cqw] items-center justify-center font-mono text-[14cqw] font-black text-white/70 [animation:modal-fade_250ms_ease-out]`}
+                    style={{ textShadow: `0 0 2cqw ${col}` }}
+                  >
+                    ?
+                  </div>
+                ) : (
                 <img
                   key={c.id}
                   src={art(c)}
                   alt={c.name}
-                  className={`absolute bottom-0 ${sd === 0 ? "left-[1cqw] object-left-bottom" : "right-[1cqw] object-right-bottom"} z-0 h-[78%] w-[26cqw] object-contain ${PX} transition-[filter,opacity] duration-300 [animation:modal-fade_250ms_ease-out] ${sd === 1 ? "scale-x-[-1]" : ""} ${
+                  className={`absolute top-[13%] ${sd === 0 ? "left-[1cqw] object-left-bottom" : "right-[1cqw] object-right-bottom"} z-0 h-[76%] w-[26cqw] object-contain ${PX} transition-[filter,opacity] duration-300 [animation:modal-fade_250ms_ease-out] ${sd === 1 ? "scale-x-[-1]" : ""} ${
                     active || lock[sd] ? "" : "opacity-45 brightness-50"
                   }`}
                   style={{
@@ -312,6 +395,7 @@ export default function Select({
                         : undefined,
                   }}
                 />
+                )}
                 <div
                   className={`absolute top-[8.5cqw] z-10 ${sd === 0 ? "left-[27cqw]" : "right-[27cqw] flex flex-col items-end text-right"} w-[22cqw] rounded-[1cqw] bg-black/45 px-[1cqw] py-[0.8cqw] backdrop-blur-[2px]`}
                 >
@@ -332,7 +416,15 @@ export default function Select({
                       <span className={`${KR} text-[1.2cqw] text-white/35`}>대기</span>
                     )}
                   </div>
-                  <CharInfo c={c} right={sd === 1} />
+                  {rnd[sd] ? (
+                    <div className={`${KR} flex flex-col gap-[0.5cqw] ${sd === 1 ? "items-end" : ""}`}>
+                      <div className="font-mono text-[1.1cqw] tracking-[0.25em] text-white/45">RANDOM</div>
+                      <div className="text-[3.6cqw] leading-none font-extrabold text-white">랜덤</div>
+                      <div className="text-[1.2cqw] text-white/60">결정하면 섞어서 한 명을 뽑아요</div>
+                    </div>
+                  ) : (
+                    <CharInfo c={c} right={sd === 1} />
+                  )}
                 </div>
               </div>
             );
@@ -341,9 +433,34 @@ export default function Select({
           {/* 가운데 아래 얼굴 칸 */}
           <div className="absolute bottom-[1.5cqw] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-[1cqw] rounded-[1cqw] bg-black/50 px-[1.2cqw] pt-[1.8cqw] pb-[1cqw] backdrop-blur-[2px]">
             <div className="flex gap-[1cqw]">
+              {(() => {
+                const r1 = rnd[0] && !lock[0],
+                  r2 = rnd[1] && !lock[1];
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sd = (lock[0] ? 1 : 0) as 0 | 1;
+                      if (lock[sd] || shuf !== null) return;
+                      if (rnd[sd]) confirm(sd);
+                      else setCursor(sd, -1);
+                    }}
+                    className="relative cursor-pointer"
+                  >
+                    <span
+                      className={`flex h-[7.5cqw] w-[7cqw] items-center justify-center rounded-[0.5cqw] border-[0.3cqw] bg-black/60 font-mono text-[4cqw] font-black text-white/80 ${
+                        r1 && r2 ? "border-[#A78BFA]" : r1 ? "border-[#3B82F6]" : r2 ? "border-[#F43F5E]" : "border-white/20"
+                      } ${r1 || r2 ? "animate-pulse" : ""}`}
+                    >
+                      ?
+                    </span>
+                    <span className={`${KR} block pt-[0.3cqw] text-center text-[1.2cqw] text-white/80`}>랜덤</span>
+                  </button>
+                );
+              })()}
               {CHARS.map((c, i) => {
-                const on1 = setup.c1 === i,
-                  on2 = setup.c2 === i;
+                const on1 = setup.c1 === i && !rnd[0],
+                  on2 = setup.c2 === i && !rnd[1];
                 const act1 = !lock[0] && (ai ? side === 0 : true);
                 const act2 = !lock[1] && (ai ? side === 1 : true);
                 const glow = (on1 && act1) || (on2 && act2);
@@ -354,10 +471,10 @@ export default function Select({
                     onClick={() => {
                       // 아직 안 고른 쪽부터 (AI 대전은 1P → CPU). 한 번 누르면 커서, 같은 칸을 한 번 더 누르면 결정
                       const sd = (lock[0] ? 1 : 0) as 0 | 1;
-                      if (lock[sd]) return;
-                      const cur = sd === 0 ? setup.c1 : setup.c2;
+                      if (lock[sd] || shuf !== null) return;
+                      const cur = rnd[sd] ? -1 : sd === 0 ? setup.c1 : setup.c2;
                       if (cur === i) confirm(sd);
-                      else setSetup((s) => (sd === 0 ? { ...s, c1: i } : { ...s, c2: i }));
+                      else setCursor(sd, i);
                     }}
                     className="relative cursor-pointer"
                   >
@@ -411,7 +528,10 @@ export default function Select({
               </div>
             )}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-[1.4cqw] pt-[3cqw] pb-[1cqw]">
-              <div className={`${KR} text-[2.6cqw] font-extrabold text-white`}>{mapShown ? mapShown.name : "랜덤"}</div>
+              <div className={`${KR} text-[2.6cqw] font-extrabold text-white`}>
+                {mapShown ? mapShown.name : "랜덤"}
+                {shuf === "map" && <span className="ml-[1cqw] text-[1.6cqw] text-[#FDE047]">섞는 중…</span>}
+              </div>
               <div className={`${KR} text-[1.3cqw] text-white/70`}>{mapShown ? mapShown.desc : "매 판 무작위"}</div>
             </div>
           </div>
@@ -421,13 +541,12 @@ export default function Select({
                 key={i}
                 type="button"
                 onClick={() => {
-                  if (mapCur === i) {
-                    setSetup((s) => ({ ...s, map: i }));
-                    setStage("vs");
-                  } else setMapCur(i);
+                  if (shuf !== null) return;
+                  if (mapCur === i) confirmMap(i);
+                  else setMapCur(i);
                 }}
-                className={`relative h-[6.8cqw] w-[12cqw] cursor-pointer overflow-hidden rounded-[0.5cqw] border-[0.25cqw] ${
-                  mapCur === i ? "border-[#FDE047]" : "border-white/20"
+                className={`relative h-[6.8cqw] w-[12cqw] cursor-pointer overflow-hidden rounded-[0.5cqw] border-[0.25cqw] transition-transform ${
+                  mapFlash === i ? "scale-110 border-[#FDE047]" : mapCur === i && mapFlash === null ? "border-[#FDE047]" : "border-white/20"
                 }`}
               >
                 {thumb(i) ? (
@@ -454,10 +573,7 @@ export default function Select({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setSetup((s) => ({ ...s, map: mapCur }));
-                setStage("vs");
-              }}
+              onClick={() => confirmMap(mapCur)}
               className={`${KR} cursor-pointer rounded-full bg-[#6C63FF] px-[2.4cqw] py-[0.6cqw] text-[1.4cqw] font-bold text-white hover:bg-[#5b52f0]`}
             >
               결정 ▶

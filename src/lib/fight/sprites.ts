@@ -178,8 +178,13 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
         return air ? { anim: a, frame: Math.min(1, Math.floor(f.t / 10)) } : { anim: a, frame: a.frames - 1 };
       }
       return stateAnim("ko", f.t);
-    case "win":
-      return stateAnim("win", f.t);
+    case "win": {
+      // 한 번 끝까지 보여 준 뒤엔 첫 장을 빼고 계속 반복 (경기 끝 화면에서 멈춰 보이지 않게)
+      const a = sh.anims[sh.states.win.anim];
+      const n = a.frames;
+      const k = Math.floor((f.t * a.fps) / 60);
+      return { anim: a, frame: n < 2 || k < n ? Math.min(k, n - 1) : 1 + ((k - n) % (n - 1)) };
+    }
   }
 }
 

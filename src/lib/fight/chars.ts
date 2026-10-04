@@ -102,6 +102,8 @@ export interface CharDef {
   glide?: number;
   /** 선택 화면 대사 */
   quote: string;
+  /** 경기에서 이겼을 때 도발 대사 */
+  winQuote: string;
   /** 설정화 영문 부제 */
   tagline: string;
   /** 난이도 (1 쉬움 ~ 3 어려움) — 선택 화면 표시 */
@@ -140,6 +142,7 @@ const RAW: CharSrc[] = [
     width: 18,
     color: "#E6ECF5",
     quote: "덤벼. 주먹 하나면 충분해.",
+    winQuote: "그게 다야? 다음엔 좀 더 버텨 봐.",
     tagline: "RELENTLESS FIGHTER",
     difficulty: 2,
     idName: "질풍권",
@@ -256,6 +259,7 @@ const RAW: CharSrc[] = [
     width: 18,
     color: "#FF6A2A",
     quote: "다 태워 줄게. 가까이 오지 마!",
+    winQuote: "후후, 잘 탔네~ 불장난은 나랑만 하는 거야!",
     tagline: "BLAZING SOUL",
     difficulty: 1,
     idName: "화염구",
@@ -368,6 +372,7 @@ const RAW: CharSrc[] = [
     width: 18,
     color: "#FF5FB4",
     quote: "수업은 끝났어, 지금부터… 제대로 할 시간이지.",
+    winQuote: "오늘 수업은 여기까지. 복습해 와.",
     tagline: "STRICT BUT KIND",
     difficulty: 3,
     idName: "지도편달",
@@ -480,6 +485,7 @@ const RAW: CharSrc[] = [
     width: 16,
     color: "#5EC8FF",
     quote: "비… 많이 오네~ 우산 같이 쓸까?!",
+    winQuote: "헤헤~ 내가 이겼다! 우산 빌려줄까?",
     tagline: "KINDERGARTEN GIRL",
     difficulty: 2,
     idName: "비눗방울",
@@ -590,6 +596,7 @@ const RAW: CharSrc[] = [
     width: 18,
     color: "#FFD43B",
     quote: "찌릿찌릿~ 감전 조심하라구!",
+    winQuote: "찌릿했지? 다음엔 피뢰침 챙겨 와~",
     tagline: "THUNDER LANCER",
     difficulty: 2,
     idName: "뇌창",
@@ -598,9 +605,9 @@ const RAW: CharSrc[] = [
     ultDesc: "상대 발밑에 번개 창이 연달아 3번 내리꽂힘",
     moves: {
       L: {
-        startup: 4,
+        startup: 5,
         active: 3,
-        recovery: 7,
+        recovery: 9,
         dmg: 38,
         chip: 0,
         hitstun: 13,
@@ -608,21 +615,21 @@ const RAW: CharSrc[] = [
         push: 640,
         hitstop: 4,
         meter: 5,
-        box: { x: 6, y: 46, w: 52, h: 16 },
+        box: { x: 6, y: 46, w: 64, h: 16 }, // 창끝까지 (그림에 맞춤)
         cancel: ["H", "S", "X"],
       },
       H: {
         startup: 11,
         active: 4,
-        recovery: 20,
-        dmg: 80,
+        recovery: 23,
+        dmg: 72,
         chip: 0,
         hitstun: 19,
         blockstun: 13,
         push: 1150,
         hitstop: 8,
         meter: 9,
-        box: { x: 4, y: 56, w: 68, h: 26 },
+        box: { x: 4, y: 56, w: 80, h: 26 },
         cancel: ["S", "X"],
       },
       J: {
@@ -636,7 +643,7 @@ const RAW: CharSrc[] = [
         push: 700,
         hitstop: 5,
         meter: 5,
-        box: { x: -10, y: 50, w: 72, h: 36 },
+        box: { x: -10, y: 50, w: 92, h: 36 },
       },
       K: {
         startup: 7,
@@ -649,7 +656,7 @@ const RAW: CharSrc[] = [
         push: 1150,
         hitstop: 7,
         meter: 7,
-        box: { x: 0, y: 44, w: 70, h: 30 },
+        box: { x: 0, y: 44, w: 85, h: 30 },
         lunge: 1400,
       },
       S: {

@@ -997,6 +997,20 @@ function canBlock(s: State, d: Fighter, fromX: number) {
   return d.st === "block" || ((d.st === "idle" || d.st === "walk") && holding(d, IN.D));
 }
 
+/** 라운드·경기 끝난 뒤: 조작 없이 하던 동작을 마무리, win 이면 서 있을 때 승리 포즈 */
+function settle(s: State, i: number, win: boolean) {
+  const f = s.p[i];
+  f.t++;
+  if (f.st === "walk" || f.st === "dash") ((f.st = "idle"), (f.vx = 0), (f.t = 0));
+  if (f.st === "hit" && f.stun > 0) f.stun--;
+  if (f.st === "hit" && f.stun <= 0 && onGround(s, f)) ((f.st = "idle"), (f.t = 0));
+  if (f.st === "atk" && f.t >= totalOf(moveOf(f)!) + finishRec(f)) ((f.st = onGround(s, f) ? "idle" : "jump"), (f.mv = ""), (f.t = 0));
+  if (f.st === "block" && --f.stun <= 0) ((f.st = "idle"), (f.t = 0));
+  if (f.st === "down" && f.t >= DOWN_T) ((f.st = "rise"), (f.t = 0));
+  if (f.st === "rise" && f.t >= RISE_T) ((f.st = "idle"), (f.t = 0));
+  if (win && f.st === "idle") ((f.st = "win"), (f.t = 0));
+}
+
 function scaleDmg(dmg: number, combo: number) {
   return Math.trunc((dmg * Math.max(30, 100 - 12 * combo)) / 100);
 }
@@ -1216,9 +1230,10 @@ export function step(s: State, input: [number, number]): State {
     h.push(inp[i] & IN_MASK);
   }
   if (s.phase === "over") {
+    // 경기 끝: 하던 동작은 마저 끝내고, 이긴 쪽은 계속 승리 포즈
     s.pt++;
     for (let i = 0; i < 2; i++) {
-      s.p[i].t++;
+      settle(s, i, s.winner === i);
       physics(s, i);
     }
     return s;
@@ -1252,18 +1267,7 @@ export function step(s: State, input: [number, number]): State {
   } else {
     // roundEnd: 조작 없이 물리만, 이긴 쪽은 승리 포즈
     s.pt++;
-    for (let i = 0; i < 2; i++) {
-      const f = s.p[i];
-      f.t++;
-      if (f.st === "walk") ((f.st = "idle"), (f.vx = 0));
-      if (f.st === "hit" && f.stun > 0) f.stun--;
-      if (f.st === "hit" && f.stun <= 0 && onGround(s, f)) ((f.st = "idle"), (f.t = 0));
-      if (f.st === "atk" && f.t >= totalOf(moveOf(f)!) + finishRec(f)) ((f.st = onGround(s, f) ? "idle" : "jump"), (f.mv = ""), (f.t = 0));
-      if (f.st === "block" && --f.stun <= 0) ((f.st = "idle"), (f.t = 0));
-      if (f.st === "down" && f.t >= DOWN_T) ((f.st = "rise"), (f.t = 0));
-      if (f.st === "rise" && f.t >= RISE_T) ((f.st = "idle"), (f.t = 0));
-      if (s.pt > 50 && s.roundWinner === i && f.st === "idle") ((f.st = "win"), (f.t = 0));
-    }
+    for (let i = 0; i < 2; i++) settle(s, i, s.pt > 50 && s.roundWinner === i);
   }
 
   physics(s, 0);

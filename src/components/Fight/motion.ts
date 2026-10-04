@@ -224,7 +224,9 @@ export class Motion {
         break;
       }
       case "win":
-        if (f.t < 90) dy = -Math.abs(Math.sin(f.t * 0.12)) * 2 * (1 - f.t / 90);
+        // 처음엔 통통 튀고, 그 뒤로는 천천히 들썩임
+        dy = f.t < 90 ? -Math.abs(Math.sin(f.t * 0.12)) * 2 * (1 - f.t / 90) : -Math.abs(Math.sin(f.t * 0.05)) * 0.8;
+        sy = 1 + 0.012 * Math.sin(f.t * 0.07);
         break;
       default:
         break;

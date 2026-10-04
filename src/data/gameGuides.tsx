@@ -18,6 +18,10 @@ import skDraw from "@/img/guide/sk-draw.webp";
 import skGuess from "@/img/guide/sk-guess.webp";
 import skCorrect from "@/img/guide/sk-correct.webp";
 import skReveal from "@/img/guide/sk-reveal.webp";
+import fightSelect from "@/img/guide/fight-select.webp";
+import fightStage from "@/img/guide/fight-stage.webp";
+import fightCombo from "@/img/guide/fight-combo.webp";
+import fightWin from "@/img/guide/fight-win.webp";
 
 /** 그림 대신: 큰 이모지 + 짧은 칩 몇 개 */
 function Poster({ emoji, chips }: { emoji: string; chips?: string[] }) {
@@ -879,19 +883,17 @@ export const FIGHT_GUIDE: GuideDoc = {
   slides: [
     {
       title: "모드 → 캐릭터 → 맵",
-      visual: (
-        <Poster emoji="🥊" chips={["카이 · 맨손 격투", "이그나 · 불꽃", "소영 · 채찍", "릴리 · 우산과 물", "제나 · 창과 번개"]} />
-      ),
+      image: fightSelect,
       body: (
         <>
-          AI 대전(난이도 선택) 또는 한 키보드 2인 대전을 고르고 시작하면 캐릭터 선택. 지금 고르는
-          쪽이 빛나요. <B>2라운드 먼저</B> 이기면 승리.
+          AI 대전(난이도 선택) 또는 한 키보드 2인 대전을 고르고 캐릭터·맵 선택. <B>?</B> 칸을 고르면 섞어서
+          무작위로 뽑아요. <B>2라운드 먼저</B> 이기면 승리.
         </>
       ),
     },
     {
       title: "발판 위에서 싸우기",
-      visual: <Poster emoji="🪜" chips={["2단 점프", "←← →→ 대시", "↓ 가드 (앞뒤 다 막음)", "가드 중 ←→ 돌아보기"]} />,
+      image: fightStage,
       body: (
         <>
           발판은 밑에서 뚫고 올라가고, 내려갈 땐 끝으로 걸어 내려가요. 공중에서도 공격은 <B>점프마다 2번</B>,
@@ -902,7 +904,7 @@ export const FIGHT_GUIDE: GuideDoc = {
     },
     {
       title: "약 4단 · 발차기 2단",
-      visual: <Poster emoji="💥" chips={["J 약 ×4", "K 발차기 ×2", "L 아이덴티티", "I 필살기"]} />,
+      image: fightCombo,
       body: (
         <>
           같은 버튼을 이어 누르면 다음 동작. <B>마지막 동작은 세지만 빈틈이 커서</B> 막히면 반격당해요.
@@ -911,9 +913,9 @@ export const FIGHT_GUIDE: GuideDoc = {
       ),
     },
     {
-      title: "🏆 AI 랭킹",
-      visual: <Poster emoji="🏆" chips={["더 센 AI를 이긴 기록이 위", "남은 체력", "경기 시간"]} />,
-      body: <>AI를 이기면 기록을 올릴 수 있어요. 센 단계를 이긴 기록이 항상 위예요.</>,
+      title: "🏆 이기면 랭킹",
+      image: fightWin,
+      body: <>AI를 이기면 기록을 올릴 수 있어요. 센 단계를 이긴 기록이 항상 위예요. ⛶ 버튼으로 전체화면.</>,
     },
   ],
   lead: (
@@ -929,8 +931,8 @@ export const FIGHT_GUIDE: GuideDoc = {
       title: "조작",
       items: [
         <>
-          <B>1P</B>: A·D 이동(AA·DD 대시), W/Space 점프(2단), S 가드(S+점프로 발판 아래로), J 약, K
-          발차기, L 아이덴티티, I 필살기. AI 대전에선 방향키 + Z X C V도 돼요.
+          <B>1P</B>: A·D 이동(AA·DD 대시), W/Space 점프(2단), S 가드, J 약, K 발차기, L 아이덴티티, I
+          필살기. AI 대전에선 방향키 + Z X C V도 돼요.
         </>,
         <>
           <B>2P</B>: ←→ 이동, ↑/Enter 점프, ↓ 가드, <K>,</K> 약 <K>.</K> 발차기 <K>;</K> 아이덴티티{" "}
@@ -944,7 +946,7 @@ export const FIGHT_GUIDE: GuideDoc = {
       icon: "🛡️",
       title: "기본 규칙",
       items: [
-        <>↓를 누르고 있으면 가드 — <B>보고 있는 쪽</B>에서 온 공격만 막아요. 공중에선 못 막아요.</>,
+        <>↓를 누르고 있으면 가드 — 앞뒤 다 막고, 막은 채로 ←→를 누르면 돌아봐요. 공중에선 못 막아요.</>,
         <>
           <B>막으면 유리</B>: 약은 막혀도 거의 손해가 없지만, 발차기·아이덴티티·필살기는 막히면 막은 쪽이 먼저
           움직여요 (프레임 이득). 맞기 직전에 가드를 올리면 <B>저스트 가드</B> — 경직 반, 깎임 없음, 게이지 +.
@@ -968,27 +970,11 @@ export const FIGHT_GUIDE: GuideDoc = {
     },
     {
       icon: "🧑‍🎨",
-      title: "캐릭터 (★ 조작 난이도)",
+      title: "캐릭터",
       items: [
         <>
-          <B>카이 ★★</B> 돌격형. 빠른 주먹으로 붙어서 몰아침. 질풍권(돌진 2연타, 공중에선 급강하
-          충격파) · 천풍난무(회오리 6연타).
-        </>,
-        <>
-          <B>이그나 ★</B> 견제형. 화염구로 거리를 두고 태움, 맞히기 쉬운 대신 한 대가 약함. 업화주(상대
-          발밑 불기둥).
-        </>,
-        <>
-          <B>소영 ★★★</B> 리치형. 긴 채찍으로 멀리서 찌르지만 느리고 헛치면 빈틈이 큼. 지도편달(낚아채
-          끌어당김) · 보충수업(앞뒤 6연타).
-        </>,
-        <>
-          <B>릴리 ★★</B> 기동형. 작고 우산으로 천천히 떨어져(공중에서 점프 누르고 있기) 잘 안 맞지만
-          체력이 낮음. 비눗방울(느린 함정 탄) · 장마 파도(5연타 파도).
-        </>,
-        <>
-          <B>제나 ★★</B> 중거리형. 창으로 중간 거리를 잡고 번개 창을 아주 빠르게 던짐(맞으면 오래 감전).
-          뇌창 · 천뢰강림(상대 발밑에 번개 3번).
+          5명 모두 아이덴티티(L)·필살기(I)가 달라요 — 붙어서 몰아치는 돌격형(카이), 탄으로 견제하는
+          타입(이그나·릴리), 긴 사거리로 찌르는 리치형(소영·제나). 자세한 기술은 캐릭터 선택 화면에 나와요.
         </>,
       ],
     },
