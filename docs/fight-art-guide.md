@@ -1,7 +1,8 @@
 # 격투게임 그림 만들기 (AI 이미지 → 게임)
 
 엔진(판정·롤백·발판·AI)은 그대로 두고, 그림만 AI 이미지로 뽑아서 넣는다.
-코드로 그린 캐릭터(하루·렌)와 배경은 그림이 들어오면 바로 교체.
+지금 들어간 것: 캐릭터 카이·이그나 (설정화 한 장에서 잘라냄 — `PRESETS`), 맵 운해 학당 (`public/fight/bg/temple.webp`).
+그림 속 발판 좌표는 `src/lib/fight/maps.ts` 에 직접 맞춰 적음.
 
 ## 캐릭터 시트
 
@@ -51,14 +52,10 @@ Row 11: knocked down, falling to lying on the ground (5 frames)
 Row 12: victory pose (5 frames)
 ```
 
-### 캐릭터 설정 (학원 능력자 배틀, 오리지널)
-- **하루** — 검도부 · 불꽃
-  `[CHARACTER]` = `high school girl, red long ponytail, navy sailor school uniform with red scarf, kendo club ace, fire ability user, confident`
-  `[WEAPON]` = `a wooden kendo sword (bokken) wreathed in flames` / `[ABILITY]` = `fire`
-- **렌** — 야구부 · 번개
-  `[CHARACTER]` = `high school boy, spiky blond hair, black gakuran school uniform open jacket, baseball club cleanup hitter, lightning ability user, cocky grin`
-  `[WEAPON]` = `a metal baseball bat crackling with electricity` / `[ABILITY]` = `lightning (an electrified baseball)`
-- **미오** — 학생회 · 물과 바람 (예시 시트로 이미 들어가 있음)
+### 기술 구성 (모든 캐릭터 공통 키)
+- J 약 · K 발차기 · L 고유기(캐릭터마다 다름, 재사용 대기 있음) · I 필살기(게이지 MAX)
+- 카이: 고유기 질풍권(돌진, 공중이면 내리꽂는 발차기) / 필살기 천풍난무(회오리 돌진 6연타)
+- 이그나: 고유기 화염구(원거리 탄, 공중이면 비스듬히 내리꽂음) / 필살기 업화주(상대 발밑 불기둥 4연타)
 
 ### 넣기
 ```

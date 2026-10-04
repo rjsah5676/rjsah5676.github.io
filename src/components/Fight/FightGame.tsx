@@ -167,17 +167,17 @@ function TouchPad({ input }: { input: FightInput }) {
       </div>
       <div className="grid grid-cols-3 gap-2">
         <PadBtn bit={IN.C} onPad={onPad} className="h-14 w-14 text-sm">
-          필살
+          고유기
         </PadBtn>
         <PadBtn bit={IN.X} onPad={onPad} className="h-14 w-14 text-sm text-[#FDE047]">
-          초필살
+          필살기
         </PadBtn>
         <span />
         <PadBtn bit={IN.A} onPad={onPad} className="h-14 w-14 text-sm">
           약
         </PadBtn>
         <PadBtn bit={IN.B} onPad={onPad} className="h-14 w-14 text-sm">
-          강
+          발차기
         </PadBtn>
         <PadBtn bit={IN.J} onPad={onPad} className="h-14 w-14 text-sm">
           점프
@@ -190,6 +190,8 @@ function TouchPad({ input }: { input: FightInput }) {
 interface Hud {
   hp: [number, number];
   meter: [number, number];
+  /** 고유기 남은 대기 비율 (0 = 준비됨) */
+  cd: [number, number];
   wins: [number, number];
   sec: number;
   phase: State["phase"];
@@ -206,6 +208,7 @@ function hudOf(s: State): Hud {
   return {
     hp: [hpRatio(s.p[0]), hpRatio(s.p[1])],
     meter: [s.p[0].meter, s.p[1].meter],
+    cd: [s.p[0].cd / CHARS[s.p[0].ch].cd, s.p[1].cd / CHARS[s.p[1].ch].cd],
     wins: [s.wins[0], s.wins[1]],
     sec: Math.ceil(s.timer / 60),
     phase: s.phase,
@@ -267,10 +270,17 @@ function HpBar({
   );
 }
 
-function Meter({ v, right }: { v: number; right?: boolean }) {
+function Meter({ v, cd, right }: { v: number; cd: number; right?: boolean }) {
   const full = v >= METER_MAX;
+  const ready = cd <= 0;
   return (
     <div className={`flex items-center gap-[0.8cqw] ${right ? "flex-row-reverse" : ""}`}>
+      <div
+        className={`relative overflow-hidden rounded-full border px-[0.8cqw] py-[0.15cqw] font-mono text-[1.4cqw] font-bold ${ready ? "border-[#FDE047]/70 text-[#FDE047]" : "border-white/20 text-white/40"}`}
+      >
+        <div className="absolute inset-y-0 left-0 bg-white/15" style={{ width: `${(1 - cd) * 100}%` }} />
+        <span className="relative">고유기</span>
+      </div>
       <div
         className={`relative h-[1.3cqw] w-[24cqw] overflow-hidden rounded-full border border-black/50 bg-black/40 ${right ? "scale-x-[-1]" : ""}`}
       >
@@ -293,7 +303,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const [playing, setPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
   const [hud, setHud] = useState<Hud | null>(null);
-  const [boxes, setBoxes] = useState(false);
   const [muted, setMuted] = useState(false);
   const [coarse, setCoarse] = useState(false);
   const [result, setResult] = useState<{
@@ -336,9 +345,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   useEffect(() => {
     pausedRef.current = paused;
   }, [paused]);
-  useEffect(() => {
-    if (rendererRef.current) rendererRef.current.showBoxes = boxes;
-  }, [boxes]);
 
   // ── 게임 루프 ──
   useEffect(() => {
@@ -346,7 +352,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const r = new FightRenderer(canvas);
-    r.showBoxes = boxes;
     rendererRef.current = r;
     input.configure(setup.mode === "2p");
     const pickMap = () =>
@@ -610,8 +615,9 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             </div>
           )}
           <div className="mt-1 text-white/40">
-            발판 사이를 2단 점프로 오가요 · 아래로 떨어지면 체력이 깎이고 위에서 다시 등장 · 게이지 MAX에
-            초필살(강+필살 동시도 가능) · 게임패드 지원 · Esc 일시정지
+            걸으면서 때리기 · 같은 방향 두 번 대시(공중 1번) · 2단 점프, 공중 공격은 점프마다 2번 ·
+            공중 고유기는 아래로 내리꽂음 · 떨어지면 위에서 다시 등장 · 게이지 MAX에 필살기(발차기+고유기
+            동시도 가능) · 게임패드 · Esc 일시정지
           </div>
         </div>
 
@@ -679,8 +685,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
               <HpBar v={hud.hp[1]} right name={names[1]} wins={hud.wins[1]} />
             </div>
             <div className="flex items-end justify-between">
-              <Meter v={hud.meter[0]} />
-              <Meter v={hud.meter[1]} right />
+              <Meter v={hud.meter[0]} cd={hud.cd[0]} />
+              <Meter v={hud.meter[1]} cd={hud.cd[1]} right />
             </div>
             {hud.combo.map(
               (c, i) =>
@@ -753,14 +759,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         </button>
         <button type="button" onClick={toggleMute} className={btn}>
           {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setBoxes((b) => !b)}
-          className={`${btn} ${boxes ? "border-[#6C63FF]/60 text-white" : ""}`}
-          title="공격(빨강)·피격(초록) 판정과 발 기준점(노랑)을 보여 줌"
-        >
-          ▣ 판정 보기
         </button>
         {!coarse && (
           <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">

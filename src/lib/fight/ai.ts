@@ -110,6 +110,8 @@ export class FightAI {
   private blockDecision: boolean | null = null;
   private aaDecision: boolean | null = null;
   private comboDecision: boolean | null = null;
+  /** 대시 입력 (톡·떼고·톡) 남은 프레임 */
+  private dashSeq: number[] = [];
 
   constructor(
     public level: AILevel,
@@ -141,6 +143,11 @@ export class FightAI {
       this.lastPress = out & (IN.A | IN.B | IN.C | IN.X | IN.J);
       return out;
     };
+
+    if (this.dashSeq.length) {
+      out = this.dashSeq.shift()!;
+      return finish();
+    }
 
     // ── 떨어지는 중: 가까운 발판으로 복귀 ──
     if (air && f.st !== "hit" && f.st !== "ko") {
@@ -185,7 +192,7 @@ export class FightAI {
         if (f.mv === "L") press(IN.B);
         else if (f.mv === "H") {
           if (f.meter >= 100 && this.r() < 0.6) press(IN.X);
-          else if (!s.proj.some((p) => p.o === me)) press(IN.C);
+          else if (f.cd === 0) press(IN.C);
         }
       }
       return finish();
@@ -195,8 +202,15 @@ export class FightAI {
     const free = f.st === "idle" || f.st === "walk" || f.st === "block";
     const aligned = Math.abs(dy) < 30;
     const incoming = s.proj.find(
-      (p) => p.o !== me && Math.sign(p.vx) === Math.sign(f.x - p.x) && Math.abs(p.h - f.h - 30 * SUB) < 30 * SUB
+      (p) => p.k === 0 && p.o !== me && Math.sign(p.vx) === Math.sign(f.x - p.x) && Math.abs(p.h - f.h - 30 * SUB) < 30 * SUB
     );
+    // 발밑 불기둥 피하기
+    const pillar = s.proj.find((p) => p.k === 1 && p.o !== me && Math.abs(p.x - f.x) < 40 * SUB && p.t < 24);
+    if (pillar && free && !air && this.r() < L.block + 0.1) {
+      out |= pillar.x > f.x ? IN.L : IN.R;
+      if (Math.abs(pillar.x - f.x) < 20 * SUB) press(IN.J);
+      return finish();
+    }
     const projDist = incoming ? Math.abs(incoming.x - f.x) / SUB : 999;
 
     if (free && !air) {
@@ -273,6 +287,7 @@ export class FightAI {
     switch (this.intent) {
       case "approach":
         out |= toward;
+        if (free && !air && dist > 200 && this.r() < 0.05 + L.aggro * 0.05) this.dashSeq = [0, toward, toward, toward];
         if (dist < lReach && free && aligned && this.r() < L.aggro * 0.2) hitBtn(IN.A);
         break;
       case "retreat":
@@ -296,7 +311,7 @@ export class FightAI {
         else if (free && aligned) hitBtn(IN.A);
         break;
       case "fireball":
-        if (free && aligned && !s.proj.some((p) => p.o === me)) hitBtn(IN.C);
+        if (free && aligned && f.cd === 0) hitBtn(IN.C);
         break;
       case "block":
         if (free && !air) out = IN.D;
@@ -304,7 +319,7 @@ export class FightAI {
       default:
         break;
     }
-    if (free && aligned && dist > 120 && faceOk && this.r() < L.special && !s.proj.some((p) => p.o === me))
+    if (free && aligned && dist > 120 && faceOk && this.r() < L.special && f.cd === 0)
       press(IN.C);
     // 걷다가 낭떠러지면 멈춤 (아래에 발판이 없으면)
     if (!air && (out & (IN.L | IN.R))) {

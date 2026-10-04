@@ -5,7 +5,7 @@ AI로 뽑은 격투 스프라이트 시트(단색 배경, 줄마다 동작 여�
 
   python3 scripts/import-fight-sheet.py <원본.png> <캐릭터id> [--wm x0,y0,x1,y1] [--split y]
 
-  - 캐릭터id 가 PRESETS 에 있으면 그 배치(줄·프레임 골라 쓰기)를 씀 (예: mio — 예시 시트)
+  - 캐릭터id 가 PRESETS 에 있으면 그 배치(잘라낼 상자·칸·줄·프레임 골라 쓰기)를 씀 (kai, igna — 캐릭터 설정화 한 장)
   - 없으면 표준 배치: 12줄 = STD_ORDER 순서 동작 한 줄씩, 줄 안의 프레임 전부
     (docs/fight-art-guide.md 의 프롬프트로 뽑은 시트)
   - 몸 키를 재서 게임 키(BODY_H px)에 맞게 scale 자동 계산
@@ -32,31 +32,102 @@ MERGE_GAP = 10
 # 게임 속 몸 키(px) — 피격 박스 높이와 맞춤
 BODY_H = 62
 
-# 예시 시트(미오) 배치: 동작 이름 → [(원본 줄, 프레임 번호), ...]  (0부터, 왼쪽→오른쪽)
-MIO_ANIMS = {
-    "idle": dict(src=[(0, i) for i in range(5)], fps=6, loop=True),
-    "walk": dict(src=[(0, 5), (0, 6), (0, 7), (1, 5), (1, 6), (1, 7)], fps=10, loop=True),
-    "jump": dict(src=[(2, 0), (2, 1), (2, 2), (2, 3)], fps=8, loop=False),
-    "light": dict(src=[(6, 4), (6, 5), (6, 6), (6, 7), (6, 8)], fps=20, loop=False),
-    "heavy": dict(src=[(4, i) for i in range(5)], fps=14, loop=False),
-    "air": dict(src=[(8, 2), (8, 3)], fps=12, loop=False),
-    "cast": dict(src=[(8, 0), (8, 1), (8, 4), (8, 5), (8, 6)], fps=12, loop=False),
-    "super": dict(src=[(3, 1), (3, 2), (3, 3), (3, 4), (5, 0), (5, 1), (5, 2), (5, 3)], fps=12, loop=False),
-    "hit": dict(src=[(10, 2), (10, 3), (10, 4)], fps=12, loop=False),
-    "block": dict(src=[(9, 0)], fps=1, loop=False),
-    "down": dict(src=[(10, i) for i in range(2, 6)], fps=12, loop=False),
-    "win": dict(src=[(11, i) for i in range(6)], fps=5, loop=True),
+# 카이 (맨손 격투) — (줄, 칸)
+KAI_ANIMS = {
+    "idle": dict(src=[(0, 0), (0, 1), (0, 2), (0, 3)], fps=6, loop=True),
+    "walk": dict(src=[(2, 1), (2, 2), (2, 3), (2, 4)], fps=10, loop=True),
+    "jump": dict(src=[(0, 6)], fps=1, loop=False),
+    "light": dict(src=[(1, 1), (1, 2), (1, 3), (1, 4)], fps=20, loop=False),
+    "heavy": dict(src=[(1, 4), (1, 5), (1, 6)], fps=14, loop=False),
+    "air": dict(src=[(2, 6)], fps=1, loop=False),
+    "air2": dict(src=[(3, 3)], fps=1, loop=False),
+    "cast": dict(src=[(0, 6), (3, 3), (3, 3)], fps=12, loop=False),
+    "super": dict(src=[(4, 0), (4, 1), (4, 1), (4, 3)], fps=10, loop=False),
+    "hit": dict(src=[(2, 5)], fps=1, loop=False),
+    "block": dict(src=[(2, 5)], fps=1, loop=False),
+    "dash": dict(src=[(0, 6), (3, 3)], fps=12, loop=False),
+    "win": dict(src=[(1, 0), (1, 1)], fps=3, loop=True),
 }
-MIO_MOVES = {
-    "L": dict(anim="light", **{"from": 0}, impact=2, to=4),
-    "H": dict(anim="heavy", **{"from": 0}, impact=2, to=4),
-    "J": dict(anim="air", **{"from": 0}, impact=1, to=1),
-    "S": dict(anim="cast", **{"from": 0}, impact=3, to=4),
-    "X": dict(anim="super", **{"from": 0}, impact=6, to=7),
+KAI_MOVES = {
+    "L": {"anim": "light", "from": 0, "impact": 2, "to": 3},
+    "H": {"anim": "heavy", "from": 0, "impact": 1, "to": 2},
+    "J": {"anim": "air", "from": 0, "impact": 0, "to": 0},
+    "K": {"anim": "air2", "from": 0, "impact": 0, "to": 0},
+    "S": {"anim": "cast", "from": 0, "impact": 1, "to": 2},
+    "X": {"anim": "super", "from": 0, "impact": 2, "to": 3},
+}
+# 이그나 (불꽃)
+IGNA_ANIMS = {
+    "idle": dict(src=[(0, i) for i in range(6)], fps=7, loop=True),
+    "walk": dict(src=[(1, i) for i in range(5)], fps=10, loop=True),
+    "jump": dict(src=[(1, 6)], fps=1, loop=False),
+    "light": dict(src=[(1, 4), (1, 5), (0, 6)], fps=16, loop=False),
+    "heavy": dict(src=[(2, 2), (3, 0), (3, 3)], fps=12, loop=False),
+    "air": dict(src=[(3, 2)], fps=1, loop=False),
+    "air2": dict(src=[(4, 1)], fps=1, loop=False),
+    "cast": dict(src=[(4, 2), (3, 1), (4, 3)], fps=12, loop=False),
+    "super": dict(src=[(5, 0), (5, 1), (0, 6)], fps=10, loop=False),
+    # 필살기 불기둥 이펙트 (render.ts 가 상대 발밑에 크게 그림)
+    "pillar": dict(src=[(5, 4), (5, 2)], fps=12, loop=True),
+    "hit": dict(src=[(2, 1)], fps=1, loop=False),
+    "block": dict(src=[(2, 0)], fps=1, loop=False),
+    "dash": dict(src=[(2, 3), (2, 4)], fps=12, loop=False),
+    "win": dict(src=[(5, 3)], fps=1, loop=True),
+}
+IGNA_MOVES = {
+    "L": {"anim": "light", "from": 0, "impact": 1, "to": 2},
+    "H": {"anim": "heavy", "from": 0, "impact": 1, "to": 2},
+    "J": {"anim": "air", "from": 0, "impact": 0, "to": 0},
+    "K": {"anim": "air2", "from": 0, "impact": 0, "to": 0},
+    "S": {"anim": "cast", "from": 0, "impact": 1, "to": 2},
+    "X": {"anim": "super", "from": 0, "impact": 1, "to": 2},
+}
+# 쓰러짐은 서 있는 그림을 눕혀서 (render.ts)
+FALLBACK_STATES = {
+    "idle": {"anim": "idle"},
+    "walk": {"anim": "walk"},
+    "jump": {"anim": "jump", "frame": 0},
+    "hit": {"anim": "hit"},
+    "block": {"anim": "block", "frame": 0},
+    "down": {"anim": "hit", "frame": 0},
+    "ko": {"anim": "hit", "frame": 0},
+    "win": {"anim": "win"},
+    "dash": {"anim": "dash"},
+}
+
+# 이펙트 픽셀 (발끝·머리 위치 잴 때 빼는 것)
+FX = {
+    "cyan": lambda r, g, b: (b > 150) & (b - r > 45),
+    # 흰 바람·충격파 — 밝고 채도 낮음 (피부보다 파랑이 높음)
+    "white": lambda r, g, b: (b > 175) & (r > 175) & (g > 175) & (b >= r - 8),
+    # 불꽃 — 밝은 주황·노랑
+    "fire": lambda r, g, b: (r > 200) & (g > 80) & (b < 120) & (r - b > 110),
 }
 PRESETS = {
-    # Gemini 워터마크(별) 오른쪽 아래, 오브 때문에 붙은 7·8줄을 y638에서 자름
-    "mio": dict(wm=[(840, 930, 905, 1000)], splits=[638], anims=MIO_ANIMS, moves=MIO_MOVES),
+    # 캐릭터 설정화 한 장(1536×1024)의 SPRITE SHEET 상자 — 칸을 직접 지정
+    "kai": dict(
+        crop=(306, 349, 737, 738),
+        fx="white",
+        keepDark=True,
+        holes=False,
+        grid=[(4, 80, 7), (83, 155, 7), (162, 232, 7), (233, 306, 4), (307, 384, 4)],
+        anims=KAI_ANIMS,
+        moves=KAI_MOVES,
+    ),
+    "igna": dict(
+        crop=(1066, 349, 1507, 783),
+        fx="fire",
+        grid=[
+            (3, 77, 7),
+            (79, 150, 7),
+            (151, 218, [(2, 58), (62, 118), (124, 186), (190, 274), (278, 362), (366, 440)]),
+            (219, 283, [(0, 92), (96, 206), (210, 330), (334, 440)]),
+            (284, 352, [(0, 92), (96, 206), (210, 316), (320, 440)]),
+            (353, 433, [(0, 92), (96, 192), (194, 270), (272, 352), (354, 440)]),
+        ],
+        anims=IGNA_ANIMS,
+        moves=IGNA_MOVES,
+    ),
 }
 
 # 표준 배치: 줄 순서 = 동작 (fps, 반복)
@@ -103,8 +174,29 @@ def bands(a, gap):
     return out
 
 
+def split_cols(m, cols):
+    """칸 개수만 주면, 균등 간격 근처에서 그림이 가장 적은 세로줄을 찾아 자름"""
+    if not isinstance(cols, int):
+        return cols
+    n, W = cols, m.shape[1]
+    proj = np.convolve(m.sum(0).astype(float), np.ones(5) / 5, mode="same")
+    w = W / n
+    cuts = [0]
+    for k in range(1, n):
+        e = k * w
+        lo, hi = int(e - 0.4 * w), int(e + 0.4 * w)
+        win = proj[lo:hi]
+        best = np.flatnonzero(win == win.min())
+        cuts.append(lo + int(best[np.argmin(np.abs(best + lo - e))]))
+    cuts.append(W)
+    return [(cuts[i] + (1 if i else 0), cuts[i + 1] - 1) for i in range(n)]
+
+
 def main(src: str, cid: str, wm: list, splits: list):
+    preset = PRESETS.get(cid)
     rgba = Image.open(src).convert("RGB")
+    if preset and preset.get("crop"):
+        rgba = rgba.crop(preset["crop"])
     im = np.asarray(rgba).astype(np.float32)
     H, W, _ = im.shape
     q = (im // 4).astype(int).reshape(-1, 3)
@@ -114,35 +206,46 @@ def main(src: str, cid: str, wm: list, splits: list):
     dist = np.abs(im - bg).sum(2)
     # 배경 = 배경색에 가까운 픽셀 중 테두리와 이어진 덩어리 (+ 갇힌 틈 중 거의 배경색인 것).
     # 남색 블레이저처럼 배경과 비슷한 옷이 투명해지지 않게, 색만으로 지우지 않는다.
-    near = dist < 34
+    near = dist < (preset or {}).get("near", 34)
+    if (preset or {}).get("keepDark"):
+        # 배경보다 어두운 픽셀(검은 옷·머리·외곽선)은 배경으로 안 봄
+        lum = im.mean(2)
+        near &= lum >= bg.mean() - 10
     lab, n = ndimage.label(near)
     edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
     sizes = ndimage.sum(np.ones_like(dist), lab, range(n + 1))
     means = ndimage.mean(dist, lab, range(n + 1))
     isbg = np.zeros(n + 1, bool)
     for i in range(1, n + 1):
-        isbg[i] = i in edge or (sizes[i] >= 12 and means[i] < 14)
+        isbg[i] = i in edge or ((preset or {}).get("holes", True) and sizes[i] >= 12 and means[i] < 14)
     hard = isbg[lab]
     # 경계 1px만 부드럽게
     alpha = np.where(hard, 0.0, 1.0)
     rim = hard & ndimage.binary_dilation(~hard)
     alpha[rim] = np.clip((dist[rim] - 10) / 30, 0, 0.8)
-    preset = PRESETS.get(cid)
     if preset:
-        wm = wm or preset["wm"]
-        splits = splits or preset["splits"]
+        wm = wm or preset.get("wm", [])
+        splits = splits or preset.get("splits", [])
     for x0, y0, x1, y1 in wm:
         alpha[y0:y1, x0:x1] = 0
     a3 = np.maximum(alpha, 1e-3)[..., None]
     rgb = np.clip((im - (1 - a3) * bg) / a3, 0, 255)
     mask = alpha > 0.35
+    if (preset or {}).get("keepDark"):
+        # 머리카락 하이라이트처럼 배경색과 비슷해 뚫린 구멍을 메움 (원래 색으로)
+        filled = ndimage.binary_fill_holes(ndimage.binary_closing(mask, np.ones((3, 3)), iterations=2))
+        restore = filled & ~mask
+        alpha[restore] = 1
+        rgb[restore] = im[restore]
+        mask |= restore
 
     # 몸 픽셀: 하늘색 이펙트(파랑 강하고 밝음) 제외
     r, g, b = im[..., 0], im[..., 1], im[..., 2]
-    fx = (b > 150) & (b - r > 45)
+    fx = FX.get((preset or {}).get("fx", "cyan"))(r, g, b)
     body = mask & ~fx
 
-    rows = bands(mask.any(1), 3)
+    grid = (preset or {}).get("grid")
+    rows = [] if grid else bands(mask.any(1), 3)
     for sy in splits:
         for i, (a, z) in enumerate(rows):
             if a < sy < z:
@@ -166,6 +269,36 @@ def main(src: str, cid: str, wm: list, splits: list):
             fr.append((c0, a + ys[0], c1, a + ys[-1]))
         frames.append(fr)
         print(f"줄 {len(frames) - 1}: y{a}-{z} 프레임 {len(fr)}")
+    if grid:
+        # 칸을 직접 정한 시트: 줄 (y0, y1, 칸) — 칸은 개수(균등) 또는 [(x0, x1), ...]
+        for a, z, cols in grid:
+            cols = split_cols(mask[a:z + 1], cols)
+            fr = []
+            for c0, c1 in cols:
+                m = mask[a:z + 1, c0:c1 + 1]
+                # 칸 경계 격자선·점 부스러기 지우기 (가늘고 어두운 조각, 아주 작은 조각)
+                lb, _ = ndimage.label(m, structure=np.ones((3, 3)))
+                lum = im[a:z + 1, c0:c1 + 1].mean(2)
+                for li, sl in enumerate(ndimage.find_objects(lb), 1):
+                    seg = lb[sl] == li
+                    hh, ww = seg.shape
+                    area = int(seg.sum())
+                    dark = lum[sl][seg].mean() < bg.mean() + 25
+                    if area < 10 or (dark and min(hh, ww) <= 3):
+                        m[sl][seg] = False
+                        alpha[a:z + 1, c0:c1 + 1][sl][seg] = 0
+                ys, xs = np.where(m)
+                fr.append((c0 + xs.min(), a + ys.min(), c0 + xs.max(), a + ys.max()))
+            frames.append(fr)
+            print(f"줄 {len(frames) - 1}: y{a}-{z} 프레임 {len(fr)}")
+        # 칸 밖으로 삐져나간 이웃 픽셀이 안 섞이게, 칸 경계 밖은 지움
+        keep = np.zeros_like(mask)
+        for a, z, cols in grid:
+            cols = split_cols(mask[a:z + 1], cols)
+            for c0, c1 in cols:
+                keep[a:z + 1, c0:c1 + 1] = True
+        mask &= keep
+        alpha[~keep] = 0
 
     if preset:
         anims, moves = preset["anims"], preset["moves"]
@@ -238,7 +371,8 @@ def main(src: str, cid: str, wm: list, splits: list):
             for i, (n, ad) in enumerate(anims.items())
         },
         "moves": moves,
-        "states": STATES,
+        "states": STATES if "down" in anims else FALLBACK_STATES,
+        **({} if "down" in anims else {"layDown": True}),
     }
     (outdir / f"{cid}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n")
     print(f"칸 {cw}x{ch}, 기준점 ({L},{U}), 시트 {out.shape[1]}x{out.shape[0]}")

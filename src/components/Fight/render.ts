@@ -7,19 +7,16 @@ import { MAPS } from "@/lib/fight/maps";
 import {
   VIEW_H,
   VIEW_W,
-  boxRect,
-  hitRect,
-  hurtRect,
+  isAir as isAirF,
   platBelow,
   projRect,
   screenY,
   type Ev,
   type Fighter,
-  type Rect,
+  type Proj,
   type State,
 } from "@/lib/fight/sim";
 import { pickFrame, type LoadedSheet } from "@/lib/fight/sprites";
-import { drawPlat, drawStage } from "./stages";
 
 interface Particle {
   x: number;
@@ -30,12 +27,23 @@ interface Particle {
   max: number;
   color: string;
   size: number;
-  kind: "spark" | "ring" | "dust" | "text" | "flame" | "bolt" | "shard";
+  kind: "spark" | "ring" | "dust" | "text" | "flame" | "bolt" | "shard" | "streak";
   text?: string;
 }
 
 /** 캐릭터별 능력 (탄·타격 이펙트 모양) */
-const ELEMENT: Record<string, "fire" | "bolt" | "ice"> = { haru: "fire", ren: "bolt", mio: "ice" };
+const ELEMENT: Record<string, "fire" | "bolt" | "ice" | "wind"> = { kai: "wind", igna: "fire" };
+
+function glowAt(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  const l = g.createRadialGradient(x, y, 0, x, y, r);
+  l.addColorStop(0, color);
+  l.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = l;
+  g.fillRect(x - r, y - r, r * 2, r * 2);
+  g.restore();
+}
 
 export class FightRenderer {
   private g: CanvasRenderingContext2D;
@@ -47,7 +55,6 @@ export class FightRenderer {
   private flash = 0;
   private flashColor = "#fff";
   sheets: (LoadedSheet | null)[] = [null, null];
-  showBoxes = false;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.g = canvas.getContext("2d")!;
@@ -96,8 +103,16 @@ export class FightRenderer {
       g.imageSmoothingEnabled = true;
       g.imageSmoothingQuality = "high";
       g.drawImage(img, 0, 0, VIEW_W, VIEW_H);
-    } else drawStage(g, map);
-    if (!map.bgPlats) for (const p of map.plats) drawPlat(g, p);
+    } else {
+      // 그림이 아직 없을 때 (불러오는 중): 어두운 판
+      g.fillStyle = "#1A1C26";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
+    if (!map.bgPlats || !img) {
+      // 발판 위치만 표시 (그림에 발판이 없을 때)
+      g.fillStyle = "rgba(230,210,150,0.85)";
+      for (const p of map.plats) g.fillRect(p.x0, VIEW_H - p.y, p.x1 - p.x0, p.solid ? 6 : 4);
+    }
     this.bg = c;
     this.bgKey = key;
     return c;
@@ -118,13 +133,14 @@ export class FightRenderer {
           this.parts.push({
             x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 16 + power * 4, max: 16 + power * 4,
             color: i % 3 ? "#FFF6D6" : ch.color, size: 1 + power * 0.5,
-            kind: el === "fire" ? "flame" : el === "bolt" ? "bolt" : "shard",
+            kind: el === "fire" ? "flame" : el === "bolt" ? "bolt" : el === "wind" ? "spark" : "shard",
           });
         }
         this.parts.push({ x, y, vx: 0, vy: 0, life: 10, max: 10, color: "#fff", size: 7 + power * 4, kind: "ring" });
         this.shake = Math.max(this.shake, 2 + power * 3);
         this.parts.push({
-          x, y: y - 14, vx: 0, vy: -0.4, life: 36, max: 36, color: "#FFE08A", size: 1, kind: "text", text: String(e.v),
+          x: x + (Math.random() - 0.5) * 22, y: y - 14 - Math.random() * 10, vx: 0, vy: -0.5, life: 30, max: 30,
+          color: "#FFE08A", size: 1, kind: "text", text: String(e.v),
         });
       } else if (e.k === "block") {
         this.parts.push({ x, y, vx: 0, vy: 0, life: 12, max: 12, color: "#8FD3FF", size: 11, kind: "ring" });
@@ -143,13 +159,14 @@ export class FightRenderer {
         this.flash = 9;
         this.flashColor = "#fff";
         this.shake = 8;
-      } else if (e.k === "fall") {
-        const fx = Math.min(VIEW_W - 30, Math.max(30, x));
-        this.parts.push({
-          x: fx, y: VIEW_H - 30, vx: 0, vy: -0.5, life: 60, max: 60, color: "#FF8A8A", size: 1.4, kind: "text",
-          text: `낙하 -${e.v}`,
-        });
-        this.shake = Math.max(this.shake, 5);
+      } else if (e.k === "dash") {
+        // 대시 바람 자국
+        const f = s.p[e.p];
+        for (let i = 0; i < 6; i++)
+          this.parts.push({
+            x: x - f.face * (4 + i * 5), y: y - 8 - Math.random() * 40, vx: -f.face * (1.5 + Math.random()), vy: 0,
+            life: 12, max: 12, color: "rgba(255,255,255,0.85)", size: 1.2, kind: "streak",
+          });
       } else if (e.k === "jump" || e.k === "land") {
         for (let i = 0; i < 4; i++)
           this.parts.push({
@@ -247,6 +264,13 @@ export class FightRenderer {
     const flip = sh.facing === "left" ? f.face > 0 : f.face < 0;
     const dw = cw / sc,
       dh = ch / sc;
+    if (sh.layDown && (f.st === "down" || f.st === "rise" || (f.st === "ko" && !isAirF(s, f)))) {
+      // 쓰러짐 그림이 없으면 눕혀서 (일어날 땐 다시 세움)
+      const k = f.st === "rise" ? 1 - f.t / 14 : Math.min(1, f.t / 6);
+      g.translate(x, y);
+      g.rotate((flip ? 1 : -1) * (Math.PI / 2) * k);
+      g.translate(-x, -y);
+    }
     if (!flip) g.drawImage(src, ssx, ssy, cw, ch, x - ax / sc, y - ay / sc, dw, dh);
     else {
       g.translate(x, 0);
@@ -256,9 +280,51 @@ export class FightRenderer {
     g.restore();
   }
 
+  /** 필살기 불기둥: 솟기 전엔 바닥에 경고 불씨, 솟으면 시트의 불기둥 그림을 크게 */
+  private drawPillar(p: Proj, s: State) {
+    const g = this.g;
+    const sm = CHARS[s.p[p.o].ch].moves.X.summon!;
+    const x = p.x / SUB;
+    const y = screenY(p.h);
+    if (p.t < sm.delay) {
+      const k = p.t / sm.delay;
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      g.fillStyle = `rgba(255,${120 + Math.round(80 * k)},40,${0.25 + 0.5 * k * (0.7 + 0.3 * Math.sin(p.t))})`;
+      g.beginPath();
+      g.ellipse(x, y, (sm.w / 2) * (0.5 + k * 0.6), 4 + 3 * k, 0, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+      return;
+    }
+    const sh = this.sheets[p.o];
+    const a = sh?.anims.pillar;
+    const fade = Math.min(1, (sm.delay + sm.life - p.t) / 8);
+    g.save();
+    g.globalAlpha = fade;
+    if (sh && a) {
+      const [cw, ch] = sh.cell;
+      const [ax, ay] = sh.anchor;
+      const fr = Math.floor(((p.t - sm.delay) * a.fps) / 60) % a.frames;
+      // 기둥 높이에 맞춰 크게
+      const k = sm.h / (ch * 0.9);
+      if (sh.pixel) g.imageSmoothingEnabled = false;
+      g.drawImage(sh.img, fr * cw, a.row * ch, cw, ch, x - ax * k, y - ay * k, cw * k, ch * k);
+    } else {
+      g.fillStyle = "rgba(255,120,40,0.8)";
+      g.fillRect(x - sm.w / 2, y - sm.h, sm.w, sm.h);
+    }
+    g.restore();
+    glowAt(g, x, y - sm.h / 2, sm.h * 0.6, "rgba(255,120,40,0.25)");
+  }
+
   private drawProj(s: State) {
     const g = this.g;
     for (const p of s.proj) {
+      if (p.k === 1) {
+        this.drawPillar(p, s);
+        continue;
+      }
       const ch = CHARS[s.p[p.o].ch];
       const el = ELEMENT[ch.id] ?? "fire";
       const r = projRect(p, s);
@@ -267,6 +333,11 @@ export class FightRenderer {
       const w = (r.r - r.l) / SUB;
       const dir = Math.sign(p.vx);
       const t = s.f;
+      // 내리꽂는 탄은 날아가는 방향으로 기울임
+      g.save();
+      g.translate(cx, cy);
+      g.rotate(Math.atan2(-p.vh, Math.abs(p.vx)) * dir);
+      g.translate(-cx, -cy);
       if (el === "fire") {
         for (let k = 4; k >= 0; k--) {
           g.globalAlpha = 0.25 + (4 - k) * 0.15;
@@ -304,6 +375,21 @@ export class FightRenderer {
         g.beginPath();
         g.arc(cx - w / 8, cy, w / 6, -1, 1);
         g.stroke();
+      } else if (el === "wind") {
+        // 초승달 바람 칼날
+        g.save();
+        g.translate(cx, cy);
+        g.scale(dir, 1);
+        const r = w / 2;
+        for (let k = 3; k >= 0; k--) {
+          g.globalAlpha = 0.18 + (3 - k) * 0.22;
+          g.fillStyle = k ? "#BFD3EA" : "#FFFFFF";
+          g.beginPath();
+          g.arc(-k * 4 - r * 0.6, 0, r, -1.25, 1.25);
+          g.arc(-k * 4 - r * 0.95, 0, r * 0.82, 1.1, -1.1, true);
+          g.fill();
+        }
+        g.restore();
       } else {
         g.save();
         g.translate(cx, cy);
@@ -329,31 +415,9 @@ export class FightRenderer {
         g.stroke();
         g.restore();
       }
+      g.restore();
       g.globalAlpha = 1;
     }
-  }
-
-  private rect(r: Rect | null, color: string) {
-    if (!r) return;
-    const g = this.g;
-    const top = screenY(r.hi);
-    const bot = screenY(r.lo);
-    g.strokeStyle = color;
-    g.lineWidth = 0.8;
-    g.strokeRect(r.l / SUB, top, (r.r - r.l) / SUB, bot - top);
-  }
-
-  private drawBoxes(s: State) {
-    const g = this.g;
-    for (const f of s.p) {
-      this.rect(hurtRect(f), "#4ADE80");
-      this.rect(hitRect(f), "#F43F5E");
-      g.fillStyle = "#FDE047";
-      g.fillRect(f.x / SUB - 1, screenY(f.h) - 1, 2, 2);
-      const w = CHARS[f.ch].width;
-      this.rect(boxRect(f, { x: -w / 2, y: 1, w, h: 1 }), "#60A5FA");
-    }
-    for (const p of s.proj) this.rect(projRect(p, s), "#F43F5E");
   }
 
   draw(s: State) {
@@ -384,6 +448,13 @@ export class FightRenderer {
         g.beginPath();
         g.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2);
         g.fill();
+      } else if (p.kind === "streak") {
+        g.strokeStyle = p.color;
+        g.lineWidth = p.size;
+        g.beginPath();
+        g.moveTo(p.x, p.y);
+        g.lineTo(p.x - p.vx * 6, p.y);
+        g.stroke();
       } else if (p.kind === "flame") {
         g.fillStyle = a > 0.6 ? "#FFE27A" : a > 0.3 ? "#FF9A3A" : "#FF5A1F";
         g.beginPath();
@@ -423,7 +494,6 @@ export class FightRenderer {
       }
     }
     g.globalAlpha = 1;
-    if (this.showBoxes) this.drawBoxes(s);
 
     if (this.flash > 0) {
       g.setTransform(1, 0, 0, 1, 0, 0);

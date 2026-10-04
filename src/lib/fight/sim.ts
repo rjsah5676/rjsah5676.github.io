@@ -9,8 +9,9 @@
  *
  * 좌표: x = 가로, h = 화면 아래에서 높이(위가 +). 화면 y = VIEW_H - h.
  * 발판은 한쪽 통과(밑에서 뚫고 올라감, ↓+점프로 내려감). 화면 밑으로 떨어지면
- * 체력이 깎이고 위에서 다시 내려옴.
- * 조작: 좌우로 걷고 그쪽을 봄, 점프(공중에서 한 번 더), ↓ 누르고 있으면 가드.
+ * 위에서 잠깐 무적으로 다시 내려옴 (피해 없음).
+ * 조작: 좌우로 걷고 그쪽을 봄, ←←/→→ 대시(공중 1번), 점프(공중에서 한 번 더),
+ * ↓ 누르고 있으면 가드. 공중에선 약·발차기·고유기 — 점프마다 2번까지.
  */
 import {
   CHARS,
@@ -32,8 +33,6 @@ export const WALL_R = (VIEW_W - 16) * SUB;
 const FALL_H = -90 * SUB;
 /** 다시 내려오는 높이 (화면 위 밖) */
 const RESPAWN_H = (VIEW_H + 40) * SUB;
-/** 낙하 벌칙 (최대 체력 %) */
-const FALL_DMG = 12;
 /** 다시 내려온 뒤 무적 프레임 */
 const RESPAWN_INV = 100;
 
@@ -45,13 +44,13 @@ export const IN = {
   U: 4,
   /** 아래 — 누르고 있으면 가드, +점프면 발판 아래로 */
   D: 8,
-  /** 약공격 */
+  /** 약 (J) */
   A: 16,
-  /** 강공격 */
+  /** 발차기 (K) */
   B: 32,
-  /** 필살기 (탄) */
+  /** 고유기 (L) — 캐릭터마다 다름 */
   C: 64,
-  /** 초필살기 */
+  /** 필살기 (I, 게이지) */
   X: 128,
   /** 점프 */
   J: 256,
@@ -74,11 +73,15 @@ const JUMP2_V = Math.trunc((JUMP_V * 88) / 100);
 const MAX_FALL = 2600;
 /** 공중 좌우 가속 */
 const AIR_ACC = 70;
+/** 대시 길이 (프레임) */
+const DASH_T = 13;
+/** 한 번 뜰 때 쓸 수 있는 공중 공격 수 (2단 점프하면 다시 채워짐) */
+const AIR_ATTACKS = 2;
 /** ↓+점프로 내려갈 때 발판 무시 프레임 */
 const DROP_T = 14;
 
 export type FState =
-  "idle" | "walk" | "jump" | "atk" | "hit" | "block" | "down" | "rise" | "ko" | "win";
+  "idle" | "walk" | "dash" | "jump" | "atk" | "hit" | "block" | "down" | "rise" | "ko" | "win";
 export type Phase = "intro" | "fight" | "roundEnd" | "over";
 
 export interface Fighter {
@@ -103,8 +106,14 @@ export interface Fighter {
   combo: number;
   /** 착지하면 다운 */
   kd: number;
-  /** 공중 공격 썼나 */
+  /** 이번 공중에서 쓴 공격 수 */
   airUsed: number;
+  /** 남은 대시 프레임 (땅·공중) */
+  dashT: number;
+  /** 이번 공중에서 대시 썼나 */
+  airDash: number;
+  /** 고유기 남은 대기 프레임 */
+  cd: number;
   /** 쓴 점프 수 (땅에 닿으면 0) */
   jumps: number;
   /** 남은 발판 통과 프레임 (↓+점프) */
@@ -116,10 +125,16 @@ export interface Fighter {
 }
 
 export interface Proj {
+  /** 0 = 날아가는 탄, 1 = 불기둥 (소환) */
+  k: number;
+  /** 지난 프레임 */
+  t: number;
   o: number;
   x: number;
   h: number;
   vx: number;
+  /** 위아래 속도 (공중에서 쏘면 아래로 내리꽂힘) */
+  vh: number;
   life: number;
 }
 
@@ -134,6 +149,7 @@ export type EvKind =
   | "round"
   | "fight"
   | "land"
+  | "dash"
   | "fall";
 export interface Ev {
   k: EvKind;
@@ -227,6 +243,9 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     combo: 0,
     kd: 0,
     airUsed: 0,
+    dashT: 0,
+    airDash: 0,
+    cd: 0,
     jumps: 0,
     drop: 0,
     inv: 0,
@@ -310,6 +329,9 @@ export function hash(s: State): number {
     mix(f.stun);
     mix(f.combo);
     mix(f.jumps);
+    mix(f.dashT);
+    mix(f.cd);
+    mix(f.airDash);
     mix(f.drop);
     mix(f.inv);
     mix(f.st.length * 31 + f.st.charCodeAt(0));
@@ -317,8 +339,11 @@ export function hash(s: State): number {
   }
   for (const p of s.proj) {
     mix(p.o);
+    mix(p.k);
+    mix(p.t);
     mix(p.x);
     mix(p.h);
+    mix(p.vh);
     mix(p.life);
   }
   return h >>> 0;
@@ -338,6 +363,17 @@ function pressed(f: Fighter, bits: number, n = 1) {
 }
 
 const holding = (f: Fighter, bit: number) => (cur(f) & bit) !== 0;
+
+/** 같은 방향 두 번 톡톡 (←← / →→) */
+function doubleTap(f: Fighter, bit: number) {
+  if (!pressed(f, bit, 1)) return false;
+  for (let k = 3; k < 14; k++) {
+    const c = f.hist[HIST - 1 - k];
+    const p = f.hist[HIST - 2 - k];
+    if (c & bit & ~p) return true;
+  }
+  return false;
+}
 const JUMP_BITS = IN.J | IN.U;
 
 // ───────────── 판정 ─────────────
@@ -364,12 +400,17 @@ export function hurtRect(f: Fighter): Rect | null {
 /** 지금 판정이 살아 있는 공격 박스 */
 export function hitRect(f: Fighter): Rect | null {
   const m = moveOf(f);
-  if (f.st !== "atk" || !m || m.proj || f.hit) return null;
+  if (f.st !== "atk" || !m || m.proj || m.summon || f.hit) return null;
   if (f.t < m.startup || f.t >= m.startup + m.active) return null;
   return boxRect(f, m.box);
 }
 
 export function projRect(p: Proj, s: State): Rect {
+  if (p.k === 1) {
+    // 불기둥: 발판에서 위로
+    const d = CHARS[s.p[p.o].ch].moves.X.summon!;
+    return { l: p.x - (d.w * SUB) / 2, r: p.x + (d.w * SUB) / 2, lo: p.h, hi: p.h + d.h * SUB };
+  }
   const d = CHARS[s.p[p.o].ch].moves.S.proj!;
   return {
     l: p.x - (d.w * SUB) / 2,
@@ -389,8 +430,17 @@ function startMove(s: State, i: number, id: MoveId) {
   f.mv = id;
   f.t = 0;
   f.hit = 0;
-  if (id !== "J") f.vx = 0;
-  if (id === "J") f.airUsed = 1;
+  const m = charOf(f).moves[id];
+  if (id === "S") f.cd = charOf(f).cd;
+  if (airborneS(s, f)) {
+    f.airUsed++;
+    f.dashT = 0;
+    if (m.lunge) {
+      f.vx = f.face * m.lunge;
+      f.vh = Math.max(f.vh, 300);
+    }
+  } else if (id === "S" || id === "X") f.vx = 0;
+  // 땅에서 약·강은 걷거나 대시하던 속도를 이어 감
   if (id === "X") {
     f.meter = 0;
     s.freeze = SUPER_FREEZE;
@@ -399,7 +449,6 @@ function startMove(s: State, i: number, id: MoveId) {
   }
 }
 
-const hasProj = (s: State, i: number) => s.proj.some((p) => p.o === i);
 
 /** 공격·필살·초필살 시작을 시도 (서 있을 때와 캔슬 때 공통) */
 function tryAttack(s: State, i: number, allow: MoveId[]): boolean {
@@ -411,7 +460,7 @@ function tryAttack(s: State, i: number, allow: MoveId[]): boolean {
     startMove(s, i, "X");
     return true;
   }
-  if (allow.includes("S") && !hasProj(s, i) && pressed(f, IN.C, 3)) {
+  if (allow.includes("S") && f.cd === 0 && pressed(f, IN.C, 3)) {
     startMove(s, i, "S");
     return true;
   }
@@ -447,6 +496,35 @@ function airSteer(f: Fighter) {
   else if (holding(f, IN.L)) f.vx = Math.max(-max, f.vx - AIR_ACC);
 }
 
+/** 공중 공격: 약 → J, 강 → K, 필살·초필살 */
+function airAttack(s: State, i: number): boolean {
+  const f = s.p[i];
+  const turn = () => {
+    if (holding(f, IN.R)) f.face = 1;
+    else if (holding(f, IN.L)) f.face = -1;
+  };
+  if (f.meter >= METER_MAX && pressed(f, IN.X, 3)) {
+    startMove(s, i, "X");
+    return true;
+  }
+  if (f.cd === 0 && pressed(f, IN.C, 3)) {
+    turn();
+    startMove(s, i, "S");
+    return true;
+  }
+  if (pressed(f, IN.B, 3)) {
+    turn();
+    startMove(s, i, "K");
+    return true;
+  }
+  if (pressed(f, IN.A, 3)) {
+    turn();
+    startMove(s, i, "J");
+    return true;
+  }
+  return false;
+}
+
 function control(s: State, i: number) {
   const f = s.p[i];
   const c = charOf(f);
@@ -457,6 +535,15 @@ function control(s: State, i: number) {
     case "walk": {
       if (tryAttack(s, i, ["X", "S", "H", "L"])) return;
       const on = standingOn(map, f);
+      if (doubleTap(f, IN.R) || doubleTap(f, IN.L)) {
+        f.face = doubleTap(f, IN.R) ? 1 : -1;
+        f.st = "dash";
+        f.t = 0;
+        f.dashT = DASH_T;
+        f.vx = f.face * c.dash;
+        s.ev.push({ k: "dash", p: i, x: f.x, h: f.h, v: 0 });
+        return;
+      }
       if (pressed(f, JUMP_BITS, 3)) {
         if (holding(f, IN.D) && on && !on.solid) {
           // 발판 아래로
@@ -489,29 +576,81 @@ function control(s: State, i: number) {
       f.vx = moving ? c.walk * f.face : 0;
       return;
     }
+    case "dash":
+      f.dashT--;
+      if (tryAttack(s, i, ["X", "S", "H", "L"])) return;
+      if (pressed(f, JUMP_BITS, 3)) {
+        const keep = f.vx;
+        jump(s, i, JUMP_V);
+        f.vx = Math.trunc((keep * 8) / 10);
+        return;
+      }
+      if (f.dashT <= 0) {
+        f.st = "idle";
+        f.t = 0;
+      }
+      return;
     case "jump":
+      if (f.dashT > 0) f.dashT--;
       if (f.jumps < 2 && pressed(f, JUMP_BITS, 2) && f.t > 4) {
         jump(s, i, JUMP2_V);
         return;
       }
-      if (!f.airUsed && pressed(f, IN.A | IN.B, 3)) {
-        if (holding(f, IN.R)) f.face = 1;
-        else if (holding(f, IN.L)) f.face = -1;
-        startMove(s, i, "J");
+      if (!f.airDash && (doubleTap(f, IN.R) || doubleTap(f, IN.L))) {
+        f.face = doubleTap(f, IN.R) ? 1 : -1;
+        f.airDash = 1;
+        f.dashT = DASH_T - 2;
+        f.vx = Math.trunc((f.face * c.dash * 85) / 100);
+        f.vh = Math.max(f.vh, 120);
+        s.ev.push({ k: "dash", p: i, x: f.x, h: f.h, v: 1 });
         return;
       }
-      if (!f.airUsed && !hasProj(s, i) && pressed(f, IN.C, 3)) {
-        startMove(s, i, "S");
-        return;
-      }
-      airSteer(f);
+      if (f.airUsed < AIR_ATTACKS && airAttack(s, i)) return;
+      // 공중에서도 누르는 쪽을 봄
+      if (holding(f, IN.R) && !holding(f, IN.L)) f.face = 1;
+      else if (holding(f, IN.L) && !holding(f, IN.R)) f.face = -1;
+      if (f.dashT <= 0) airSteer(f);
       return;
     case "atk": {
       const m = moveOf(f)!;
-      if (airborneS(s, f)) airSteer(f);
-      if (f.mv === "S" && f.t === m.startup) {
-        const d = m.proj!;
-        s.proj.push({ o: i, x: f.x + f.face * 24 * SUB, h: f.h + d.y * SUB, vx: f.face * d.speed, life: d.life });
+      const air = airborneS(s, f);
+      if (air) {
+        if ((!m.lunge && !m.rush) || f.t > m.startup + m.active) airSteer(f);
+      } else if ((f.mv === "L" || f.mv === "H") && f.vx * f.face < c.walk) {
+        // 걸으면서 때림: 보는 쪽을 누르고 있으면 걷는 속도의 70%로 계속 나감
+        const fwd = f.face > 0 ? IN.R : IN.L;
+        if (holding(f, fwd)) f.vx = Math.trunc((c.walk * 7) / 10) * f.face;
+      }
+      if (m.rush && f.t === m.startup) {
+        // 돌진: 땅에선 앞으로, 공중에선 앞쪽 아래로 내리꽂음
+        f.vx = f.face * m.rush.vx;
+        if (air) f.vh = m.rush.airVh;
+        s.ev.push({ k: "dash", p: i, x: f.x, h: f.h, v: 2 });
+      }
+      if (m.summon && f.t === m.startup) {
+        // 상대 발밑(또는 그 아래 발판)에 불기둥
+        const o = s.p[1 - i];
+        const under = platBelow(map, o.x, o.h);
+        s.proj.push({ k: 1, t: 0, o: i, x: o.x, h: under ? under.y * SUB : o.h, vx: 0, vh: 0, life: m.summon.delay + m.summon.life });
+      }
+      // 연타 돌진기는 판정 동안 계속 나아감
+      if (m.multi && m.rush && f.t >= m.startup && f.t < m.startup + m.active) f.vx = f.face * m.rush.vx;
+      // 연타기: 일정 프레임마다 다시 맞을 수 있게
+      if (m.multi && f.t > m.startup && (f.t - m.startup) % m.multi === 0) f.hit = 0;
+      if (m.proj && f.t === m.startup) {
+        const d = m.proj;
+        // 공중에서 쏘면 앞쪽 아래로 비스듬히 내리꽂음
+        const dive = air;
+        s.proj.push({
+          k: 0,
+          t: 0,
+          o: i,
+          x: f.x + f.face * 24 * SUB,
+          h: f.h + d.y * SUB,
+          vx: f.face * (dive ? Math.trunc((d.speed * 3) / 4) : d.speed),
+          vh: dive ? -Math.trunc((d.speed * 3) / 5) : 0,
+          life: d.life,
+        });
         s.ev.push({ k: "proj", p: i, x: f.x, h: f.h, v: 0 });
       }
       // 맞히거나 막힌 뒤 짧은 동안 다음 기술로 캔슬
@@ -522,7 +661,6 @@ function control(s: State, i: number) {
         f.mv = "";
         f.t = 0;
         f.st = onGround(s, f) ? "idle" : "jump";
-        if (f.st === "jump") f.airUsed = 1;
       }
       return;
     }
@@ -538,7 +676,7 @@ function control(s: State, i: number) {
           f.st = "jump";
           f.t = 0;
           f.combo = 0;
-          f.airUsed = 1;
+          f.airUsed = 0;
           f.jumps = Math.min(f.jumps, 1);
         }
       }
@@ -571,7 +709,10 @@ function control(s: State, i: number) {
 function landed(s: State, i: number, f: Fighter) {
   f.jumps = 0;
   f.airUsed = 0;
-  if (f.st === "jump" || (f.st === "atk" && f.mv === "J")) {
+  f.airDash = 0;
+  f.dashT = 0;
+  const lm = moveOf(f);
+  if (f.st === "jump" || (f.st === "atk" && (f.mv === "J" || f.mv === "K" || lm?.lunge || lm?.rush))) {
     f.st = "idle";
     f.mv = "";
     f.t = 0;
@@ -601,14 +742,12 @@ function respawn(s: State, i: number) {
   // 상대에게서 가장 먼 후보
   let bx = map.respawn[0];
   for (const x of map.respawn) if (Math.abs(x * SUB - o.x) > Math.abs(bx * SUB - o.x)) bx = x;
-  const dmg = s.phase === "fight" ? Math.trunc((charOf(f).hp * FALL_DMG) / 100) : 0;
-  f.hp = Math.max(0, f.hp - dmg);
-  s.ev.push({ k: "fall", p: i, x: f.x, h: 0, v: dmg });
+  s.ev.push({ k: "fall", p: i, x: f.x, h: 0, v: 0 });
   f.x = bx * SUB;
   f.h = RESPAWN_H;
   f.vx = 0;
   f.vh = 0;
-  f.st = f.hp > 0 || s.phase !== "fight" ? "jump" : "ko";
+  f.st = f.st === "ko" ? "ko" : "jump";
   f.mv = "";
   f.t = 0;
   f.stun = 0;
@@ -616,6 +755,8 @@ function respawn(s: State, i: number) {
   f.combo = 0;
   f.jumps = 1;
   f.airUsed = 0;
+  f.airDash = 0;
+  f.dashT = 0;
   f.drop = 0;
   f.inv = RESPAWN_INV;
 }
@@ -634,7 +775,7 @@ function physics(s: State, i: number) {
       // 다른 같은 높이 발판으로 이어지지 않으면 떨어짐
       if (!standingOn(map, f)) {
         f.vh = 0;
-        if (f.st === "idle" || f.st === "walk") {
+        if (f.st === "idle" || f.st === "walk" || f.st === "dash") {
           f.st = "jump";
           f.t = 0;
           f.jumps = 1;
@@ -642,8 +783,8 @@ function physics(s: State, i: number) {
         }
       }
     }
-    if (f.st !== "walk") {
-      const fr = 40;
+    if (f.st !== "walk" && f.st !== "dash") {
+      const fr = 60;
       if (f.vx > 0) f.vx = Math.max(0, f.vx - fr);
       else if (f.vx < 0) f.vx = Math.min(0, f.vx + fr);
     }
@@ -724,10 +865,12 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     d.mv = "";
     d.stun = m.hitstun;
     d.vx = dir * m.push;
-    if (wasAir || m.kd) {
-      d.vh = m.kd ? 1500 : 1000;
-      d.kd = m.kd ? 1 : 0;
-      d.vx = Math.trunc((dir * m.push * 13) / 10);
+    const a0 = s.p[ai];
+    const kd = m.kd && !(m.multi && mid !== "S" && a0.st === "atk" && a0.t < m.startup + m.active - m.multi);
+    if (wasAir || kd) {
+      d.vh = kd ? 1500 : 700;
+      d.kd = kd ? 1 : 0;
+      d.vx = Math.trunc((dir * (kd && m.multi ? 1700 : m.push) * 13) / 10);
     }
     a.meter = Math.min(METER_MAX, a.meter + m.meter);
     d.meter = Math.min(METER_MAX, d.meter + (dmg >> 4));
@@ -738,16 +881,36 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
 }
 
 function projectiles(s: State) {
+  const map = mapOf(s);
   for (const p of s.proj) {
+    p.t++;
+    if (p.k === 1) {
+      p.life--;
+      continue;
+    }
+    const prev = p.h;
     p.x += p.vx;
+    p.h += p.vh;
     p.life--;
+    if (p.vh < 0) {
+      // 내리꽂는 탄은 발판·바닥에 닿으면 터짐
+      for (const q of map.plats) {
+        const top = q.y * SUB;
+        if (inX(q, p.x) && prev >= top && p.h <= top) {
+          p.life = 0;
+          s.ev.push({ k: "clash", p: p.o, x: p.x, h: top, v: 0 });
+          break;
+        }
+      }
+      if (p.h < FALL_H) p.life = 0;
+    }
   }
   // 탄끼리 부딪치면 둘 다 사라짐
   for (let i = 0; i < s.proj.length; i++)
     for (let j = i + 1; j < s.proj.length; j++) {
       const a = s.proj[i],
         b = s.proj[j];
-      if (a.o !== b.o && a.life > 0 && b.life > 0 && overlap(projRect(a, s), projRect(b, s))) {
+      if (a.k === 0 && b.k === 0 && a.o !== b.o && a.life > 0 && b.life > 0 && overlap(projRect(a, s), projRect(b, s))) {
         a.life = b.life = 0;
         s.ev.push({ k: "clash", p: -1, x: (a.x + b.x) >> 1, h: a.h, v: 0 });
       }
@@ -756,6 +919,17 @@ function projectiles(s: State) {
     if (p.life <= 0) continue;
     const d = s.p[1 - p.o];
     const h = hurtRect(d);
+    if (p.k === 1) {
+      // 불기둥: 솟은 뒤 every 프레임마다 타격, 마지막 타에 날림
+      const X = CHARS[s.p[p.o].ch].moves.X;
+      const sm = X.summon!;
+      const at = p.t - sm.delay;
+      if (at >= 0 && at % sm.every === 0 && h && overlap(projRect(p, s), h)) {
+        const last = at + sm.every >= sm.life;
+        applyHit(s, p.o, last ? X : { ...X, kd: false }, p.x, "X");
+      }
+      continue;
+    }
     if (h && overlap(projRect(p, s), h)) {
       applyHit(s, p.o, CHARS[s.p[p.o].ch].moves.S, p.x - p.vx * 4, "S");
       p.life = 0;
@@ -849,6 +1023,7 @@ export function step(s: State, input: [number, number]): State {
   if (s.phase === "fight") {
     s.pt++;
     if (s.timer > 0) s.timer--;
+    for (const f of s.p) if (f.cd > 0) f.cd--;
     control(s, 0);
     control(s, 1);
   } else {

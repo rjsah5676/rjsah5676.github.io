@@ -40,6 +40,8 @@ export interface SpriteSheet {
   scale?: number;
   /** 도트 그림이면 true — 확대할 때 뭉개지 않고 픽셀 그대로 */
   pixel?: boolean;
+  /** 쓰러짐 그림이 없어서 맞는 그림을 눕혀 그림 (render.ts) */
+  layDown?: boolean;
   anims: Record<string, AnimDef>;
   moves: Record<MoveId, MoveAnim>;
   states: Record<string, StateAnim>;
@@ -95,7 +97,10 @@ export function pickFrame(sh: SpriteSheet, f: Fighter, s: State): { anim: AnimDe
       const backward = Math.sign(f.vx) !== f.face;
       return loopAt(sh.states.walk.anim, f.t, backward);
     }
+    case "dash":
+      return sh.states.dash ? stateAnim("dash", f.t) : loopAt(sh.states.walk.anim, f.t * 2);
     case "jump":
+      if (f.dashT > 0 && sh.states.dash) return stateAnim("dash", f.t);
       return stateAnim("jump", f.t);
     case "atk": {
       const m = CHARS[f.ch].moves[f.mv as MoveId];

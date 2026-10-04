@@ -52,10 +52,10 @@ const P2: KeyMap = {
 };
 
 export const KEY_GUIDE = {
-  p1: "A·D 이동 · W/Space 점프(2단) · S 가드(S+점프 내려가기) · J 약 · K 강 · L 필살 · I 초필살",
-  p1Alt: "방향키(↑ 점프 · ↓ 가드) · Z 약 · X 강 · C 필살 · V 초필살",
-  p1Two: "A·D 이동 · W/Space 점프 · S 가드 · F 약 · G 강 · H 필살 · T 초필살",
-  p2: "←→ 이동 · ↑/Enter 점프 · ↓ 가드 · , 약 · . 강 · ; 필살 · ' 초필살 (숫자패드 1 2 3 0)",
+  p1: "A·D 이동(AA·DD 대시) · W/Space 점프(2단) · S 가드(S+점프 내려가기) · J 약 · K 발차기 · L 고유기 · I 필살기",
+  p1Alt: "방향키(←← →→ 대시 · ↑ 점프 · ↓ 가드) · Z 약 · X 발차기 · C 고유기 · V 필살기",
+  p1Two: "A·D 이동(AA·DD 대시) · W/Space 점프 · S 가드 · F 약 · G 발차기 · H 고유기 · T 필살기",
+  p2: "←→ 이동(두 번 대시) · ↑/Enter 점프 · ↓ 가드 · , 약 · . 발차기 · ; 고유기 · ' 필살기 (숫자패드 1 2 3 0)",
 };
 
 const GAME_KEYS = new Set([...Object.keys(P1), ...Object.keys(P1_ALT), ...Object.keys(P2)]);
@@ -82,8 +82,8 @@ function padBits(p: Gamepad | null): number {
   if (b(0)) v |= IN.J; // A / × 점프
   if (b(2)) v |= IN.A; // X / □ 약
   if (b(3)) v |= IN.B; // Y / △ 강
-  if (b(1)) v |= IN.C; // B / ○ 필살
-  if (b(5) || b(7)) v |= IN.X; // RB, RT 초필살
+  if (b(1)) v |= IN.C; // B / ○ 고유기
+  if (b(5) || b(7)) v |= IN.X; // RB, RT 필살기
   return v;
 }
 
