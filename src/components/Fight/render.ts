@@ -16,7 +16,8 @@ import {
   type Proj,
   type State,
 } from "@/lib/fight/sim";
-import { frameRect, pickFrame, type LoadedSheet } from "@/lib/fight/sprites";
+import { frameRect, pickFrame, type FrameRect, type LoadedSheet } from "@/lib/fight/sprites";
+import { Motion, type Pose } from "./motion";
 
 interface Particle {
   x: number;
@@ -76,6 +77,8 @@ export class FightRenderer {
   private tmp: HTMLCanvasElement | null = null;
   private parts: Particle[] = [];
   private shake = 0;
+  /** 캐릭터별 움직임 연출 상태 (숨쉬기·착지·잔상 등) */
+  private motion: [Motion, Motion] = [new Motion(), new Motion()];
   private flash = 0;
   private flashColor = "#fff";
   sheets: (LoadedSheet | null)[] = [null, null];
@@ -380,27 +383,58 @@ export class FightRenderer {
       ssx = 0;
       ssy = 0;
     }
+    // 움직임 연출 (발 기준 늘이기·기울이기·밀기, 잔상)
+    const mo = this.motion[i];
+    mo.update(f, s, `${anim.list?.[frame] ?? anim.row * 100 + frame}`, fr, x, y);
     g.save();
     // 다시 내려온 직후 무적: 깜빡이지 않고 살짝만 투명하게
-    if (f.inv > 0) g.globalAlpha = 0.75;
+    const baseA = f.inv > 0 ? 0.75 : 1;
     g.imageSmoothingEnabled = !sh.pixel;
     g.imageSmoothingQuality = "high";
-    const flip = sh.facing === "left" ? f.face > 0 : f.face < 0;
-    const dw = fr.sw / sc,
-      dh = fr.sh / sc;
     if (sh.layDown && (f.st === "down" || f.st === "rise" || (f.st === "ko" && !isAirF(s, f)))) {
       // 쓰러짐 그림이 없으면 눕혀서 (일어날 땐 다시 세움)
+      const flip = sh.facing === "left" ? f.face > 0 : f.face < 0;
       const k = f.st === "rise" ? 1 - f.t / 14 : Math.min(1, f.t / 6);
       g.translate(x, y);
       g.rotate((flip ? 1 : -1) * (Math.PI / 2) * k);
       g.translate(-x, -y);
     }
-    if (!flip) g.drawImage(src, ssx, ssy, fr.sw, fr.sh, x - fr.ax / sc, y - fr.ay / sc, dw, dh);
-    else {
-      g.translate(x, 0);
-      g.scale(-1, 1);
-      g.drawImage(src, ssx, ssy, fr.sw, fr.sh, -fr.ax / sc, y - fr.ay / sc, dw, dh);
+    const mirror = sh.facing === "left" ? -1 : 1;
+    // 대시·돌진 잔상 (오래된 것부터, 점점 옅게)
+    for (const gh of mo.ghosts) {
+      g.globalAlpha = baseA * gh.a;
+      this.blit(sh.img, gh.rect.sx, gh.rect.sy, gh.rect, sc, gh.x, gh.y, gh.pose, mirror);
     }
+    // 그림이 바뀐 직후: 직전 그림을 옅게 겹침 (움직임 번짐)
+    if (mo.smear > 0 && mo.smearRect) {
+      g.globalAlpha = baseA * 0.28 * (mo.smear / 3);
+      this.blit(sh.img, mo.smearRect.sx, mo.smearRect.sy, mo.smearRect, sc, x, y, mo.pose, mirror);
+    }
+    g.globalAlpha = baseA;
+    this.blit(src, ssx, ssy, fr, sc, x, y, mo.pose, mirror);
+    g.restore();
+  }
+
+  /** 한 프레임 그리기: 발(x, y)을 기준으로 연출 변형을 걸어서 */
+  private blit(
+    src: CanvasImageSource,
+    ssx: number,
+    ssy: number,
+    fr: FrameRect,
+    sc: number,
+    x: number,
+    y: number,
+    p: Pose,
+    mirror: number
+  ) {
+    const g = this.g;
+    // 돌아서는 중간에도 너무 얇아지지 않게
+    const fv = Math.sign(p.faceVis || 1) * Math.max(0.22, Math.abs(p.faceVis));
+    g.save();
+    g.translate(x + p.dx, y + p.dy);
+    if (p.rot) g.rotate(p.rot);
+    g.scale(fv * mirror * p.sx, p.sy);
+    g.drawImage(src, ssx, ssy, fr.sw, fr.sh, -fr.ax / sc, -fr.ay / sc, fr.sw / sc, fr.sh / sc);
     g.restore();
   }
 
