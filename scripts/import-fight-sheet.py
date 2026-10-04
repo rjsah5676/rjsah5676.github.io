@@ -20,6 +20,7 @@ AI로 뽑은 격투 스프라이트 시트(단색 배경, 줄마다 동작 여�
 원본 레이아웃이 바뀌면 ANIMS / MOVES 만 고치면 된다.
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -77,7 +78,7 @@ IGNA_ANIMS = {
     "light": dict(src=[(1, 4), (1, 5), (0, 6)], fps=16, loop=False),
     "heavy": dict(src=[(2, 2), (3, 0), (3, 3)], fps=12, loop=False),
     "air": dict(src=[(3, 2)], fps=1, loop=False),
-    "air2": dict(src=[(4, 1)], fps=1, loop=False),
+    "air2": dict(src=[(3, 0)], fps=1, loop=False),
     "cast": dict(src=[(4, 2), (3, 1), (4, 3)], fps=12, loop=False),
     "super": dict(src=[(5, 0), (5, 1), (0, 6)], fps=10, loop=False),
     # 필살기 불기둥 이펙트 (render.ts 가 상대 발밑에 크게 그림)
@@ -107,6 +108,78 @@ IGNA_CHAIN = {
         {"anim": "air2", "from": 0, "impact": 0, "to": 0},
     ],
 }
+# 소영 (채찍 선생님) — 두 번째 설정화
+SOYOUNG_ANIMS = {
+    "idle": dict(src=[(0, 0), (0, 1), (1, 0), (1, 1)], fps=5, loop=True),
+    "walk": dict(src=[(1, 2), (1, 3), (2, 2), (2, 3)], fps=8, loop=True),
+    "jump": dict(src=[(4, 2)], fps=1, loop=False),
+    "light": dict(src=[(0, 2), (0, 3), (1, 6)], fps=16, loop=False),
+    "heavy": dict(src=[(1, 4), (1, 5), (2, 4)], fps=12, loop=False),
+    "air": dict(src=[(2, 5)], fps=1, loop=False),
+    "air2": dict(src=[(3, 0)], fps=1, loop=False),
+    "cast": dict(src=[(2, 1), (2, 4), (2, 5)], fps=12, loop=False),
+    "super": dict(src=[(3, 3), (3, 4), (3, 5), (4, 5)], fps=10, loop=False),
+    "hit": dict(src=[(4, 1)], fps=1, loop=False),
+    "block": dict(src=[(3, 1)], fps=1, loop=False),
+    "dash": dict(src=[(0, 5)], fps=1, loop=False),
+    "win": dict(src=[(0, 2), (0, 0)], fps=2, loop=True),
+}
+SOYOUNG_MOVES = {
+    "L": {"anim": "light", "from": 0, "impact": 1, "to": 2},
+    "H": {"anim": "heavy", "from": 0, "impact": 1, "to": 2},
+    "J": {"anim": "air", "from": 0, "impact": 0, "to": 0},
+    "K": {"anim": "air2", "from": 0, "impact": 0, "to": 0},
+    "S": {"anim": "cast", "from": 0, "impact": 1, "to": 2},
+    "X": {"anim": "super", "from": 0, "impact": 1, "to": 3},
+}
+SOYOUNG_CHAIN = {
+    "L": [
+        {"anim": "light", "from": 0, "impact": 1, "to": 1},
+        {"anim": "light", "from": 1, "impact": 2, "to": 2},
+        {"anim": "cast", "from": 0, "impact": 0, "to": 0},
+        {"anim": "heavy", "from": 1, "impact": 2, "to": 2},
+    ],
+    "H": [
+        {"anim": "heavy", "from": 0, "impact": 1, "to": 1},
+        {"anim": "cast", "from": 1, "impact": 2, "to": 2},
+    ],
+}
+# 릴리 (우산·물)
+LILY_ANIMS = {
+    "idle": dict(src=[(0, 0), (0, 1), (0, 2), (0, 3)], fps=6, loop=True),
+    "walk": dict(src=[(1, 0), (1, 1), (1, 2), (1, 3)], fps=9, loop=True),
+    "jump": dict(src=[(2, 0)], fps=1, loop=False),
+    "light": dict(src=[(0, 5), (0, 6), (1, 5)], fps=16, loop=False),
+    "heavy": dict(src=[(2, 3), (1, 6), (1, 5)], fps=12, loop=False),
+    "air": dict(src=[(0, 4)], fps=1, loop=False),
+    "air2": dict(src=[(3, 4)], fps=1, loop=False),
+    "cast": dict(src=[(3, 0), (3, 1), (3, 2)], fps=12, loop=False),
+    "super": dict(src=[(4, 0), (4, 1), (4, 2), (4, 3)], fps=10, loop=False),
+    "hit": dict(src=[(2, 1)], fps=1, loop=False),
+    "block": dict(src=[(4, 0)], fps=1, loop=False),
+    "dash": dict(src=[(3, 4)], fps=1, loop=False),
+    "win": dict(src=[(2, 2), (0, 3)], fps=3, loop=True),
+}
+LILY_MOVES = {
+    "L": {"anim": "light", "from": 0, "impact": 1, "to": 2},
+    "H": {"anim": "heavy", "from": 0, "impact": 1, "to": 2},
+    "J": {"anim": "air", "from": 0, "impact": 0, "to": 0},
+    "K": {"anim": "air2", "from": 0, "impact": 0, "to": 0},
+    "S": {"anim": "cast", "from": 0, "impact": 1, "to": 2},
+    "X": {"anim": "super", "from": 0, "impact": 1, "to": 3},
+}
+LILY_CHAIN = {
+    "L": [
+        {"anim": "light", "from": 0, "impact": 0, "to": 0},
+        {"anim": "light", "from": 1, "impact": 1, "to": 1},
+        {"anim": "light", "from": 2, "impact": 2, "to": 2},
+        {"anim": "heavy", "from": 1, "impact": 1, "to": 2},
+    ],
+    "H": [
+        {"anim": "heavy", "from": 0, "impact": 1, "to": 1},
+        {"anim": "air2", "from": 0, "impact": 0, "to": 0},
+    ],
+}
 # 쓰러짐은 서 있는 그림을 눕혀서 (render.ts)
 FALLBACK_STATES = {
     "idle": {"anim": "idle"},
@@ -127,6 +200,8 @@ FX = {
     "white": lambda r, g, b: (b > 175) & (r > 175) & (g > 175) & (b >= r - 8),
     # 불꽃 — 밝은 주황·노랑
     "fire": lambda r, g, b: (r > 200) & (g > 80) & (b < 120) & (r - b > 110),
+    # 분홍 채찍 궤적
+    "pink": lambda r, g, b: (r > 170) & (b > 110) & (g < 120) & (r - g > 90),
 }
 PRESETS = {
     # 캐릭터 설정화 한 장(1536×1024)의 SPRITE SHEET 상자 — 칸을 직접 지정
@@ -154,6 +229,39 @@ PRESETS = {
         anims=IGNA_ANIMS,
         moves=IGNA_MOVES,
         chain=IGNA_CHAIN,
+    ),
+    # 두 번째 설정화(1536×1024): 소영·릴리 — src 를 그 그림으로 줘야 함
+    "soyoung": dict(
+        crop=(312, 332, 744, 744),
+        fx="pink",
+        keepDark=True,
+        bigHoles=True,
+        grid=[
+            (8, 80, 7),
+            (88, 164, 7),
+            (168, 242, 7),
+            (246, 334, [(10, 72), (78, 120), (126, 184), (185, 240), (250, 334), (340, 431)]),
+            (336, 412, [(6, 70), (72, 118), (122, 177), (178, 234), (236, 302), (304, 431)]),
+        ],
+        anims=SOYOUNG_ANIMS,
+        moves=SOYOUNG_MOVES,
+        chain=SOYOUNG_CHAIN,
+    ),
+    "lily": dict(
+        crop=(1080, 330, 1512, 742),
+        fx="cyan",
+        # 우산까지 포함한 키라 조금 작게 (유치원생)
+        bodyH=56,
+        grid=[
+            (4, 71, 7),
+            (72, 141, 7),
+            (142, 221, [(14, 70), (72, 134), (136, 200), (202, 284), (288, 431)]),
+            (222, 300, 5),
+            (301, 411, 4),
+        ],
+        anims=LILY_ANIMS,
+        moves=LILY_MOVES,
+        chain=LILY_CHAIN,
     ),
 }
 
@@ -246,6 +354,14 @@ def main(src: str, cid: str, wm: list, splits: list):
     for i in range(1, n + 1):
         isbg[i] = i in edge or ((preset or {}).get("holes", True) and sizes[i] >= 12 and means[i] < 14)
     hard = isbg[lab]
+    if (preset or {}).get("bigHoles"):
+        # 채찍 고리 안쪽처럼 갇힌 큰 배경 덩어리도 배경 (어두운 머리카락은 거리가 멀어 안 걸림)
+        lab2, n2 = ndimage.label(dist < 34)
+        if n2:
+            sz2 = ndimage.sum(np.ones_like(dist), lab2, range(n2 + 1))
+            big = sz2 >= 150
+            big[0] = False
+            hard |= big[lab2]
     # 경계 1px만 부드럽게
     alpha = np.where(hard, 0.0, 1.0)
     rim = hard & ndimage.binary_dilation(~hard)
@@ -344,6 +460,17 @@ def main(src: str, cid: str, wm: list, splits: list):
         mask &= keep
         alpha[~keep] = 0
 
+    if os.environ.get("DUMP"):
+        # 칸 번호 확인용 그림 (줄,칸 라벨)
+        from PIL import ImageDraw
+        dump = Image.fromarray(np.dstack([rgb, alpha * 255]).astype(np.uint8), "RGBA").convert("RGB")
+        dump = dump.resize((dump.width * 2, dump.height * 2), Image.NEAREST)
+        dr = ImageDraw.Draw(dump)
+        for ri, fr in enumerate(frames):
+            for fi, (x0, y0, x1, y1) in enumerate(fr):
+                dr.rectangle([x0 * 2, y0 * 2, x1 * 2, y1 * 2], outline=(255, 0, 0))
+                dr.text((x0 * 2 + 2, y0 * 2 + 2), f"{ri},{fi}", fill=(255, 255, 0))
+        dump.save(os.environ["DUMP"])
     if preset:
         anims, moves = preset["anims"], preset["moves"]
     else:
@@ -371,7 +498,7 @@ def main(src: str, cid: str, wm: list, splits: list):
 
     picks = {}
     heights = [anchor(frames[ri][fi])[2] for ri, fi in anims["idle"]["src"]]
-    scale = round(float(np.median(heights)) / BODY_H, 3)
+    scale = round(float(np.median(heights)) / (preset or {}).get("bodyH", BODY_H), 3)
     left = right = up = down = 0
     for name, ad in anims.items():
         lst = []

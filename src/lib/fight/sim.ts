@@ -119,6 +119,8 @@ export interface Fighter {
   dashT: number;
   /** 이번 공중에서 대시 썼나 */
   airDash: number;
+  /** 공중 내리꽂기 중 (착지 충격파용) */
+  dive: number;
   /** 아이덴티티 남은 대기 프레임 */
   cd: number;
   /** 약·발차기 연속 동작 몇 번째인지 (1부터) */
@@ -136,6 +138,10 @@ export interface Fighter {
 export interface Proj {
   /** 0 = 날아가는 탄, 1 = 불기둥 (소환) */
   k: number;
+  /** 날아가는 탄을 만든 기술: 0 = 아이덴티티(S), 1 = 필살기(X) */
+  mv: number;
+  /** 남은 타격 수 (여러 번 맞는 탄) */
+  n: number;
   /** 지난 프레임 */
   t: number;
   o: number;
@@ -256,6 +262,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     airUsed: 0,
     dashT: 0,
     airDash: 0,
+    dive: 0,
     cd: 0,
     chain: 0,
     jumps: 0,
@@ -342,6 +349,7 @@ export function hash(s: State): number {
     mix(f.combo);
     mix(f.jumps);
     mix(f.dashT);
+    mix(f.dive);
     mix(f.cd);
     mix(f.chain);
     mix(f.airDash);
@@ -353,6 +361,8 @@ export function hash(s: State): number {
   for (const p of s.proj) {
     mix(p.o);
     mix(p.k);
+    mix(p.mv);
+    mix(p.n);
     mix(p.t);
     mix(p.x);
     mix(p.h);
@@ -418,13 +428,18 @@ export function hitRect(f: Fighter): Rect | null {
   return boxRect(f, m.box);
 }
 
+/** 날아가는 탄의 정의 (아이덴티티 또는 필살기) */
+export function projDef(p: Proj, s: State) {
+  return CHARS[s.p[p.o].ch].moves[p.mv ? "X" : "S"].proj!;
+}
+
 export function projRect(p: Proj, s: State): Rect {
   if (p.k === 1) {
     // 불기둥: 발판에서 위로
     const d = CHARS[s.p[p.o].ch].moves.X.summon!;
     return { l: p.x - (d.w * SUB) / 2, r: p.x + (d.w * SUB) / 2, lo: p.h, hi: p.h + d.h * SUB };
   }
-  const d = CHARS[s.p[p.o].ch].moves.S.proj!;
+  const d = projDef(p, s);
   return {
     l: p.x - (d.w * SUB) / 2,
     r: p.x + (d.w * SUB) / 2,
@@ -639,14 +654,18 @@ function control(s: State, i: number) {
       if (m.rush && f.t === m.startup) {
         // 돌진: 땅에선 앞으로, 공중에선 앞쪽 아래로 내리꽂음
         f.vx = f.face * m.rush.vx;
-        if (air) f.vh = m.rush.airVh;
+        if (air) {
+          f.vh = m.rush.airVh;
+          if (m.rush.airVx !== undefined) f.vx = f.face * m.rush.airVx;
+          f.dive = 1;
+        }
         s.ev.push({ k: "dash", p: i, x: f.x, h: f.h, v: 2 });
       }
       if (m.summon && f.t === m.startup) {
         // 상대 발밑(또는 그 아래 발판)에 불기둥
         const o = s.p[1 - i];
         const under = platBelow(map, o.x, o.h);
-        s.proj.push({ k: 1, t: 0, o: i, x: o.x, h: under ? under.y * SUB : o.h, vx: 0, vh: 0, life: m.summon.delay + m.summon.life });
+        s.proj.push({ k: 1, mv: 1, n: 0, t: 0, o: i, x: o.x, h: under ? under.y * SUB : o.h, vx: 0, vh: 0, life: m.summon.delay + m.summon.life });
       }
       // 연타 돌진기는 판정 동안 계속 나아감
       if (m.multi && m.rush && f.t >= m.startup && f.t < m.startup + m.active) f.vx = f.face * m.rush.vx;
@@ -654,10 +673,12 @@ function control(s: State, i: number) {
       if (m.multi && f.t > m.startup && (f.t - m.startup) % m.multi === 0) f.hit = 0;
       if (m.proj && f.t === m.startup) {
         const d = m.proj;
-        // 공중에서 쏘면 앞쪽 아래로 비스듬히 내리꽂음
-        const dive = air;
+        // 공중에서 쏘면 앞쪽 아래로 비스듬히 내리꽂음 (flat 탄은 수평)
+        const dive = air && !d.flat;
         s.proj.push({
           k: 0,
+          mv: f.mv === "X" ? 1 : 0,
+          n: d.hits ?? 1,
           t: 0,
           o: i,
           x: f.x + f.face * 24 * SUB,
@@ -733,6 +754,18 @@ function landed(s: State, i: number, f: Fighter) {
   f.airDash = 0;
   f.dashT = 0;
   const lm = moveOf(f);
+  // 내리꽂기 착지: 주변에 충격파 (가까이 땅에 있는 상대를 넘어뜨림)
+  if (f.dive && f.st === "atk" && lm?.rush?.landBurst) {
+    const o = s.p[1 - i];
+    const hr = hurtRect(o);
+    const r = lm.rush.landBurst * SUB;
+    s.ev.push({ k: "clash", p: i, x: f.x, h: f.h, v: 1 });
+    if (hr && Math.abs(o.x - f.x) < r && Math.abs(o.h - f.h) < 24 * SUB) {
+      f.hit = 0;
+      applyHit(s, i, { ...lm, kd: true, multi: undefined, push: 1300 }, f.x, "S");
+    }
+  }
+  f.dive = 0;
   if (f.st === "jump" || (f.st === "atk" && (f.mv === "J" || f.mv === "K" || lm?.lunge || lm?.rush))) {
     f.st = "idle";
     f.mv = "";
@@ -815,6 +848,9 @@ function physics(s: State, i: number) {
   }
   // 공중
   f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
+  // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
+  const gl = charOf(f).glide;
+  if (gl && f.vh < -gl && (f.st === "jump" || f.st === "atk") && holding(f, JUMP_BITS)) f.vh = -gl;
   moveX(f, f.vx);
   const prev = f.h;
   const next = f.h + f.vh;
@@ -895,6 +931,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     const decay = m.multi || m.summon ? 0 : Math.min(40, Math.max(0, d.combo - 3) * 6);
     d.stun = Math.max(6, Math.trunc((m.hitstun * (100 - decay)) / 100));
     d.vx = fin ? Math.trunc((dir * m.push * 16) / 10) : dir * m.push;
+    // 끌어당기는 기술: 반대로 (때린 쪽 앞까지)
+    if (m.pull) d.vx = -Math.trunc((dir * m.push * 12) / 10);
     const a0 = s.p[ai];
     // 공중 콤보 한도: 공중에서 일정 수 넘게 맞으면 강제 다운 (저글 한계)
     const juggleOut = wasAir && d.combo >= JUGGLE_MAX;
@@ -942,7 +980,7 @@ function projectiles(s: State) {
     for (let j = i + 1; j < s.proj.length; j++) {
       const a = s.proj[i],
         b = s.proj[j];
-      if (a.k === 0 && b.k === 0 && a.o !== b.o && a.life > 0 && b.life > 0 && overlap(projRect(a, s), projRect(b, s))) {
+      if (a.k === 0 && b.k === 0 && a.mv === 0 && b.mv === 0 && a.o !== b.o && a.life > 0 && b.life > 0 && overlap(projRect(a, s), projRect(b, s))) {
         a.life = b.life = 0;
         s.ev.push({ k: "clash", p: -1, x: (a.x + b.x) >> 1, h: a.h, v: 0 });
       }
@@ -962,8 +1000,17 @@ function projectiles(s: State) {
       }
       continue;
     }
-    if (h && overlap(projRect(p, s), h)) {
-      applyHit(s, p.o, CHARS[s.p[p.o].ch].moves.S, p.x - p.vx * 4, "S");
+    const pm = CHARS[s.p[p.o].ch].moves[p.mv ? "X" : "S"];
+    const pd = pm.proj!;
+    if (pd.hits && pd.hits > 1) {
+      // 여러 번 맞는 탄: every 프레임마다, 마지막 타에만 다운
+      if (p.t % (pd.every ?? 8) === 0 && h && overlap(projRect(p, s), h)) {
+        p.n--;
+        applyHit(s, p.o, { ...pm, multi: pd.every ?? 8, kd: !!pm.kd && p.n <= 0 }, p.x - p.vx * 4, p.mv ? "X" : "S");
+        if (p.n <= 0) p.life = 0;
+      }
+    } else if (h && overlap(projRect(p, s), h)) {
+      applyHit(s, p.o, pm, p.x - p.vx * 4, p.mv ? "X" : "S");
       p.life = 0;
     }
     if (p.x < -20 * SUB || p.x > (VIEW_W + 20) * SUB) p.life = 0;

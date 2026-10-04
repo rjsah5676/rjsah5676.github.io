@@ -18,6 +18,8 @@ import { loadSheet } from "@/lib/fight/sprites";
 import {
   sfxBell,
   sfxBlock,
+  sfxDash,
+  sfxLand,
   sfxHit,
   sfxJump,
   sfxKO,
@@ -25,7 +27,11 @@ import {
   sfxSuper,
   sfxWhoosh,
   setFightVolume,
+  type Element,
 } from "@/lib/fight/sfx";
+
+/** 캐릭터별 효과음 성격 */
+const SFX_EL: Record<string, Element> = { kai: "wind", igna: "fire", soyoung: "whip", lily: "water" };
 import { FightRenderer } from "./render";
 import { FightInput, KEY_GUIDE } from "./input";
 import Select, { type Setup } from "./Select";
@@ -35,6 +41,7 @@ import { clockLabel, fightScore } from "@/lib/aiScore";
 
 
 const SAVE_KEY = "fight:setup";
+const MENU_BGM = "/fight/bgm-menu.mp3";
 const MUTE_KEY = "fight:mute";
 
 const btn =
@@ -327,7 +334,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const mutedRef = useRef(false);
   const wantRef = useRef<string | null>(null);
-  const playBgm = useCallback((src: string | null) => {
+  const playBgm = useCallback((src: string | null, restart = false) => {
     wantRef.current = src;
     const cur = bgmRef.current;
     if (!src || mutedRef.current) {
@@ -335,6 +342,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       return;
     }
     if (cur && cur.dataset.src === src) {
+      // 판이 새로 시작하면 곡도 처음부터
+      if (restart) cur.currentTime = 0;
       if (cur.paused) cur.play().catch(() => {});
       return;
     }
@@ -347,9 +356,23 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     a.play().catch(() => {});
   }, []);
   const previewMap = useCallback(
-    (m: number | null) => playBgm(m !== null && m >= 0 ? (MAPS[m].bgm ?? null) : null),
+    // 맵 선택에서 그 맵에 커서가 있으면 맵 곡, 그 밖의 메뉴에선 메인 곡
+    (m: number | null) => playBgm(m !== null && m >= 0 ? (MAPS[m].bgm ?? MENU_BGM) : MENU_BGM),
     [playBgm]
   );
+  // 브라우저는 클릭·키 입력 전엔 소리를 막으니, 첫 입력 때 다시 틀어 봄
+  useEffect(() => {
+    const kick = () => {
+      const a = bgmRef.current;
+      if (wantRef.current && !mutedRef.current && (!a || a.paused)) playBgm(wantRef.current);
+    };
+    window.addEventListener("pointerdown", kick);
+    window.addEventListener("keydown", kick);
+    return () => {
+      window.removeEventListener("pointerdown", kick);
+      window.removeEventListener("keydown", kick);
+    };
+  }, [playBgm]);
   useEffect(() => {
     mutedRef.current = muted;
     if (muted) bgmRef.current?.pause();
@@ -372,12 +395,13 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const r = new FightRenderer(canvas);
+    r.tags = ["1P", setup.mode === "ai" ? "CPU" : "2P"];
     rendererRef.current = r;
     input.configure(setup.mode === "2p");
     const pickMap = () =>
       setup.map >= 0 ? setup.map : Math.floor(Math.random() * MAPS.length);
     let s = newMatch([setup.c1, setup.c2], pickMap());
-    playBgm(MAPS[s.map].bgm ?? null);
+    playBgm(MAPS[s.map].bgm ?? MENU_BGM, true);
     let ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
     let hits = 0;
     let lastHud = "";
@@ -394,7 +418,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       .catch(() => {});
     restartRef.current = () => {
       s = newMatch([setup.c1, setup.c2], pickMap());
-      playBgm(MAPS[s.map].bgm ?? null);
+      playBgm(MAPS[s.map].bgm ?? MENU_BGM, true);
       ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
       hits = 0;
       doneReported = false;
@@ -433,22 +457,25 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         const prevT = [s.p[0].t, s.p[1].t];
         step(s, [p1, p2]);
         // 소리
+        const elOf = (p: number) => SFX_EL[CHARS[s.p[p].ch].id] ?? "wind";
         for (const e of s.ev) {
           if (e.k === "hit") {
-            sfxHit(e.m === "X" ? 2 : e.m === "H" || e.m === "S" ? 1 : 0);
+            sfxHit(e.m === "X" ? 2 : e.m === "H" || e.m === "S" || e.m === "K" ? 1 : 0, elOf(e.p));
             if (e.p === 0) hits++;
           } else if (e.k === "block") sfxBlock();
-          else if (e.k === "proj") sfxProj();
+          else if (e.k === "proj") sfxProj(elOf(e.p), s.p[e.p].mv === "X");
           else if (e.k === "super") sfxSuper();
           else if (e.k === "ko") sfxKO();
           else if (e.k === "jump") sfxJump();
+          else if (e.k === "land") sfxLand();
+          else if (e.k === "dash") sfxDash();
           else if (e.k === "round") sfxBell(false);
           else if (e.k === "fight") sfxBell(true);
         }
         for (let i = 0; i < 2; i++) {
           const f = s.p[i];
           if (f.st === "atk" && (prevSt[i] !== "atk" || f.t < prevT[i]) && f.mv !== "S")
-            sfxWhoosh(f.mv === "H" || f.mv === "X");
+            sfxWhoosh(f.mv === "H" || f.mv === "K" || f.mv === "X", SFX_EL[CHARS[f.ch].id] ?? "wind");
         }
         if (process.env.NODE_ENV !== "production")
           (window as unknown as { __fight: State }).__fight = s;
@@ -495,7 +522,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const [entry, setEntry] = useState<"mode" | "char">("mode");
   const toMenu = useCallback(() => {
     setEntry("mode");
-    playBgm(null);
+    playBgm(MENU_BGM, true);
     setPlaying(false);
     setPaused(false);
     setHud(null);
@@ -639,7 +666,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
                 }}
                 className={btn}
               >
-                ↻ 다시
+                ↻ 다시하기
               </button>
               <button type="button" onClick={toMenu} className={btn}>
                 메뉴로
@@ -654,7 +681,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
               onClick={() => restartRef.current()}
               className="cursor-pointer rounded-full bg-[#6C63FF] px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#2E2A7A] hover:bg-[#5b52f0]"
             >
-              ↻ 다시 한 판
+              ↻ 다시하기
             </button>
             <button
               type="button"

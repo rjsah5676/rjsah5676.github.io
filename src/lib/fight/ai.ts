@@ -279,6 +279,10 @@ export class FightAI {
     }
     const lReach = c.moves.L.box.x + c.moves.L.box.w + 6;
     const hReach = c.moves.H.box.x + c.moves.H.box.w + 4;
+    const sm = c.moves.S;
+    const idReach = sm.proj
+      ? 9999
+      : sm.box.x + sm.box.w + (sm.rush ? Math.trunc((sm.rush.vx * (sm.active + 4)) / SUB) : 0);
     const faceOk = (f.face > 0) === (o.x > f.x);
     const hitBtn = (b: number) => {
       if (!faceOk) out |= toward;
@@ -311,7 +315,9 @@ export class FightAI {
         else if (free && aligned) hitBtn(IN.A);
         break;
       case "fireball":
-        if (free && aligned && f.cd === 0) hitBtn(IN.C);
+        // 탄이 아닌 아이덴티티(돌진·채찍)는 닿는 거리에서만
+        if (dist > idReach) out |= toward;
+        else if (free && aligned && f.cd === 0) hitBtn(IN.C);
         break;
       case "block":
         if (free && !air) out = IN.D;
@@ -319,7 +325,7 @@ export class FightAI {
       default:
         break;
     }
-    if (free && aligned && dist > 120 && faceOk && this.r() < L.special && f.cd === 0)
+    if (free && aligned && dist > 120 && dist < idReach && faceOk && this.r() < L.special && f.cd === 0)
       press(IN.C);
     // 걷다가 낭떠러지면 멈춤 (아래에 발판이 없으면)
     if (!air && (out & (IN.L | IN.R))) {

@@ -29,12 +29,25 @@ const MENU_BG = "/fight/bg/menu.webp";
 function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
   return (
     <div className={`flex flex-col gap-[0.5cqw] ${right ? "items-end text-right" : ""}`}>
-      <div className="font-mono text-[1.4cqw] tracking-[0.3em] text-white/50">{c.title}</div>
+      <div className="font-mono text-[1.1cqw] tracking-[0.25em] text-white/45">{c.tagline}</div>
+      <div className={`${KR} flex items-center gap-[0.6cqw] text-[1.3cqw] text-white/60 ${right ? "flex-row-reverse" : ""}`}>
+        <span>{c.title}</span>
+        <span className="text-[#FDE047]" title="조작 난이도">
+          {"★".repeat(c.difficulty)}
+          <span className="text-white/20">{"★".repeat(3 - c.difficulty)}</span>
+        </span>
+      </div>
       <div
         className={`${KR} text-[4.4cqw] leading-none font-extrabold drop-shadow-[0_0.3cqw_0_#000]`}
         style={{ color: c.color }}
       >
         {c.name}
+      </div>
+      <div
+        key={c.id}
+        className={`${KR} relative my-[0.4cqw] max-w-[21cqw] rounded-[0.8cqw] border border-white/25 bg-black/55 px-[1cqw] py-[0.6cqw] text-[1.3cqw] leading-snug text-white italic [animation:modal-fade_300ms_ease-out]`}
+      >
+        “{c.quote}”
       </div>
       <div className={`${KR} max-w-[19cqw] text-[1.2cqw] text-white/60`}>{c.desc}</div>
       <div className={`${KR} mt-[0.6cqw] max-w-[19cqw] text-[1.1cqw] leading-snug text-white/75`}>

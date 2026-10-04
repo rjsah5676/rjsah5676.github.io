@@ -2,7 +2,7 @@
 """
 격투게임 화면용 그림 잘라내기 (캐릭터 설정화·이펙트 그림 → 배경 지운 webp)
 
-  python3 scripts/extract-fight-art.py <캐릭터설정화.png> <화염구.png> <맵.png>
+  python3 scripts/extract-fight-art.py <카이·이그나 설정화.png> <화염구.png> <맵.png> [<소영·릴리 설정화.png>]
 
 만드는 것 (public/fight/)
   art/<id>.webp       캐릭터 선택 화면 전신 그림
@@ -24,10 +24,16 @@ ART = {
     "kai": dict(full=(4, 88, 291, 742), face=(35, 911, 135, 989), keep_dark=True),
     "igna": dict(full=(775, 84, 1058, 739), face=(804, 911, 906, 989), keep_dark=False),
 }
+# 두 번째 설정화
+ART2 = {
+    # 아래쪽 스킬 예시 칸과 다리가 겹침 → y 765 아래는 오른발(x 188~262)만 남김
+    "soyoung": dict(full=(0, 131, 306, 892), face=(20, 898, 106, 967), keep_dark=True, below=(752, 190, 252)),
+    "lily": dict(full=(783, 133, 1076, 714), face=(797, 906, 871, 965), keep_dark=False),
+}
 FIREBALL = (340, 270, 850, 570)
 
 
-def cutout(im: Image.Image, keep_dark: bool, near_t=32) -> Image.Image:
+def cutout(im: Image.Image, keep_dark: bool, near_t=32, below=None) -> Image.Image:
     """테두리와 이어진 배경색 영역을 지우고 그림만 남김"""
     a = np.asarray(im.convert("RGB")).astype(np.float32)
     q = (a // 4).astype(int).reshape(-1, 3)
@@ -56,6 +62,22 @@ def cutout(im: Image.Image, keep_dark: bool, near_t=32) -> Image.Image:
     for _ in range(2):
         rim = fg & ~ndimage.binary_erosion(fg, np.ones((3, 3)))
         fg &= ~(rim & (dist < 60))
+    if below:
+        y, x0, x1 = below
+        cut = np.zeros_like(fg)
+        cut[y:, :] = True
+        cut[y:, x0:x1] = False
+        # 남긴 칸 안에서는 칸 배경색과 비슷하면서 칸 가장자리에 이어진 영역만 지움
+        zone = a[y:, x0:x1]
+        zq = (zone // 6).astype(int).reshape(-1, 3)
+        zv, zc = np.unique(zq, axis=0, return_counts=True)
+        zbg = zone.reshape(-1, 3)[(zq == zv[zc.argmax()]).all(1)].mean(0)
+        zl, _ = ndimage.label(np.abs(zone - zbg).sum(2) < 28)
+        border = set(np.unique(np.concatenate([zl[:, 0], zl[:, -1], zl[-1]]))) - {0}
+        cut[y:, x0:x1] = np.isin(zl, list(border))
+        fg &= ~cut
+        # 그 칸의 부스러기 정리
+        fg[y:] = ndimage.binary_opening(fg[y:], np.ones((3, 3)))
     alpha = fg.astype(np.float32)
     out = np.dstack([a, alpha * 255]).astype(np.uint8)
     ys, xs = np.where(fg)
@@ -75,16 +97,24 @@ def glow_cutout(im: Image.Image) -> Image.Image:
     return Image.fromarray(out, "RGBA").crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
 
 
-def main(sheet: str, fireball: str, map_img: str):
-    (OUT / "art").mkdir(parents=True, exist_ok=True)
-    (OUT / "fx").mkdir(parents=True, exist_ok=True)
-    src = Image.open(sheet).convert("RGB")
-    for cid, d in ART.items():
-        full = cutout(src.crop(d["full"]), d["keep_dark"])
+def extract(src: Image.Image, art: dict):
+    for cid, d in art.items():
+        b = d.get("below")
+        if b:
+            b = (b[0] - d["full"][1], b[1] - d["full"][0], b[2] - d["full"][0])
+        full = cutout(src.crop(d["full"]), d["keep_dark"], below=b)
         full.save(OUT / "art" / f"{cid}.webp", "WEBP", quality=90, method=6)
         face = src.crop(d["face"]).resize((160, 128), Image.NEAREST)
         face.save(OUT / "art" / f"{cid}-face.webp", "WEBP", quality=90, method=6)
         print(cid, full.size)
+
+
+def main(sheet: str, fireball: str, map_img: str, sheet2: str | None = None):
+    (OUT / "art").mkdir(parents=True, exist_ok=True)
+    (OUT / "fx").mkdir(parents=True, exist_ok=True)
+    extract(Image.open(sheet).convert("RGB"), ART)
+    if sheet2:
+        extract(Image.open(sheet2).convert("RGB"), ART2)
     fb = glow_cutout(Image.open(fireball).crop(FIREBALL))
     fb.save(OUT / "fx" / "igna-fireball.webp", "WEBP", quality=90, method=6)
     print("fireball", fb.size)
@@ -94,4 +124,4 @@ def main(sheet: str, fireball: str, map_img: str):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:4])
+    main(*sys.argv[1:5])

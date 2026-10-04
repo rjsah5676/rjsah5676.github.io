@@ -27,6 +27,11 @@ export interface ProjDef {
   h: number;
   /** 사라질 때까지 프레임 */
   life: number;
+  /** 여러 번 맞는 탄: 맞히는 수와 간격(프레임) */
+  hits?: number;
+  every?: number;
+  /** 공중에서 쏴도 내리꽂지 않고 수평으로 */
+  flat?: boolean;
 }
 
 export interface MoveDef {
@@ -53,9 +58,18 @@ export interface MoveDef {
   /** 공중 기술: 시작할 때 앞으로 치고 나가는 속도 (SUB/프레임) */
   lunge?: number;
   /** 돌진기: 판정이 나오는 순간 앞으로 튀어 나감 (공중이면 airVh로 아래로 내리꽂음) */
-  rush?: { vx: number; airVh: number };
+  rush?: {
+    vx: number;
+    airVh: number;
+    /** 공중에서의 가로 속도 (없으면 vx) */
+    airVx?: number;
+    /** 공중에서 쓰고 착지하면 이 반경(px)에 충격파 */
+    landBurst?: number;
+  };
   /** 여러 번 맞는 기술: 판정 동안 이 프레임마다 다시 맞음 (마지막 타만 다운) */
   multi?: number;
+  /** 맞으면 상대를 내 쪽으로 끌어당김 */
+  pull?: boolean;
   /** 소환기: 상대 발밑 발판에 기둥을 세움 (delay 뒤 life 동안, every 프레임마다 타격) */
   summon?: { w: number; h: number; delay: number; life: number; every: number };
   proj?: ProjDef;
@@ -75,6 +89,14 @@ export interface CharDef {
   dash: number;
   /** 아이덴티티 재사용 대기 (프레임) */
   cd: number;
+  /** 공중에서 점프를 누르고 있으면 천천히 떨어짐 (최대 낙하 속도) */
+  glide?: number;
+  /** 선택 화면 대사 */
+  quote: string;
+  /** 설정화 영문 부제 */
+  tagline: string;
+  /** 난이도 (1 쉬움 ~ 3 어려움) — 선택 화면 표시 */
+  difficulty: 1 | 2 | 3;
   /** 피격 박스 */
   hurt: Box;
   /** 밀어내기 폭(px) */
@@ -106,8 +128,11 @@ export const CHARS: CharDef[] = [
     hurt: { x: -9, y: 58, w: 18, h: 58 },
     width: 18,
     color: "#E6ECF5",
+    quote: "덤벼. 주먹 하나면 충분해.",
+    tagline: "RELENTLESS FIGHTER",
+    difficulty: 2,
     idName: "질풍권",
-    idDesc: "바람을 두르고 돌진하며 2연타. 공중에선 앞쪽 아래로 내리꽂는 발차기",
+    idDesc: "바람을 두르고 돌진하며 2연타. 공중에선 아래로 급강하해 착지하며 충격파로 넘어뜨림",
     ultName: "천풍난무",
     ultDesc: "회오리를 두르고 돌진하며 6연타, 마지막 타에 날려 버림",
     moves: {
@@ -182,7 +207,8 @@ export const CHARS: CharDef[] = [
         hitstop: 7,
         meter: 7,
         box: { x: 0, y: 48, w: 46, h: 32 },
-        rush: { vx: 2500, airVh: -2200 },
+        // 공중: 거의 수직으로 급강하 → 착지 충격파 (공중 K는 앞으로 길게 차는 기술)
+        rush: { vx: 2500, airVh: -3400, airVx: 900, landBurst: 46 },
         // 돌진 중 2번 때림
         multi: 6,
       },
@@ -218,6 +244,9 @@ export const CHARS: CharDef[] = [
     hurt: { x: -9, y: 60, w: 18, h: 60 },
     width: 18,
     color: "#FF6A2A",
+    quote: "다 태워 줄게. 가까이 오지 마!",
+    tagline: "BLAZING SOUL",
+    difficulty: 1,
     idName: "화염구",
     idDesc: "빠르게 날아가는 불꽃 탄. 공중에서 쏘면 앞쪽 아래로 비스듬히 내리꽂음",
     ultName: "업화주",
@@ -309,6 +338,227 @@ export const CHARS: CharDef[] = [
         box: { x: 0, y: 0, w: 0, h: 0 },
         kd: true,
         summon: { w: 56, h: 150, delay: 20, life: 40, every: 10 },
+      },
+    },
+  },
+  {
+    // 거리형(리치): 채찍이 길어 멀리서 맞히기 쉬운 대신 한 대가 약하고, 헛치면 빈틈이 큼
+    id: "soyoung",
+    name: "소영",
+    title: "선생님 · 채찍",
+    desc: "긴 채찍으로 거리를 지배하는 엄한 선생님. 붙으면 약함",
+    hp: 1300,
+    walk: 1020,
+    jumpVx: 900,
+    dash: 2300,
+    cd: 100,
+    hurt: { x: -9, y: 60, w: 18, h: 60 },
+    width: 18,
+    color: "#FF5FB4",
+    quote: "수업은 끝났어, 지금부터… 제대로 할 시간이지.",
+    tagline: "STRICT BUT KIND",
+    difficulty: 3,
+    idName: "지도편달",
+    idDesc: "아주 긴 채찍으로 낚아채 내 앞으로 끌어당김 — 이어서 약·발차기",
+    ultName: "보충수업",
+    ultDesc: "채찍을 휘몰아 앞뒤를 모두 6번 후려침",
+    moves: {
+      L: {
+        // 약: 리치는 길지만 한 대가 약하고 조금 느림
+        startup: 4,
+        active: 3,
+        recovery: 8,
+        dmg: 36,
+        chip: 0,
+        hitstun: 13,
+        blockstun: 8,
+        push: 360,
+        hitstop: 4,
+        meter: 5,
+        box: { x: 8, y: 46, w: 62, h: 14 },
+        cancel: ["H", "S", "X"],
+      },
+      H: {
+        startup: 11,
+        active: 4,
+        recovery: 20,
+        dmg: 90,
+        chip: 0,
+        hitstun: 19,
+        blockstun: 13,
+        push: 1000,
+        hitstop: 8,
+        meter: 9,
+        box: { x: 10, y: 52, w: 88, h: 26 },
+        cancel: ["S", "X"],
+      },
+      J: {
+        startup: 6,
+        active: 7,
+        recovery: 8,
+        dmg: 50,
+        chip: 0,
+        hitstun: 15,
+        blockstun: 10,
+        push: 560,
+        hitstop: 5,
+        meter: 5,
+        box: { x: 4, y: 44, w: 70, h: 22 },
+      },
+      K: {
+        startup: 8,
+        active: 8,
+        recovery: 12,
+        dmg: 78,
+        chip: 0,
+        hitstun: 18,
+        blockstun: 12,
+        push: 1000,
+        hitstop: 7,
+        meter: 7,
+        box: { x: 0, y: 40, w: 80, h: 40 },
+      },
+      S: {
+        // 아이덴티티 「지도편달」: 아주 긴 채찍으로 끌어당김
+        startup: 12,
+        active: 4,
+        recovery: 18,
+        dmg: 55,
+        chip: 6,
+        hitstun: 26,
+        blockstun: 12,
+        push: 1300,
+        hitstop: 8,
+        meter: 7,
+        box: { x: 20, y: 50, w: 120, h: 18 },
+        pull: true,
+      },
+      X: {
+        // 필살기 「보충수업」: 앞뒤 넓게 6연타
+        startup: 8,
+        active: 36,
+        recovery: 24,
+        dmg: 40,
+        chip: 8,
+        hitstun: 18,
+        blockstun: 12,
+        push: 200,
+        hitstop: 2,
+        meter: 0,
+        box: { x: -80, y: 80, w: 170, h: 80 },
+        kd: true,
+        multi: 6,
+      },
+    },
+  },
+  {
+    // 기동형(함정): 작고 가볍고 공중에서 오래 떠 있어 맞히기 어려운 대신 체력이 낮고 한 대가 약함
+    id: "lily",
+    name: "릴리",
+    title: "유치원생 · 우산과 물",
+    desc: "우산으로 둥실 떠다니며 물방울을 띄우는 꼬마. 작아서 잘 안 맞음",
+    hp: 1050,
+    walk: 1050,
+    jumpVx: 1050,
+    dash: 2500,
+    cd: 100,
+    glide: 520,
+    hurt: { x: -8, y: 50, w: 16, h: 50 },
+    width: 16,
+    color: "#5EC8FF",
+    quote: "비… 많이 오네~ 우산 같이 쓸까?!",
+    tagline: "KINDERGARTEN GIRL",
+    difficulty: 2,
+    idName: "비눗방울",
+    idDesc: "느리게 떠가는 큰 물방울 — 오래 남아서 길목을 막고, 맞으면 오래 갇힘",
+    ultName: "장마 파도",
+    ultDesc: "바닥을 휩쓰는 큰 파도가 지나가며 5번 때림",
+    moves: {
+      L: {
+        startup: 4,
+        active: 3,
+        recovery: 6,
+        dmg: 34,
+        chip: 0,
+        hitstun: 13,
+        blockstun: 8,
+        push: 380,
+        hitstop: 4,
+        meter: 5,
+        box: { x: 4, y: 44, w: 40, h: 22 },
+        cancel: ["H", "S", "X"],
+      },
+      H: {
+        startup: 9,
+        active: 5,
+        recovery: 16,
+        dmg: 80,
+        chip: 0,
+        hitstun: 19,
+        blockstun: 13,
+        push: 1050,
+        hitstop: 8,
+        meter: 9,
+        box: { x: 0, y: 62, w: 56, h: 52 },
+        cancel: ["S", "X"],
+      },
+      J: {
+        startup: 4,
+        active: 9,
+        recovery: 6,
+        dmg: 48,
+        chip: 0,
+        hitstun: 15,
+        blockstun: 10,
+        push: 560,
+        hitstop: 5,
+        meter: 5,
+        box: { x: -10, y: 50, w: 58, h: 44 },
+      },
+      K: {
+        startup: 6,
+        active: 8,
+        recovery: 10,
+        dmg: 72,
+        chip: 0,
+        hitstun: 18,
+        blockstun: 12,
+        push: 1100,
+        hitstop: 7,
+        meter: 7,
+        box: { x: -6, y: 44, w: 60, h: 44 },
+        lunge: 1500,
+      },
+      S: {
+        // 아이덴티티 「비눗방울」: 느리고 오래 가는 함정 탄
+        startup: 10,
+        active: 1,
+        recovery: 14,
+        dmg: 60,
+        chip: 10,
+        hitstun: 34,
+        blockstun: 14,
+        push: 500,
+        hitstop: 8,
+        meter: 7,
+        box: { x: 0, y: 0, w: 0, h: 0 },
+        proj: { speed: 520, y: 40, w: 30, h: 30, life: 230, flat: true },
+      },
+      X: {
+        // 필살기 「장마 파도」: 바닥을 따라가는 큰 파도 5연타
+        startup: 10,
+        active: 1,
+        recovery: 28,
+        dmg: 52,
+        chip: 10,
+        hitstun: 20,
+        blockstun: 12,
+        push: 600,
+        hitstop: 3,
+        meter: 0,
+        box: { x: 0, y: 0, w: 0, h: 0 },
+        kd: true,
+        proj: { speed: 900, y: 34, w: 80, h: 70, life: 120, hits: 5, every: 8, flat: true },
       },
     },
   },

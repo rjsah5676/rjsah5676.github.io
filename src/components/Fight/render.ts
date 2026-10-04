@@ -32,7 +32,12 @@ interface Particle {
 }
 
 /** 캐릭터별 능력 (탄·타격 이펙트 모양) */
-const ELEMENT: Record<string, "fire" | "bolt" | "ice" | "wind"> = { kai: "wind", igna: "fire" };
+const ELEMENT: Record<string, "fire" | "bolt" | "ice" | "wind" | "whip" | "water"> = {
+  kai: "wind",
+  igna: "fire",
+  soyoung: "whip",
+  lily: "water",
+};
 
 /** 이그나 화염구 그림 (public/fight/fx) — 처음 쓸 때 불러옴 */
 let fbCache: HTMLImageElement | null | undefined;
@@ -145,7 +150,7 @@ export class FightRenderer {
           this.parts.push({
             x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 16 + power * 4, max: 16 + power * 4,
             color: i % 3 ? "#FFF6D6" : ch.color, size: 1 + power * 0.5,
-            kind: el === "fire" ? "flame" : el === "bolt" ? "bolt" : el === "wind" ? "spark" : "shard",
+            kind: el === "fire" ? "flame" : el === "bolt" ? "bolt" : el === "wind" || el === "whip" ? "spark" : "shard",
           });
         }
         this.parts.push({ x, y, vx: 0, vy: 0, life: 10, max: 10, color: "#fff", size: 7 + power * 4, kind: "ring" });
@@ -161,6 +166,17 @@ export class FightRenderer {
             x, y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2, life: 10, max: 10,
             color: "#CFEFFF", size: 1, kind: "spark",
           });
+      } else if (e.k === "clash" && e.v === 1) {
+        // 착지 충격파: 옆으로 퍼지는 바람
+        for (let i = 0; i < 14; i++) {
+          const d = i % 2 ? 1 : -1;
+          this.parts.push({
+            x, y: y - 2 - Math.random() * 6, vx: d * (2 + Math.random() * 3), vy: -Math.random() * 0.6,
+            life: 16, max: 16, color: "rgba(230,240,255,0.9)", size: 1.4, kind: "streak",
+          });
+        }
+        this.parts.push({ x, y: y - 4, vx: 0, vy: 0, life: 12, max: 12, color: "#DDEBFF", size: 18, kind: "ring" });
+        this.shake = Math.max(this.shake, 5);
       } else if (e.k === "clash") {
         this.parts.push({ x, y, vx: 0, vy: 0, life: 14, max: 14, color: "#fff", size: 15, kind: "ring" });
         this.shake = Math.max(this.shake, 3);
@@ -210,6 +226,34 @@ export class FightRenderer {
     }
     this.parts = this.parts.filter((p) => p.life > 0);
     this.shake *= 0.8;
+  }
+
+  /** 이름표: 머리 위 1P(파랑)·2P/CPU(빨강) 표시 — 둘이 겹쳐도 내 캐릭터를 알 수 있게 */
+  tags: [string, string] = ["1P", "2P"];
+  private drawTag(f: Fighter, i: number) {
+    if (f.st === "ko" || f.h / SUB > VIEW_H) return;
+    const g = this.g;
+    const sh = this.sheets[i];
+    const top = sh ? (sh.anchor[1] / (sh.scale ?? 1)) * 0.82 : 62;
+    const x = f.x / SUB,
+      y = screenY(f.h) - Math.min(top, 74) - 10;
+    const col = i === 0 ? "#3B82F6" : "#F43F5E";
+    const label = this.tags[i];
+    g.save();
+    g.font = "bold 9px ui-monospace, monospace";
+    const tw = g.measureText(label).width + 6;
+    g.globalAlpha = 0.92;
+    g.fillStyle = col;
+    g.fillRect(x - tw / 2, y - 11, tw, 10);
+    g.beginPath();
+    g.moveTo(x - 4, y - 1);
+    g.lineTo(x + 4, y - 1);
+    g.lineTo(x, y + 4);
+    g.fill();
+    g.fillStyle = "#fff";
+    g.textAlign = "center";
+    g.fillText(label, x, y - 3);
+    g.restore();
   }
 
   /** 필살기 게이지가 꽉 차면 몸 주위에 빛 */
@@ -319,7 +363,8 @@ export class FightRenderer {
       ssy = 0;
     }
     g.save();
-    if ((f.st === "rise" || f.inv > 0) && f.t % 4 < 2) g.globalAlpha = 0.55;
+    // 다시 내려온 직후 무적: 깜빡이지 않고 살짝만 투명하게
+    if (f.inv > 0) g.globalAlpha = 0.75;
     if (sh.pixel) g.imageSmoothingEnabled = false;
     const flip = sh.facing === "left" ? f.face > 0 : f.face < 0;
     const dw = cw / sc,
@@ -447,6 +492,42 @@ export class FightRenderer {
         g.beginPath();
         g.arc(cx - w / 8, cy, w / 6, -1, 1);
         g.stroke();
+      } else if (el === "water" && p.mv === 1) {
+        // 장마 파도: 바닥을 휩쓰는 큰 물결
+        const hgt = (r.hi - r.lo) / SUB;
+        g.save();
+        g.translate(cx, cy + hgt / 2);
+        g.scale(dir, 1);
+        for (let k = 0; k < 3; k++) {
+          g.globalAlpha = 0.35 + k * 0.2;
+          g.fillStyle = k === 2 ? "#E8F8FF" : k === 1 ? "#7FD3FF" : "#2E8FE0";
+          g.beginPath();
+          g.moveTo(-w / 2 - k * 4, 0);
+          g.quadraticCurveTo(-w / 4, -hgt * (0.6 - k * 0.12), w / 3 - k * 6, -hgt + k * 10 + Math.sin(t * 0.4) * 2);
+          g.quadraticCurveTo(w / 2, -hgt * 0.4, w / 2 - k * 8, 0);
+          g.closePath();
+          g.fill();
+        }
+        g.restore();
+        glowAt(g, cx, cy, w, "rgba(90,190,255,0.25)");
+      } else if (el === "water") {
+        // 비눗방울: 둥실 떠가는 투명한 방울
+        const rr = w / 2 + Math.sin(t * 0.15) * 1.2;
+        const by = cy + Math.sin(t * 0.08) * 3;
+        const grd = g.createRadialGradient(cx - rr * 0.3, by - rr * 0.3, rr * 0.1, cx, by, rr);
+        grd.addColorStop(0, "rgba(255,255,255,0.85)");
+        grd.addColorStop(0.35, "rgba(170,225,255,0.35)");
+        grd.addColorStop(0.9, "rgba(90,180,255,0.45)");
+        grd.addColorStop(1, "rgba(220,245,255,0.9)");
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(cx, by, rr, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = "rgba(255,255,255,0.8)";
+        g.lineWidth = 1;
+        g.beginPath();
+        g.arc(cx, by, rr, 3.6, 4.6);
+        g.stroke();
       } else if (el === "wind") {
         // 초승달 바람 칼날
         g.save();
@@ -514,6 +595,7 @@ export class FightRenderer {
       this.drawFighter(s.p[i], i, s);
       this.drawWindAura(s.p[i], s);
     }
+    for (let i = 0; i < 2; i++) this.drawTag(s.p[i], i);
     this.drawProj(s);
 
     for (const p of this.parts) {
