@@ -1770,8 +1770,9 @@ function drawCountdown(
   g.save();
   // 숫자 동안은 레인을 살짝 어둡게
   if (!go) {
+    // 판정선 위까지만 (아래 패드는 레인보다 넓어서 덮으면 가장자리가 어둡게 잘려 보임)
     g.fillStyle = "rgba(0,0,0,0.3)";
-    g.fillRect(0, 0, W, H);
+    g.fillRect(0, 0, W, H * (GEAR.judge / GEAR.h));
   }
   // 비스듬한 띠: 왼쪽에서 쓱 들어옴
   const inP = Math.min(1, p / 0.18);
