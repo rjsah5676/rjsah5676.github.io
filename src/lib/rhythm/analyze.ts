@@ -496,7 +496,20 @@ export function alignToGrid(beats: number[], raw: Onset[], straight = false) {
     for (let k = 0; start + k * fast < beats[n - 1] + slope; k++) beatsB.push(start + k * fast);
     // 1배 정박에 없는 1.5배 정박(사이에 끼는 자리)도 킥이 세면 1.5배가 진짜 템포
     const onlyB = beatsB.filter((t) => !beats.some((b) => Math.abs(b - t) < 0.02));
-    if (straight || avg(onlyB) >= avg(beats) * 0.6) {
+    // 3-3-2 킥만으로는 진짜 12/8(셋잇단 록)도 넘어오니까, 스네어(중음) 반복 간격도 봄:
+    // 4/4는 2박마다(백비트), 12/8은 점4분 2개 = 1.5배 템포 3박마다 스네어가 돌아옴
+    const F = beatSec / 1.5;
+    const lagE = (lag: number) => {
+      let e = 0;
+      for (let i = 0, j = 0; i < strong.length; i++) {
+        const want = strong[i].t + lag;
+        while (j < strong.length && strong[j].t < want - 0.025) j++;
+        for (let k = j; k < strong.length && strong[k].t <= want + 0.025; k++)
+          e += strong[i].s * strong[i].mid * strong[k].s * strong[k].mid;
+      }
+      return e;
+    };
+    if (straight || (avg(onlyB) >= avg(beats) * 0.6 && lagE(2 * F) >= lagE(3 * F) * 0.95)) {
       return { ...alignWithBeats(beatsB, raw, fast, DIV), bpm: 60 / fast };
     }
   }
