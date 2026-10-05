@@ -16,6 +16,7 @@ import {
   type HitSound,
   type Skin,
 } from "@/lib/rhythm/fx";
+import { sfx, sfxBuffer } from "@/lib/rhythm/sfx";
 
 export const KEY_CODES = ["KeyD", "KeyF", "KeyJ", "KeyK"];
 
@@ -65,31 +66,39 @@ export const rankColorOf = (rank: string) =>
         ? "#60A5FA"
         : "#F87171";
 
-/** PC에서 전체화면 버튼으로 켠 적이 있으면 다음 판도 전체화면으로 */
-const FS_KEY = "rhythm:fullscreen";
-const pcWantsFs = () => {
-  try {
-    return localStorage.getItem(FS_KEY) === "1";
-  } catch {
-    return false;
-  }
-};
-const setPcWantsFs = (v: boolean) => {
-  try {
-    localStorage.setItem(FS_KEY, v ? "1" : "0");
-  } catch {}
+/** 플레이 화면 논리 해상도: 이 크기로 그리고 프레임(16:9)에 맞춰 통째로 늘림 → 창모드·전체화면이 똑같이 보임 */
+export const LW = 1280;
+export const LH = 720;
+
+/** 레인 틀(gear.webp) 원본 좌표: 레인 시작·폭, 판정선, 아래 패드 */
+const GEAR = {
+  w: 1075,
+  h: 1683,
+  lane0: 170,
+  laneW: 183,
+  judge: 1393,
+  padTop: 1452,
+  padBot: 1640,
+  /** 패드는 원근감 있게 바깥으로 벌어져 있어서 레인 중심과 조금 다름 */
+  padCx: [222, 430, 645, 853],
+  padW: 190,
 };
 
-/**
- * 플레이 화면을 전체화면으로 — 모바일(터치)은 늘, PC는 전체화면 버튼으로 켜 둔 경우만.
- * 시작·재개 버튼을 누른 직후(사용자 동작 안)에 불러야 함. 아이폰 사파리처럼 지원 안 하면 그냥 넘어감
- */
-function enterFullscreen(el: HTMLElement, force = false) {
-  if (document.fullscreenElement) return;
-  if (!force && !window.matchMedia("(pointer: coarse)").matches && !pcWantsFs()) return;
-  if (typeof el.requestFullscreen !== "function") return;
-  el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
-}
+/** 레인 위치 (화면 왼쪽·가운데·오른쪽) */
+export type FieldPos = "left" | "center" | "right";
+export const FIELD_POS: { key: FieldPos; label: string }[] = [
+  { key: "left", label: "왼쪽" },
+  { key: "center", label: "가운데" },
+  { key: "right", label: "오른쪽" },
+];
+
+const loadImg = (src: string, onload: () => void) => {
+  const im = new Image();
+  im.onload = onload;
+  im.src = src;
+  return im;
+};
+const ready = (im: HTMLImageElement | null) => !!im && im.complete && im.naturalWidth > 0;
 
 /** 플레이 화면에서 뒤로가기를 잡으려고 쌓는 히스토리 표시 */
 export const PLAY_HISTORY_KEY = "__rhythmPlay";
@@ -153,6 +162,11 @@ interface Props {
   judgeOffset: number;
   /** 플레이 중 친 타이밍을 보고 타격 싱크를 알아서 조금씩 맞춤 */
   autoSync?: boolean;
+  /** 레인 위치 */
+  field: FieldPos;
+  /** 전체화면 여부·토글 (게임 전체 프레임이 전체화면이 됨) */
+  fs: boolean;
+  onToggleFs: () => void;
 }
 
 export default function Stage({
@@ -174,11 +188,13 @@ export default function Stage({
   onRestart,
   autoSync = false,
   judgeOffset,
+  field,
+  fs,
+  onToggleFs,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [paused, setPaused] = useState(false);
-  const [isFs, setIsFs] = useState(false);
   // 일시정지 화면에 보여줄 지금까지의 타이밍 (결과 화면과 같은 계산)
   const [pauseTiming, setPauseTiming] = useState<{
     avgMs: number | null;
@@ -252,82 +268,164 @@ export default function Stage({
     const leadIn = cdEnd + vis + 0.25;
     const lanePointer = new Map<number, number>();
 
-    // CW: 캔버스 전체 폭, W: 가운데 기어(레인 4개) 폭, gx: 기어 왼쪽 위치
-    // 넓은 화면에서는 기어 양옆에 곡 커버 배경과 점수판을 그린다
-    let CW = 0;
-    let W = 0;
-    let gx = 0;
-    let H = 0;
-    let dpr = 1;
-    const cover = new Image();
-    let backdrop: HTMLCanvasElement | null = null;
-    const makeBackdrop = () => {
-      if (!cover.complete || !cover.naturalWidth || !CW) return;
-      const c = document.createElement("canvas");
-      c.width = Math.round(CW * dpr);
-      c.height = Math.round(H * dpr);
-      const b = c.getContext("2d")!;
-      // 흐림: 아주 작게 줄였다가 늘려 그림 (ctx.filter는 사파리 미지원이고 모바일에서 무거움)
-      const tiny = document.createElement("canvas");
-      tiny.width = 24;
-      tiny.height = Math.max(1, Math.round((24 * c.height) / c.width));
-      const tg = tiny.getContext("2d")!;
-      // 화면을 꽉 채우게(비율 유지)
-      const sc =
-        Math.max(tiny.width / cover.naturalWidth, tiny.height / cover.naturalHeight) * 1.15;
-      const iw = cover.naturalWidth * sc;
-      const ih = cover.naturalHeight * sc;
-      tg.drawImage(cover, (tiny.width - iw) / 2, (tiny.height - ih) / 2, iw, ih);
-      b.imageSmoothingEnabled = true;
-      b.imageSmoothingQuality = "high";
-      b.drawImage(tiny, 0, 0, c.width, c.height);
-      b.fillStyle = "rgba(8,9,13,0.45)";
-      b.fillRect(0, 0, c.width, c.height);
-      backdrop = c;
+    // ── 화면 배치 (논리 좌표 1280×720) ──
+    // gx: 레인 왼쪽, W: 레인 4개 폭, judgeY: 판정선 — 레인 틀 그림에 맞춤
+    const GS = LH / GEAR.h;
+    const gearW = GEAR.w * GS;
+    const gearX = Math.round(
+      field === "left" ? 64 : field === "right" ? LW - 64 - gearW : (LW - gearW) / 2
+    );
+    const gx = gearX + GEAR.lane0 * GS;
+    const W = GEAR.laneW * GS * 4;
+    const H = LH;
+    const judgeY = GEAR.judge * GS;
+    const padTop = GEAR.padTop * GS;
+    const padBot = GEAR.padBot * GS;
+    // 정보판: 레인이 가운데면 양옆, 한쪽이면 반대쪽에 위아래로
+    const side = field === "left" ? "right" : field === "right" ? "left" : null;
+    const sideX = side === "right" ? gearX + gearW + 56 : 56;
+    const sideW = side === "right" ? LW - sideX - 56 : gearX - 112;
+    const infoBox = side
+      ? { x: sideX, y: 56, w: sideW, h: 210 }
+      : { x: 40, y: 56, w: gearX - 80, h: 250 };
+    const scoreBox = side
+      ? { x: sideX, y: 290, w: sideW, h: 300 }
+      : { x: gearX + gearW + 40, y: 56, w: LW - gearX - gearW - 80, h: 330 };
+    // 곡 정보판: 넓으면 커버 옆에 글자, 좁으면(레인 가운데) 커버 아래에 제목
+    const infoWide = infoBox.w >= 520;
+    const coverSize = infoWide ? infoBox.h - 40 : 120;
+    // HP 게이지: 기어 바깥 기둥 옆 (정보판 쪽)
+    const hpX = field === "right" ? gearX - 4 : gearX + gearW - 6;
+
+    let k = 1; // 캔버스 픽셀 / 논리 좌표
+    const rebuild = () => {
+      buildStatic();
+      buildGear();
+      buildGlow();
     };
-    // 박자 번쩍임용 빛 (한 번 그려두고 투명도만 바꿔서 씀 – 매 프레임 그라데이션 계산 안 하게)
-    let beatGlow: HTMLCanvasElement | null = null;
-    const makeGlow = () => {
+    const bgImg = loadImg(
+      // 곡 색이 따뜻하면 분홍 무대, 아니면 파란 무대
+      warm(song.color) ? "/rhythm/play-pink.webp" : "/rhythm/play-blue.webp",
+      () => buildStatic()
+    );
+    const gearImg = loadImg("/rhythm/gear.webp", () => buildGear());
+    const coverImg = loadImg(COVERS[song.id]?.src ?? "", () => buildStatic());
+    const hitImg = loadImg("/rhythm/hit.webp", () => {});
+    const ringImg = loadImg("/rhythm/ring.webp", () => {});
+    const failImg = loadImg("/rhythm/banner-failed.webp", () => {});
+    const judgeImg: Record<Judge, HTMLImageElement> = {
+      perfect: loadImg("/rhythm/judge-perfect.webp", () => {}),
+      great: loadImg("/rhythm/judge-great.webp", () => {}),
+      good: loadImg("/rhythm/judge-good.webp", () => {}),
+      miss: loadImg("/rhythm/judge-miss.webp", () => {}),
+    };
+    const layer = (w: number, h: number) => {
       const c = document.createElement("canvas");
-      c.width = Math.max(1, Math.round((CW / 2) * dpr));
-      c.height = Math.max(1, Math.round((H / 2) * dpr));
+      c.width = Math.max(1, Math.round(w * k));
+      c.height = Math.max(1, Math.round(h * k));
       const b = c.getContext("2d")!;
-      b.scale(c.width / CW, c.height / H);
-      const gr = b.createRadialGradient(CW / 2, H * 0.55, W * 0.4, CW / 2, H * 0.55, CW * 0.7);
-      gr.addColorStop(0, `${song.color}55`);
+      b.scale(k, k);
+      return { c, b };
+    };
+    /** 안 바뀌는 바닥: 무대 배경 + 레인 뒤 어두운 판 + 정보판 유리 */
+    let staticLayer: HTMLCanvasElement | null = null;
+    const buildStatic = () => {
+      const { c, b } = layer(LW, LH);
+      if (ready(bgImg)) {
+        const sc = Math.max(LW / bgImg.naturalWidth, LH / bgImg.naturalHeight);
+        const iw = bgImg.naturalWidth * sc;
+        const ih = bgImg.naturalHeight * sc;
+        b.drawImage(bgImg, (LW - iw) / 2, (LH - ih) / 2, iw, ih);
+      } else {
+        b.fillStyle = "#070814";
+        b.fillRect(0, 0, LW, LH);
+      }
+      b.fillStyle = "rgba(4,5,14,0.35)";
+      b.fillRect(0, 0, LW, LH);
+      // 레인 뒤 판: 노트가 무대 조명에 묻히지 않게
+      const lane = b.createLinearGradient(0, 0, 0, judgeY);
+      lane.addColorStop(0, "rgba(3,4,12,0.55)");
+      lane.addColorStop(0.25, "rgba(3,4,12,0.82)");
+      lane.addColorStop(1, "rgba(3,4,12,0.9)");
+      b.fillStyle = lane;
+      b.fillRect(gx - 6, 0, W + 12, judgeY + 4);
+      b.fillStyle = "rgba(255,255,255,0.07)";
+      for (let l = 1; l < 4; l++) b.fillRect(gx + (l * W) / 4 - 0.5, 0, 1, judgeY);
+      for (const box of [infoBox, scoreBox]) glass(b, box.x, box.y, box.w, box.h, song.color);
+      // 곡 커버 (정보판 왼쪽)
+      const cs = coverSize;
+      const cx = infoBox.x + 20;
+      const cy = infoBox.y + 20;
+      if (ready(coverImg)) {
+        b.save();
+        b.beginPath();
+        b.roundRect(cx, cy, cs, cs, 10);
+        b.clip();
+        const sc = Math.max(cs / coverImg.naturalWidth, cs / coverImg.naturalHeight);
+        b.drawImage(
+          coverImg,
+          cx + (cs - coverImg.naturalWidth * sc) / 2,
+          cy + (cs - coverImg.naturalHeight * sc) / 2,
+          coverImg.naturalWidth * sc,
+          coverImg.naturalHeight * sc
+        );
+        b.restore();
+      } else {
+        b.fillStyle = `${song.color}33`;
+        b.beginPath();
+        b.roundRect(cx, cy, cs, cs, 10);
+        b.fill();
+      }
+      b.strokeStyle = "rgba(255,255,255,0.25)";
+      b.lineWidth = 1.5;
+      b.beginPath();
+      b.roundRect(cx, cy, cs, cs, 10);
+      b.stroke();
+      staticLayer = c;
+    };
+    /** 레인 틀 (노트 위에 덮음) — 큰 그림을 매 프레임 줄여 그리지 않게 미리 줄여 둠 */
+    let gearLayer: HTMLCanvasElement | null = null;
+    const buildGear = () => {
+      if (!ready(gearImg)) return;
+      const { c, b } = layer(gearW, LH);
+      b.imageSmoothingQuality = "high";
+      b.drawImage(gearImg, 0, 0, gearW, LH);
+      gearLayer = c;
+    };
+    // 박자 번쩍임용 빛 (한 번 그려두고 투명도만 바꿔서 씀)
+    let beatGlow: HTMLCanvasElement | null = null;
+    const buildGlow = () => {
+      const c = document.createElement("canvas");
+      c.width = 320;
+      c.height = 180;
+      const b = c.getContext("2d")!;
+      b.scale(c.width / LW, c.height / LH);
+      const mx = gx + W / 2;
+      const gr = b.createRadialGradient(mx, LH * 0.55, W * 0.4, mx, LH * 0.55, LW * 0.55);
+      gr.addColorStop(0, `${song.color}50`);
       gr.addColorStop(1, `${song.color}00`);
       b.fillStyle = gr;
-      b.fillRect(0, 0, CW, H);
+      b.fillRect(0, 0, LW, LH);
       beatGlow = c;
     };
-    cover.onload = makeBackdrop;
-    cover.src = COVERS[song.id]?.src ?? "";
+    // 캔버스 크기: 프레임 폭 × 화면 배율 (너무 크면 무거워서 2560px까지)
+    let pxW = 0;
     const resize = () => {
-      const nDpr = Math.min(2, window.devicePixelRatio || 1);
-      const nCW = Math.min(wrap.clientWidth, 1100);
-      // 전체화면(모바일)이면 화면 높이를 다 씀
-      const nH =
-        document.fullscreenElement === wrap
-          ? window.innerHeight
-          : Math.max(420, Math.min(window.innerHeight - 170, 760));
-      // 모바일은 주소창이 들어가고 나올 때마다 resize가 옴 → 크기가 그대로면 캔버스를 다시 만들지 않음
-      if (nDpr === dpr && nCW === CW && nH === H) return;
-      dpr = nDpr;
-      CW = nCW;
-      H = nH;
-      W = Math.min(CW, 440);
-      gx = Math.round((CW - W) / 2);
-      canvas.width = Math.round(CW * dpr);
-      canvas.height = Math.round(H * dpr);
-      canvas.style.width = `${CW}px`;
-      canvas.style.height = `${H}px`;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      makeBackdrop();
-      makeGlow();
+      const cssW = wrap.clientWidth;
+      if (!cssW) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2, 2560 / cssW);
+      const nW = Math.round(cssW * dpr);
+      if (nW === pxW) return;
+      pxW = nW;
+      canvas.width = nW;
+      canvas.height = Math.round((nW * LH) / LW);
+      k = nW / LW;
+      g.setTransform(k, 0, 0, k, 0, 0);
+      rebuild();
     };
     resize();
-    window.addEventListener("resize", resize);
-
+    const ro = new ResizeObserver(resize);
+    ro.observe(wrap);
     // 오디오 시작
     const src = ctx.createBufferSource();
     src.buffer = buffer;
@@ -340,10 +438,17 @@ export default function Stage({
 
     // 카운트다운 효과음 (화면 표시 시점에 들리도록 싱크값만큼 밀어서 예약)
     const base = startAt - leadIn + offset / 1000;
-    const beeps: OscillatorNode[] = [];
+    const beeps: AudioScheduledSourceNode[] = [];
     for (const ph of cd) {
       if (!ph.beep) continue;
       const at = Math.max(ctx.currentTime, base + ph.from);
+      // 효과음 파일이 있으면 그걸로, 없으면 삑 소리 합성
+      const name = ph.label === "GO!" ? "go" : "countdown";
+      if (sfxBuffer(name)) {
+        const sNode = sfx(name, 0.9, at);
+        if (sNode) beeps.push(sNode);
+        continue;
+      }
       const o = ctx.createOscillator();
       const gn = ctx.createGain();
       o.type = "triangle";
@@ -489,87 +594,145 @@ export default function Stage({
       return name;
     };
 
-    /** 기어 바깥: 흐린 커버 배경 + 박자에 맞춰 번쩍임 + 양옆 정보판 */
+    const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
+    const disp = "'Arial Black', 'Segoe UI Black', Impact, ui-sans-serif, sans-serif";
+    // 콤보 효과: 50콤보마다 링, 큰 콤보가 끊기면 흔들림
+    let ringAt = -10;
+    let breakAt = -10;
+    let breakFrom = 0;
+
+    /** 바닥(배경·레인 판·정보판) + 박자 빛 + 정보판 글자 */
     const drawBackdrop = (t: number, pulse: number) => {
-      g.clearRect(0, 0, CW, H);
-      if (backdrop) g.drawImage(backdrop, 0, 0, CW, H);
+      if (staticLayer) g.drawImage(staticLayer, 0, 0, LW, LH);
       else {
-        g.fillStyle = "#0B0C10";
-        g.fillRect(0, 0, CW, H);
+        g.fillStyle = "#070814";
+        g.fillRect(0, 0, LW, LH);
       }
-      if (gx < 8) return;
-      // 박자마다 곡 색이 은은하게 번짐
       if (beatGlow && pulse > 0.02) {
         g.globalAlpha = pulse;
-        g.drawImage(beatGlow, 0, 0, CW, H);
+        g.drawImage(beatGlow, 0, 0, LW, LH);
         g.globalAlpha = 1;
       }
-      if (gx < 150) return;
 
-      const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
-      const lx = 24;
-      const panelW = gx - 48;
+      // ── 곡 정보 ──
+      const ib = infoBox;
+      const tx = ib.x + 20 + coverSize + 18; // 커버 오른쪽
+      const tw = ib.x + ib.w - 20 - tx;
+      const sec = t > 0 ? secName(t) : "";
       g.textAlign = "left";
       g.textBaseline = "top";
-      // 왼쪽: 곡 정보
-      g.fillStyle = "rgba(255,255,255,0.45)";
-      g.font = `600 11px ${mono}`;
-      g.fillText("NOW PLAYING", lx, 28);
-      g.fillStyle = "#fff";
-      g.font = `900 ${Math.min(30, Math.max(18, panelW / 7))}px ${mono}`;
-      g.fillText(song.title, lx, 46, panelW);
-      g.fillStyle = diffInfo.color;
-      g.font = `800 13px ${mono}`;
-      g.fillText(`${diffInfo.label.toUpperCase()}  Lv.${chart.level}`, lx, 86);
       g.fillStyle = "rgba(255,255,255,0.5)";
-      g.font = `600 12px ${mono}`;
-      g.fillText(`${Math.round(song.bpmLabel ?? song.bpm)} BPM`, lx, 106);
-      const sec = t > 0 ? secName(t) : "";
+      g.font = `700 12px ${mono}`;
+      g.fillText("NOW PLAYING", tx, ib.y + 24);
+      // 제목: 넓으면 커버 옆, 좁으면 커버 아래 한 줄 전체
+      const titleX = infoWide ? tx : ib.x + 20;
+      const titleW = infoWide ? tw : ib.w - 40;
+      const titleY = infoWide ? ib.y + 44 : ib.y + 20 + coverSize + 14;
+      g.fillStyle = "#fff";
+      g.font = `900 ${infoWide ? 30 : 24}px ${disp}`;
+      g.fillText(song.title, titleX, titleY, titleW);
+      const y0 = infoWide ? ib.y + 86 : ib.y + 46;
+      g.fillStyle = diffInfo.color;
+      g.font = `900 15px ${mono}`;
+      g.fillText(diffInfo.label.toUpperCase(), tx, y0, tw);
+      g.fillStyle = "#fff";
+      g.font = `900 22px ${disp}`;
+      g.fillText(`Lv.${chart.level}`, tx, y0 + 20, tw);
+      g.fillStyle = "rgba(255,255,255,0.55)";
+      g.font = `700 12px ${mono}`;
+      g.fillText(
+        `${Math.round(song.bpmLabel ?? song.bpm)} BPM · x${live.speed.toFixed(1)}`,
+        tx,
+        y0 + 50,
+        tw
+      );
       if (sec) {
         g.fillStyle = song.color;
         g.font = `800 12px ${mono}`;
-        g.fillText(`▶ ${sec.toUpperCase()}`, lx, 128);
+        g.fillText(
+          `▶ ${sec.toUpperCase()}`,
+          infoWide ? tx : ib.x + 20,
+          infoWide ? y0 + 70 : titleY + 34,
+          infoWide ? tw : ib.w - 40
+        );
       }
-      g.fillStyle = "rgba(255,255,255,0.35)";
+      // 진행 바
+      const px0 = infoWide ? tx : ib.x + 20;
+      const pw = infoWide ? tw : ib.w - 40;
+      const py = ib.y + ib.h - 22;
+      const prog = Math.max(0, Math.min(1, t / songEnd));
+      g.fillStyle = "rgba(255,255,255,0.12)";
+      g.beginPath();
+      g.roundRect(px0, py, pw, 6, 3);
+      g.fill();
+      g.fillStyle = song.color;
+      g.beginPath();
+      g.roundRect(px0, py, Math.max(6, pw * prog), 6, 3);
+      g.fill();
+      g.fillStyle = "rgba(255,255,255,0.45)";
       g.font = `600 11px ${mono}`;
-      g.fillText(`SPEED x${live.speed.toFixed(1)}`, lx, H - 40);
+      g.textAlign = "right";
+      g.fillText(`${fmtTime(Math.max(0, t))} / ${fmtTime(songEnd + 2.5)}`, px0 + pw, py - 16);
 
-      // 오른쪽: 점수판
-      const rx = gx + W + 24;
-      g.fillStyle = "rgba(255,255,255,0.45)";
-      g.font = `600 11px ${mono}`;
-      g.fillText("SCORE", rx, 28);
-      g.fillStyle = "#fff";
-      g.font = `900 ${Math.min(34, Math.max(20, panelW / 6))}px ${mono}`;
-      g.fillText(fmtScore(Math.round(shownScore)), rx, 46, panelW);
-      g.fillStyle = "rgba(255,255,255,0.7)";
+      // ── 점수판 ──
+      const sb = scoreBox;
+      const sx = sb.x + 24;
+      const sw = sb.w - 48;
+      g.textAlign = "left";
+      g.fillStyle = "rgba(255,255,255,0.5)";
       g.font = `700 13px ${mono}`;
-      g.fillText(`${engine.accuracy.toFixed(2)}%`, rx, 90);
-      g.fillStyle = "rgba(255,255,255,0.45)";
-      g.font = `600 11px ${mono}`;
-      g.fillText(`MAX COMBO ${engine.maxCombo}`, rx, 110);
+      g.fillText("SCORE", sx, sb.y + 22);
+      g.fillStyle = "#fff";
+      g.font = `900 ${Math.min(46, Math.max(30, sw / 7))}px ${disp}`;
+      g.fillText(fmtScore(Math.round(shownScore)), sx, sb.y + 40, sw);
+      const acc = engine.accuracy;
+      const rk = rankOf(acc);
+      g.fillStyle = rankColorOf(rk);
+      g.font = `900 22px ${disp}`;
+      g.fillText(rk, sx, sb.y + 100);
+      g.fillStyle = "rgba(255,255,255,0.85)";
+      g.font = `800 18px ${mono}`;
+      g.fillText(`${acc.toFixed(2)}%`, sx + 54, sb.y + 103);
+      g.fillStyle = "rgba(255,255,255,0.5)";
+      g.font = `700 12px ${mono}`;
+      g.textAlign = "right";
+      g.fillText(`MAX COMBO ${engine.maxCombo}`, sx + sw, sb.y + 106);
+      g.textAlign = "left";
       const rows: [string, number, string][] = [
         ["PERFECT", engine.counts.perfect, JUDGE_STYLE.perfect.color],
         ["GREAT", engine.counts.great, JUDGE_STYLE.great.color],
         ["GOOD", engine.counts.good, JUDGE_STYLE.good.color],
         ["MISS", engine.counts.miss, JUDGE_STYLE.miss.color],
       ];
+      const rowTop = sb.y + 142;
+      const rowH = Math.min(36, (sb.y + sb.h - 30 - rowTop) / 4);
       rows.forEach(([label, n, c], i) => {
-        const y = 144 + i * 20;
+        const y = rowTop + i * rowH;
+        g.fillStyle = "rgba(255,255,255,0.05)";
+        g.beginPath();
+        g.roundRect(sx, y, sw, rowH - 6, 6);
+        g.fill();
         g.fillStyle = c;
-        g.font = `700 11px ${mono}`;
-        g.textAlign = "left";
-        g.fillText(label, rx, y);
+        g.fillRect(sx, y, 4, rowH - 6);
+        g.font = `900 14px ${mono}`;
+        g.textBaseline = "middle";
+        g.fillText(label, sx + 14, y + (rowH - 6) / 2);
         g.fillStyle = "#fff";
         g.textAlign = "right";
-        g.fillText(String(n), rx + Math.min(panelW, 170), y);
+        g.font = `800 16px ${mono}`;
+        g.fillText(String(n), sx + sw - 12, y + (rowH - 6) / 2);
+        g.textAlign = "left";
+        g.textBaseline = "top";
       });
-      g.textAlign = "left";
+      g.fillStyle = "rgba(96,165,250,0.85)";
+      g.font = `700 12px ${mono}`;
+      g.fillText(`FAST ${fast}`, sx, sb.y + sb.h - 26);
+      g.fillStyle = "rgba(251,146,60,0.85)";
+      g.fillText(`SLOW ${slow}`, sx + 90, sb.y + sb.h - 26);
     };
 
     const draw = (t: number) => {
       const laneW = W / 4;
-      const judgeY = H - 92;
       // 박자 위상 (0: 박자 순간) → 판정선·배경이 박자에 맞춰 번쩍
       const bt = t - (song.beatOffset ?? 0);
       const beatPh = bt > 0 ? (((bt % beatSec) + beatSec) % beatSec) / beatSec : 1;
@@ -578,21 +741,7 @@ export default function Stage({
       drawBackdrop(t, pulse);
       g.save();
       g.translate(gx, 0);
-      // 기어 테두리 빛
-      if (gx > 0) {
-        g.fillStyle = song.color;
-        g.globalAlpha = 0.5 + 0.5 * pulse;
-        g.fillRect(-3, 0, 3, H);
-        g.fillRect(W, 0, 3, H);
-        g.globalAlpha = 0.12 + 0.2 * pulse;
-        g.fillRect(-9, 0, 6, H);
-        g.fillRect(W + 3, 0, 6, H);
-        g.globalAlpha = 1;
-      }
       for (let l = 0; l < 4; l++) {
-        // 살짝 비쳐서 레인 뒤로 곡 커버가 은은하게 보임
-        g.fillStyle = l % 2 ? "rgba(18,20,26,0.85)" : "rgba(16,18,23,0.85)";
-        g.fillRect(l * laneW, 0, laneW, H);
         if (engine.pressed[l]) {
           const grad = g.createLinearGradient(0, judgeY, 0, judgeY - H * 0.5);
           grad.addColorStop(0, `${laneColor(l)}55`);
@@ -601,15 +750,17 @@ export default function Stage({
           g.fillRect(l * laneW, judgeY - H * 0.5, laneW, H * 0.5);
         }
       }
-      g.fillStyle = "rgba(255,255,255,0.06)";
-      for (let l = 1; l < 4; l++) g.fillRect(l * laneW - 0.5, 0, 1, H);
 
-      // 노트
+      // 노트 (판정선 아래로 내려간 건 틀에 가려지게 잘라냄)
+      g.save();
+      g.beginPath();
+      g.rect(-4, 0, W + 8, judgeY + 6);
+      g.clip();
       const yOf = (time: number) => judgeY - ((time - t) / vis) * judgeY;
       // 마디선: 마디마다 가로줄이 같이 내려와서 박자 읽기 쉽게
       g.fillStyle = "rgba(255,255,255,0.13)";
-      for (let k = Math.max(0, Math.ceil(t / barSec)); k * barSec < t + vis; k++) {
-        const y = yOf(k * barSec);
+      for (let kk = Math.max(0, Math.ceil(t / barSec)); kk * barSec < t + vis; kk++) {
+        const y = yOf(kk * barSec);
         if (y < judgeY) g.fillRect(0, y - 0.5, W, 1);
       }
       // 가림 옵션: y(0=위, judgeY=판정선) 위치에 따른 투명도
@@ -633,7 +784,7 @@ export default function Stage({
           const dead = n.head === "miss" || n.tail === "miss";
           const yHead = n.holding ? judgeY : yOf(n.t);
           const yTail = Math.max(-20, yOf(n.end));
-          if (yTail > H) continue;
+          if (yTail > judgeY + 6) continue;
           const bc = dead ? "#555555" : c;
           const ca = n.holding ? 1 : coverAlpha(yHead);
           if (ca <= 0 && coverAlpha(yTail) <= 0) continue;
@@ -645,7 +796,7 @@ export default function Stage({
         } else {
           if (n.head && n.head !== "miss") continue;
           const y = yOf(n.t);
-          if (y > H + 20) continue;
+          if (y > judgeY + 30) continue;
           const ca = n.head === "miss" ? 0.3 : coverAlpha(y);
           if (ca <= 0) continue;
           g.globalAlpha = ca;
@@ -653,23 +804,45 @@ export default function Stage({
           g.globalAlpha = 1;
         }
       }
+      g.restore();
+      g.restore(); // translate(gx)
 
-      // 판정선 아래 키 바닥: 불투명하게 덮어서 지나간 노트가 비쳐 보이지 않게
-      g.fillStyle = "#0B0C10";
-      g.fillRect(0, judgeY + 2, W, H - judgeY - 2);
+      // 레인 틀 (기둥·패드)
+      if (gearLayer) g.drawImage(gearLayer, gearX, 0, gearW, LH);
+      // 판정선: 틀의 네온 줄 위에 박자마다 번쩍
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      g.globalAlpha = 0.25 + 0.6 * pulse;
+      const jl = g.createLinearGradient(0, judgeY - 10, 0, judgeY + 10);
+      jl.addColorStop(0, "rgba(255,255,255,0)");
+      jl.addColorStop(0.5, "rgba(255,255,255,0.9)");
+      jl.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = jl;
+      g.fillRect(gx, judgeY - 10, W, 20);
+      g.restore();
+      // 패드: 누르면 빛남 + 키 글자
       for (let l = 0; l < 4; l++) {
-        g.fillStyle = engine.pressed[l] ? `${laneColor(l)}40` : "#15171D";
-        g.fillRect(l * laneW + 3, judgeY + 14, laneW - 6, H - judgeY - 20);
+        const cx = gearX + GEAR.padCx[l] * GS;
+        const pw = GEAR.padW * GS;
+        const on = engine.pressed[l];
+        if (on) {
+          g.save();
+          g.globalCompositeOperation = "lighter";
+          g.fillStyle = `${laneColor(l)}70`;
+          g.beginPath();
+          g.roundRect(cx - pw / 2 + 6, padTop + 6, pw - 12, padBot - padTop - 14, 8);
+          g.fill();
+          g.restore();
+        }
+        g.fillStyle = on ? "#fff" : "rgba(255,255,255,0.4)";
+        g.font = `900 22px ${disp}`;
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(KEY_LABELS[l], cx, (padTop + padBot) / 2);
       }
 
-      // 판정선 (+ 스킨별 수신부)
       g.save();
-      g.shadowColor = song.color;
-      g.shadowBlur = 10 * pulse;
-      g.fillStyle = `rgba(255,255,255,${0.75 + 0.25 * pulse})`;
-      g.fillRect(0, judgeY - 1.5 - pulse, W, 3 + 2 * pulse);
-      g.restore();
-
+      g.translate(gx, 0);
       // 롱노트 누르는 중: 판정선에서 불꽃이 계속 튐
       if (t - lastSparkAt > 0.035) {
         lastSparkAt = t;
@@ -679,137 +852,138 @@ export default function Stage({
 
       g.save();
       g.globalCompositeOperation = "lighter";
-      // 타격 효과: 레인 빛기둥 + 판정선 섬광 + 퍼지는 링
-      for (let k = bursts.length - 1; k >= 0; k--) {
-        const f = bursts[k];
+      // 타격 효과: 레인 빛기둥 + 터지는 빛 (hit.webp 6프레임)
+      for (let kk = bursts.length - 1; kk >= 0; kk--) {
+        const f = bursts[kk];
         const age = t - f.at;
         if (age > 0.4 || age < -0.5) {
-          bursts.splice(k, 1);
+          bursts.splice(kk, 1);
           continue;
         }
         const p = Math.max(0, age) / 0.4;
         const col = f.judge === "perfect" ? laneColor(f.lane) : JUDGE_STYLE[f.judge].color;
         const cx = f.lane * laneW + laneW / 2;
         const fade = 1 - p;
-        // 빛기둥
         const beamH = H * (f.big ? 0.55 : 0.4) * (0.6 + 0.4 * Math.min(1, p * 4));
         const beam = g.createLinearGradient(0, judgeY, 0, judgeY - beamH);
-        beam.addColorStop(0, `${col}${hex2(0.7 * fade * fade)}`);
+        beam.addColorStop(0, `${col}${hex2(0.65 * fade * fade)}`);
         beam.addColorStop(1, `${col}00`);
         g.fillStyle = beam;
         const bw = laneW * (0.9 - 0.3 * p);
         g.fillRect(cx - bw / 2, judgeY - beamH, bw, beamH);
-        // 친 순간 짧은 흰 섬광 (노트 모양으로 남아 보이지 않게 둥글고 짧게)
-        if (age < 0.12) {
-          const fp = Math.max(0, age) / 0.12;
-          const fr = laneW * (0.25 + fp * 0.45);
-          const flash = g.createRadialGradient(cx, judgeY, 0, cx, judgeY, fr);
-          flash.addColorStop(0, `rgba(255,255,255,${0.95 * (1 - fp)})`);
-          flash.addColorStop(0.4, `${col}${hex2(0.6 * (1 - fp))}`);
-          flash.addColorStop(1, `${col}00`);
-          g.fillStyle = flash;
-          g.beginPath();
-          g.arc(cx, judgeY, fr, 0, Math.PI * 2);
-          g.fill();
+        if (ready(hitImg) && age >= 0) {
+          const fr = Math.min(5, Math.floor(age / 0.05));
+          if (age < 0.3) {
+            const cell = hitImg.naturalHeight;
+            const sz = laneW * (f.big ? 2.8 : 2.1);
+            g.drawImage(hitImg, fr * cell, 0, cell, cell, cx - sz / 2, judgeY - sz / 2, sz, sz);
+          }
         }
-        // 링
-        const ease = 1 - Math.pow(1 - p, 3);
-        g.globalAlpha = fade;
-        g.strokeStyle = col;
-        g.lineWidth = 3 * fade + 1;
-        g.beginPath();
-        g.arc(cx, judgeY, laneW * (0.2 + ease * 0.5), 0, Math.PI * 2);
-        g.stroke();
-        g.globalAlpha = 1;
       }
       // 불꽃
-      for (let k = sparks.length - 1; k >= 0; k--) {
-        const sp = sparks[k];
+      for (let kk = sparks.length - 1; kk >= 0; kk--) {
+        const sp = sparks[kk];
         const age = t - sp.at;
         if (age > sp.life || age < -0.5) {
-          sparks.splice(k, 1);
+          sparks.splice(kk, 1);
           continue;
         }
         const a = Math.max(0, age);
         const px = sp.x + sp.vx * a;
         const py = sp.y + sp.vy * a + 900 * a * a;
-        const fadeS = 1 - a / sp.life;
-        g.globalAlpha = fadeS;
+        g.globalAlpha = 1 - a / sp.life;
         g.fillStyle = sp.color;
         g.fillRect(px - sp.size / 2, py - sp.size / 2, sp.size, sp.size);
       }
       g.globalAlpha = 1;
       g.restore();
+      g.restore(); // translate(gx)
 
-      // 키 표시
-      for (let l = 0; l < 4; l++) {
-        const on = engine.pressed[l];
-        g.fillStyle = on ? "#fff" : "rgba(255,255,255,0.35)";
-        g.font = "700 18px ui-monospace, SFMono-Regular, Menlo, monospace";
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.fillText(KEY_LABELS[l], l * laneW + laneW / 2, judgeY + 14 + (H - judgeY - 20) / 2);
-      }
-
-      // HP 게이지: 기어 오른쪽 (좁은 화면이면 기어 안쪽 가장자리)
+      // HP 게이지: 기어 기둥 바깥
       {
         const hpr = engine.hp / HP_MAX;
-        const bx = gx >= 24 ? W + 12 : W - 7;
-        const top = 40;
-        const bh = judgeY - top;
+        const top = 70;
+        const bh = judgeY - 20 - top;
         const low = hpr < 0.3;
         const blink = low ? 0.55 + 0.45 * Math.sin(performance.now() / 90) : 1;
-        g.fillStyle = "rgba(0,0,0,0.5)";
-        g.fillRect(bx - 1, top - 1, 7, bh + 2);
+        g.fillStyle = "rgba(0,0,0,0.6)";
+        g.beginPath();
+        g.roundRect(hpX - 2, top - 2, 14, bh + 4, 7);
+        g.fill();
         const hc = hpr > 0.6 ? "#4ADE80" : hpr > 0.3 ? "#FBBF24" : "#F43F5E";
         g.globalAlpha = blink;
         g.fillStyle = hc;
-        g.fillRect(bx, top + bh * (1 - hpr), 5, bh * hpr);
+        g.shadowColor = hc;
+        g.shadowBlur = 10;
+        g.beginPath();
+        g.roundRect(hpX, top + bh * (1 - hpr), 10, Math.max(0.1, bh * hpr), 5);
+        g.fill();
+        g.shadowBlur = 0;
         g.globalAlpha = 1;
-        if (gx >= 24) {
-          g.fillStyle = "rgba(255,255,255,0.5)";
-          g.font = "700 9px ui-monospace, monospace";
-          g.textAlign = "center";
-          g.textBaseline = "top";
-          g.fillText("HP", bx + 2.5, judgeY + 6);
-        }
+        g.fillStyle = "rgba(255,255,255,0.7)";
+        g.font = `900 11px ${mono}`;
         g.textAlign = "center";
-        g.textBaseline = "middle";
+        g.textBaseline = "bottom";
+        g.fillText("HP", hpX + 5, top - 6);
       }
 
-      // 판정·콤보
+      g.save();
+      g.translate(gx, 0);
+      // 판정 글자 (그림)
+      const jy = H * 0.34;
       if (lastJudge && t - lastJudge.at < 0.6) {
-        const s = JUDGE_STYLE[lastJudge.judge];
         const age = Math.max(0, t - lastJudge.at);
         const pop = Math.min(1, age / 0.14);
         const miss = lastJudge.judge === "miss";
         // 크게 튀어나왔다가 제자리로(오버슈트), 위로 살짝 떠오르며 사라짐. 미스는 흔들림
-        const sc = miss ? 1.15 - 0.15 * pop : 1.75 - 0.75 * easeOutBack(pop);
+        const sc = miss ? 1.1 - 0.1 * pop : 1.5 - 0.5 * easeOutBack(pop);
         const shake = miss ? Math.sin(age * 90) * 7 * (1 - pop) : 0;
-        const jy = H * 0.4 - 8 - (miss ? -age * 18 : pop * 6);
+        const yy = jy - (miss ? -age * 18 : pop * 6);
+        const im = judgeImg[lastJudge.judge];
         g.save();
         g.globalAlpha = age < 0.42 ? 1 : Math.max(0, 1 - (age - 0.42) / 0.18);
-        g.translate(W / 2 + shake, jy);
-        g.scale(sc * (miss ? 1 : 1 + 0.12 * (1 - pop)), sc);
-        g.font = "900 38px ui-monospace, SFMono-Regular, Menlo, monospace";
-        g.shadowColor = s.color;
-        g.shadowBlur = miss ? 6 : 22;
-        g.fillStyle = s.color;
-        g.fillText(s.text, 0, 0);
-        g.shadowBlur = 0;
-        g.fillText(s.text, 0, 0);
-        // 친 순간 하얗게 번쩍
-        if (!miss && age < 0.09) {
-          g.globalAlpha = 1 - age / 0.09;
-          g.fillStyle = "#FFFFFF";
+        g.translate(W / 2 + shake, yy);
+        g.scale(sc, sc);
+        if (ready(im)) {
+          const iw = Math.min(W + 40, 330);
+          const ih = (iw * im.naturalHeight) / im.naturalWidth;
+          g.drawImage(im, -iw / 2, -ih / 2, iw, ih);
+        } else {
+          const s = JUDGE_STYLE[lastJudge.judge];
+          g.font = `900 38px ${disp}`;
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillStyle = s.color;
           g.fillText(s.text, 0, 0);
         }
         g.restore();
+        // 빠름·느림 (퍼펙트 안이어도 크게 어긋나면)
+        const d = lastJudge.diff;
+        if (!miss && d !== undefined && Math.abs(d * 1000) > FAST_SLOW_MS && age < 0.45) {
+          g.font = `900 15px ${mono}`;
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillStyle = d < 0 ? "#60A5FA" : "#FB923C";
+          g.fillText(d < 0 ? "FAST" : "SLOW", W / 2, yy - 78);
+        }
+      }
+      // 콤보
+      const cyC = jy + 108;
+      const ringAge = t - ringAt;
+      if (ready(ringImg) && ringAge >= 0 && ringAge < 0.5) {
+        const fr = Math.min(3, Math.floor(ringAge / 0.125));
+        const cell = ringImg.naturalHeight;
+        const sz = 260 + ringAge * 260;
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 1 - ringAge / 0.5;
+        g.drawImage(ringImg, fr * cell, 0, cell, cell, W / 2 - sz / 2, cyC - sz / 2, sz, sz);
+        g.restore();
       }
       if (engine.combo >= 2) {
-        // 콤보가 오를 때마다 살짝 튀어오름
+        // 콤보가 오를 때마다 살짝 튀어오름, 50단위마다 크게
         const bump = Math.max(0, 1 - (t - comboAt) / 0.12);
-        // 콤보가 쌓일수록 색이 달라짐: 흰 → 하늘 → 초록 → 노랑 → 주황 → 200부터 무지개
+        const big = Math.max(0, 1 - ringAge / 0.35);
         const cc = engine.combo;
         const comboColor =
           cc >= 200
@@ -822,44 +996,55 @@ export default function Stage({
                   ? "#4ADE80"
                   : cc >= 10
                     ? "#7DF9FF"
-                    : "rgba(255,255,255,0.9)";
-        g.fillStyle = comboColor;
-        g.font = `900 ${Math.round(64 + 14 * bump)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+                    : "#FFFFFF";
+        const size = Math.round(66 + 12 * bump + 26 * big);
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.font = `italic 900 ${size}px ${disp}`;
+        const txt = String(cc);
+        g.lineJoin = "round";
+        g.lineWidth = 8;
+        g.strokeStyle = "rgba(6,4,20,0.85)";
+        g.strokeText(txt, W / 2, cyC - 4 * bump);
+        const gr = g.createLinearGradient(0, cyC - size / 2, 0, cyC + size / 2);
+        gr.addColorStop(0, "#FFFFFF");
+        gr.addColorStop(0.55, comboColor);
+        gr.addColorStop(1, comboColor);
+        g.fillStyle = gr;
         if (cc >= 50) {
           g.shadowColor = comboColor;
-          g.shadowBlur = cc >= 200 ? 24 : 14;
+          g.shadowBlur = cc >= 200 ? 26 : 16;
         }
-        g.fillText(String(engine.combo), W / 2, H * 0.4 + 58 - 4 * bump);
+        g.fillText(txt, W / 2, cyC - 4 * bump);
         g.shadowBlur = 0;
-        g.font = "700 12px ui-monospace, monospace";
-        g.fillStyle = "rgba(255,255,255,0.45)";
-        g.fillText("COMBO", W / 2, H * 0.4 + 98);
+        g.font = `italic 900 15px ${disp}`;
+        g.lineWidth = 4;
+        g.strokeText("COMBO", W / 2, cyC + size / 2 + 6);
+        g.fillStyle = "rgba(255,255,255,0.8)";
+        g.fillText("COMBO", W / 2, cyC + size / 2 + 6);
+      } else if (t - breakAt < 0.6 && breakFrom >= 20) {
+        // 콤보 끊김: 숫자가 흩어지며 떨어짐
+        const a = t - breakAt;
+        g.globalAlpha = 1 - a / 0.6;
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.font = `italic 900 66px ${disp}`;
+        g.fillStyle = "#F87171";
+        g.fillText(String(breakFrom), W / 2 + Math.sin(a * 80) * 6 * (1 - a / 0.6), cyC + a * 60);
+        g.globalAlpha = 1;
       }
 
-      // 상단: 진행바·정확도·점수
-      g.fillStyle = "rgba(255,255,255,0.08)";
-      g.fillRect(0, 0, W, 3);
-      g.fillStyle = song.color;
-      g.fillRect(0, 0, W * Math.max(0, Math.min(1, t / songEnd)), 3);
-      g.font = "600 13px ui-monospace, monospace";
-      g.textBaseline = "top";
-      g.textAlign = "left";
-      g.fillStyle = "rgba(255,255,255,0.6)";
-      g.fillText(`${engine.accuracy.toFixed(2)}%`, 10, 12);
-      g.textAlign = "right";
-      g.fillStyle = "#fff";
-      g.fillText(fmtScore(Math.round(shownScore)), W - 10, 12);
       // 속도 바꿨을 때 잠깐 표시
       const sAge = performance.now() / 1000 - speedToastAt;
       if (sAge < 1) {
         g.globalAlpha = sAge < 0.7 ? 1 : (1 - sAge) / 0.3;
         g.textAlign = "center";
         g.textBaseline = "middle";
-        g.fillStyle = "rgba(0,0,0,0.55)";
-        roundRectFill(g, W / 2 - 70, H * 0.22 - 18, 140, 36, 18);
+        g.fillStyle = "rgba(0,0,0,0.6)";
+        roundRectFill(g, W / 2 - 80, H * 0.16 - 20, 160, 40, 20);
         g.fillStyle = "#fff";
-        g.font = "800 16px ui-monospace, SFMono-Regular, Menlo, monospace";
-        g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.22);
+        g.font = `800 17px ${mono}`;
+        g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.16);
         g.globalAlpha = 1;
       }
       drawCountdown(g, cd, t + leadIn, W, H);
@@ -903,6 +1088,7 @@ export default function Stage({
       else clockBase += (audioT - perfT - clockBase) * 0.05;
       return perfT + clockBase;
     };
+    let prevCombo = 0;
     const frame = () => {
       if (!running) return;
       const t = smoothNow();
@@ -911,7 +1097,7 @@ export default function Stage({
         lastJudge = e;
         if (e.tick) {
           // 롱노트 콤보 틱: 작은 불꽃만
-          spawnSparks(e.lane, e.at, 4, laneColor(e.lane), 300, W / 4, H - 92);
+          spawnSparks(e.lane, e.at, 4, laneColor(e.lane), 300, W / 4, judgeY);
           comboAt = e.at;
           continue;
         }
@@ -931,14 +1117,25 @@ export default function Stage({
             big ? laneColor(e.lane) : JUDGE_STYLE[e.judge].color,
             big ? 520 : 380,
             laneW,
-            H - 92
+            judgeY
           );
           // 노트가 깨져 흩어지는 조각
-          spawnShards(e.lane, e.at, laneColor(e.lane), laneW, H - 92);
+          spawnShards(e.lane, e.at, laneColor(e.lane), laneW, judgeY);
           comboAt = e.at;
         }
       }
       engine.events.length = 0;
+      // 50콤보마다 링 + 효과음, 20콤보 넘게 이어지다 끊기면 깨지는 소리
+      const cc = engine.combo;
+      if (cc > prevCombo && Math.floor(cc / 50) > Math.floor(prevCombo / 50)) {
+        ringAt = t;
+        sfx("combo-milestone", 0.55);
+      } else if (cc < prevCombo && prevCombo >= 20) {
+        breakAt = t;
+        breakFrom = prevCombo;
+        sfx("combo-break", 0.6);
+      }
+      prevCombo = cc;
       if (engine.dead) return fail(t);
       draw(t);
       if (engine.done && t > Math.max(engine.lastTime + 1.2, songEnd)) return finish();
@@ -959,12 +1156,13 @@ export default function Stage({
         musicGain.gain.setValueAtTime(musicGain.gain.value, a);
         musicGain.gain.linearRampToValueAtTime(0, a + 1.2);
       } catch {}
+      sfx("fail", 0.8);
       const t0 = performance.now();
       const tick = () => {
         if (!failing) return;
         const el = (performance.now() - t0) / 1000;
         draw(tFail);
-        drawFailed(g, el, gx, W, H);
+        drawFailed(g, el, failImg);
         if (el >= 2.6) {
           failing = false;
           finish(true);
@@ -1135,7 +1333,7 @@ export default function Stage({
     };
     const laneAt = (clientX: number) => {
       const r = canvas.getBoundingClientRect();
-      const x = ((clientX - r.left) / r.width) * CW - gx; // 기어 기준 위치
+      const x = ((clientX - r.left) / r.width) * LW - gx; // 레인 기준 위치
       return Math.max(0, Math.min(3, Math.floor((x / W) * 4)));
     };
     const onPointerDown = (e: PointerEvent) => {
@@ -1154,19 +1352,8 @@ export default function Stage({
     const onVisibility = () => {
       if (document.hidden) pause();
     };
-    // 전체화면이 풀리면(안드로이드 뒤로가기는 먼저 전체화면을 끔) 일시정지, 크기는 다시 계산
+    // 전체화면이 풀리면(안드로이드 뒤로가기는 먼저 전체화면을 끔) 일시정지
     const onFullscreen = () => {
-      const fsNow = document.fullscreenElement === wrap;
-      setIsFs(fsNow);
-      // 전체화면에선 Esc를 게임이 받게(일시정지) — 키보드 잠금이 되는 브라우저(크롬·엣지)만, 나머지는 Esc가 전체화면을 끔
-      const kb = (
-        navigator as Navigator & {
-          keyboard?: { lock?: (k: string[]) => Promise<void>; unlock?: () => void };
-        }
-      ).keyboard;
-      if (fsNow) kb?.lock?.(["Escape"]).catch(() => {});
-      else kb?.unlock?.();
-      resize();
       if (!document.fullscreenElement && (running || resuming)) pause();
     };
     // 모바일 뒤로가기: 플레이 중이면 일시정지(기록을 다시 쌓아 다음 뒤로가기도 잡음), 일시정지 중이면 곡 선택으로.
@@ -1189,11 +1376,6 @@ export default function Stage({
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("popstate", onPop);
     document.addEventListener("fullscreenchange", onFullscreen);
-    enterFullscreen(wrap);
-    // 상단 고정 헤더에 가리지 않게 아래쪽에 맞추고, 레인 위에 뜨는 플로팅 메뉴는 잠깐 숨김
-    wrap.scrollIntoView({ block: "end", behavior: "smooth" });
-    const quickMenu = document.querySelector<HTMLElement>("[data-quickmenu]");
-    if (quickMenu) quickMenu.style.display = "none";
 
     return () => {
       running = false;
@@ -1213,8 +1395,7 @@ export default function Stage({
         src.disconnect();
       }
       if (ctx.state === "suspended") ctx.resume();
-      if (quickMenu) quickMenu.style.display = "";
-      window.removeEventListener("resize", resize);
+      ro.disconnect();
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       canvas.removeEventListener("pointerdown", onPointerDown);
@@ -1224,123 +1405,102 @@ export default function Stage({
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("popstate", onPop);
       document.removeEventListener("fullscreenchange", onFullscreen);
-      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     };
     // 한 판 동안 설정은 고정 (재시작은 부모가 key를 바꿔 새로 마운트)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const btn =
-    "cursor-pointer rounded-full border border-white/15 px-5 py-2 whitespace-nowrap font-mono text-sm text-white/80 transition-colors hover:border-[#6C63FF]/60 hover:text-white";
+  const pbtn =
+    "cursor-pointer rounded-[0.8cqw] border border-white/15 bg-white/5 px-[1.6cqw] py-[0.7cqw] font-mono text-[1.3cqw] whitespace-nowrap text-white/85 transition-colors hover:border-[#A78BFA] hover:bg-[#A78BFA]/15 hover:text-white";
+  const rk = rankOf(pauseStats.acc);
 
   return (
-    <div
-      ref={wrapRef}
-      className={`relative flex w-full flex-col items-center ${isFs ? "justify-center bg-[#08090D]" : ""}`}
-    >
-      <canvas
-        ref={canvasRef}
-        className="touch-none rounded-xl border border-white/10 select-none"
-      />
-      <button
-        type="button"
-        onClick={() => ctrl.current.pause()}
-        className="absolute top-8 left-1/2 -translate-x-1/2 cursor-pointer rounded-full bg-white/5 px-3 py-1 font-mono text-[11px] text-white/45 hover:text-white"
-      >
-        II 일시정지 (Esc)
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          const el = wrapRef.current;
-          if (!el) return;
-          if (document.fullscreenElement) {
-            setPcWantsFs(false);
-            document.exitFullscreen().catch(() => {});
-          } else {
-            setPcWantsFs(true);
-            enterFullscreen(el, true);
-          }
-        }}
-        title={isFs ? "전체화면 끄기" : "전체화면 (다음 판도 전체화면으로 시작)"}
-        className="absolute top-8 right-4 cursor-pointer rounded-full bg-white/5 px-3 py-1 font-mono text-[11px] text-white/45 hover:text-white"
-      >
-        {isFs ? "✕ 전체화면 끄기" : "⛶ 전체화면"}
-      </button>
+    <div ref={wrapRef} className="absolute inset-0 overflow-hidden">
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none select-none" />
+      <div className="absolute top-[1.2cqw] right-[1.2cqw] z-10 flex gap-[0.6cqw]">
+        <button
+          type="button"
+          onClick={() => ctrl.current.pause()}
+          className="cursor-pointer rounded-[0.6cqw] bg-black/55 px-[0.9cqw] py-[0.35cqw] font-mono text-[1.1cqw] text-white/70 hover:bg-white/20 hover:text-white"
+        >
+          II 일시정지 (Esc)
+        </button>
+        <button
+          type="button"
+          onClick={onToggleFs}
+          title={fs ? "전체화면 끄기" : "전체화면"}
+          className="cursor-pointer rounded-[0.6cqw] bg-black/55 px-[0.9cqw] py-[0.35cqw] font-mono text-[1.1cqw] text-white/70 hover:bg-white/20 hover:text-white"
+        >
+          {fs ? "✕" : "⛶"}
+        </button>
+      </div>
       {paused && (
-        <div className="absolute inset-0 flex items-center justify-center overflow-y-auto rounded-xl bg-black/75 p-4 backdrop-blur-sm">
-          <div className="flex w-full max-w-sm flex-col items-center gap-2.5">
-            <p className="font-mono text-lg font-bold text-white">일시정지</p>
-            {true && (
-              <div className="mb-1 flex items-center gap-4 rounded-xl border border-white/10 bg-[#1C1E24]/90 px-4 py-2 font-mono">
-                <span
-                  className="text-3xl font-black"
-                  style={{ color: rankColorOf(rankOf(pauseStats.acc)) }}
-                >
-                  {rankOf(pauseStats.acc)}
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#05030f]/80 backdrop-blur-[3px] [animation:modal-fade_200ms_ease-out]">
+          <div className="flex w-[52cqw] flex-col items-center gap-[1cqw]">
+            <p className="font-['Arial_Black',sans-serif] text-[3.4cqw] font-black tracking-[0.2em] text-white italic drop-shadow-[0_0_1.2cqw_#A78BFA]">
+              PAUSE
+            </p>
+            <div className="flex w-full items-center gap-[1.6cqw] rounded-[1cqw] border border-white/10 bg-white/[0.04] px-[1.6cqw] py-[0.9cqw] font-mono">
+              <RankEmblem rank={rk} className="h-[5.6cqw] w-[5.6cqw]" />
+              <div className="flex min-w-0 flex-col text-[1.1cqw] text-white/55">
+                <span className="text-[2.2cqw] font-black text-white tabular-nums">
+                  {pauseStats.score.toLocaleString("en-US")}
                 </span>
-                <span className="flex flex-col text-xs text-white/55">
-                  <span className="text-base font-bold text-white tabular-nums">
-                    {pauseStats.score.toLocaleString("en-US")}
-                  </span>
-                  <span>
-                    정확도 {pauseStats.acc.toFixed(2)}% · 최대 콤보 {pauseStats.combo}
-                  </span>
+                <span>
+                  정확도 {pauseStats.acc.toFixed(2)}% · 최대 콤보 {pauseStats.combo}
                 </span>
               </div>
-            )}
-            {true && (
-              <div className="mb-1 flex flex-col items-center gap-1.5 font-mono text-xs text-white/50">
-                {autoSync ? (
-                  <p className="text-center leading-relaxed">
-                    <span className="text-[#A78BFA]">자동 싱크 켜짐</span> · 치는 동안 알아서 맞춰요
-                    {pauseTiming.avgMs !== null && (
-                      <>
-                        {" "}
-                        · 남은 쏠림{" "}
-                        <b className="text-white">
-                          {pauseTiming.avgMs > 0 ? "+" : ""}
-                          {pauseTiming.avgMs}ms
-                        </b>
-                      </>
-                    )}
-                  </p>
-                ) : pauseTiming.applied !== undefined ? (
-                  <p>
-                    타격 싱크를{" "}
-                    <b className="text-white">
-                      {pauseTiming.applied > 0 ? "+" : ""}
-                      {pauseTiming.applied}ms
-                    </b>
-                    로 맞췄어요. 이후 입력부터 다시 재요.
-                  </p>
-                ) : pauseTiming.avgMs === null ? (
-                  <p>타이밍 기록이 아직 적어요 (10개부터)</p>
-                ) : (
-                  <>
-                    <p>
-                      지금까지 평균{" "}
-                      <b className={pauseTiming.avgMs === 0 ? "text-white" : "text-[#FBBF24]"}>
+            </div>
+            <div className="flex flex-col items-center gap-[0.5cqw] font-mono text-[1.1cqw] text-white/55">
+              {autoSync ? (
+                <p className="text-center">
+                  <span className="text-[#A78BFA]">자동 싱크 켜짐</span> · 치는 동안 알아서 맞춰요
+                  {pauseTiming.avgMs !== null && (
+                    <>
+                      {" "}
+                      · 남은 쏠림{" "}
+                      <b className="text-white">
                         {pauseTiming.avgMs > 0 ? "+" : ""}
-                        {pauseTiming.avgMs}ms{" "}
-                        {pauseTiming.avgMs > 0 ? "늦음" : pauseTiming.avgMs < 0 ? "빠름" : "정확"}
-                      </b>{" "}
-                      · 입력 {pauseTiming.n}개
-                    </p>
-                    {pauseTiming.avgMs !== 0 && (
-                      <button
-                        type="button"
-                        onClick={applyPauseSync}
-                        className="cursor-pointer rounded-full bg-[#6C63FF] px-3.5 py-1 font-mono text-xs font-bold text-white hover:bg-[#5b52f0]"
-                      >
-                        타격 싱크에 적용
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-            <div className="w-full rounded-xl border border-white/10 bg-[#1C1E24]/90 p-3.5">
+                        {pauseTiming.avgMs}ms
+                      </b>
+                    </>
+                  )}
+                </p>
+              ) : pauseTiming.applied !== undefined ? (
+                <p>
+                  타격 싱크를{" "}
+                  <b className="text-white">
+                    {pauseTiming.applied > 0 ? "+" : ""}
+                    {pauseTiming.applied}ms
+                  </b>
+                  로 맞췄어요. 이후 입력부터 다시 재요.
+                </p>
+              ) : pauseTiming.avgMs === null ? (
+                <p>타이밍 기록이 아직 적어요 (10개부터)</p>
+              ) : (
+                <>
+                  <p>
+                    지금까지 평균{" "}
+                    <b className={pauseTiming.avgMs === 0 ? "text-white" : "text-[#FBBF24]"}>
+                      {pauseTiming.avgMs > 0 ? "+" : ""}
+                      {pauseTiming.avgMs}ms{" "}
+                      {pauseTiming.avgMs > 0 ? "늦음" : pauseTiming.avgMs < 0 ? "빠름" : "정확"}
+                    </b>{" "}
+                    · 입력 {pauseTiming.n}개
+                  </p>
+                  {pauseTiming.avgMs !== 0 && (
+                    <button
+                      type="button"
+                      onClick={applyPauseSync}
+                      className="cursor-pointer rounded-full bg-[#6C63FF] px-[1.2cqw] py-[0.3cqw] font-bold text-white hover:bg-[#5b52f0]"
+                    >
+                      타격 싱크에 적용
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="w-full rounded-[1cqw] border border-white/10 bg-white/[0.04] px-[1.4cqw] py-[0.8cqw]">
               <PauseRow
                 label="노트 속도"
                 value={`x${liveUi.speed.toFixed(1)}`}
@@ -1372,38 +1532,21 @@ export default function Stage({
                 onChange={(v) => change({ hit: v })}
               />
             </div>
-            <div className="mt-1 flex flex-wrap justify-center gap-2">
+            <div className="mt-[0.4cqw] flex justify-center gap-[0.8cqw]">
               <button
                 type="button"
-                className={btn}
-                onClick={() => {
-                  if (wrapRef.current) enterFullscreen(wrapRef.current);
-                  ctrl.current.resume();
-                }}
+                className={`${pbtn} border-[#A78BFA]/60 bg-[#A78BFA]/20`}
+                onClick={() => ctrl.current.resume()}
               >
                 계속하기 (Esc)
               </button>
-              <button type="button" className={btn} onClick={onRestart}>
+              <button type="button" className={pbtn} onClick={onRestart}>
                 처음부터
               </button>
-              <button
-                type="button"
-                className={btn}
-                onClick={() => {
-                  const el = wrapRef.current;
-                  if (!el) return;
-                  if (document.fullscreenElement) {
-                    setPcWantsFs(false);
-                    document.exitFullscreen().catch(() => {});
-                  } else {
-                    setPcWantsFs(true);
-                    enterFullscreen(el, true);
-                  }
-                }}
-              >
-                {isFs ? "전체화면 끄기" : "⛶ 전체화면"}
+              <button type="button" className={pbtn} onClick={onToggleFs}>
+                {fs ? "전체화면 끄기" : "⛶ 전체화면"}
               </button>
-              <button type="button" className={btn} onClick={onQuit}>
+              <button type="button" className={pbtn} onClick={onQuit}>
                 곡 선택으로
               </button>
             </div>
@@ -1413,6 +1556,68 @@ export default function Stage({
     </div>
   );
 }
+
+/** 랭크 엠블럼 그림 (S+ S A B C F) */
+export const rankImg = (rank: string) =>
+  `/rhythm/rank-${rank === "S+" ? "splus" : rank === "D" ? "f" : rank.toLowerCase()}.webp`;
+export function RankEmblem({ rank, className = "" }: { rank: string; className?: string }) {
+  return (
+    <img
+      src={rankImg(rank)}
+      alt={rank}
+      draggable={false}
+      className={`object-contain ${className}`}
+    />
+  );
+}
+
+/** 곡 색이 붉은·분홍 계열인지 (플레이 배경 고르기) */
+function warm(hex: string) {
+  const n = parseInt(hex.replace("#", "").slice(0, 6), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === min) return false;
+  let h =
+    max === r
+      ? ((g - b) / (max - min)) % 6
+      : max === g
+        ? (b - r) / (max - min) + 2
+        : (r - g) / (max - min) + 4;
+  h = (h * 60 + 360) % 360;
+  return h >= 270 || h < 50;
+}
+
+/** 정보판 유리 판 */
+function glass(
+  b: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  accent: string
+) {
+  b.save();
+  b.fillStyle = "rgba(6,7,20,0.62)";
+  b.beginPath();
+  b.roundRect(x, y, w, h, 16);
+  b.fill();
+  const edge = b.createLinearGradient(x, y, x + w, y + h);
+  edge.addColorStop(0, `${accent}aa`);
+  edge.addColorStop(0.5, "rgba(255,255,255,0.12)");
+  edge.addColorStop(1, `${accent}55`);
+  b.strokeStyle = edge;
+  b.lineWidth = 1.5;
+  b.stroke();
+  b.fillStyle = accent;
+  b.fillRect(x + 20, y, 60, 3);
+  b.restore();
+}
+
+const fmtTime = (s: number) =>
+  `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 /** 0~1 투명도 → "#rrggbb" 뒤에 붙일 두 자리 16진수 */
 const hex2 = (a: number) =>
@@ -1542,7 +1747,7 @@ function roundRectFill(
 }
 
 const stepBtn =
-  "h-7 w-7 shrink-0 cursor-pointer rounded-full border border-white/15 font-mono text-sm text-white/70 hover:border-[#6C63FF]/60 hover:text-white";
+  "h-[2.2cqw] w-[2.2cqw] shrink-0 cursor-pointer rounded-full border border-white/15 font-mono text-[1.2cqw] text-white/70 hover:border-[#A78BFA] hover:text-white disabled:opacity-30";
 
 /** 일시정지 화면: − 값 + (꾹 누르면 연속) */
 function PauseRow({
@@ -1559,13 +1764,13 @@ function PauseRow({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="w-20 shrink-0 font-mono text-xs text-white/55">{label}</span>
+    <div className="flex items-center gap-[0.8cqw] py-[0.3cqw]">
+      <span className="w-[8cqw] shrink-0 font-mono text-[1.1cqw] text-white/55">{label}</span>
       <HoldButton className={stepBtn} onStep={onMinus} disabled={disabled}>
         −
       </HoldButton>
       <span
-        className={`flex-1 text-center font-mono text-sm ${disabled ? "text-white/50" : "text-white"}`}
+        className={`flex-1 text-center font-mono text-[1.3cqw] ${disabled ? "text-white/50" : "text-white"}`}
       >
         {value}
       </span>
@@ -1586,8 +1791,8 @@ function PauseSlider({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="w-20 shrink-0 font-mono text-xs text-white/55">{label}</span>
+    <div className="flex items-center gap-[0.8cqw] py-[0.3cqw]">
+      <span className="w-[8cqw] shrink-0 font-mono text-[1.1cqw] text-white/55">{label}</span>
       <input
         type="range"
         min={0}
@@ -1597,48 +1802,48 @@ function PauseSlider({
         onChange={(e) => onChange(Number(e.target.value))}
         className="min-w-0 flex-1 accent-[#6C63FF]"
       />
-      <span className="w-9 text-right font-mono text-xs text-white">
+      <span className="w-[3.4cqw] text-right font-mono text-[1.1cqw] text-white">
         {value === 0 ? "끔" : Math.round(value * 100)}
       </span>
     </div>
   );
 }
 
-/** HP가 바닥났을 때: 화면이 붉게 어두워지고 FAILED가 쾅 */
-function drawFailed(g: CanvasRenderingContext2D, el: number, gx: number, W: number, H: number) {
-  const CWd = gx * 2 + W;
+/** HP가 바닥났을 때: 화면이 붉게 어두워지고 FAILED 배너가 쾅 */
+function drawFailed(g: CanvasRenderingContext2D, el: number, img: HTMLImageElement) {
   g.save();
-  // 흑백처럼 어둡게 + 붉은 기
   g.globalAlpha = Math.min(1, el / 0.5) * 0.7;
   g.fillStyle = "#12020a";
-  g.fillRect(0, 0, CWd, H);
-  // 친 순간 붉은 번쩍임
+  g.fillRect(0, 0, LW, LH);
   if (el < 0.25) {
     g.globalAlpha = (1 - el / 0.25) * 0.5;
     g.fillStyle = "#F43F5E";
-    g.fillRect(0, 0, CWd, H);
+    g.fillRect(0, 0, LW, LH);
   }
   const p = Math.min(1, Math.max(0, (el - 0.35) / 0.25));
   if (p > 0) {
-    const sc = 2.4 - 1.4 * easeOutBack(p);
-    const shake = el < 0.9 ? Math.sin(el * 70) * 6 * (1 - (el - 0.35) / 0.55) : 0;
+    const sc = 2.2 - 1.2 * easeOutBack(p);
+    const shake = el < 0.9 ? Math.sin(el * 70) * 8 * (1 - (el - 0.35) / 0.55) : 0;
     g.globalAlpha = Math.min(1, p * 1.5);
-    g.translate(CWd / 2 + shake, H * 0.42);
+    g.translate(LW / 2 + shake, LH * 0.42);
     g.scale(sc, sc);
-    g.font = "900 64px ui-monospace, SFMono-Regular, Menlo, monospace";
+    if (ready(img)) {
+      const w = 620;
+      const h = (w * img.naturalHeight) / img.naturalWidth;
+      g.drawImage(img, -w / 2, -h / 2, w, h);
+    } else {
+      g.font = "900 64px ui-monospace, monospace";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillStyle = "#F43F5E";
+      g.fillText("FAILED", 0, 0);
+    }
+    g.globalAlpha = Math.min(1, Math.max(0, (el - 0.8) / 0.3));
+    g.font = "700 18px ui-monospace, monospace";
     g.textAlign = "center";
     g.textBaseline = "middle";
-    g.shadowColor = "#F43F5E";
-    g.shadowBlur = 30;
-    g.fillStyle = "#F43F5E";
-    g.fillText("FAILED", 0, 0);
-    g.shadowBlur = 0;
-    g.fillStyle = "#FFE4E6";
-    g.fillText("FAILED", 0, 0);
-    g.globalAlpha = Math.min(1, Math.max(0, (el - 0.8) / 0.3));
-    g.font = "700 14px ui-monospace, monospace";
-    g.fillStyle = "rgba(255,255,255,0.7)";
-    g.fillText("HP가 바닥났어요", 0, 52);
+    g.fillStyle = "rgba(255,255,255,0.75)";
+    g.fillText("HP가 바닥났어요", 0, 150);
   }
   g.restore();
 }

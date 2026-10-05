@@ -12,10 +12,21 @@ import type { Result } from "./Stage";
 
 const NAME_KEY = "rhythm_name";
 
-function List({ list, highlight }: { list: RhythmRanking[]; highlight?: string | null }) {
+function List({
+  list,
+  highlight,
+  game = false,
+}: {
+  list: RhythmRanking[];
+  highlight?: string | null;
+  /** 게임 화면 안(결과 화면): 글자 크기를 화면 폭에 맞춤 */
+  game?: boolean;
+}) {
   if (!list.length)
     return (
-      <p className="py-6 text-center font-mono text-xs text-white/30">
+      <p
+        className={`text-center font-mono text-white/30 ${game ? "py-[2cqw] text-[1.1cqw]" : "py-6 text-xs"}`}
+      >
         아직 기록이 없어요. 첫 번째가 되어보세요.
       </p>
     );
@@ -24,9 +35,11 @@ function List({ list, highlight }: { list: RhythmRanking[]; highlight?: string |
       {list.map((r, i) => (
         <li
           key={r.id}
-          className={`flex items-center gap-3 px-1 py-1.5 font-mono text-xs ${
-            r.id === highlight ? "rounded-md bg-[#6C63FF]/20" : ""
-          }`}
+          className={`flex items-center font-mono ${
+            game
+              ? "gap-[0.9cqw] px-[0.4cqw] py-[0.45cqw] text-[1.05cqw]"
+              : "gap-3 px-1 py-1.5 text-xs"
+          } ${r.id === highlight ? "rounded-md bg-[#6C63FF]/20" : ""}`}
         >
           <span
             className={`w-5 text-right ${i === 0 ? "text-[#FDE047]" : i < 3 ? "text-white/80" : "text-white/35"}`}
@@ -37,15 +50,21 @@ function List({ list, highlight }: { list: RhythmRanking[]; highlight?: string |
             {r.name}
           </span>
           {r.ap ? (
-            <span className="text-[10px] text-[#7DF9FF]">AP</span>
+            <span className={`${game ? "text-[0.85cqw]" : "text-[10px]"} text-[#7DF9FF]`}>AP</span>
           ) : r.fc ? (
-            <span className="text-[10px] text-[#4ADE80]">FC</span>
+            <span className={`${game ? "text-[0.85cqw]" : "text-[10px]"} text-[#4ADE80]`}>FC</span>
           ) : null}
-          <span className="w-14 text-right text-white/40">{r.acc.toFixed(2)}%</span>
-          <span className="w-20 text-right text-white">{r.score.toLocaleString("en-US")}</span>
-          <span className="hidden w-[3.75rem] text-right text-[11px] text-white/30 tabular-nums sm:inline">
-            {rankDateLabel(r.createdAt)}
+          <span className={`${game ? "w-[5.4cqw]" : "w-14"} text-right text-white/40`}>
+            {r.acc.toFixed(2)}%
           </span>
+          <span className={`${game ? "w-[6.6cqw]" : "w-20"} text-right text-white`}>
+            {r.score.toLocaleString("en-US")}
+          </span>
+          {!game && (
+            <span className="hidden w-[3.75rem] text-right text-[11px] text-white/30 tabular-nums sm:inline">
+              {rankDateLabel(r.createdAt)}
+            </span>
+          )}
         </li>
       ))}
     </ol>
@@ -104,7 +123,16 @@ export function RankingBoard({
 }
 
 /** 결과 화면: 이름 넣고 등록 + TOP 10 */
-export function SubmitRanking({ result, label }: { result: Result; label: string }) {
+export function SubmitRanking({
+  result,
+  label,
+  game = false,
+}: {
+  result: Result;
+  label: string;
+  /** 게임 화면(결과) 안에 맞춘 모양 */
+  game?: boolean;
+}) {
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "done" | "error">("idle");
   const [myId, setMyId] = useState<string | null>(null);
@@ -144,6 +172,64 @@ export function SubmitRanking({ result, label }: { result: Result; label: string
   };
 
   const myRank = top && myId ? top.list.findIndex((r) => r.id === myId) : -1;
+
+  if (game)
+    return (
+      <div className="flex h-full flex-col rounded-[0.9cqw] border border-white/10 bg-black/45 px-[1.4cqw] py-[1.1cqw]">
+        <div className="flex items-baseline justify-between gap-[1cqw]">
+          <span className="font-['Arial_Black','Segoe_UI_Black',sans-serif] text-[1.5cqw] font-black tracking-[0.12em] text-white italic">
+            RANKING
+          </span>
+          <span className="truncate font-mono text-[0.95cqw] text-white/40">{label} TOP 10</span>
+        </div>
+        {status === "done" ? (
+          <p className="mt-[0.8cqw] rounded-[0.6cqw] bg-[#A78BFA]/15 px-[1cqw] py-[0.6cqw] text-center font-mono text-[1.1cqw] text-white/80">
+            등록 완료{myRank >= 0 ? ` · ${myRank + 1}위` : top ? " · TOP 10 밖" : ""}
+          </p>
+        ) : (
+          <form
+            className="mt-[0.8cqw] flex gap-[0.6cqw]"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, RHYTHM_NAME_MAX))}
+              placeholder="이름을 넣고 기록 등록"
+              maxLength={RHYTHM_NAME_MAX}
+              className="min-w-0 flex-1 rounded-[0.6cqw] border border-white/15 bg-black/40 px-[1cqw] py-[0.55cqw] font-['Nanum_Gothic',sans-serif] text-[1.2cqw] text-white placeholder:text-white/30 focus:border-[#A78BFA] focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!name.trim() || status === "saving"}
+              className="shrink-0 cursor-pointer rounded-[0.6cqw] bg-[linear-gradient(90deg,#7c3aed,#db2777)] px-[1.4cqw] font-['Nanum_Gothic',sans-serif] text-[1.2cqw] font-bold text-white hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {status === "saving" ? "등록 중…" : "등록"}
+            </button>
+          </form>
+        )}
+        {status === "error" && (
+          <p className="mt-[0.4cqw] font-mono text-[1cqw] text-red-300/80">
+            등록하지 못했어요. 잠시 후 다시 시도해주세요.
+          </p>
+        )}
+        <div className="mt-[0.8cqw] min-h-0 flex-1 overflow-y-auto border-t border-white/10 pt-[0.4cqw] [scrollbar-width:thin]">
+          {!top ? (
+            <p className="py-[2cqw] text-center font-mono text-[1.1cqw] text-white/30">
+              불러오는 중…
+            </p>
+          ) : top.error ? (
+            <p className="py-[2cqw] text-center font-mono text-[1.1cqw] text-red-300/80">
+              랭킹을 불러오지 못했어요.
+            </p>
+          ) : (
+            <List list={top.list} highlight={myId} game />
+          )}
+        </div>
+      </div>
+    );
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[#1C1E24] p-5">

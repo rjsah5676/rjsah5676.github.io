@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { analyzeAudio, displayBpm, rescaleTempo, type Analysis } from "@/lib/rhythm/analyze";
-import { DIFFICULTIES, type Chart, type Difficulty } from "@/lib/rhythm/chart";
 
 /** 사용자가 넣은 곡 (메모리에만 — 새로고침하면 다시 골라야 함) */
 export interface CustomTrack {
@@ -10,41 +9,29 @@ export interface CustomTrack {
   name: string;
   buffer: AudioBuffer;
   analysis: Analysis;
-  /** 곡별 채보 보정(ms, +면 노트가 늦게) — 이 브라우저에 곡별로 저장 */
 }
 
 const MAX_BYTES = 40 * 1024 * 1024;
 const MAX_SEC = 12 * 60;
-
-const btn =
-  "cursor-pointer rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs whitespace-nowrap text-white/70 transition-colors hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const hashOf = (s: string) =>
   ([...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0).toString(
     36
   );
+const KR = "font-['Nanum_Gothic',sans-serif]";
+const mini =
+  "cursor-pointer rounded-[0.4cqw] border border-white/15 px-[0.6cqw] py-[0.1cqw] font-mono text-[1cqw] text-white/70 hover:border-[#22D3EE] hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
 
+/** 곡 선택 화면 왼쪽: 내 음악 파일 넣기 → 분석 → 곡 정보 */
 export default function CustomMusic({
   track,
   onTrack,
-  charts,
-  diff,
-  onDiff,
-  best,
   getCtx,
-  onStart,
-  starting,
 }: {
   track: CustomTrack | null;
   onTrack: (t: CustomTrack | null) => void;
-  charts: Record<Difficulty, Chart> | null;
-  diff: Difficulty;
-  onDiff: (d: Difficulty) => void;
-  best: Record<string, { score: number; rank: string; fc: boolean; ap: boolean }>;
   getCtx: () => Promise<AudioContext>;
-  onStart: () => void;
-  starting: boolean;
 }) {
   const [busy, setBusy] = useState<{ ratio: number; label: string } | null>(null);
   const [err, setErr] = useState("");
@@ -64,12 +51,7 @@ export default function CustomMusic({
       if (analysis.onsets.length < 20)
         throw new Error("박자를 찾지 못했어요. 다른 곡으로 해보세요.");
       const key = hashOf(`${file.name}:${file.size}:${buffer.duration.toFixed(2)}`);
-      onTrack({
-        key,
-        name: file.name.replace(/\.[^.]+$/, ""),
-        buffer,
-        analysis,
-      });
+      onTrack({ key, name: file.name.replace(/\.[^.]+$/, ""), buffer, analysis });
     } catch (e) {
       console.error(e);
       setErr(
@@ -81,11 +63,23 @@ export default function CustomMusic({
       setBusy(null);
     }
   };
+  const input = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept="audio/*,.mp3,.wav,.ogg,.m4a"
+      className="hidden"
+      onChange={(e) => {
+        const f = e.target.files?.[0];
+        e.target.value = "";
+        if (f) load(f);
+      }}
+    />
+  );
 
-  // ───────── 파일 고르기 전 ─────────
-  if (!track) {
+  if (!track)
     return (
-      <div>
+      <div className="flex h-full flex-col gap-[1cqw]">
         <div
           role="button"
           tabIndex={0}
@@ -102,152 +96,75 @@ export default function CustomMusic({
             const f = e.dataTransfer.files[0];
             if (f && !busy) load(f);
           }}
-          className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors ${
+          className={`flex flex-1 cursor-pointer flex-col items-center justify-center gap-[1cqw] rounded-[1cqw] border-[0.2cqw] border-dashed px-[2cqw] text-center transition-colors ${
             drag
-              ? "border-[#6C63FF] bg-[#6C63FF]/10"
-              : "border-white/15 bg-[#1C1E24] hover:border-white/30"
+              ? "border-[#22D3EE] bg-[#22D3EE]/10"
+              : "border-white/20 bg-black/35 hover:border-white/40"
           }`}
         >
           {busy ? (
             <>
-              <p className="font-['Nanum_Gothic',sans-serif] text-sm text-white/80">
-                {busy.label}…
-              </p>
-              <div className="h-1.5 w-60 max-w-full overflow-hidden rounded-full bg-white/10">
+              <p className={`${KR} text-[1.4cqw] text-white/85`}>{busy.label}…</p>
+              <div className="h-[0.5cqw] w-[24cqw] overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full bg-gradient-to-r from-[#6C63FF] to-[#2dd4bf] transition-[width]"
+                  className="h-full bg-gradient-to-r from-[#22D3EE] to-[#A78BFA] transition-[width]"
                   style={{ width: `${Math.round(busy.ratio * 100)}%` }}
                 />
               </div>
             </>
           ) : (
             <>
-              <span className="text-3xl">🎵</span>
-              <p className="font-['Nanum_Gothic',sans-serif] text-sm text-white/85">
+              <span className="text-[4cqw]">🎵</span>
+              <p className={`${KR} text-[1.5cqw] font-bold text-white/90`}>
                 음악 파일을 끌어다 놓거나 눌러서 고르세요
               </p>
-              <p className="font-mono text-[11px] text-white/35">
+              <p className="font-mono text-[1.05cqw] text-white/40">
                 mp3 · wav · ogg · m4a · 12분 이하
               </p>
             </>
           )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept="audio/*,.mp3,.wav,.ogg,.m4a"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (f) load(f);
-            }}
-          />
+          {input}
         </div>
-        {err && <p className="mt-2 text-center font-mono text-xs text-red-300">{err}</p>}
-        <ul className="mt-4 space-y-1 font-['Nanum_Gothic',sans-serif] text-xs leading-relaxed text-white/40">
-          <li>• 파일은 서버로 올라가지 않아요. 이 브라우저 안에서만 분석하고 재생합니다.</li>
-          <li>• 드럼 소리와 박자를 분석해서 쉬움~나이트메어 5단계 채보를 자동으로 만들어요.</li>
-          <li>• 직접 넣은 곡은 랭킹에 올라가지 않고, 최고 기록만 이 브라우저에 남아요.</li>
+        {err && <p className="text-center font-mono text-[1.1cqw] text-red-300">{err}</p>}
+        <ul className={`${KR} space-y-[0.2cqw] text-[1.05cqw] leading-relaxed text-white/45`}>
+          <li>• 파일은 서버로 올라가지 않아요. 이 브라우저 안에서만 분석하고 재생해요.</li>
+          <li>• 드럼과 박자를 분석해서 쉬움~나이트메어 채보를 자동으로 만들어요.</li>
+          <li>• 직접 넣은 곡은 랭킹에 올라가지 않아요.</li>
         </ul>
       </div>
     );
-  }
 
-  // ───────── 분석 끝 ─────────
   const a = track.analysis;
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#1C1E24] p-4">
-        <div className="min-w-0">
-          <p className="truncate font-['Nanum_Gothic',sans-serif] text-base font-bold text-white">
-            🎵 {track.name}
-          </p>
-          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-white/45">
-            <span>{fmt(a.duration)}</span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-white/80">{displayBpm(a).toFixed(1)} BPM</span>
-              <button
-                type="button"
-                className="cursor-pointer rounded border border-white/15 px-1.5 text-[10px] hover:border-[#6C63FF]/60 hover:text-white"
-                title="박이 너무 느리게 잡혔으면"
-                onClick={() => onTrack({ ...track, analysis: rescaleTempo(a, 2) })}
-                disabled={a.bpm * 2 > 260}
-              >
-                ×2
-              </button>
-              <button
-                type="button"
-                className="cursor-pointer rounded border border-white/15 px-1.5 text-[10px] hover:border-[#6C63FF]/60 hover:text-white"
-                title="박이 너무 빠르게 잡혔으면"
-                onClick={() => onTrack({ ...track, analysis: rescaleTempo(a, 0.5) })}
-                disabled={a.bpm / 2 < 50}
-              >
-                ÷2
-              </button>
-            </span>
-          </p>
-        </div>
-        <button type="button" className={btn} onClick={() => onTrack(null)}>
+    <div className="flex flex-col gap-[0.6cqw]">
+      <p className={`${KR} truncate text-[2.4cqw] font-extrabold text-white`}>{track.name}</p>
+      <p className="flex flex-wrap items-center gap-x-[1.2cqw] gap-y-[0.4cqw] font-mono text-[1.2cqw] text-white/55">
+        <span>{fmt(a.duration)}</span>
+        <span className="flex items-center gap-[0.5cqw]">
+          <span className="text-white/85">{displayBpm(a).toFixed(1)} BPM</span>
+          <button
+            type="button"
+            className={mini}
+            title="박이 너무 느리게 잡혔으면"
+            onClick={() => onTrack({ ...track, analysis: rescaleTempo(a, 2) })}
+            disabled={a.bpm * 2 > 260}
+          >
+            ×2
+          </button>
+          <button
+            type="button"
+            className={mini}
+            title="박이 너무 빠르게 잡혔으면"
+            onClick={() => onTrack({ ...track, analysis: rescaleTempo(a, 0.5) })}
+            disabled={a.bpm / 2 < 50}
+          >
+            ÷2
+          </button>
+        </span>
+        <button type="button" className={mini} onClick={() => inputRef.current?.click()}>
           다른 파일
         </button>
-      </div>
-
-      {charts && (
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {DIFFICULTIES.map((d) => {
-            const c = charts[d.key];
-            const b = best[`custom:${track.key}:${d.key}`];
-            const on = d.key === diff;
-            return (
-              <button
-                key={d.key}
-                type="button"
-                onClick={() => onDiff(d.key)}
-                className={`cursor-pointer rounded-xl border px-3 py-3 text-left transition-colors ${
-                  on ? "bg-white/[0.07]" : "border-white/10 bg-[#1C1E24] hover:border-white/25"
-                }`}
-                style={on ? { borderColor: d.color } : undefined}
-              >
-                <div className="flex items-baseline justify-between gap-1">
-                  <span
-                    className="font-['Nanum_Gothic',sans-serif] text-sm font-bold"
-                    style={{ color: d.color }}
-                  >
-                    {d.label}
-                  </span>
-                  <span className="font-mono text-xs text-white/60">Lv.{c.level}</span>
-                </div>
-                <div className="mt-1 font-mono text-[11px] text-white/35">
-                  노트 {c.notes.length}
-                </div>
-                <div className="mt-1 h-4 font-mono text-[11px] text-white/60">
-                  {b && (
-                    <>
-                      {b.rank} · {b.score.toLocaleString("en-US")}
-                      {b.ap ? (
-                        <span className="ml-1 text-[#7DF9FF]">AP</span>
-                      ) : b.fc ? (
-                        <span className="ml-1 text-[#4ADE80]">FC</span>
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={onStart}
-        disabled={starting || !charts}
-        className="mt-5 w-full cursor-pointer rounded-full bg-[#22D3EE] py-3 font-mono text-base font-bold text-[#0b0c10] transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
-      >
-        {starting ? "준비 중…" : "시작 (Enter)"}
-      </button>
-      <p className="mt-2 text-center font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-        직접 넣은 곡은 랭킹에 올라가지 않아요
+        {input}
       </p>
     </div>
   );

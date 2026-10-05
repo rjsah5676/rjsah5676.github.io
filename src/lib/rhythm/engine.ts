@@ -227,5 +227,5 @@ export function rankOf(acc: number) {
           ? "B"
           : acc >= 70
             ? "C"
-            : "D";
+            : "F";
 }

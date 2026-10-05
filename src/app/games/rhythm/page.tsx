@@ -12,7 +12,7 @@ export const metadata = pageMeta({
 export default function RhythmPage() {
   return (
     <Faded>
-      <div className="mx-auto max-w-5xl px-4 pt-6 pb-24 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:px-6">
         <RhythmGame />
       </div>
     </Faded>

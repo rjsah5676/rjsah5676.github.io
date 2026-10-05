@@ -253,3 +253,68 @@ body.game-full .quick-menu-fab {
     transform: translateY(-3px);
   }
 }
+
+/* ───── BEAT DASH (리듬게임) ───── */
+@keyframes bd-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes bd-float {
+  50% {
+    transform: translateY(-0.6cqw);
+  }
+}
+@keyframes bd-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
+    filter: brightness(3) blur(6px);
+  }
+}
+@keyframes bd-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(2cqw);
+  }
+}
+@keyframes bd-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(4cqw);
+  }
+}
+@keyframes bd-slam {
+  0% {
+    opacity: 0;
+    transform: scale(2.4) rotate(-6deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.92) rotate(1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+@keyframes bd-sweep {
+  from {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  to {
+    transform: translateX(260%) skewX(-20deg);
+  }
+}
+@keyframes bd-launch {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+}
+@keyframes bd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
