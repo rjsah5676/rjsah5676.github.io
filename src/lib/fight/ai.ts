@@ -301,13 +301,13 @@ export class FightAI {
       if (f.st === "jump" || (f.st === "atk" && f.hit && (f.mv === "J" || f.mv === "K"))) {
         out |= toward;
         // 공중 연속: 약 위주로 이어 치다 마지막은 발차기 (박자: 판정이 맞은 직후에 누름)
-        if (dist < 48 && dy > -25 && dy < 70 && this.r() < 0.35 + L.combo * 0.6)
-          if ((o.floatT > 90 || o.combo >= 6) && f.airK < 2) {
-            // 오래 띄웠으면 ↓ + K 마무리 내려찍기
+        if (dist < 48 && dy > -25 && dy < 70 && this.r() < 0.35 + L.combo * 0.6) {
+          if ((o.floatT > 90 || o.combo >= 6 || (f.airUsed >= 4 && f.airK >= 2)) && f.airS === 0) {
+            // 오래 띄웠거나 다 썼으면 ↓ + K 마무리 내려찍기
             out |= IN.D;
             hitBtn(IN.B);
           } else hitBtn(f.airK >= 2 || (f.airUsed < 3 && f.airK === 0) ? IN.A : IN.B);
-        else if (f.jumps < 2 && f.vh < 0 && dy > 30) press(IN.J);
+        } else if (f.jumps < 2 && f.vh < 0 && dy > 30) press(IN.J);
         return finish();
       }
     }

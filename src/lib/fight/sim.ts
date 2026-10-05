@@ -103,7 +103,7 @@ const CHAIN_STEP = 520;
 const FINISH_REC: Partial<Record<MoveId, number>> = { L: 14, H: 16 };
 /** 대시 길이 (프레임) */
 const DASH_T = 13;
-/** 같은 공중 공격을 연달아 쓸 수 있는 수: 약 4번, 발차기 2번 (다른 공격을 섞으면 다시 채워짐) */
+/** 점프마다 쓸 수 있는 공중 공격 수: 약 4번, 발차기 2번 (2단 점프하면 다시 채워짐, 내려찍기는 따로 1번) */
 const AIR_J_MAX = 4;
 const AIR_K_MAX = 2;
 /** 공중 발차기로 띄운 상대를 맞히면 때린 쪽은 이만큼(%)만 따라감 → 상대가 살짝 더 밀려나 이어 치기 어려움 */
@@ -176,6 +176,10 @@ export interface Fighter {
   airUsed: number;
   /** 이번 공중에서 쓴 공중 발차기 수 */
   airK: number;
+  /** 이번 공중에서 내려찍기(↓ + K) 썼나 */
+  airS: number;
+  /** 마지막으로 발판(땅)을 딛고 있던 x — 떨어지면 이 위에서 다시 내려옴 (0 = 아직 없음) */
+  gx: number;
   /** 남은 대시 프레임 (땅·공중) */
   dashT: number;
   /** 이번 공중에서 대시 썼나 */
@@ -371,6 +375,8 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     kd: 0,
     airUsed: 0,
     airK: 0,
+    airS: 0,
+    gx: 0,
     dashT: 0,
     airDash: 0,
     dive: 0,
@@ -485,6 +491,8 @@ export function hash(s: State): number {
     mix(f.airDash);
     mix(f.airUsed);
     mix(f.airK);
+    mix(f.airS);
+    mix(f.gx);
     mix(f.gcT);
     mix(f.float);
     mix(f.floatT);
@@ -622,10 +630,11 @@ function startMove(s: State, i: number, id: MoveId) {
   if (id === "T" || id === "G") f.vx = 0;
   f.dk = 0;
   if (airborneS(s, f)) {
-    if (id === "K" && holding(f, IN.D)) f.dk = 1;
-    // 같은 공중 공격은 연달아 약 4번·발차기 2번까지 — 다른 걸 섞으면 다시 채워짐 (4-2-4-2, 1-1-1-1 …)
-    if (id === "J") ((f.airUsed = f.airUsed + 1), (f.airK = 0));
-    else if (id === "K") ((f.airK = f.airK + 1), (f.airUsed = 0));
+    // 내려찍기(↓ + K)는 발차기 횟수와 따로, 점프마다 1번
+    if (id === "K" && holding(f, IN.D) && f.airS === 0) ((f.dk = 1), (f.airS = 1));
+    // 점프마다 공중 약 4번 + 발차기 2번 (2단 점프하면 다시 채워짐)
+    else if (id === "J") f.airUsed++;
+    else if (id === "K") f.airK++;
     f.dashT = 0;
     if (m.lunge) {
       f.vx = f.face * m.lunge;
@@ -683,6 +692,7 @@ function jump(s: State, i: number, v: number) {
   f.t = 0;
   f.airUsed = 0;
   f.airK = 0;
+  f.airS = 0;
   f.juggle = 0;
   f.jumps++;
   f.vh = v;
@@ -715,7 +725,7 @@ function airAttack(s: State, i: number): boolean {
     startMove(s, i, "S");
     return true;
   }
-  if (f.airK < AIR_K_MAX && pressed(f, IN.B, 3)) {
+  if ((f.airK < AIR_K_MAX || (holding(f, IN.D) && f.airS === 0)) && pressed(f, IN.B, 3)) {
     turn();
     startMove(s, i, "K");
     return true;
@@ -1020,6 +1030,7 @@ function control(s: State, i: number) {
           f.float = 0;
           f.airUsed = 0;
           f.airK = 0;
+          f.airS = 0;
           f.jumps = Math.min(f.jumps, 1);
         }
       }
@@ -1086,6 +1097,7 @@ function landed(s: State, i: number, f: Fighter) {
   f.spiked = 0;
   f.airUsed = 0;
   f.airK = 0;
+  f.airS = 0;
   f.airDash = 0;
   f.dashT = 0;
   const lm = moveOf(f);
@@ -1138,16 +1150,17 @@ function respawn(s: State, i: number) {
   const f = s.p[i];
   const o = s.p[1 - i];
   const map = mapOf(s);
-  // 떨어진 자리 바로 위에서 다시 내려옴 — 그 아래에 발판이 없으면 가장 가까운 발판 위로
+  // 마지막으로 딛고 있던 자리(떨어지기 직전) 바로 위에서 다시 내려옴 — 발판 끝이면 안쪽으로 조금 들임
   void o;
+  const tx = f.gx || f.x;
   let best = map.plats[0];
   let bd = Infinity;
   for (const p of map.plats) {
-    const d = f.x < p.x0 * SUB ? p.x0 * SUB - f.x : f.x > p.x1 * SUB ? f.x - p.x1 * SUB : 0;
+    const d = tx < p.x0 * SUB ? p.x0 * SUB - tx : tx > p.x1 * SUB ? tx - p.x1 * SUB : 0;
     if (d < bd || (d === bd && p.y > best.y)) ((bd = d), (best = p));
   }
   const m0 = Math.min(24, Math.trunc((best.x1 - best.x0) / 2));
-  const bx = Math.max(best.x0 * SUB + m0 * SUB, Math.min(best.x1 * SUB - m0 * SUB, f.x));
+  const bx = Math.max(best.x0 * SUB + m0 * SUB, Math.min(best.x1 * SUB - m0 * SUB, tx));
   s.ev.push({ k: "fall", p: i, x: f.x, h: 0, v: 0 });
   f.x = bx;
   f.h = RESPAWN_H;
@@ -1162,6 +1175,7 @@ function respawn(s: State, i: number) {
   f.jumps = 1;
   f.airUsed = 0;
   f.airK = 0;
+  f.airS = 0;
   f.airDash = 0;
   f.dashT = 0;
   f.gcT = 0;
@@ -1176,6 +1190,7 @@ function physics(s: State, i: number) {
   const map = mapOf(s);
   const m = moveOf(f);
   if (f.inv > 0) f.inv--;
+  if (!airborneS(s, f)) f.gx = f.x;
   if (f.trapT > 0) {
     // 방울 안: 천천히 떠오르다 멈춤 (중력 없음)
     f.vx = 0;
@@ -1204,6 +1219,7 @@ function physics(s: State, i: number) {
           f.jumps = 1;
           f.airUsed = 0;
           f.airK = 0;
+          f.airS = 0;
         }
       }
     }
@@ -1520,6 +1536,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
         a.t = 0;
         a.airUsed = 0;
         a.airK = 0;
+        a.airS = 0;
         a.jumps = Math.min(a.jumps, 1);
         a.hit = 0;
       }
