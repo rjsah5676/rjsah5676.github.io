@@ -1125,7 +1125,7 @@ function landed(s: State, i: number, f: Fighter) {
   }
   f.dive = 0;
   // 연타 돌진 필살기(카이 천풍난무)는 공중에서 써도 착지 뒤 땅에서 마저 돌진 (끊기지 않게)
-  const keepRush = f.st === "atk" && !!lm?.rush && !!lm.multi && f.t < lm.startup + lm.active;
+  const keepRush = f.st === "atk" && f.mv === "X" && !!lm?.rush && !!lm.multi && f.t < lm.startup + lm.active;
   if (keepRush) {
     f.vh = 0;
     f.aerial = 0;
@@ -1457,7 +1457,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     if (m.pullUp && !kd) {
       // 끌어올리기 = 띄우기: 때린 쪽 높이까지 솟구치게 띄우고(천천히 떨어지는 상태), 가로로는 때린 쪽 앞으로 끌려옴
       const dh = Math.max(0, a.h - 20 * SUB - d.h);
-      d.vh = Math.min(LAUNCH_VH, Math.max(700, isqrt(2 * FLOAT_G * dh)));
+      // 낮은 데서 맞혀도 최소 80px은 뜨게 (예전엔 700 → 26px쯤 떠서 이어 칠 수가 없었음)
+      d.vh = Math.min(LAUNCH_VH, Math.max(isqrt(2 * FLOAT_G * 80 * SUB), isqrt(2 * FLOAT_G * dh)));
       d.vx = 0;
       d.kd = 0;
       d.float = 1;
