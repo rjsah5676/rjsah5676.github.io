@@ -153,18 +153,17 @@ export default function RhythmGame() {
     document.addEventListener("fullscreenchange", on);
     return () => document.removeEventListener("fullscreenchange", on);
   }, []);
-  /** 전체화면 켜기 — landscape: 휴대폰을 가로로 고정 (세로 레인 플레이는 고정 안 함) */
-  const enterFs = useCallback((landscape: boolean) => {
+  /** 전체화면 켜기 — 휴대폰은 화면 방향도 고정 (메뉴는 가로, 플레이는 세로 레인) */
+  const enterFs = useCallback((orient: "landscape" | "portrait") => {
     const el = rootRef.current;
     if (!el || document.fullscreenElement) return;
     if (typeof el.requestFullscreen === "function")
       el.requestFullscreen({ navigationUI: "hide" })
         .then(() => {
-          if (!landscape) return;
           const o = window.screen.orientation as ScreenOrientation & {
             lock?: (o: string) => Promise<void>;
           };
-          o?.lock?.("landscape").catch(() => {});
+          o?.lock?.(orient).catch(() => {});
         })
         .catch(() => setPseudoFs(true));
     else setPseudoFs(true);
@@ -172,10 +171,18 @@ export default function RhythmGame() {
   const toggleFs = useCallback(() => {
     if (pseudoFs) return setPseudoFs(false);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    else enterFs(true);
+    else enterFs("landscape");
   }, [pseudoFs, enterFs]);
   /** 휴대폰 세로로 플레이: 레인만 세로 화면 가득 */
   const [portrait, setPortrait] = useState(false);
+  // 플레이가 끝나면 세로 고정을 풂 (메뉴는 원래대로)
+  useEffect(() => {
+    if (!portrait || screen === "play") return;
+    const o = window.screen.orientation as ScreenOrientation & { unlock?: () => void };
+    try {
+      o?.unlock?.();
+    } catch {}
+  }, [portrait, screen]);
 
   // 사이트 플로팅 메뉴가 게임 화면 구석(시작 버튼)을 가려서 이 페이지에선 숨김
   useEffect(() => {
@@ -410,12 +417,18 @@ export default function RhythmGame() {
     setErr("");
     setLoading(true);
     setSettingsOpen(false);
-    // 휴대폰은 플레이할 때 전체화면으로 (버튼을 누른 직후라 허용됨).
-    // 세로로 들고 있으면 가로로 돌리지 않고 레인만 세로 화면 가득 채움
+    // 휴대폰: 플레이는 늘 레인만 세로 화면 가득 — 전체화면으로 켜고 세로로 고정 (되는 브라우저만)
     const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const tall = coarse && window.innerHeight > window.innerWidth;
-    setPortrait(tall);
-    if (!fs && coarse) enterFs(!tall);
+    setPortrait(coarse);
+    if (coarse) {
+      if (!document.fullscreenElement) enterFs("portrait");
+      else {
+        const o = window.screen.orientation as ScreenOrientation & {
+          lock?: (o: string) => Promise<void>;
+        };
+        o?.lock?.("portrait").catch(() => {});
+      }
+    }
     const fromResult = screen === "result";
     if (!fromResult) {
       sfx("song-decide");
@@ -437,7 +450,7 @@ export default function RhythmGame() {
       setLoading(false);
       setLaunching(false);
     }
-  }, [loading, customSel, isCustom, fs, enterFs, screen, stopPreview, track, song]);
+  }, [loading, customSel, isCustom, enterFs, screen, stopPreview, track, song]);
 
   const finish = useCallback(
     (r: Result) => {

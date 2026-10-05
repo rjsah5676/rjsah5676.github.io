@@ -296,7 +296,11 @@ export default function Stage({
       ? Math.round(
           Math.min(
             1700,
-            Math.max(1280, (720 * window.innerHeight) / Math.max(1, window.innerWidth))
+            Math.max(
+              1280, // 가로로 들고 시작해도 곧 세로로 돌아가므로 긴 변/짧은 변 비율로
+              (720 * Math.max(window.innerHeight, window.innerWidth)) /
+                Math.max(1, Math.min(window.innerHeight, window.innerWidth))
+            )
           )
         )
       : LH;
