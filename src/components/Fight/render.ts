@@ -338,6 +338,29 @@ export class FightRenderer {
             x, y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2, life: 10, max: 10,
             color: "#CFEFFF", size: 1, kind: "spark",
           });
+      } else if (e.k === "slam" && e.v === 0) {
+        // 마무리 내려찍기 맞힘
+        this.parts.push({ x, y: y - 16, vx: 0, vy: -0.5, life: 36, max: 36, color: "#FF6B5C", size: 1.5, kind: "text", text: "SLAM!" });
+        this.parts.push({ x, y, vx: 0, vy: 0, life: 14, max: 14, color: "#FFD0C8", size: 20, kind: "ring" });
+        this.flash = 4;
+        this.flashColor = "#fff";
+        this.shake = Math.max(this.shake, 6);
+      } else if (e.k === "slam") {
+        // 바닥에 처박힘: 크게 퍼지는 충격파 + 흙먼지
+        for (let i = 0; i < 24; i++) {
+          const d = i % 2 ? 1 : -1;
+          this.parts.push({
+            x, y: y - 2 - Math.random() * 8, vx: d * (2.5 + Math.random() * 4.5), vy: -Math.random() * 0.8,
+            life: 22, max: 22, color: i % 3 ? "rgba(240,230,210,0.95)" : "#FFB36B", size: 1.8, kind: "streak",
+          });
+        }
+        for (let i = 0; i < 10; i++)
+          this.parts.push({
+            x: x + (Math.random() - 0.5) * 30, y: y - 2, vx: (Math.random() - 0.5) * 3, vy: -1.5 - Math.random() * 2.5,
+            life: 20, max: 20, color: "#C9B79A", size: 1.5, kind: "shard",
+          });
+        this.parts.push({ x, y: y - 4, vx: 0, vy: 0, life: 16, max: 16, color: "#FFE2C2", size: 30, kind: "ring" });
+        this.shake = Math.max(this.shake, 10);
       } else if (e.k === "clash" && e.v === 1) {
         // 착지 충격파: 옆으로 퍼지는 바람
         for (let i = 0; i < 14; i++) {

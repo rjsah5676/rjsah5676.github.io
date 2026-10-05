@@ -108,6 +108,15 @@ const AIR_J_MAX = 4;
 const AIR_K_MAX = 2;
 /** 공중 발차기로 띄운 상대를 맞히면 때린 쪽은 이만큼(%)만 따라감 → 상대가 살짝 더 밀려나 이어 치기 어려움 */
 const AIR_K_FOLLOW = 75;
+/** 마무리 내려찍기(공중 ↓ + K): 피해(%), 타격 정지, 내리꽂는 속도, 땅에서 튀는 세기 */
+const SLAM_DMG = 140;
+const SLAM_STOP = 16;
+const SLAM_VH = 2800;
+const SLAM_BOUNCE = 1100;
+/** 섞기 보상(공중 콤보): 다른 기술로 바꿔 맞히면 피해 %, 같은 기술을 연달아 맞히면 한 번마다 -%, 최저 % */
+const MIX_BONUS = 110;
+const MIX_REPEAT = 12;
+const MIX_MIN = 55;
 /** 공중 공격을 맞힌 뒤 다음 공중 공격으로 이어 치는 창 (판정 시작 +1 ~ 판정 끝 + 이만큼) — 짧아서 박자 맞춰야 함 */
 const AIR_CHAIN_WIN = 3;
 /** 막은 뒤 가드 반격을 받아 주는 여유 프레임 (막는 경직 + 이만큼) */
@@ -201,6 +210,11 @@ export interface Fighter {
   aerial: number;
   /** 아래로 내리꽂힌 상태: 땅에 닿으면 한 번 튀어 오름 */
   spiked: number;
+  /** 지금 공중 발차기를 ↓ 누르고 냈나 (마무리 내려찍기) */
+  dk: number;
+  /** 섞기 보상: 이번 공중 콤보에서 마지막으로 맞은 기술(글자 코드)과 같은 기술 연달아 맞은 수 */
+  mixM: number;
+  mixN: number;
   /** 끌려오는 중: 남은 프레임과 도착할 x (그동안 매 프레임 남은 거리를 나눠서 이동) */
   pullT: number;
   pullX: number;
@@ -255,7 +269,8 @@ export type EvKind =
   | "just"
   | "counter"
   | "pause"
-  | "swap";
+  | "swap"
+  | "slam";
 export interface Ev {
   k: EvKind;
   /** 관련 플레이어 (hit/block은 때린 쪽) */
@@ -373,6 +388,9 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     burn: 0,
     aerial: 0,
     spiked: 0,
+    dk: 0,
+    mixM: 0,
+    mixN: 0,
     pullT: 0,
     pullX: 0,
     pulled: 0,
@@ -476,6 +494,9 @@ export function hash(s: State): number {
     mix(f.burn);
     mix(f.aerial);
     mix(f.spiked);
+    mix(f.dk);
+    mix(f.mixM);
+    mix(f.mixN);
     mix(f.pullT);
     mix(f.pullX);
     mix(f.pulled);
@@ -599,7 +620,9 @@ function startMove(s: State, i: number, id: MoveId) {
   if (id === "S") f.cd = charOf(f).cd;
   if (id === "G") f.meter = Math.max(0, f.meter - GUARD_COUNTER_COST);
   if (id === "T" || id === "G") f.vx = 0;
+  f.dk = 0;
   if (airborneS(s, f)) {
+    if (id === "K" && holding(f, IN.D)) f.dk = 1;
     // 같은 공중 공격은 연달아 약 4번·발차기 2번까지 — 다른 걸 섞으면 다시 채워짐 (4-2-4-2, 1-1-1-1 …)
     if (id === "J") ((f.airUsed = f.airUsed + 1), (f.airK = 0));
     else if (id === "K") ((f.airK = f.airK + 1), (f.airUsed = 0));
@@ -1043,6 +1066,15 @@ function landed(s: State, i: number, f: Fighter) {
   f.jumps = 0;
   f.float = 0;
   f.juggle = 0;
+  if (f.spiked === 2 && f.st === "hit") {
+    // 마무리 내려찍기로 처박힘: 충격파 + 크게 한 번 튄 뒤 (kd) 다음 착지에 다운
+    f.spiked = 0;
+    f.vh = SLAM_BOUNCE;
+    f.h += SUB;
+    f.vx = Math.trunc(f.vx / 2);
+    s.ev.push({ k: "slam", p: i, x: f.x, h: f.h, v: 1 });
+    return;
+  }
   if (f.spiked && f.st === "hit") {
     // 내리꽂혀 땅에 닿음: 살짝 튀어 오름
     f.spiked = 0;
@@ -1331,8 +1363,25 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     // 감전된 상대: 감전시킬 수 있는 캐릭터(제나)의 모든 공격이 15% 더 아픔
     const shocker = CHARS[a.ch].moves.S.shock !== undefined;
     if (d.shock > 0 && shocker) base = Math.trunc((base * 110) / 100);
-    const dmg = m.multi || m.summon ? m.dmg : scaleDmg(base, d.combo);
     const wasAir = airborneS(s, d);
+    const slam = mid === "K" && a.dk === 1 && wasAir;
+    if (slam) base = Math.trunc((base * SLAM_DMG) / 100);
+    // 섞기 보상: 공중 콤보에서 기술을 바꿔 맞히면 더 아프고, 같은 기술만 반복하면 점점 덜 아픔
+    if (d.combo === 0) ((d.mixM = 0), (d.mixN = 0));
+    let mixPct = 100;
+    if (wasAir && !m.multi && !m.summon) {
+      const code = mid.charCodeAt(0);
+      if (d.mixM === code) {
+        d.mixN++;
+        mixPct = Math.max(MIX_MIN, 100 - MIX_REPEAT * d.mixN);
+      } else {
+        if (d.mixM !== 0) mixPct = MIX_BONUS;
+        d.mixN = 0;
+      }
+      d.mixM = code;
+    }
+    const dmg =
+      m.multi || m.summon ? m.dmg : Math.max(1, Math.trunc((scaleDmg(base, d.combo) * mixPct) / 100));
     let popBonus = 0;
     if (d.trapT > 0) {
       // 갇힌 상대를 때리면 방울이 터짐 — 터뜨린 타격에 추가 피해
@@ -1402,6 +1451,18 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.spiked = 1;
       d.float = 0;
       d.stun = Math.max(d.stun, m.hitstun + 6);
+    }
+    if (slam) {
+      // 마무리 내려찍기: 바닥에 처박고 → 한 번 튀어 오른 뒤 다운 (콤보 끝)
+      d.vh = -SLAM_VH;
+      d.vx = Math.trunc((dir * m.push) / 3);
+      d.spiked = 2;
+      d.float = 0;
+      d.kd = 1;
+      d.stun = Math.max(d.stun, 40);
+      a.juggle = 0;
+      s.stop = Math.max(s.stop, SLAM_STOP);
+      s.ev.push({ k: "slam", p: ai, x: d.x, h: d.h + 30 * SUB, v: 0 });
     }
     if (mid === "G" && !wasAir) {
       // 가드 반격: 막은 직후 발차기로 상대를 위로 띄움 → 점프 캔슬해서 공중 콤보

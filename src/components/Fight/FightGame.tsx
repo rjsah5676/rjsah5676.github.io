@@ -495,6 +495,10 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             if (e.p === (ol?.seat ?? 0)) hits++;
           } else if (e.k === "tech") sfxTech();
           else if (e.k === "launch") sfxLaunch();
+          else if (e.k === "slam") {
+            sfxHit(2, elOf(e.p));
+            if (e.v === 1) sfxLand();
+          }
           else if (e.k === "proj") {
             if (!skillFile(e.p)) sfxProj(elOf(e.p), s.p[e.p].mv === "X");
           } else if (e.k === "burn" || e.k === "shock" || e.k === "trap" || e.k === "pop" || e.k === "pause" || e.k === "swap") sfxStatus(e.k);
