@@ -163,6 +163,10 @@ def build(src_root: Path, cid: str):
                 anchors.append(feet(p, ad.get("anchor", "feet")))
             idx.append(seen[ref])
         anims[name] = {"list": idx, "frames": len(idx), "fps": ad["fps"], "loop": bool(ad.get("loop")), "row": 0}
+    # 자동으로 잡은 발 위치가 이상한 프레임 (무기 끝을 발로 잡는 등) 손으로 고정: {"시트:행.칸": [x, y]} (저장 크기 기준)
+    for ref, xy in spec.get("anchorFix", {}).items():
+        if ref in seen:
+            anchors[seen[ref]] = (float(xy[0]), float(xy[1]))
     idle_h = float(np.median([pieces[i].shape[0] for i in anims["idle"]["list"]]))
     scale = round(idle_h / spec["body"], 3)
     atlas, pos = pack(pieces)
