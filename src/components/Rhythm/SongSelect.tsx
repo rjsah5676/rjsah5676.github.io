@@ -501,7 +501,7 @@ export default function SongSelect({
                 {bb && (
                   <RankEmblem
                     rank={bb.rank}
-                    className={`absolute -right-[0.9cqw] -bottom-[0.35cqw] drop-shadow-[0_0.1cqw_0.3cqw_rgba(0,0,0,0.8)] ${on ? "h-[2.8cqw] w-[2.8cqw]" : "h-[2.2cqw] w-[2.2cqw]"}`}
+                    className={`absolute -right-[1.3cqw] -bottom-[0.45cqw] drop-shadow-[0_0.1cqw_0.3cqw_rgba(0,0,0,0.8)] ${on ? "h-[3.6cqw] w-[3.6cqw]" : "h-[2.9cqw] w-[2.9cqw]"}`}
                   />
                 )}
               </div>
