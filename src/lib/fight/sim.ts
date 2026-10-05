@@ -105,8 +105,11 @@ const CHAIN_STEP = 520;
 const FINISH_REC: Partial<Record<MoveId, number>> = { L: 14, H: 16 };
 /** 대시 길이 (프레임) */
 const DASH_T = 13;
-/** 한 번 뜰 때 쓸 수 있는 공중 공격 수 (2단 점프하면 다시 채워짐) */
-const AIR_ATTACKS = 2;
+/** 한 번 뜰 때 쓸 수 있는 공중 공격 수: 공중 약 4번 + 공중 발차기 2번 (2단 점프하면 다시 채워짐) */
+const AIR_J_MAX = 4;
+const AIR_K_MAX = 2;
+/** 공중 공격을 맞힌 뒤 다음 공중 공격으로 이어 치는 창 (판정 시작 +1 ~ 판정 끝 + 이만큼) — 짧아서 박자 맞춰야 함 */
+const AIR_CHAIN_WIN = 3;
 /** 막은 뒤 가드 반격을 받아 주는 여유 프레임 (막는 경직 + 이만큼) */
 const GC_GRACE = 10;
 /** 잡기 성공 후 위로 띄우는 세기와 그동안의 경직 */
@@ -156,8 +159,10 @@ export interface Fighter {
   combo: number;
   /** 착지하면 다운 */
   kd: number;
-  /** 이번 공중에서 쓴 공격 수 */
+  /** 이번 공중에서 쓴 공중 약 수 */
   airUsed: number;
+  /** 이번 공중에서 쓴 공중 발차기 수 */
+  airK: number;
   /** 남은 대시 프레임 (땅·공중) */
   dashT: number;
   /** 이번 공중에서 대시 썼나 */
@@ -344,6 +349,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     combo: 0,
     kd: 0,
     airUsed: 0,
+    airK: 0,
     dashT: 0,
     airDash: 0,
     dive: 0,
@@ -452,6 +458,8 @@ export function hash(s: State): number {
     mix(f.guardT);
     mix(f.grabbed);
     mix(f.airDash);
+    mix(f.airUsed);
+    mix(f.airK);
     mix(f.gcT);
     mix(f.float);
     mix(f.juggle);
@@ -584,7 +592,8 @@ function startMove(s: State, i: number, id: MoveId) {
   if (id === "G") f.meter = Math.max(0, f.meter - GUARD_COUNTER_COST);
   if (id === "T" || id === "G") f.vx = 0;
   if (airborneS(s, f)) {
-    f.airUsed++;
+    if (id === "J") f.airUsed++;
+    else if (id === "K") f.airK++;
     f.dashT = 0;
     if (m.lunge) {
       f.vx = f.face * m.lunge;
@@ -641,6 +650,7 @@ function jump(s: State, i: number, v: number) {
   f.st = "jump";
   f.t = 0;
   f.airUsed = 0;
+  f.airK = 0;
   f.juggle = 0;
   f.jumps++;
   f.vh = v;
@@ -673,12 +683,12 @@ function airAttack(s: State, i: number): boolean {
     startMove(s, i, "S");
     return true;
   }
-  if (pressed(f, IN.B, 3)) {
+  if (f.airK < AIR_K_MAX && pressed(f, IN.B, 3)) {
     turn();
     startMove(s, i, "K");
     return true;
   }
-  if (pressed(f, IN.A, 3)) {
+  if (f.airUsed < AIR_J_MAX && pressed(f, IN.A, 3)) {
     turn();
     startMove(s, i, "J");
     return true;
@@ -789,7 +799,7 @@ function control(s: State, i: number) {
         s.ev.push({ k: "dash", p: i, x: f.x, h: f.h, v: 1 });
         return;
       }
-      if (f.airUsed < AIR_ATTACKS && airAttack(s, i)) return;
+      if (airAttack(s, i)) return;
       // 공중에서도 누르는 쪽을 봄
       if (holding(f, IN.R) && !holding(f, IN.L)) f.face = 1;
       else if (holding(f, IN.L) && !holding(f, IN.R)) f.face = -1;
@@ -894,6 +904,10 @@ function control(s: State, i: number) {
           return;
         }
       }
+      // 공중 연속 공격: 공중 약·발차기를 맞히면 짧은 창 안에 다음 공중 약·발차기로 이어 침 (약 4 + 발차기 2까지)
+      if (air && f.hit && (f.mv === "J" || f.mv === "K") && f.t > m.startup && f.t <= m.startup + m.active + AIR_CHAIN_WIN) {
+        if (airAttack(s, i)) return;
+      }
       // 약·발차기 연속 동작: 판정이 나온 뒤부터 끝날 때까지 같은 버튼으로 다음 동작 (헛쳐도 됨)
       const cm = CHAIN_MAX[f.mv as MoveId];
       if (cm && f.chain < cm && f.t >= m.startup + (f.hit ? 1 : m.active) && onGround(s, f)) {
@@ -973,6 +987,7 @@ function control(s: State, i: number) {
           f.combo = 0;
           f.float = 0;
           f.airUsed = 0;
+          f.airK = 0;
           f.jumps = Math.min(f.jumps, 1);
         }
       }
@@ -1029,6 +1044,7 @@ function landed(s: State, i: number, f: Fighter) {
   }
   f.spiked = 0;
   f.airUsed = 0;
+  f.airK = 0;
   f.airDash = 0;
   f.dashT = 0;
   const lm = moveOf(f);
@@ -1104,6 +1120,7 @@ function respawn(s: State, i: number) {
   f.combo = 0;
   f.jumps = 1;
   f.airUsed = 0;
+  f.airK = 0;
   f.airDash = 0;
   f.dashT = 0;
   f.gcT = 0;
@@ -1145,6 +1162,7 @@ function physics(s: State, i: number) {
           f.t = 0;
           f.jumps = 1;
           f.airUsed = 0;
+          f.airK = 0;
         }
       }
     }
@@ -1327,6 +1345,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
           d.vh = JUGGLE_POP;
           d.float = 1;
           a.vh = JUGGLE_POP;
+          // 가로로도 같이 밀려감 (간격 유지 → 다음 공중 공격이 닿음)
+          a.vx = d.vx;
           a.juggle = JUGGLE_HANG;
         } else {
           d.vh = JUGGLE_VH;
@@ -1382,6 +1402,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.vh = 0;
       d.kd = 0;
     }
+    d.mark = 0; // 다른 기술에 맞으면 ⏸/💫 표시는 사라짐 (아래에서 다시 붙음)
     if (m.pause && !kd) {
       // ⏸ 일시정지: 긴 경직 그대로 (콤보 보정으로 줄지 않게)
       d.stun = Math.max(d.stun, m.hitstun);
@@ -1399,7 +1420,19 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       a.face = d.x >= a.x ? 1 : -1;
       d.face = -a.face as 1 | -1;
       a.vx = 0;
-      a.vh = 0;
+      // 때린 쪽은 바뀐 상대 높이(조금 아래)까지 같이 솟아올라 바로 공중 공격 (점프 하나 남김)
+      const rise = Math.max(0, d.h - a.h - 18 * SUB);
+      a.vh = rise > 0 ? isqrt(2 * GRAVITY * rise) : 0;
+      if (a.vh > 0) {
+        a.h += SUB; // 바닥에서 떼어야 솟아오름
+        a.st = "jump";
+        a.mv = "";
+        a.t = 0;
+        a.airUsed = 0;
+        a.airK = 0;
+        a.jumps = Math.min(a.jumps, 1);
+        a.hit = 0;
+      }
       d.vx = 0;
       d.vh = 0;
       d.float = 3;

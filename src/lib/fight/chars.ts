@@ -778,11 +778,11 @@ const RAW: CharSrc[] = [
     tagline: "FULLSTACK DEBUGGER",
     difficulty: 3,
     idName: "Ctrl+A",
-    idDesc: "넓은 파란 선택 박스를 펼쳐, 맞은 상대를 ⏸ 일시정지 — 그 사이 약·잡기로 콤보 확정. 피해는 거의 없고 막히면 빈틈이 큼",
+    idDesc: "넓은 파란 선택 박스를 펼쳐, 맞은 상대를 눈앞까지 끌어와 ⏸ 일시정지 — 그 사이 약·잡기로 콤보 확정. 피해는 거의 없고 막히면 빈틈이 큼",
     ultName: "금요일 배포",
     ultDesc: "앞쪽 넓게 에러 블록이 빗발쳐 5연타, 마지막 타에 넘어뜨림",
     airLabel: "공중 L Alt+Tab",
-    airDesc: "앞에 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란 — 둥실 멈췄다가 바닥에 넘어짐 (아래가 낭떠러지면 안 넘어짐)",
+    airDesc: "앞에 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란 — 나는 상대 높이까지 솟아올라 바로 공중 콤보, 그냥 두면 상대는 바닥에 넘어짐",
     moves: {
       L: {
         // 약 (J): 허공 타자 연타, 4단째 엔터키 올려치기 (띄우기)
@@ -852,7 +852,7 @@ const RAW: CharSrc[] = [
         recovery: 26,
         dmg: 22,
         chip: 0,
-        hitstun: 36,
+        hitstun: 50, // ⏸ 일시정지 약 0.8초
         blockstun: 10,
         push: 200,
         hitstop: 8,
@@ -860,6 +860,8 @@ const RAW: CharSrc[] = [
         box: { x: 6, y: 70, w: 96, h: 74 },
         onBlock: -12,
         pause: true,
+        // 맞으면 바로 눈앞(약이 닿는 거리)까지 끌어옴
+        pull: true,
         cancel: ["L", "T", "X"],
         // 공중 「Alt+Tab」: 앞에 창 — 맞으면 자리 바꾸고 💫 혼란(둥실 멈춤) → 넘어뜨림
         air: {
@@ -872,6 +874,7 @@ const RAW: CharSrc[] = [
           hitstop: 10,
           box: { x: 2, y: 40, w: 54, h: 70 },
           pause: false,
+          pull: false,
           swap: true,
           cancel: undefined,
           hover: 300,
