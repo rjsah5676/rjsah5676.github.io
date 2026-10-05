@@ -2102,11 +2102,20 @@ function drawFailed(
       g.fillText("FAILED", 0, 0);
     }
     g.globalAlpha = Math.min(1, Math.max(0, (el - 0.8) / 0.3));
-    g.font = "700 18px ui-monospace, monospace";
+    // 다른 HUD 글자처럼 굵은 기울임 + 자간, 붉은 빛
+    const ls = g as CanvasRenderingContext2D & { letterSpacing?: string };
+    g.font = `italic 900 26px ${CD_FONT}`;
+    ls.letterSpacing = "6px";
     g.textAlign = "center";
     g.textBaseline = "middle";
-    g.fillStyle = "rgba(255,255,255,0.75)";
-    g.fillText("HP가 바닥났어요", 0, 150);
+    g.shadowColor = "rgba(244,63,94,0.9)";
+    g.shadowBlur = 14;
+    g.lineWidth = 4;
+    g.strokeStyle = "rgba(60,4,20,0.9)";
+    g.strokeText("HP DEPLETED", 0, 150);
+    g.fillStyle = "#FFE4EA";
+    g.fillText("HP DEPLETED", 0, 150);
+    ls.letterSpacing = "0px";
   }
   g.restore();
 }
