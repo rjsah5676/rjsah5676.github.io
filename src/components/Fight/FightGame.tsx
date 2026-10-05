@@ -654,7 +654,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   if (!playing) {
     return (
       <div ref={rootRef} className={rootCls}>
-        <div className="fs-screen relative [container-type:inline-size]">
+        <div className="fs-screen relative isolate [container-type:inline-size]">
           {onlineOn ? (
             <Online
               session={sess}
@@ -740,7 +740,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const winCh = hud && hud.phase === "over" && hud.winner !== 2 ? CHARS[hud.ch[hud.winner]] : null;
   return (
     <div ref={rootRef} className={rootCls}>
-      <div className="fs-screen relative w-full overflow-hidden rounded-xl border border-white/10 bg-black [container-type:inline-size]">
+      <div className="fs-screen relative isolate w-full overflow-hidden rounded-xl border border-white/10 bg-black [container-type:inline-size]">
         <canvas ref={canvasRef} className="block aspect-video w-full [image-rendering:pixelated]" />
         {fsBtn(true)}
         {winCh && hud && hud.pt >= 80 && <WinQuote ch={hud.ch[hud.winner]} right={hud.winner === 1} />}
