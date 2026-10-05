@@ -503,6 +503,16 @@ function layStream(
  * 바로 앞 줄에 쓴 레인(avoid)·최근 두 동시치기와 같은 모양은 피하고, 나머지는 섞어서 고름.
  * recent에 고른 모양을 쌓음 (최근 3개).
  */
+/** osu 랭크 4K 2노트 동시치기 모양 빈도(한 손 01·23, 양끝 03이 흔하고 가운데·대각은 덜) */
+const PAIR_W: Record<string, number> = {
+  "01": 1,
+  "23": 1,
+  "03": 0.95,
+  "12": 0.5,
+  "02": 0.55,
+  "13": 0.55,
+};
+
 export function chordPartners(
   main: number,
   n: number,
@@ -521,6 +531,7 @@ export function chordPartners(
         (shape === r[r.length - 1] ? 2.5 : 0) +
         (shape === r[r.length - 2] ? 2 : 0) +
         (shape === r[r.length - 3] ? 0.8 : 0) +
+        (1 - (PAIR_W[shape] ?? 0.8)) * 1.5 +
         opts.rnd() * 1.5
       );
     };
