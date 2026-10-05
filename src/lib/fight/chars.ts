@@ -773,16 +773,16 @@ const RAW: CharSrc[] = [
     hurt: { x: -8, y: 58, w: 16, h: 58 },
     width: 17,
     color: "#3B9CFF",
-    quote: "버그는 금방 고쳐. 너도.",
+    quote: "집가고싶다..",
     winQuote: "빌드 성공. 버그는 너였네.",
     tagline: "FULLSTACK DEBUGGER",
     difficulty: 3,
     idName: "Ctrl+A",
-    idDesc: "넓은 파란 선택 박스를 펼쳐, 맞은 상대를 눈앞까지 끌어와 ⏸ 일시정지 — 그 사이 약·잡기로 콤보 확정. 피해는 거의 없고 막히면 빈틈이 큼",
+    idDesc: "넓은 파란 선택 박스를 펼쳐, 맞은 상대를 눈앞까지 끌어와 ⏸ 일시정지",
     ultName: "금요일 배포",
     ultDesc: "앞쪽 넓게 에러 블록이 빗발쳐 5연타, 마지막 타에 넘어뜨림",
     airLabel: "공중 L Alt+Tab",
-    airDesc: "앞에 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란 — 나는 상대 높이까지 솟아올라 바로 공중 콤보, 그냥 두면 상대는 바닥에 넘어짐",
+    airDesc: "앞에 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란",
     moves: {
       L: {
         // 약 (J): 허공 타자 연타, 4단째 엔터키 올려치기 (띄우기)
