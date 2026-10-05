@@ -100,7 +100,7 @@ export const MAPS: MapDef[] = [
     respawn: [320, 576, 910],
     bg: "/fight/bg/sky.webp",
     bgPlats: true,
-    bgm: "/fight/bgm.mp3",
+    bgm: "/fight/bgm-sky.mp3",
   },
   {
     // 그림: public/fight/bg/skyscraper.webp (1920×1080) — 높이 다른 아파트 두 동 옥상, 가운데는 낭떠러지
@@ -115,6 +115,6 @@ export const MAPS: MapDef[] = [
     respawn: [210, 940],
     bg: "/fight/bg/skyscraper.webp",
     bgPlats: true,
-    bgm: "/fight/bgm-rooftop.mp3",
+    bgm: "/fight/bgm-skyscraper.mp3",
   },
 ];

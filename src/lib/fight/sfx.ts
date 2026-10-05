@@ -63,7 +63,7 @@ const SAMPLES: Record<string, number> = {
   "kai-i": 0.55,
   "igna-l": 0.5,
   "igna-i": 0.55,
-  "soyoung-l": 0.45,
+  "soyoung-l": 0.95,
   "soyoung-l-air": 0.45,
   "soyoung-i": 0.5,
   "lily-l": 0.45,
