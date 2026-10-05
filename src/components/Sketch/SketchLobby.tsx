@@ -16,6 +16,66 @@ const seg = (on: boolean) =>
   `cursor-pointer rounded-full px-3 py-1.5 font-mono text-xs transition-colors ${
     on ? "bg-[#6C63FF] text-white" : "bg-white/5 text-white/60 hover:bg-white/10"
   }`;
+/** 직접 입력 범위 (DB 규칙과 같게) */
+const TIME_MIN = 30;
+const TIME_MAX = 300;
+const ROUNDS_MIN = 1;
+const ROUNDS_MAX = 10;
+
+/** 고르기 버튼 옆 직접 입력칸 — 칸을 벗어나면 범위 안으로 맞춤 */
+function NumInput({
+  value,
+  min,
+  max,
+  unit,
+  onChange,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  unit: string;
+  onChange: (v: number) => void;
+}) {
+  const [text, setText] = useState(String(value));
+  const [focus, setFocus] = useState(false);
+  const commit = (raw: string) => {
+    const n = Math.round(Number(raw));
+    const v = Number.isFinite(n) && raw.trim() ? Math.min(max, Math.max(min, n)) : value;
+    onChange(v);
+    setText(String(v));
+  };
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/5 py-0.5 pr-3 pl-1 font-mono text-xs text-white/60">
+      <input
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        value={focus ? text : String(value)}
+        onFocus={() => {
+          setFocus(true);
+          setText(String(value));
+        }}
+        onChange={(e) => {
+          setText(e.target.value);
+          const n = Math.round(Number(e.target.value));
+          if (e.target.value.trim() && Number.isFinite(n) && n >= min && n <= max) onChange(n);
+        }}
+        onBlur={(e) => {
+          setFocus(false);
+          commit(e.target.value);
+        }}
+        onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
+        className="w-12 rounded-full bg-[#15171c] px-2 py-1 text-center text-white [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-[#6C63FF]/60 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+      {unit}
+      <span className="text-white/30">
+        ({min}~{max})
+      </span>
+    </span>
+  );
+}
+
 const PHASE_LABEL: Record<string, string> = {
   waiting: "대기 중",
   choosing: "게임 중 · 참가 가능",
@@ -155,6 +215,13 @@ export default function SketchLobby({
                     {t}초
                   </button>
                 ))}
+                <NumInput
+                  value={drawTime}
+                  min={TIME_MIN}
+                  max={TIME_MAX}
+                  unit="초"
+                  onChange={setDrawTime}
+                />
               </div>
             </div>
             <div>
@@ -172,6 +239,13 @@ export default function SketchLobby({
                     {n}번
                   </button>
                 ))}
+                <NumInput
+                  value={rounds}
+                  min={ROUNDS_MIN}
+                  max={ROUNDS_MAX}
+                  unit="번"
+                  onChange={setRounds}
+                />
               </div>
             </div>
           </div>

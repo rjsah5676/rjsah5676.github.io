@@ -16,7 +16,7 @@
           ".write": "auth != null && !newData.exists() && !data.child('players').exists()",
           "meta": {
             ".write": "auth != null && !data.exists() && newData.child('hostUid').val() === auth.uid",
-            ".validate": "newData.child('name').isString() && newData.child('name').val().length <= 20 && newData.child('max').val() >= 2 && newData.child('max').val() <= 8 && newData.child('drawTime').val() >= 30 && newData.child('drawTime').val() <= 180 && newData.child('rounds').val() >= 1 && newData.child('rounds').val() <= 3 && newData.child('locked').isBoolean()",
+            ".validate": "newData.child('name').isString() && newData.child('name').val().length <= 20 && newData.child('max').val() >= 2 && newData.child('max').val() <= 8 && newData.child('drawTime').val() >= 30 && newData.child('drawTime').val() <= 300 && newData.child('rounds').val() >= 1 && newData.child('rounds').val() <= 10 && newData.child('locked').isBoolean()",
             "hostUid": {
               ".write": "auth != null && newData.val() === auth.uid && root.child('sketch/rooms/' + $room + '/players/' + auth.uid).exists() && !root.child('sketch/rooms/' + $room + '/players/' + data.val()).exists()"
             }
