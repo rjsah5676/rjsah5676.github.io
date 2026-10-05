@@ -81,8 +81,9 @@ export default function ResultScreen({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest?.("input, textarea")) return;
-      if (e.code === "Enter") {
+      if (e.code === "Enter" || e.code === "KeyR") {
         e.preventDefault();
+        if (e.repeat) return;
         sfx("ui-select", 0.8);
         onRetry();
       } else if (e.code === "Escape") {
@@ -260,7 +261,7 @@ export default function ResultScreen({
           }}
           className={`${DISP} -skew-x-12 cursor-pointer rounded-[0.6cqw] bg-[linear-gradient(90deg,#db2777,#7c3aed)] px-[2.6cqw] py-[0.55cqw] text-[1.6cqw] tracking-[0.1em] text-white shadow-[0_0_1.4cqw_rgba(236,72,153,0.6)] transition-transform hover:scale-105 disabled:opacity-50`}
         >
-          <span className="inline-block skew-x-12">RETRY</span>
+          <span className="inline-block skew-x-12">RETRY (R)</span>
         </button>
       </div>
     </div>

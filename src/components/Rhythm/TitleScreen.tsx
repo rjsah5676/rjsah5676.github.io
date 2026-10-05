@@ -59,6 +59,15 @@ export default function TitleScreen({
         onEnter();
         return;
       }
+      // 전체화면이면 Esc로 창모드로 (크롬·엣지는 Esc를 게임이 받아서 직접 꺼 줘야 함)
+      if (e.code === "Escape") {
+        if (fs) {
+          e.preventDefault();
+          sfx("ui-back", 0.7);
+          onToggleFs();
+        }
+        return;
+      }
       if (e.code === "ArrowUp" || e.code === "ArrowDown") {
         e.preventDefault();
         setCur((c) => (c + (e.code === "ArrowUp" ? -1 : 1) + items.length) % items.length);
@@ -167,7 +176,7 @@ export default function TitleScreen({
                 ✕
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            <div className="bd-scroll min-h-0 flex-1 overflow-y-auto p-5">
               <GuideView doc={RHYTHM_GUIDE} accent="#A78BFA" onDone={() => setGuide(false)} />
             </div>
           </div>

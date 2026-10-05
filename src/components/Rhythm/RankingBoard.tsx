@@ -30,6 +30,7 @@ function List({
         아직 기록이 없어요. 첫 번째가 되어보세요.
       </p>
     );
+  if (game) return <GameList list={list} highlight={highlight} />;
   return (
     <ol className="divide-y divide-white/5">
       {list.map((r, i) => (
@@ -71,6 +72,65 @@ function List({
   );
 }
 
+const MEDAL = ["#FDE047", "#E2E8F0", "#FB923C"];
+const DISP = "font-['Arial_Black','Segoe_UI_Black',Impact,sans-serif] font-black italic";
+
+/** 게임 화면 안 랭킹: 순위 배지 + 이름 + 점수 줄 (1~3위는 금·은·동) */
+function GameList({ list, highlight }: { list: RhythmRanking[]; highlight?: string | null }) {
+  return (
+    <ol className="flex flex-col gap-[0.35cqw] py-[0.3cqw]">
+      {list.map((r, i) => {
+        const medal = MEDAL[i];
+        const me = r.id === highlight;
+        return (
+          <li
+            key={r.id}
+            className={`relative flex items-center gap-[0.8cqw] overflow-hidden rounded-[0.5cqw] border py-[0.35cqw] pr-[0.9cqw] pl-[0.4cqw] [animation:bd-slide-left_300ms_ease-out_backwards] ${
+              me ? "border-[#F472B6]/70 bg-[#F472B6]/20" : "border-white/[0.07] bg-white/[0.04]"
+            }`}
+            style={{
+              animationDelay: `${i * 40}ms`,
+              ...(medal && !me
+                ? { background: `linear-gradient(90deg, ${medal}26, rgba(255,255,255,0.03) 60%)` }
+                : null),
+            }}
+          >
+            <span
+              className={`${DISP} flex h-[2cqw] w-[2.6cqw] shrink-0 -skew-x-12 items-center justify-center rounded-[0.35cqw] text-[1.15cqw]`}
+              style={
+                medal
+                  ? { background: medal, color: "#1a1030", boxShadow: `0 0 0.8cqw ${medal}88` }
+                  : { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }
+              }
+            >
+              <span className="skew-x-12">{i + 1}</span>
+            </span>
+            <span className="min-w-0 flex-1 truncate font-['Nanum_Gothic',sans-serif] text-[1.15cqw] font-bold text-white/90">
+              {r.name}
+            </span>
+            {(r.ap || r.fc) && (
+              <span
+                className="shrink-0 rounded-[0.3cqw] px-[0.35cqw] font-mono text-[0.8cqw] font-bold text-black"
+                style={{ background: r.ap ? "#7DF9FF" : "#FDE047" }}
+              >
+                {r.ap ? "AP" : "FC"}
+              </span>
+            )}
+            <span className="w-[4.6cqw] shrink-0 text-right font-mono text-[0.95cqw] text-white/45">
+              {r.acc.toFixed(2)}%
+            </span>
+            <span
+              className={`${DISP} w-[7cqw] shrink-0 text-right text-[1.25cqw] text-white tabular-nums`}
+            >
+              {r.score.toLocaleString("en-US")}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function useTop(songId: string, diff: string, refresh: number) {
   const [state, setState] = useState<{ key: string; list: RhythmRanking[]; error: boolean } | null>(
     null
@@ -94,14 +154,27 @@ export function RankingBoard({
   diff,
   label,
   bare = false,
+  game = false,
 }: {
   songId: string;
   diff: string;
   label: string;
   /** 모달 안처럼 테두리·제목 없이 */
   bare?: boolean;
+  /** 게임 화면(곡 선택) 안: 목록만, 글자 크기는 화면 폭 기준 */
+  game?: boolean;
 }) {
   const top = useTop(songId, diff, 0);
+  if (game)
+    return !top ? (
+      <p className="py-[1.4cqw] text-center font-mono text-[1.05cqw] text-white/30">불러오는 중…</p>
+    ) : top.error ? (
+      <p className="py-[1.4cqw] text-center font-mono text-[1.05cqw] text-red-300/80">
+        랭킹을 불러오지 못했어요.
+      </p>
+    ) : (
+      <List list={top.list} game />
+    );
   return (
     <div className={bare ? "" : "rounded-xl border border-white/10 bg-[#1C1E24] p-4"}>
       {!bare && (
@@ -215,7 +288,7 @@ export function SubmitRanking({
             등록하지 못했어요. 잠시 후 다시 시도해주세요.
           </p>
         )}
-        <div className="mt-[0.8cqw] min-h-0 flex-1 overflow-y-auto border-t border-white/10 pt-[0.4cqw] [scrollbar-width:thin]">
+        <div className="mt-[0.8cqw] min-h-0 flex-1 bd-scroll overflow-y-auto border-t border-white/10 pt-[0.4cqw]">
           {!top ? (
             <p className="py-[2cqw] text-center font-mono text-[1.1cqw] text-white/30">
               불러오는 중…

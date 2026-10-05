@@ -74,14 +74,22 @@ export const LH = 720;
 const GEAR = {
   w: 1075,
   h: 1683,
-  lane0: 170,
-  laneW: 183,
+  /** 레인: 틀 안쪽을 꽉 채움 (기둥 안쪽 158 ~ 914) */
+  lane0: 158,
+  laneW: 189,
   judge: 1393,
   padTop: 1452,
   padBot: 1640,
-  /** 패드는 원근감 있게 바깥으로 벌어져 있어서 레인 중심과 조금 다름 */
-  padCx: [222, 430, 645, 853],
-  padW: 190,
+  /** 패드 안쪽 화면(원근감 있게 바깥으로 벌어짐): [위 왼쪽, 위 오른쪽, 아래 오른쪽, 아래 왼쪽] */
+  pads: [
+    [178, 1462, 330, 1462, 306, 1606, 140, 1606],
+    [368, 1462, 518, 1462, 516, 1606, 352, 1606],
+    [556, 1462, 708, 1462, 724, 1606, 562, 1606],
+    [752, 1462, 902, 1462, 940, 1606, 776, 1606],
+  ],
+  /** 키 글자 자리 (패드 안쪽 가운데) */
+  padCx: [232, 437, 638, 842],
+  padCy: 1530,
 };
 
 /** 레인 위치 (화면 왼쪽·가운데·오른쪽) */
@@ -116,6 +124,8 @@ function timingOf(diffs: number[]): { avgMs: number | null; steady: boolean } {
 
 /** 이보다 크게 어긋나면 FAST/SLOW 표시 (퍼펙트 안이어도) */
 const FAST_SLOW_MS = 20;
+/** 플레이 중 R을 이만큼 누르고 있으면 처음부터 */
+const R_HOLD_MS = 700;
 
 const JUDGE_STYLE: Record<Judge, { text: string; color: string }> = {
   perfect: { text: "PERFECT", color: "#7DF9FF" },
@@ -205,10 +215,17 @@ export default function Stage({
     n: 0,
   });
   // 일시정지 화면의 지금까지 점수·정확도·랭크
-  const [pauseStats, setPauseStats] = useState<{ score: number; acc: number; combo: number }>({
+  const [pauseStats, setPauseStats] = useState<{
+    score: number;
+    acc: number;
+    combo: number;
+    /** 판정 받은 노트 수 (0이면 정확도·랭크를 아직 안 보여 줌) */
+    judged: number;
+  }>({
     score: 0,
-    acc: 100,
+    acc: 0,
     combo: 0,
+    judged: 0,
   });
   /** 일시정지 화면의 '싱크 적용': 결과 화면 자동 보정과 같은 규칙 (한 번에 최대 ±120ms) */
   const applyPauseSync = () => {
@@ -263,7 +280,7 @@ export default function Stage({
     };
     let vis = visibleSec(speed);
     // READY → 3 → 2 → 1 → GO! 가 끝난 뒤에 노트가 내려오기 시작
-    const cd = countdownPhases(song.color);
+    const cd = countdownPhases();
     const cdEnd = cd[cd.length - 2].from + cd[cd.length - 2].dur; // "1"이 끝나는 시점
     const leadIn = cdEnd + vis + 0.25;
     const lanePointer = new Map<number, number>();
@@ -279,8 +296,9 @@ export default function Stage({
     const W = GEAR.laneW * GS * 4;
     const H = LH;
     const judgeY = GEAR.judge * GS;
-    const padTop = GEAR.padTop * GS;
-    const padBot = GEAR.padBot * GS;
+    /** 레인 틀 그림 좌표 → 화면 좌표 */
+    const gpx = (x: number) => gearX + x * GS;
+    const gy = (y: number) => y * GS;
     // 정보판: 레인이 가운데면 양옆, 한쪽이면 반대쪽에 위아래로
     const side = field === "left" ? "right" : field === "right" ? "left" : null;
     const sideX = side === "right" ? gearX + gearW + 56 : 56;
@@ -312,6 +330,7 @@ export default function Stage({
     const coverImg = loadImg(COVERS[song.id]?.src ?? "", () => buildStatic());
     const hitImg = loadImg("/rhythm/hit.webp", () => {});
     const ringImg = loadImg("/rhythm/ring.webp", () => {});
+    setCountdownRing(ringImg);
     const failImg = loadImg("/rhythm/banner-failed.webp", () => {});
     const judgeImg: Record<Judge, HTMLImageElement> = {
       perfect: loadImg("/rhythm/judge-perfect.webp", () => {}),
@@ -595,6 +614,11 @@ export default function Stage({
     };
 
     const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
+    /** 지금까지 판정 받은 노트 수 — 0이면 정확도는 100%가 아니라 아직 없음 */
+    const judgedCount = () =>
+      engine.counts.perfect + engine.counts.great + engine.counts.good + engine.counts.miss;
+    /** R을 누르기 시작한 시각 (꾹 누르면 다시 시작) */
+    let rHoldAt: number | null = null;
     const disp = "'Arial Black', 'Segoe UI Black', Impact, ui-sans-serif, sans-serif";
     // 콤보 효과: 50콤보마다 링, 큰 콤보가 끊기면 흔들림
     let ringAt = -10;
@@ -674,29 +698,44 @@ export default function Stage({
       g.textAlign = "right";
       g.fillText(`${fmtTime(Math.max(0, t))} / ${fmtTime(songEnd + 2.5)}`, px0 + pw, py - 16);
 
-      // ── 점수판 ──
+      // ── 점수판: 글꼴을 모두 굵은 기울임(disp)으로 맞춤 ──
       const sb = scoreBox;
       const sx = sb.x + 24;
       const sw = sb.w - 48;
+      const judged = judgedCount();
+      const spaced = (px: number) => {
+        (g as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = `${px}px`;
+      };
       g.textAlign = "left";
       g.fillStyle = "rgba(255,255,255,0.5)";
-      g.font = `700 13px ${mono}`;
+      g.font = `italic 900 12px ${disp}`;
+      spaced(3);
       g.fillText("SCORE", sx, sb.y + 22);
+      spaced(0);
       g.fillStyle = "#fff";
-      g.font = `900 ${Math.min(46, Math.max(30, sw / 7))}px ${disp}`;
+      g.font = `italic 900 ${Math.min(46, Math.max(30, sw / 7))}px ${disp}`;
       g.fillText(fmtScore(Math.round(shownScore)), sx, sb.y + 40, sw);
       const acc = engine.accuracy;
-      const rk = rankOf(acc);
-      g.fillStyle = rankColorOf(rk);
-      g.font = `900 22px ${disp}`;
-      g.fillText(rk, sx, sb.y + 100);
-      g.fillStyle = "rgba(255,255,255,0.85)";
-      g.font = `800 18px ${mono}`;
-      g.fillText(`${acc.toFixed(2)}%`, sx + 54, sb.y + 103);
-      g.fillStyle = "rgba(255,255,255,0.5)";
-      g.font = `700 12px ${mono}`;
+      const rk = judged ? rankOf(acc) : "-";
+      // 랭크 · 정확도 · 최대 콤보 한 줄 (같은 높이·같은 글꼴)
+      const ly = sb.y + 100;
+      g.fillStyle = judged ? rankColorOf(rk) : "rgba(255,255,255,0.3)";
+      g.font = `italic 900 24px ${disp}`;
+      g.fillText(rk, sx, ly);
+      g.fillStyle = judged ? "#fff" : "rgba(255,255,255,0.35)";
+      g.font = `italic 900 20px ${disp}`;
+      g.fillText(judged ? `${acc.toFixed(2)}%` : "--.--%", sx + 50, ly + 3);
       g.textAlign = "right";
-      g.fillText(`MAX COMBO ${engine.maxCombo}`, sx + sw, sb.y + 106);
+      g.fillStyle = "#fff";
+      g.font = `italic 900 20px ${disp}`;
+      const mc = String(engine.maxCombo);
+      g.fillText(mc, sx + sw, ly + 3);
+      const mcW = g.measureText(mc).width;
+      g.fillStyle = "rgba(255,255,255,0.5)";
+      g.font = `italic 900 11px ${disp}`;
+      spaced(1.5);
+      g.fillText("MAX COMBO", sx + sw - mcW - 10, ly + 10);
+      spaced(0);
       g.textAlign = "left";
       const rows: [string, number, string][] = [
         ["PERFECT", engine.counts.perfect, JUDGE_STYLE.perfect.color],
@@ -704,8 +743,8 @@ export default function Stage({
         ["GOOD", engine.counts.good, JUDGE_STYLE.good.color],
         ["MISS", engine.counts.miss, JUDGE_STYLE.miss.color],
       ];
-      const rowTop = sb.y + 142;
-      const rowH = Math.min(36, (sb.y + sb.h - 30 - rowTop) / 4);
+      const rowTop = sb.y + 140;
+      const rowH = Math.min(40, (sb.y + sb.h - 14 - rowTop) / 4);
       rows.forEach(([label, n, c], i) => {
         const y = rowTop + i * rowH;
         g.fillStyle = "rgba(255,255,255,0.05)";
@@ -714,21 +753,17 @@ export default function Stage({
         g.fill();
         g.fillStyle = c;
         g.fillRect(sx, y, 4, rowH - 6);
-        g.font = `900 14px ${mono}`;
+        // 점수·랭크와 같은 굵은 기울임 글꼴로 (따로 놀지 않게)
+        g.font = `italic 900 15px ${disp}`;
         g.textBaseline = "middle";
-        g.fillText(label, sx + 14, y + (rowH - 6) / 2);
+        g.fillText(label, sx + 16, y + (rowH - 6) / 2 + 1);
         g.fillStyle = "#fff";
         g.textAlign = "right";
-        g.font = `800 16px ${mono}`;
-        g.fillText(String(n), sx + sw - 12, y + (rowH - 6) / 2);
+        g.font = `italic 900 19px ${disp}`;
+        g.fillText(String(n), sx + sw - 14, y + (rowH - 6) / 2 + 1);
         g.textAlign = "left";
         g.textBaseline = "top";
       });
-      g.fillStyle = "rgba(96,165,250,0.85)";
-      g.font = `700 12px ${mono}`;
-      g.fillText(`FAST ${fast}`, sx, sb.y + sb.h - 26);
-      g.fillStyle = "rgba(251,146,60,0.85)";
-      g.fillText(`SLOW ${slow}`, sx + 90, sb.y + sb.h - 26);
     };
 
     const draw = (t: number) => {
@@ -822,23 +857,35 @@ export default function Stage({
       g.restore();
       // 패드: 누르면 빛남 + 키 글자
       for (let l = 0; l < 4; l++) {
-        const cx = gearX + GEAR.padCx[l] * GS;
-        const pw = GEAR.padW * GS;
+        const q = GEAR.pads[l];
         const on = engine.pressed[l];
         if (on) {
           g.save();
           g.globalCompositeOperation = "lighter";
-          g.fillStyle = `${laneColor(l)}70`;
+          const pg = g.createLinearGradient(0, gy(q[1]), 0, gy(q[5]));
+          pg.addColorStop(0, `${laneColor(l)}30`);
+          pg.addColorStop(1, `${laneColor(l)}90`);
+          g.fillStyle = pg;
           g.beginPath();
-          g.roundRect(cx - pw / 2 + 6, padTop + 6, pw - 12, padBot - padTop - 14, 8);
+          g.moveTo(gpx(q[0]), gy(q[1]));
+          g.lineTo(gpx(q[2]), gy(q[3]));
+          g.lineTo(gpx(q[4]), gy(q[5]));
+          g.lineTo(gpx(q[6]), gy(q[7]));
+          g.closePath();
           g.fill();
           g.restore();
         }
-        g.fillStyle = on ? "#fff" : "rgba(255,255,255,0.4)";
+        // 글자도 패드 기울기만큼 기울여서
+        const slant = ((q[6] - q[0] + (q[4] - q[2])) / 2 / (q[5] - q[1])) * 1;
+        g.save();
+        g.translate(gpx(GEAR.padCx[l]), gy(GEAR.padCy));
+        g.transform(1, 0, slant, 1, 0, 0);
+        g.fillStyle = on ? "#fff" : "rgba(255,255,255,0.5)";
         g.font = `900 22px ${disp}`;
         g.textAlign = "center";
         g.textBaseline = "middle";
-        g.fillText(KEY_LABELS[l], cx, (padTop + padBot) / 2);
+        g.fillText(KEY_LABELS[l], 0, 0);
+        g.restore();
       }
 
       g.save();
@@ -929,23 +976,24 @@ export default function Stage({
 
       g.save();
       g.translate(gx, 0);
-      // 판정 글자 (그림)
-      const jy = H * 0.34;
+      // 판정 글자 (그림): 판정선 조금 위 — 콤보는 위쪽에 따로 (디맥 배치)
+      const jy = judgeY - 150;
       if (lastJudge && t - lastJudge.at < 0.6) {
         const age = Math.max(0, t - lastJudge.at);
         const pop = Math.min(1, age / 0.14);
         const miss = lastJudge.judge === "miss";
         // 크게 튀어나왔다가 제자리로(오버슈트), 위로 살짝 떠오르며 사라짐. 미스는 흔들림
-        const sc = miss ? 1.1 - 0.1 * pop : 1.5 - 0.5 * easeOutBack(pop);
+        const sc = miss ? 1.1 - 0.1 * pop : 1.3 - 0.3 * easeOutBack(pop);
         const shake = miss ? Math.sin(age * 90) * 7 * (1 - pop) : 0;
         const yy = jy - (miss ? -age * 18 : pop * 6);
         const im = judgeImg[lastJudge.judge];
         g.save();
-        g.globalAlpha = age < 0.42 ? 1 : Math.max(0, 1 - (age - 0.42) / 0.18);
+        // 노트를 가리지 않게 살짝 비침
+        g.globalAlpha = 0.72 * (age < 0.42 ? 1 : Math.max(0, 1 - (age - 0.42) / 0.18));
         g.translate(W / 2 + shake, yy);
         g.scale(sc, sc);
         if (ready(im)) {
-          const iw = Math.min(W + 40, 330);
+          const iw = 180;
           const ih = (iw * im.naturalHeight) / im.naturalWidth;
           g.drawImage(im, -iw / 2, -ih / 2, iw, ih);
         } else {
@@ -957,83 +1005,74 @@ export default function Stage({
           g.fillText(s.text, 0, 0);
         }
         g.restore();
-        // 빠름·느림 (퍼펙트 안이어도 크게 어긋나면)
-        const d = lastJudge.diff;
-        if (!miss && d !== undefined && Math.abs(d * 1000) > FAST_SLOW_MS && age < 0.45) {
-          g.font = `900 15px ${mono}`;
-          g.textAlign = "center";
-          g.textBaseline = "middle";
-          g.fillStyle = d < 0 ? "#60A5FA" : "#FB923C";
-          g.fillText(d < 0 ? "FAST" : "SLOW", W / 2, yy - 78);
-        }
       }
-      // 콤보
-      const cyC = jy + 108;
+      // 콤보: 레인 위쪽에 COMBO 글자 + 은색 큰 숫자 (오를 때마다 살짝 튐)
+      const cyC = H * 0.2;
       const ringAge = t - ringAt;
       if (ready(ringImg) && ringAge >= 0 && ringAge < 0.5) {
         const fr = Math.min(3, Math.floor(ringAge / 0.125));
         const cell = ringImg.naturalHeight;
-        const sz = 260 + ringAge * 260;
+        const sz = 220 + ringAge * 240;
         g.save();
         g.globalCompositeOperation = "lighter";
         g.globalAlpha = 1 - ringAge / 0.5;
         g.drawImage(ringImg, fr * cell, 0, cell, cell, W / 2 - sz / 2, cyC - sz / 2, sz, sz);
         g.restore();
       }
+      const comboFont = "Impact, 'Arial Narrow', 'Arial Black', sans-serif";
       if (engine.combo >= 2) {
-        // 콤보가 오를 때마다 살짝 튀어오름, 50단위마다 크게
-        const bump = Math.max(0, 1 - (t - comboAt) / 0.12);
-        const big = Math.max(0, 1 - ringAge / 0.35);
+        const bump = Math.max(0, 1 - (t - comboAt) / 0.1);
+        const gold = Math.max(0, 1 - ringAge / 0.6); // 50콤보마다 잠깐 금빛
         const cc = engine.combo;
-        const comboColor =
-          cc >= 200
-            ? `hsl(${Math.round((t * 160) % 360)} 95% 70%)`
-            : cc >= 100
-              ? "#FB923C"
-              : cc >= 50
-                ? "#FDE047"
-                : cc >= 25
-                  ? "#4ADE80"
-                  : cc >= 10
-                    ? "#7DF9FF"
-                    : "#FFFFFF";
-        const size = Math.round(66 + 12 * bump + 26 * big);
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.font = `italic 900 ${size}px ${disp}`;
+        const size = 72;
         const txt = String(cc);
-        g.lineJoin = "round";
-        g.lineWidth = 8;
-        g.strokeStyle = "rgba(6,4,20,0.85)";
-        g.strokeText(txt, W / 2, cyC - 4 * bump);
-        const gr = g.createLinearGradient(0, cyC - size / 2, 0, cyC + size / 2);
-        gr.addColorStop(0, "#FFFFFF");
-        gr.addColorStop(0.55, comboColor);
-        gr.addColorStop(1, comboColor);
-        g.fillStyle = gr;
-        if (cc >= 50) {
-          g.shadowColor = comboColor;
-          g.shadowBlur = cc >= 200 ? 26 : 16;
-        }
-        g.fillText(txt, W / 2, cyC - 4 * bump);
-        g.shadowBlur = 0;
-        g.font = `italic 900 15px ${disp}`;
-        g.lineWidth = 4;
-        g.strokeText("COMBO", W / 2, cyC + size / 2 + 6);
-        g.fillStyle = "rgba(255,255,255,0.8)";
-        g.fillText("COMBO", W / 2, cyC + size / 2 + 6);
-      } else if (t - breakAt < 0.6 && breakFrom >= 20) {
-        // 콤보 끊김: 숫자가 흩어지며 떨어짐
-        const a = t - breakAt;
-        g.globalAlpha = 1 - a / 0.6;
+        g.save();
+        g.globalAlpha = 0.65; // 노트가 비쳐 보이게
+        g.translate(W / 2, cyC);
+        g.scale(1 + 0.1 * bump, 1 + 0.1 * bump);
         g.textAlign = "center";
         g.textBaseline = "middle";
-        g.font = `italic 900 66px ${disp}`;
+        // COMBO 글자도 숫자와 같은 글꼴·은색
+        g.font = `20px ${comboFont}`;
+        (g as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "6px";
+        g.lineWidth = 4;
+        g.lineJoin = "round";
+        g.strokeStyle = "rgba(10,10,20,0.75)";
+        g.strokeText("COMBO", 3, -size / 2 - 8);
+        const lg = g.createLinearGradient(0, -size / 2 - 18, 0, -size / 2 + 2);
+        lg.addColorStop(0, "#FFFFFF");
+        lg.addColorStop(1, "#94A3B8");
+        g.fillStyle = lg;
+        g.fillText("COMBO", 3, -size / 2 - 8);
+        (g as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "0px";
+        g.font = `${size}px ${comboFont}`;
+        g.lineJoin = "round";
+        g.lineWidth = 5;
+        g.strokeStyle = "rgba(10,10,20,0.75)";
+        g.strokeText(txt, 0, 4);
+        const gr = g.createLinearGradient(0, -size / 2, 0, size / 2);
+        gr.addColorStop(0, "#FFFFFF");
+        gr.addColorStop(0.45, gold > 0 ? "#FDE68A" : "#E2E8F0");
+        gr.addColorStop(0.5, gold > 0 ? "#D97706" : "#94A3B8");
+        gr.addColorStop(1, gold > 0 ? "#FEF3C7" : "#CBD5E1");
+        g.fillStyle = gr;
+        g.fillText(txt, 0, 4);
+        g.restore();
+      } else if (t - breakAt < 0.6 && breakFrom >= 20) {
+        // 콤보 끊김: 숫자가 붉게 흔들리며 떨어짐
+        const a = t - breakAt;
+        g.globalAlpha = 0.9 * (1 - a / 0.6);
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.font = `72px ${comboFont}`;
         g.fillStyle = "#F87171";
-        g.fillText(String(breakFrom), W / 2 + Math.sin(a * 80) * 6 * (1 - a / 0.6), cyC + a * 60);
+        g.fillText(
+          String(breakFrom),
+          W / 2 + Math.sin(a * 80) * 6 * (1 - a / 0.6),
+          cyC + 4 + a * 50
+        );
         g.globalAlpha = 1;
       }
-
       // 속도 바꿨을 때 잠깐 표시
       const sAge = performance.now() / 1000 - speedToastAt;
       if (sAge < 1) {
@@ -1041,13 +1080,26 @@ export default function Stage({
         g.textAlign = "center";
         g.textBaseline = "middle";
         g.fillStyle = "rgba(0,0,0,0.6)";
-        roundRectFill(g, W / 2 - 80, H * 0.16 - 20, 160, 40, 20);
+        roundRectFill(g, W / 2 - 80, H * 0.4 - 20, 160, 40, 20);
         g.fillStyle = "#fff";
         g.font = `800 17px ${mono}`;
-        g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.16);
+        g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.4);
         g.globalAlpha = 1;
       }
       drawCountdown(g, cd, t + leadIn, W, H);
+      // R 꾹: 다시 시작 게이지
+      if (rHoldAt !== null) {
+        const pr = Math.min(1, (performance.now() - rHoldAt) / R_HOLD_MS);
+        g.fillStyle = "rgba(0,0,0,0.65)";
+        roundRectFill(g, W / 2 - 110, H * 0.47 - 22, 220, 44, 22);
+        g.fillStyle = "#F472B6";
+        roundRectFill(g, W / 2 - 110, H * 0.47 - 22, 220 * pr, 44, 22);
+        g.fillStyle = "#fff";
+        g.font = `900 15px ${mono}`;
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText("R 꾹 · 다시 시작", W / 2, H * 0.47);
+      }
       g.restore();
     };
 
@@ -1091,6 +1143,12 @@ export default function Stage({
     let prevCombo = 0;
     const frame = () => {
       if (!running) return;
+      if (rHoldAt !== null && performance.now() - rHoldAt >= R_HOLD_MS) {
+        rHoldAt = null;
+        running = false;
+        onRestart();
+        return;
+      }
       const t = smoothNow();
       engine.update(t - live.judge / 1000); // 지나간 노트 미스 처리도 타격 싱크 기준
       for (const e of engine.events) {
@@ -1225,7 +1283,12 @@ export default function Stage({
         resumeSeq++;
         cancelAnimationFrame(raf);
         setPauseTiming({ avgMs: timingOf(diffs).avgMs, n: diffs.length });
-        setPauseStats({ score: engine.score, acc: engine.accuracy, combo: engine.maxCombo });
+        setPauseStats({
+          score: engine.score,
+          acc: engine.accuracy,
+          combo: engine.maxCombo,
+          judged: judgedCount(),
+        });
         setPaused(true);
         return;
       }
@@ -1237,7 +1300,12 @@ export default function Stage({
       for (let l = 0; l < 4; l++) if (engine.pressed[l]) engine.release(l, t);
       ctx.suspend();
       setPauseTiming({ avgMs: timingOf(diffs).avgMs, n: diffs.length });
-      setPauseStats({ score: engine.score, acc: engine.accuracy, combo: engine.maxCombo });
+      setPauseStats({
+        score: engine.score,
+        acc: engine.accuracy,
+        combo: engine.maxCombo,
+        judged: judgedCount(),
+      });
       setPaused(true);
     };
     const resume = () => {
@@ -1302,6 +1370,14 @@ export default function Stage({
         e.preventDefault();
         return;
       }
+      // R: 플레이 중엔 꾹 누르면 다시 시작, 일시정지 중엔 바로 다시 시작
+      if (e.code === "KeyR") {
+        e.preventDefault();
+        if (e.repeat) return;
+        if (running) rHoldAt = performance.now();
+        else if (!resuming && !finished && !failing) onRestart();
+        return;
+      }
       if (e.code === "Escape") {
         e.preventDefault();
         if (e.repeat) return; // 꾹 누르고 있으면 멈춤·재개가 연달아 일어나던 문제
@@ -1328,6 +1404,7 @@ export default function Stage({
       if (!e.repeat) press(lane, e.timeStamp);
     };
     const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "KeyR") rHoldAt = null;
       const lane = KEY_CODES.indexOf(e.code);
       if (lane >= 0) release(lane, e.timeStamp);
     };
@@ -1411,7 +1488,7 @@ export default function Stage({
   }, []);
 
   const pbtn =
-    "cursor-pointer rounded-[0.8cqw] border border-white/15 bg-white/5 px-[1.6cqw] py-[0.7cqw] font-mono text-[1.3cqw] whitespace-nowrap text-white/85 transition-colors hover:border-[#A78BFA] hover:bg-[#A78BFA]/15 hover:text-white";
+    "cursor-pointer rounded-[0.8cqw] border border-white/20 bg-[#1d1838] px-[1.6cqw] py-[0.7cqw] font-mono text-[1.3cqw] whitespace-nowrap text-white/85 transition-colors hover:border-[#A78BFA] hover:bg-[#A78BFA]/15 hover:text-white";
   const rk = rankOf(pauseStats.acc);
 
   return (
@@ -1435,19 +1512,26 @@ export default function Stage({
         </button>
       </div>
       {paused && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#05030f]/80 backdrop-blur-[3px] [animation:modal-fade_200ms_ease-out]">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#05030f]/92 backdrop-blur-[4px] [animation:modal-fade_200ms_ease-out]">
           <div className="flex w-[52cqw] flex-col items-center gap-[1cqw]">
             <p className="font-['Arial_Black',sans-serif] text-[3.4cqw] font-black tracking-[0.2em] text-white italic drop-shadow-[0_0_1.2cqw_#A78BFA]">
               PAUSE
             </p>
-            <div className="flex w-full items-center gap-[1.6cqw] rounded-[1cqw] border border-white/10 bg-white/[0.04] px-[1.6cqw] py-[0.9cqw] font-mono">
-              <RankEmblem rank={rk} className="h-[5.6cqw] w-[5.6cqw]" />
+            <div className="flex w-full items-center gap-[1.6cqw] rounded-[1cqw] border border-white/15 bg-[#17132f] px-[1.6cqw] py-[0.9cqw] font-mono">
+              {pauseStats.judged > 0 ? (
+                <RankEmblem rank={rk} className="h-[5.6cqw] w-[5.6cqw]" />
+              ) : (
+                <span className="flex h-[5.6cqw] w-[5.6cqw] items-center justify-center rounded-full border-[0.2cqw] border-dashed border-white/20 font-['Arial_Black',sans-serif] text-[2cqw] text-white/30 italic">
+                  ?
+                </span>
+              )}
               <div className="flex min-w-0 flex-col text-[1.1cqw] text-white/55">
                 <span className="text-[2.2cqw] font-black text-white tabular-nums">
                   {pauseStats.score.toLocaleString("en-US")}
                 </span>
                 <span>
-                  정확도 {pauseStats.acc.toFixed(2)}% · 최대 콤보 {pauseStats.combo}
+                  정확도 {pauseStats.judged > 0 ? `${pauseStats.acc.toFixed(2)}%` : "—"} · 최대 콤보{" "}
+                  {pauseStats.combo}
                 </span>
               </div>
             </div>
@@ -1500,7 +1584,7 @@ export default function Stage({
                 </>
               )}
             </div>
-            <div className="w-full rounded-[1cqw] border border-white/10 bg-white/[0.04] px-[1.4cqw] py-[0.8cqw]">
+            <div className="w-full rounded-[1cqw] border border-white/15 bg-[#17132f] px-[1.4cqw] py-[0.8cqw]">
               <PauseRow
                 label="노트 속도"
                 value={`x${liveUi.speed.toFixed(1)}`}
@@ -1541,7 +1625,7 @@ export default function Stage({
                 계속하기 (Esc)
               </button>
               <button type="button" className={pbtn} onClick={onRestart}>
-                처음부터
+                처음부터 (R)
               </button>
               <button type="button" className={pbtn} onClick={onToggleFs}>
                 {fs ? "전체화면 끄기" : "⛶ 전체화면"}
@@ -1636,13 +1720,13 @@ interface Phase {
   beep?: number;
 }
 
-function countdownPhases(accent: string): Phase[] {
+function countdownPhases(): Phase[] {
   const list: Omit<Phase, "from">[] = [
     { label: "READY", dur: 1.2, color: "#FFFFFF", size: 54 },
     { label: "3", dur: 0.7, color: "#60A5FA", size: 120, beep: 660 },
     { label: "2", dur: 0.7, color: "#FBBF24", size: 120, beep: 660 },
     { label: "1", dur: 0.7, color: "#F43F5E", size: 120, beep: 660 },
-    { label: "GO!", dur: 0.6, color: accent, size: 96, beep: 1320 },
+    { label: "GO!", dur: 0.6, color: "#F472B6", size: 96, beep: 1320 },
   ];
   let from = 0;
   return list.map((p) => {
@@ -1658,7 +1742,15 @@ const easeOutBack = (x: number) => {
   return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
 };
 
-/** s: 시작 후 흐른 시간(초) */
+/** 카운트다운 글꼴 (판정·콤보 그림과 어울리게 굵은 기울임) */
+const CD_FONT = "'Arial Black', 'Segoe UI Black', Impact, sans-serif";
+let cdRing: HTMLImageElement | null = null;
+/** 카운트다운 숫자 뒤에 터지는 링 그림 (ring.webp) */
+const setCountdownRing = (im: HTMLImageElement) => {
+  cdRing = im;
+};
+
+/** s: 시작 후 흐른 시간(초) — 비스듬한 띠 위에 숫자가 쾅, 뒤로 금빛 링 */
 function drawCountdown(
   g: CanvasRenderingContext2D,
   phases: Phase[],
@@ -1672,57 +1764,74 @@ function drawCountdown(
   const cx = W / 2;
   const cy = H * 0.4;
   const go = ph.label === "GO!";
+  const ready = ph.label === "READY";
+  const fadeOut = p > 0.8 ? Math.max(0, 1 - (p - 0.8) / 0.2) : 1;
 
   g.save();
-  // 숫자 동안은 화면을 살짝 어둡게
+  // 숫자 동안은 레인을 살짝 어둡게
   if (!go) {
-    g.fillStyle = "rgba(0,0,0,0.35)";
+    g.fillStyle = "rgba(0,0,0,0.3)";
     g.fillRect(0, 0, W, H);
   }
+  // 비스듬한 띠: 왼쪽에서 쓱 들어옴
+  const inP = Math.min(1, p / 0.18);
+  const bandH = ready ? 74 : go ? 120 : 104;
+  g.globalAlpha = fadeOut * 0.92;
+  g.save();
+  g.translate(cx, cy);
+  g.transform(1, -0.12, 0, 1, 0, 0);
+  const bw = (W + 80) * easeOutBack(inP);
+  const band = g.createLinearGradient(-bw / 2, 0, bw / 2, 0);
+  band.addColorStop(0, "rgba(219,39,119,0)");
+  band.addColorStop(0.15, "rgba(219,39,119,0.85)");
+  band.addColorStop(0.85, "rgba(124,58,237,0.85)");
+  band.addColorStop(1, "rgba(124,58,237,0)");
+  g.fillStyle = band;
+  g.fillRect(-bw / 2, -bandH / 2, bw, bandH);
+  g.fillStyle = "rgba(255,255,255,0.75)";
+  g.fillRect(-bw / 2, -bandH / 2, bw, 2);
+  g.fillRect(-bw / 2, bandH / 2 - 2, bw, 2);
+  g.restore();
 
-  // 퍼지는 링
-  g.globalAlpha = Math.max(0, 1 - p) * 0.7;
-  g.strokeStyle = ph.color;
-  g.lineWidth = go ? 6 : 4;
-  g.beginPath();
-  g.arc(
-    cx,
-    cy,
-    30 + easeOutBack(Math.min(1, p * 1.4)) * (go ? W * 0.55 : W * 0.32),
-    0,
-    Math.PI * 2
-  );
-  g.stroke();
-
-  if (ph.label === "READY") {
-    // 가로로 번쩍이는 띠 + 글자가 옆에서 미끄러져 들어옴
-    const band = g.createLinearGradient(0, 0, W, 0);
-    band.addColorStop(0, "rgba(108,99,255,0)");
-    band.addColorStop(0.5, "rgba(108,99,255,0.45)");
-    band.addColorStop(1, "rgba(108,99,255,0)");
-    g.globalAlpha = p < 0.85 ? 1 : (1 - p) / 0.15;
-    g.fillStyle = band;
-    const bh = 90 * Math.min(1, p * 5);
-    g.fillRect(0, cy - bh / 2, W, bh);
+  // 숫자·GO!는 금빛 링이 뒤에서 터짐
+  if (!ready && cdRing && cdRing.complete && cdRing.naturalWidth) {
+    const cell = cdRing.naturalHeight;
+    const fr = Math.min(3, Math.floor(p * 4));
+    const sz = (go ? 300 : 210) * (0.8 + p * 0.5);
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    g.globalAlpha = (1 - p) * 0.9;
+    g.drawImage(cdRing, fr * cell, 0, cell, cell, cx - sz / 2, cy - sz / 2, sz, sz);
+    g.restore();
   }
 
-  // 글자: 크게 튀어나왔다가 제자리로(오버슈트), 끝에서 흐려짐
+  // 글자: 크게 튀어나왔다가 제자리로(오버슈트), 흰→색 그라데이션 + 진한 테두리
   const pop = Math.min(1, p / 0.22);
-  const scale = ph.label === "READY" ? 1 : 2.2 - 1.2 * easeOutBack(pop);
-  const slide = ph.label === "READY" ? (1 - easeOutBack(Math.min(1, p / 0.3))) * -W * 0.6 : 0;
-  const alpha = p > 0.78 ? Math.max(0, 1 - (p - 0.78) / 0.22) : Math.min(1, p / 0.08);
-  g.globalAlpha = alpha;
+  const scale = ready ? 1 : 2 - 1 * easeOutBack(pop);
+  const slide = ready ? (1 - easeOutBack(Math.min(1, p / 0.3))) * -W * 0.6 : 0;
+  g.globalAlpha = fadeOut * Math.min(1, p / 0.06);
   g.translate(cx + slide, cy);
+  g.transform(1, -0.12, 0, 1, 0, 0);
   g.scale(scale, scale);
-  g.font = `900 ${ph.size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  const size = ready ? 46 : go ? 92 : 104;
+  g.font = `italic 900 ${size}px ${CD_FONT}`;
   g.textAlign = "center";
   g.textBaseline = "middle";
-  g.shadowColor = ph.color;
-  g.shadowBlur = 28;
-  g.fillStyle = ph.color;
-  g.fillText(ph.label, 0, 0);
+  if (ready) (g as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "8px";
+  g.lineJoin = "round";
+  g.lineWidth = ready ? 6 : 10;
+  g.strokeStyle = "rgba(20,6,40,0.9)";
+  g.strokeText(ph.label, 0, 4);
+  const gr = g.createLinearGradient(0, -size / 2, 0, size / 2);
+  gr.addColorStop(0, "#FFFFFF");
+  gr.addColorStop(0.5, ready ? "#F5D0FE" : ph.color);
+  gr.addColorStop(1, ready ? "#E9D5FF" : ph.color);
+  g.fillStyle = gr;
+  g.shadowColor = ready ? "#F472B6" : ph.color;
+  g.shadowBlur = 18;
+  g.fillText(ph.label, 0, 4);
   g.shadowBlur = 0;
-  g.fillText(ph.label, 0, 0);
+  (g as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "0px";
   g.restore();
 }
 

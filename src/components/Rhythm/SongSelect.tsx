@@ -67,7 +67,6 @@ export default function SongSelect({
   const n = songs.length + 1;
   const custom = sel === songs.length;
   const color = custom ? CUSTOM_COLOR : (song?.color ?? CUSTOM_COLOR);
-  const [ranking, setRanking] = useState(false);
   const chartOf = (d: Difficulty): Chart | null =>
     custom ? (customCharts?.[d] ?? null) : (charts[songs[sel].id][d] ?? null);
   const bestKey = (d: Difficulty) => (song ? `${song.id}:${d}` : "");
@@ -92,14 +91,6 @@ export default function SongSelect({
     if (blocked || launching) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest?.("input, textarea")) return;
-      if (ranking) {
-        if (e.code === "Escape" || e.code === "KeyR") {
-          e.preventDefault();
-          sfx("ui-back", 0.7);
-          setRanking(false);
-        }
-        return;
-      }
       if (e.code === "ArrowUp" || e.code === "ArrowDown") {
         e.preventDefault();
         move(e.code === "ArrowUp" ? -1 : 1);
@@ -116,10 +107,9 @@ export default function SongSelect({
       } else if (e.code === "KeyS") {
         e.preventDefault();
         onSettings();
-      } else if (e.code === "KeyR" && !custom) {
+      } else if (e.code === "Slash" || e.code === "KeyF") {
         e.preventDefault();
-        sfx("ui-open", 0.7);
-        setRanking(true);
+        searchRef.current?.focus();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -128,10 +118,32 @@ export default function SongSelect({
 
   // 고른 곡이 목록 가운데 오게
   const listRef = useRef<HTMLDivElement>(null);
+  // (scrollIntoView는 바깥 프레임·페이지까지 같이 스크롤해서 화면이 밀려 올라가므로 목록만 직접 굴림)
   useEffect(() => {
-    const el = listRef.current?.querySelector<HTMLElement>(`[data-i="${sel}"]`);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const box = listRef.current;
+    const el = box?.querySelector<HTMLElement>(`[data-i="${sel}"]`);
+    if (!box || !el) return;
+    box.scrollTo({
+      top: el.offsetTop - box.clientHeight / 2 + el.offsetHeight / 2,
+      behavior: "smooth",
+    });
   }, [sel]);
+
+  // 곡 검색: 제목·설명에 들어간 말로 찾아서 바로 이동
+  const [q, setQ] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const norm = (x: string) => x.toLowerCase().replace(/\s+/g, "");
+  const matches = q.trim()
+    ? songs
+        .map((s, i) => ({ s, i }))
+        .filter(({ s }) => norm(`${s.title} ${s.desc}`).includes(norm(q)))
+    : [];
+  const pickMatch = (i: number) => {
+    onSel(i);
+    sfx("ui-select", 0.7);
+    setQ("");
+    searchRef.current?.blur();
+  };
 
   const cover = !custom && song ? COVERS[song.id]?.src : undefined;
 
@@ -159,22 +171,68 @@ export default function SongSelect({
       />
 
       {/* 위 */}
-      <div className="absolute inset-x-0 top-0 flex h-[5.4cqw] items-center justify-between border-b border-white/10 bg-black/35 px-[2.4cqw] backdrop-blur-[2px]">
+      <div className="absolute inset-x-0 top-0 z-30 flex h-[5.4cqw] items-center justify-between border-b border-white/10 bg-black/35 px-[2.4cqw] backdrop-blur-[2px]">
         <div className="flex items-baseline gap-[1.2cqw]">
           <span className={`${DISP} text-[2.2cqw] tracking-[0.06em] text-white`}>SELECT MUSIC</span>
           <span className={`${KR} text-[1.1cqw] text-white/45`}>곡 선택</span>
         </div>
-        <div className="flex items-center gap-[0.6cqw]">
-          {!custom && (
-            <TopBtn
-              onClick={() => {
-                sfx("ui-open", 0.7);
-                setRanking(true);
-              }}
-            >
-              🏆 랭킹 <K>R</K>
-            </TopBtn>
+        <div className="relative z-20 w-[26cqw]">
+          <input
+            ref={searchRef}
+            type="text"
+            inputMode="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && matches[0]) pickMatch(matches[0].i);
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                setQ("");
+                searchRef.current?.blur();
+              }
+            }}
+            placeholder="🔍 곡 검색 (F)"
+            aria-label="곡 검색"
+            className="w-full rounded-full border border-white/15 bg-black/40 px-[1.2cqw] py-[0.45cqw] font-['Nanum_Gothic',sans-serif] text-[1.15cqw] text-white placeholder:text-white/35 focus:border-[#A78BFA] focus:outline-none"
+          />
+          {q.trim() && (
+            <ul className="bd-scroll absolute top-full right-0 left-0 mt-[0.5cqw] max-h-[24cqw] overflow-y-auto rounded-[0.8cqw] border border-white/15 bg-[#120f26]/95 py-[0.4cqw] shadow-2xl backdrop-blur">
+              {matches.length === 0 ? (
+                <li className={`${KR} px-[1.2cqw] py-[0.6cqw] text-[1.1cqw] text-white/40`}>
+                  검색 결과가 없어요
+                </li>
+              ) : (
+                matches.map(({ s, i }) => (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => pickMatch(i)}
+                      className="flex w-full cursor-pointer items-center gap-[0.8cqw] px-[1cqw] py-[0.45cqw] text-left hover:bg-white/10"
+                    >
+                      <img
+                        src={COVERS[s.id]?.src}
+                        alt=""
+                        className="h-[2.6cqw] w-[2.6cqw] shrink-0 rounded-[0.3cqw] object-cover"
+                      />
+                      <span className="min-w-0">
+                        <span
+                          className={`${KR} block truncate text-[1.15cqw] font-bold text-white`}
+                        >
+                          {s.title}
+                        </span>
+                        <span className="block truncate font-mono text-[0.85cqw] text-white/40">
+                          {s.desc}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
           )}
+        </div>
+        <div className="flex items-center gap-[0.6cqw]">
           <TopBtn onClick={onSettings}>
             ⚙ 설정 <K>S</K>
           </TopBtn>
@@ -183,11 +241,11 @@ export default function SongSelect({
       </div>
 
       {/* 왼쪽: 재킷 + 정보 + 난이도 */}
-      <div className="absolute top-[7.4cqw] left-[2.6cqw] flex w-[44cqw] flex-col gap-[1.4cqw]">
+      <div className="absolute top-[7cqw] bottom-[6.2cqw] left-[2.6cqw] flex w-[44cqw] flex-col gap-[1.1cqw]">
         <div className="flex gap-[1.8cqw]">
           <div
             key={sel}
-            className="relative h-[22cqw] w-[22cqw] shrink-0 overflow-hidden rounded-[1cqw] border-[0.2cqw] [animation:bd-slam_380ms_cubic-bezier(.2,.9,.3,1.1)]"
+            className="relative h-[15cqw] w-[15cqw] shrink-0 overflow-hidden rounded-[1cqw] border-[0.2cqw] [animation:bd-slam_380ms_cubic-bezier(.2,.9,.3,1.1)]"
             style={{ borderColor: color, boxShadow: `0 0 2.4cqw ${color}88` }}
           >
             {cover ? (
@@ -205,7 +263,7 @@ export default function SongSelect({
             className="flex min-w-0 flex-1 flex-col justify-center [animation:bd-slide-left_300ms_ease-out]"
           >
             {custom ? (
-              <div className="flex h-[22cqw] flex-col gap-[0.5cqw]">
+              <div className="flex h-[15cqw] flex-col gap-[0.5cqw]">
                 <div className="font-mono text-[1cqw] tracking-[0.25em]" style={{ color }}>
                   MY MUSIC
                 </div>
@@ -276,7 +334,9 @@ export default function SongSelect({
                 >
                   {d.label}
                 </span>
-                <span className={`${DISP} text-[2cqw] leading-tight text-white`}>
+                <span
+                  className={`${DISP} -translate-x-[0.15cqw] pr-[0.15cqw] text-center text-[2cqw] leading-tight text-white tabular-nums`}
+                >
                   {c ? c.level : "-"}
                 </span>
                 {bb && (
@@ -294,10 +354,10 @@ export default function SongSelect({
         </div>
 
         {/* 기록 */}
-        <div className="flex h-[6.4cqw] items-center gap-[1.4cqw] rounded-[0.9cqw] border border-white/10 bg-black/45 px-[1.4cqw]">
+        <div className="flex h-[4.8cqw] shrink-0 items-center gap-[1.4cqw] rounded-[0.9cqw] border border-white/10 bg-black/45 px-[1.4cqw]">
           {b ? (
             <>
-              <RankEmblem rank={b.rank} className="h-[5cqw] w-[5cqw]" />
+              <RankEmblem rank={b.rank} className="h-[4cqw] w-[4cqw]" />
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="font-mono text-[0.95cqw] tracking-[0.2em] text-white/45">
                   BEST SCORE
@@ -325,6 +385,20 @@ export default function SongSelect({
                 ? `아직 기록이 없어요 · 노트 ${curChart.notes.length}개`
                 : "파일을 넣으면 채보가 만들어져요"}
             </span>
+          )}
+        </div>
+        {/* 랭킹: 내 기록 바로 아래 */}
+        <div className="flex min-h-0 flex-1 flex-col rounded-[0.9cqw] border border-white/10 bg-black/45 px-[1.4cqw] py-[0.8cqw]">
+          <div className="flex items-baseline justify-between gap-[1cqw]">
+            <span className={`${DISP} text-[1.3cqw] tracking-[0.12em] text-white`}>RANKING</span>
+            <span className="font-mono text-[0.9cqw] text-white/40">
+              {custom ? "내 음악은 랭킹 없음" : `${diffInfo.label} TOP 10`}
+            </span>
+          </div>
+          {!custom && song && (
+            <div className="bd-scroll mt-[0.4cqw] min-h-0 flex-1 overflow-y-auto">
+              <RankingBoard songId={song.id} diff={diff} label="" game />
+            </div>
           )}
         </div>
       </div>
@@ -418,6 +492,9 @@ export default function SongSelect({
             <K>Enter</K> 시작
           </span>
           <span>
+            <K>F</K> 검색
+          </span>
+          <span>
             <K>Esc</K> 타이틀
           </span>
           {err && <span className="text-red-300">{err}</span>}
@@ -436,43 +513,6 @@ export default function SongSelect({
           <span className="inline-block skew-x-12">{starting ? "LOADING…" : "START"}</span>
         </button>
       </div>
-
-      {/* 랭킹 */}
-      {ranking && song && !custom && (
-        <div
-          className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 backdrop-blur-[3px] [animation:modal-fade_180ms_ease-out]"
-          onPointerDown={(e) => {
-            if (e.target === e.currentTarget) {
-              sfx("ui-back", 0.7);
-              setRanking(false);
-            }
-          }}
-        >
-          <div className="flex max-h-[48cqw] w-[min(560px,64cqw)] flex-col overflow-hidden rounded-[1.2cqw] border border-white/15 bg-[#120f26] shadow-2xl [animation:modal-pop_220ms_ease-out]">
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
-              <span className="font-mono text-sm font-bold text-white">
-                🏆 랭킹{" "}
-                <span className="font-normal text-white/45">
-                  · {song.title} {diffInfo.label} TOP 10
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  sfx("ui-back", 0.7);
-                  setRanking(false);
-                }}
-                className="cursor-pointer rounded-full px-2 font-mono text-sm text-white/60 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-2">
-              <RankingBoard songId={song.id} diff={diff} label="" bare />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 시작 연출: 재킷이 들어오고 GET READY */}
       {launching && song && (

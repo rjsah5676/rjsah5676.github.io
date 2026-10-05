@@ -165,13 +165,25 @@ export default function RhythmGame() {
       qm.style.display = "";
     };
   }, []);
-  // 처음 들어오면 게임 화면이 한눈에 보이게
+  // 창모드에서 방향키·스페이스로 페이지가 스크롤되지 않게 (입력칸·슬라이더 조작은 그대로)
   useEffect(() => {
-    const id = setTimeout(
-      () => rootRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
-      300
-    );
-    return () => clearTimeout(id);
+    const keys = new Set([
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Space",
+      "PageUp",
+      "PageDown",
+    ]);
+    const onKey = (e: KeyboardEvent) => {
+      if (!keys.has(e.code)) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest?.("input, textarea, select, [contenteditable=true]")) return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   // ── 내 음악 ──
@@ -252,7 +264,9 @@ export default function RhythmGame() {
     } catch {}
   }, []);
   const previewVol = settings.music;
-  const previewing = screen === "select" && !customSel && entered;
+  // 미리 듣기할 곡: 내장곡, 또는 내 음악(파일을 넣은 뒤)
+  const previewSong = customSel ? (track ? customSong : null) : builtinSong;
+  const previewing = screen === "select" && entered && !!previewSong;
   useEffect(() => {
     if (!previewing) return;
     let alive = true;
@@ -261,7 +275,8 @@ export default function RhythmGame() {
       try {
         const ctx = await audio();
         if (ctx.state !== "running") return;
-        const buffer = await loadSong(builtinSong);
+        const ps = previewSong!;
+        const buffer = customSel && track ? track.buffer : await loadSong(ps);
         if (!alive) return;
         stopPreview(0.1);
         const src = ctx.createBufferSource();
@@ -269,11 +284,11 @@ export default function RhythmGame() {
         const gain = ctx.createGain();
         src.connect(gain).connect(ctx.destination);
         // 하이라이트: 곡의 1/3 지점 근처 마디 시작부터 18초
-        const beat = 60 / builtinSong.bpm;
+        const beat = 60 / ps.bpm;
         const barSec = beat * 4;
         const from = Math.max(
           0,
-          Math.floor(buffer.duration / 3 / barSec) * barSec + (builtinSong.beatOffset ?? 0)
+          Math.floor(buffer.duration / 3 / barSec) * barSec + (ps.beatOffset ?? 0)
         );
         const len = Math.min(18, Math.max(4, buffer.duration - from - 0.5));
         const t = ctx.currentTime;
@@ -294,10 +309,10 @@ export default function RhythmGame() {
       clearTimeout(timer);
       stopPreview();
     };
-  }, [previewing, builtinSong, previewVol, stopPreview]);
+  }, [previewing, previewSong, customSel, track, previewVol, stopPreview]);
 
   // 메뉴 BGM: 타이틀, 그리고 미리 듣기가 없는 화면(내 음악 고를 때)
-  const bgmOn = entered && (screen === "title" || (screen === "select" && customSel));
+  const bgmOn = entered && (screen === "title" || (screen === "select" && customSel && !track));
   useEffect(() => {
     if (bgmOn) playBgm(settings.music);
     else stopBgm();

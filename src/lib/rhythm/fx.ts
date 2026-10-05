@@ -205,8 +205,9 @@ export function drawHead(
   laneW: number,
   color: string
 ) {
-  const nx = x + 4;
-  const nw = laneW - 8;
+  // 레인 폭을 거의 꽉 채움 (양옆 2px만 띄움)
+  const nx = x + 2;
+  const nw = laneW - 4;
   const h = noteH;
   const top = y - h / 2;
   switch (skin) {

@@ -200,7 +200,7 @@ export default function SettingsModal({
           ))}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-[2.4cqw] py-[0.6cqw] [scrollbar-width:thin]">
+        <div className="bd-scroll min-h-0 flex-1 overflow-y-auto px-[2.4cqw] py-[0.6cqw]">
           {tab === "play" && (
             <>
               <Row label="노트 속도" hint="플레이 중 ↑ ↓ 로도 바꿀 수 있어요">
