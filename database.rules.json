@@ -137,6 +137,12 @@
           "state": {
             ".write": "auth != null && (root.child('fight/rooms/' + $room + '/players/' + auth.uid).exists() || (!data.exists() && newData.parent().child('meta/hostUid').val() === auth.uid))"
           },
+          "watchers": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "!newData.exists() || (newData.child('nick').isString() && newData.child('nick').val().length <= 10 && newData.child('at').isNumber())"
+            }
+          },
           "chat": {
             "$msg": {
               ".write": "auth != null && !data.exists() && root.child('fight/rooms/' + $room + '/players/' + auth.uid).exists()",
@@ -149,6 +155,19 @@
         "$room": {
           ".read": "auth != null && root.child('fight/rooms/' + $room + '/players/' + auth.uid).exists()",
           ".write": "auth != null && (root.child('fight/rooms/' + $room + '/players/' + auth.uid).exists() || (!newData.exists() && !root.child('fight/rooms/' + $room + '/players').exists()))"
+        }
+      },
+      "watch": {
+        "$room": {
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('fight/rooms/' + $room + '/players/' + auth.uid).exists() || (!newData.exists() && !root.child('fight/rooms/' + $room + '/players').exists()))",
+          "$match": {
+            "$seat": {
+              "$n": {
+                ".validate": "newData.child('f').isNumber() && newData.child('i').isString() && newData.child('i').val().length <= 400"
+              }
+            }
+          }
         }
       },
       "relay": {

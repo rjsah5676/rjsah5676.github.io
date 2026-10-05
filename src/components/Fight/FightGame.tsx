@@ -49,7 +49,7 @@ import TouchControls, { loadMoveMode, saveMoveMode, type MoveMode } from "./Touc
 import { fightScore } from "@/lib/aiScore";
 import Online, { type MatchCfg } from "./Online";
 import { OnlineMatch } from "./onlineMatch";
-import type { RoomSession } from "@/realtime/fight";
+import { InputLog, WatchFeed, type RoomSession, type WatchSession } from "@/realtime/fight";
 
 
 const SAVE_KEY = "fight:setup";
@@ -143,6 +143,17 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     setSessState(v);
   }, []);
   useEffect(() => () => void sessRef.current?.leave(), []);
+  // ── 관전: 지켜보는 방 ──
+  const [wsess, setWsessState] = useState<WatchSession | null>(null);
+  const wsessRef = useRef<WatchSession | null>(null);
+  const setWsess = useCallback((v: WatchSession | null) => {
+    if (wsessRef.current && wsessRef.current !== v) wsessRef.current.leave();
+    wsessRef.current = v;
+    setWsessState(v);
+  }, []);
+  useEffect(() => () => wsessRef.current?.leave(), []);
+  /** 관전: 받은 입력이 모자라 기다리는 중 / 앞부분을 빨리 따라잡는 중 */
+  const [watchWait, setWatchWait] = useState<"" | "buffer" | "catchup" | "stopped">("");
   const cfgRef = useRef<MatchCfg | null>(null);
   /** 그리기용 (cfgRef와 같은 값) */
   const [olCfg, setOlCfg] = useState<MatchCfg | null>(null);
@@ -307,7 +318,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     if (!canvas) return;
     const r = new FightRenderer(canvas);
     const ol = cfgRef.current;
-    r.tags = ol ? (ol.seat === 0 ? ["YOU", "2P"] : ["1P", "YOU"]) : ["1P", setup.mode === "ai" ? "CPU" : "2P"];
+    const watching = !!ol?.spectate;
+    r.tags = watching ? ["1P", "2P"] : ol ? (ol.seat === 0 ? ["YOU", "2P"] : ["1P", "YOU"]) : ["1P", setup.mode === "ai" ? "CPU" : "2P"];
     rendererRef.current = r;
     input.configure(setup.mode === "2p");
     const pickMap = () =>
@@ -319,14 +331,25 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           [setup.c1, setup.c2],
           setup.map < 0 && setup.rolled !== undefined && MAPS[setup.rolled] ? setup.rolled : pickMap()
         );
-    const net = ol ? sessRef.current?.net : null;
-    let om = ol && net ? new OnlineMatch(s, ol.seat, net, ol.match, ol.delay, ol.maxRb) : null;
+    const net = ol && !watching ? sessRef.current?.net : null;
+    const log = ol && net && sessRef.current ? new InputLog(sessRef.current.id, ol.match, ol.seat, ol.delay) : null;
+    let om = ol && net ? new OnlineMatch(s, ol.seat, net, ol.match, ol.delay, ol.maxRb, log) : null;
     if (om) s = om.state;
-    let netDead = ol !== null && !om;
+    // 관전: 두 선수 입력 기록을 받아 그대로 다시 돌림 (wf = 다음에 돌릴 프레임)
+    const feed = watching && ol?.room ? new WatchFeed(ol.room, ol.match, ol.delay) : null;
+    let wf = 0;
+    let buffering = true;
+    let waitSince = performance.now();
+    let watchState = "";
+    const setWatch = (v: "" | "buffer" | "catchup" | "stopped") => {
+      if (v !== watchState) ((watchState = v), setWatchWait(v));
+    };
+    let netDead = ol !== null && !om && !watching;
     if (netDead) setNetEnd("상대와 연결되지 않았어요");
     leaveMatchRef.current = (bye) => {
       om?.close(bye && !doneReported);
       om = null;
+      feed?.close();
     };
     playBgm(MAPS[s.map].bgm ?? MENU_BGM, true);
     let ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
@@ -373,7 +396,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(100, now - last);
       last = now;
-      if (pausedRef.current && !ol) {
+      if (pausedRef.current && (!ol || watching)) {
         r.draw(s);
         return;
       }
@@ -386,6 +409,35 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         r.drawLoading();
         return;
       }
+      if (feed && !doneReported) {
+        const lag = feed.ready - wf;
+        if (lag > 180) {
+          // 늦게 들어옴: 앞부분은 소리·효과 없이 빨리 돌려서 따라잡음
+          const n = Math.min(lag - 60, 900);
+          for (let k = 0; k < n && s.phase !== "over"; k++) {
+            step(s, feed.input(wf));
+            wf++;
+          }
+          feed.drop(wf - 2);
+          setWatch("catchup");
+          r.draw(s);
+          acc = 0;
+          return;
+        }
+        // 입력이 0.5초치씩 오니까 조금 모아 두고 재생, 많이 밀리면 살짝 빠르게
+        if (buffering && lag >= 40) buffering = false;
+        if (!buffering && lag < 0) ((buffering = true), (waitSince = now));
+        if (buffering) {
+          const rm = wsessRef.current?.room;
+          const stopped = performance.now() - waitSince > 8000 && (!rm || rm.state.match !== ol!.match || rm.state.phase !== "play");
+          setWatch(stopped ? "stopped" : "buffer");
+          r.draw(s);
+          acc = 0;
+          return;
+        }
+        setWatch("");
+        acc += lag > 90 ? dt * 0.5 : 0;
+      }
       acc += dt;
       let steps = 0;
       while (acc >= 1000 / 60 && steps < 4) {
@@ -394,7 +446,12 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         const prevSt = [s.p[0].st, s.p[1].st];
         const prevT = [s.p[0].t, s.p[1].t];
         const prevMv = [s.p[0].mv, s.p[1].mv];
-        if (om) {
+        if (feed) {
+          if (wf > feed.ready) break;
+          step(s, feed.input(wf));
+          wf++;
+          if (wf % 120 === 0) feed.drop(wf - 2);
+        } else if (om) {
           // 온라인: 앞서 있으면 한 프레임 쉬고, 상대 입력이 너무 늦으면 기다림 (되감기는 세션이 알아서)
           if (om.shouldWait()) continue;
           // 일시정지 메뉴가 열려 있어도 경기는 계속 (입력만 안 보냄)
@@ -469,7 +526,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             hits,
             hp: Math.round(hpRatio(s.p[me]) * 100),
           });
-          if (ol) sessRef.current?.endMatch(ol.match);
+          if (ol && !watching) sessRef.current?.endMatch(ol.match);
+          om?.flushLog();
         }
       }
       // 온라인: 상대가 나갔거나 연결이 끊김
@@ -512,6 +570,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   }, []);
   const startOnline = useCallback((cfg: MatchCfg) => {
     played.add(cfg.match);
+    setWatchWait("");
     cfgRef.current = cfg;
     setOlCfg(cfg);
     setNetEnd("");
@@ -603,7 +662,10 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
               initialRoom={initialRoom}
               played={played}
               onMatch={startOnline}
+              watch={wsess}
+              setWatch={setWsess}
               onExit={() => {
+                setWsess(null);
                 setSess(null);
                 setInitialRoom(null);
                 setOnlineOn(false);
@@ -642,7 +704,10 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   }
 
   const ol = olCfg;
-  const names: [string, string] = ol
+  const watching = !!ol?.spectate;
+  const names: [string, string] = watching
+    ? [ol!.names[0], ol!.names[1]]
+    : ol
     ? [ol.names[0] + (ol.seat === 0 ? " (나)" : ""), ol.names[1] + (ol.seat === 1 ? " (나)" : "")]
     : ["1P", setup.mode === "ai" ? `CPU ${level.name}` : "2P"];
   const meSeat = ol?.seat ?? 0;
@@ -665,7 +730,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       banner =
         hud.winner === 2
           ? { kind: "draw", text: "DRAW" }
-          : setup.mode === "ai" || ol
+          : (setup.mode === "ai" || ol) && !watching
             ? hud.winner === meSeat
               ? { kind: "win", text: "YOU WIN!" }
               : { kind: "lose", text: "YOU LOSE" }
@@ -695,7 +760,25 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             {banner && <Banner {...banner} top={result ? "15%" : undefined} />}
           </div>
         )}
-        {coarse && hud && !paused && !result && !netEnd && (
+        {watching && hud && (
+          <div className="pointer-events-none absolute top-[8.6cqw] left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/55 px-[1.2cqw] py-[0.3cqw] font-['Nanum_Gothic',sans-serif] text-[1.2cqw] font-bold text-[#67E8F9]">
+            👁 관전 중
+            {watchWait === "buffer" ? " · 받는 중…" : watchWait === "catchup" ? " · 따라잡는 중…" : ""}
+          </div>
+        )}
+        {watching && watchWait === "stopped" && !result && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-[1.6cqw] bg-black/60">
+            <div className="font-['Nanum_Gothic',sans-serif] text-[2.4cqw] font-extrabold text-white">경기가 중단됐어요</div>
+            <button
+              type="button"
+              onClick={toMenu}
+              className="cursor-pointer rounded-full bg-[#6C63FF] px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white"
+            >
+              관전 대기실로
+            </button>
+          </div>
+        )}
+        {coarse && hud && !paused && !result && !netEnd && !watching && (
           <TouchControls
             input={input}
             mode={moveMode}
@@ -708,8 +791,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         )}
         {paused && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/65">
-            <div className="font-mono text-lg text-white">{ol ? "메뉴" : "일시정지"}</div>
-            {ol && <div className={`${KR} text-xs text-white/55`}>온라인 대전은 멈추지 않아요 — 메뉴가 열린 동안 내 캐릭터는 가만히 있어요</div>}
+            <div className="font-mono text-lg text-white">{ol && !watching ? "메뉴" : "일시정지"}</div>
+            {ol && !watching && <div className={`${KR} text-xs text-white/55`}>온라인 대전은 멈추지 않아요 — 메뉴가 열린 동안 내 캐릭터는 가만히 있어요</div>}
             <div className="flex gap-2">
               <button type="button" onClick={() => setPaused(false)} className={primaryBtn}>
                 ▶ 계속
@@ -730,7 +813,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
                 {fs ? "전체화면 해제" : "⛶ 전체화면"}
               </button>
               <button type="button" onClick={toMenu} className={btn}>
-                {ol ? "기권하고 대기실로" : "메뉴로"}
+                {watching ? "관전 대기실로" : ol ? "기권하고 대기실로" : "메뉴로"}
               </button>
             </div>
           </div>
@@ -753,15 +836,17 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             title={
               hud?.winner === 2
                 ? "무승부"
-                : setup.mode === "ai" || ol
+                : watching
+                  ? `${names[hud?.winner ?? 0]} 승리`
+                  : setup.mode === "ai" || ol
                   ? result.win
                     ? "승리"
                     : "패배"
                   : `${hud?.winner === 0 ? "1P" : "2P"} 승리`
             }
             seconds={result.seconds}
-            hits={result.hits}
-            hp={result.hp}
+            hits={watching ? undefined : result.hits}
+            hp={watching ? undefined : result.hp}
             rank={
               setup.mode === "ai" && !ol && result.win
                 ? {
@@ -782,7 +867,12 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
                 : undefined
             }
             buttons={
-              ol
+              watching
+                ? [
+                    { label: "👁 다음 경기 보기", onClick: toMenu, primary: true },
+                    { label: "로비로", onClick: () => (toMenu(), setWsess(null)) },
+                  ]
+                : ol
                 ? [
                     { label: "↻ 한 판 더", onClick: () => toRoom(true), primary: true },
                     { label: "대기실로", onClick: () => toRoom(false) },

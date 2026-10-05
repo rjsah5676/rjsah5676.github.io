@@ -19,6 +19,7 @@ import {
   serverNow,
   subscribeLobby,
   watchServerOffset,
+  WatchSession,
   type LobbyRoom,
 } from "@/realtime/fight";
 
@@ -40,6 +41,10 @@ export interface MatchCfg {
   delay: number;
   maxRb: number;
   names: [string, string];
+  /** 관전 (seat는 안 씀) */
+  spectate?: boolean;
+  /** 관전하는 방 id */
+  room?: string;
 }
 
 export default function Online({
@@ -49,8 +54,13 @@ export default function Online({
   played,
   onMatch,
   onExit,
+  watch,
+  setWatch,
 }: {
   session: RoomSession | null;
+  /** 관전 중인 방 */
+  watch: WatchSession | null;
+  setWatch: (w: WatchSession | null) => void;
   /** 초대 링크로 들어온 방 */
   initialRoom?: string | null;
   setSession: (s: RoomSession | null) => void;
@@ -74,6 +84,7 @@ export default function Online({
     if (!uid || !nickLoaded) return <Center>접속 중…</Center>;
     if (!nick) return <NickForm onSubmit={setNick} onBack={onExit} />;
     if (session) return <Room key={session.id} s={session} played={played} onMatch={onMatch} onLeave={() => setSession(null)} />;
+    if (watch) return <WatchRoom key={watch.id} w={watch} played={played} onMatch={onMatch} onLeave={() => setWatch(null)} />;
     return (
       <Lobby
         uid={uid}
@@ -81,6 +92,7 @@ export default function Online({
         onNick={() => setNick("")}
         onBack={onExit}
         onEnter={(id) => setSession(new RoomSession(id, uid, nick))}
+        onWatch={(id) => setWatch(new WatchSession(id, uid, nick))}
       />
     );
   })();
@@ -142,12 +154,15 @@ function Lobby({
   onNick,
   onBack,
   onEnter,
+  onWatch,
 }: {
   uid: string;
   nick: string;
   onNick: () => void;
   onBack: () => void;
   onEnter: (id: string) => void;
+  /** 꽉 찼거나 대전 중인 방 → 관전 */
+  onWatch: (id: string) => void;
 }) {
   const [rooms, setRooms] = useState<LobbyRoom[] | null>(null);
   const [name, setName] = useState("");
@@ -213,7 +228,7 @@ function Lobby({
         <div className="flex min-h-0 flex-1 flex-col rounded-[1cqw] bg-black/50 p-[1cqw] backdrop-blur-[2px]">
           <div className={`${KR} mb-[0.6cqw] flex items-center justify-between text-[1.2cqw] text-white/50`}>
             <span>열린 방 {rooms ? rooms.length : ""}</span>
-            <span className="text-white/35">한 방에 2명 · 클릭해서 입장</span>
+            <span className="text-white/35">한 방에 2명 · 꽉 찬 방·대전 중인 방은 관전</span>
           </div>
           <div className="thin-scroll flex min-h-0 flex-1 flex-col gap-[0.6cqw] overflow-y-auto pr-[0.4cqw]">
             {rooms === null ? (
@@ -226,12 +241,12 @@ function Lobby({
             ) : (
               rooms.map((r) => {
                 const full = r.count >= 2;
+                const watchable = full || (r.playing && r.count > 0);
                 return (
                   <button
                     key={r.id}
                     type="button"
-                    disabled={full}
-                    onClick={() => onEnter(r.id)}
+                    onClick={() => (watchable ? onWatch(r.id) : onEnter(r.id))}
                     className="flex w-full cursor-pointer items-center justify-between gap-[1cqw] rounded-[0.6cqw] border border-white/10 bg-white/[0.04] px-[1.2cqw] py-[0.8cqw] text-left transition-colors hover:border-[#FDE047]/60 disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     <span className="min-w-0">
@@ -240,8 +255,15 @@ function Lobby({
                         방장 {r.host} · {r.playing ? "대전 중" : full ? "꽉 참" : r.count === 0 ? "비어 있음" : "상대 기다리는 중"}
                       </span>
                     </span>
-                    <span className={`shrink-0 font-mono text-[1.5cqw] font-black ${full ? "text-[#F87171]" : "text-[#FDE047]"}`}>
-                      {r.count}/2
+                    <span className="flex shrink-0 items-center gap-[0.8cqw]">
+                      {watchable && (
+                        <span className={`${KR} rounded-full bg-[#22D3EE]/20 px-[0.9cqw] py-[0.2cqw] text-[1.1cqw] font-bold text-[#67E8F9]`}>
+                          👁 관전
+                        </span>
+                      )}
+                      <span className={`font-mono text-[1.5cqw] font-black ${full ? "text-[#F87171]" : "text-[#FDE047]"}`}>
+                        {r.count}/2
+                      </span>
                     </span>
                   </button>
                 );
@@ -277,6 +299,108 @@ function Lobby({
             상대를 기다리는 방에 바로 들어가요. 서로 직접 연결(P2P)해서 싸우고, 연결이 안 되면 서버를 거쳐요(조금 느림).
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ───────────── 관전 대기 ─────────────
+
+/** 관전: 방 상태를 보다가 경기가 시작되면(이미 진행 중이어도) 바로 관전 화면으로 */
+function WatchRoom({
+  w,
+  played,
+  onMatch,
+  onLeave,
+}: {
+  w: WatchSession;
+  played: Set<string>;
+  onMatch: (cfg: MatchCfg) => void;
+  onLeave: () => void;
+}) {
+  const [, force] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    const off = w.on(force);
+    return () => void off();
+  }, [w]);
+  const room = w.room;
+  const st = room?.state;
+  const ps = w.players;
+  useEffect(() => {
+    if (!st || st.phase !== "play" || !st.match || played.has(st.match) || !ps[0] || !ps[1]) return;
+    loadSheet(CHARS[st.chars[0]].id).catch(() => {});
+    loadSheet(CHARS[st.chars[1]].id).catch(() => {});
+    onMatch({
+      match: st.match,
+      seat: 0,
+      chars: st.chars,
+      map: st.map,
+      delay: st.delay,
+      maxRb: st.maxRb,
+      names: [ps[0].nick, ps[1].nick],
+      spectate: true,
+      room: w.id,
+    });
+  }, [st, played, ps, w.id, onMatch]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Escape") {
+        e.preventDefault();
+        onLeave();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onLeave]);
+
+  if (w.lost)
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-[1.4cqw]">
+        <div className={`${KR} text-[2cqw] font-bold text-white`}>{w.lost}</div>
+        <button type="button" onClick={onLeave} className={bigBtn}>
+          로비로
+        </button>
+      </div>
+    );
+  if (!room) return <Center>방 불러오는 중…</Center>;
+  const nWatch = Object.keys(room.watchers).length;
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-[2cqw]">
+      <button type="button" onClick={onLeave} className={`${pill} absolute top-[2cqw] left-[2cqw]`}>
+        ◀ 로비로
+      </button>
+      <Title en="SPECTATE" ko={`${room.name} · 👁 관전 ${nWatch}명`} />
+      <div className="flex items-center gap-[4cqw]">
+        {[0, 1].map((sd) => {
+          const p = ps[sd];
+          const c = p && p.ch >= 0 ? CHARS[p.ch] : null;
+          return (
+            <div key={sd} className={`flex flex-col items-center gap-[0.6cqw] ${sd === 0 ? "order-1" : "order-3"}`}>
+              {c ? (
+                <img
+                  src={face(c)}
+                  alt={c.name}
+                  className={`h-[13cqw] w-[16cqw] rounded-[0.8cqw] border-[0.35cqw] object-cover ${PX}`}
+                  style={{ borderColor: SEAT_COL[sd], transform: sd === 1 ? "scaleX(-1)" : undefined }}
+                />
+              ) : (
+                <div className="flex h-[13cqw] w-[16cqw] items-center justify-center rounded-[0.8cqw] border-[0.35cqw] border-white/20 font-mono text-[6cqw] font-black text-white/25">
+                  ?
+                </div>
+              )}
+              <div className={`${KR} text-[1.5cqw] font-bold text-white`}>{p?.nick ?? "빈자리"}</div>
+              <div className={`${KR} text-[1.1cqw]`} style={{ color: p?.ready ? "#4ADE80" : "rgba(255,255,255,0.45)" }}>
+                {p ? (p.ready ? "준비 완료" : c ? c.name : "랜덤") : ""}
+              </div>
+            </div>
+          );
+        })}
+        <div className="order-2 font-mono text-[6cqw] font-black text-[#FDE047] italic drop-shadow-[0_0.4cqw_0_#000]">VS</div>
+      </div>
+      <div className={`${KR} text-[1.4cqw] text-white/60`}>
+        {st?.phase === "play" && st.match && played.has(st.match)
+          ? "지금 경기가 끝나길 기다리는 중… 다음 경기가 시작되면 바로 보여 줄게요"
+          : "다음 경기를 기다리는 중… 시작되면 바로 관전 화면으로 넘어가요"}
       </div>
     </div>
   );

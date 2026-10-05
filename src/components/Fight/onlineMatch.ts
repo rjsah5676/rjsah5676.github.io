@@ -8,7 +8,7 @@
  */
 import { RollbackSession } from "@/lib/fight/rollback";
 import type { State } from "@/lib/fight/sim";
-import type { FightNet, Packet } from "@/realtime/fight";
+import type { FightNet, InputLog, Packet } from "@/realtime/fight";
 
 /** 한 꾸러미에 담는 최대 입력 수 */
 const MAX_BATCH = 48;
@@ -31,7 +31,11 @@ export class OnlineMatch {
   private waitCount = 0;
   started = performance.now();
 
-  constructor(init: State, seat: 0 | 1, net: FightNet, match: string, delay: number, maxRb: number) {
+  /** 관전용 입력 기록 (내 확정 입력을 올림) */
+  private readonly log: InputLog | null;
+
+  constructor(init: State, seat: 0 | 1, net: FightNet, match: string, delay: number, maxRb: number, log: InputLog | null = null) {
+    this.log = log;
     this.session = new RollbackSession(init, seat, { inputDelay: delay, maxRollback: maxRb });
     this.net = net;
     this.match = match;
@@ -92,10 +96,16 @@ export class OnlineMatch {
       const q = this.session.addLocalInput(input);
       this.mine.set(q.frame, q.input);
       this.lastQueued = q.frame;
+      this.log?.add(q.frame, q.input);
     }
     const ok = this.session.advance();
     this.flush();
     return ok;
+  }
+
+  /** 관전 기록 남은 것 올리기 (경기 끝) */
+  flushLog() {
+    this.log?.flush();
   }
 
   /** 상대가 아직 못 받은 내 입력을 한 꾸러미로 */
@@ -115,6 +125,7 @@ export class OnlineMatch {
 
   /** 경기 화면을 떠남 → 상대에게 알림 */
   close(bye: boolean) {
+    this.log?.flush();
     if (bye) this.net.send({ k: "bye", m: this.match });
     this.net.onPacket = null;
   }

@@ -268,8 +268,9 @@ export default function ResultPanel({
   side: "left" | "right" | "center";
   title: string;
   seconds: number;
-  hits: number;
-  hp: number;
+  /** 없으면 안 보임 (관전) */
+  hits?: number;
+  hp?: number;
   rank?: ResultRank;
   buttons: ResultBtn[];
 }) {
@@ -330,8 +331,8 @@ export default function ResultPanel({
               </div>
               <div style={{ marginTop: "0.9cqw", display: "flex", gap: "0.5cqw" }}>
                 <Stat label="경기 시간" value={clockLabel(seconds)} />
-                <Stat label="적중" value={`${hits}회`} />
-                <Stat label="남은 체력" value={`${hp}%`} />
+                {hits !== undefined && <Stat label="적중" value={`${hits}회`} />}
+                {hp !== undefined && <Stat label="남은 체력" value={`${hp}%`} />}
               </div>
               {rank && <RankBox r={rank} />}
               <div style={{ marginTop: "1.2cqw", display: "flex", gap: "1cqw" }}>

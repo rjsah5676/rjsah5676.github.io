@@ -24,6 +24,8 @@ import { rtdb } from "@/firebase";
  *  fight/rooms/{room}/chat         대기실 채팅
  *  fight/sig/{room}/{pair}         WebRTC 연결 정보 교환 (offer/answer)
  *  fight/relay/{room}/{seat}       P2P가 안 될 때 입력 중계 (느리지만 됨)
+ *  fight/watch/{room}/{match}/{seat}/{n}  관전용 입력 기록 (각자 자기 확정 입력을 0.5초치씩)
+ *  fight/rooms/{room}/watchers/{uid}      관전 중인 사람 (끊기면 자동 삭제)
  *
  * 경기 중 입력은 P2P 데이터 채널(순서·재전송 없음, 아직 확인 안 된 입력을 매번 같이 보냄)로 주고받고,
  * 롤백 넷코드(lib/fight/rollback.ts)가 늦게 온 입력을 되감아서 맞춤.
@@ -88,6 +90,8 @@ export interface OnlineRoom {
   seats: [string, string];
   players: Record<string, OnlinePlayer>;
   state: RoomState;
+  /** 관전 중인 사람 uid → 닉네임 */
+  watchers: Record<string, string>;
 }
 
 const EMPTY_STATE: RoomState = { phase: "wait", match: "", chars: [0, 1], map: 0, pick: -1, delay: 2, maxRb: 10 };
@@ -126,6 +130,7 @@ export async function cleanupEmptyRoom(roomId: string) {
     [`lobby/${roomId}`]: null,
     [`sig/${roomId}`]: null,
     [`relay/${roomId}`]: null,
+    [`watch/${roomId}`]: null,
   }).catch(() => {});
 }
 
@@ -142,6 +147,7 @@ function normalize(id: string, v: Record<string, unknown> | null): OnlineRoom | 
   const meta = v.meta as { name: string; hostUid: string };
   const seats = (v.seats ?? {}) as Record<string, string>;
   const players = (v.players ?? {}) as Record<string, Omit<OnlinePlayer, "uid">>;
+  const watchers = (v.watchers ?? {}) as Record<string, { nick?: string }>;
   const st = { ...EMPTY_STATE, ...((v.state as Partial<RoomState>) ?? {}) };
   return {
     id,
@@ -150,6 +156,7 @@ function normalize(id: string, v: Record<string, unknown> | null): OnlineRoom | 
     seats: [seats["0"] ?? "", seats["1"] ?? ""],
     players: Object.fromEntries(Object.entries(players).map(([uid, p]) => [uid, { uid, ...p }])),
     state: { ...st, chars: [st.chars?.[0] ?? 0, st.chars?.[1] ?? 1] },
+    watchers: Object.fromEntries(Object.entries(watchers).map(([u, w]) => [u, String(w?.nick ?? "")])),
   };
 }
 
@@ -322,6 +329,8 @@ export class RoomSession {
     const delay = p2p ? Math.min(4, Math.max(2, Math.round(rtt / 2 / 16.7))) : 5;
     const maxRb = p2p ? 12 : 24;
     const match = push(r(`rooms/${this.id}/chat`)).key!; // 고유 id만 씀
+    // 지난 경기 관전 기록 정리
+    await remove(r(`watch/${this.id}`)).catch(() => {});
     await update(r(`rooms/${this.id}/state`), { phase: "play", match, chars, map, delay, maxRb });
   }
   /** 경기가 끝나면 대기실 상태로 */
@@ -594,5 +603,143 @@ export class FightNet {
       this.pc?.close();
     } catch {}
     this.onPacket = null;
+  }
+}
+
+// ───────────── 관전 ─────────────
+
+/** 관전 기록 한 묶음의 프레임 수 (0.5초) */
+const LOG_CHUNK = 30;
+const enc = (xs: number[]) => xs.map((x) => x.toString(36)).join(",");
+const dec = (v: string) => (v ? v.split(",").map((x) => parseInt(x, 36) || 0) : []);
+
+/** 선수: 내 확정 입력을 관전용으로 0.5초치씩 올림 (확정 입력은 바뀌지 않아서 관전자는 그대로 다시 돌리면 됨) */
+export class InputLog {
+  private buf: number[] = [];
+  private from: number;
+  private n = 0;
+  constructor(
+    private readonly room: string,
+    private readonly match: string,
+    private readonly seat: 0 | 1,
+    start: number
+  ) {
+    this.from = start;
+  }
+  /** 프레임 순서대로 하나씩 */
+  add(frame: number, input: number) {
+    if (frame !== this.from + this.buf.length) return;
+    this.buf.push(input);
+    if (this.buf.length >= LOG_CHUNK) this.flush();
+  }
+  flush() {
+    if (!this.buf.length) return;
+    const v = { f: this.from, i: enc(this.buf) };
+    set(r(`watch/${this.room}/${this.match}/${this.seat}/${this.n}`), v).catch(() => {});
+    this.n++;
+    this.from += this.buf.length;
+    this.buf = [];
+  }
+}
+
+/** 관전자: 두 선수의 입력 기록을 받아 프레임마다 [1P, 2P] 입력을 내줌 */
+export class WatchFeed {
+  /** 앞쪽 지연 프레임(입력 지연) 동안은 빈 입력 */
+  private readonly logs: [Map<number, number>, Map<number, number>] = [new Map(), new Map()];
+  /** 끊김 없이 받은 마지막 프레임 */
+  private seq: [number, number];
+  private unsubs: (() => void)[] = [];
+  constructor(room: string, match: string, delay: number) {
+    for (let f = 0; f < delay; f++) {
+      this.logs[0].set(f, 0);
+      this.logs[1].set(f, 0);
+    }
+    this.seq = [delay - 1, delay - 1];
+    for (const seat of [0, 1] as const) {
+      this.unsubs.push(
+        onChildAdded(r(`watch/${room}/${match}/${seat}`), (s) => {
+          const v = s.val() as { f?: number; i?: string } | null;
+          if (!v || typeof v.f !== "number") return;
+          const xs = dec(v.i ?? "");
+          const m = this.logs[seat];
+          xs.forEach((x, k) => m.set(v.f! + k, x));
+          while (m.has(this.seq[seat] + 1)) this.seq[seat]++;
+        })
+      );
+    }
+  }
+  /** 두 선수 입력이 다 있는 마지막 프레임 */
+  get ready() {
+    return Math.min(this.seq[0], this.seq[1]);
+  }
+  input(f: number): [number, number] {
+    return [this.logs[0].get(f) ?? 0, this.logs[1].get(f) ?? 0];
+  }
+  /** 다 쓴 프레임 정리 */
+  drop(before: number) {
+    for (const m of this.logs) for (const k of m.keys()) if (k < before) m.delete(k);
+  }
+  close() {
+    this.unsubs.forEach((f) => f());
+    this.unsubs = [];
+  }
+}
+
+/** 관전자로 방 하나를 지켜봄 (자리는 안 차지함) */
+export class WatchSession {
+  readonly id: string;
+  readonly uid: string;
+  readonly nick: string;
+  room: OnlineRoom | null = null;
+  lost = "";
+  closed = false;
+  private unsubs: (() => void)[] = [];
+  private listeners = new Set<() => void>();
+
+  constructor(id: string, uid: string, nick: string) {
+    this.id = id;
+    this.uid = uid;
+    this.nick = nick;
+    const me = r(`rooms/${id}/watchers/${uid}`);
+    set(me, { nick: nick.slice(0, 10), at: serverNow() })
+      .then(() => onDisconnect(me).remove())
+      .catch(() => {});
+    this.unsubs.push(
+      onValue(
+        r(`rooms/${id}`),
+        (s) => {
+          if (this.closed) return;
+          this.room = normalize(id, s.val());
+          if (!this.room || Object.keys(this.room.players).length === 0) this.lost = "방이 없어졌어요";
+          this.emit();
+        },
+        () => {
+          this.lost = "방을 볼 수 없어요";
+          this.emit();
+        }
+      )
+    );
+  }
+  on(cb: () => void) {
+    this.listeners.add(cb);
+    return () => this.listeners.delete(cb);
+  }
+  private emit() {
+    this.listeners.forEach((f) => f());
+  }
+  /** 자리 순서대로 선수 [1P, 2P] */
+  get players(): [OnlinePlayer | null, OnlinePlayer | null] {
+    const rm = this.room;
+    const p = (i: 0 | 1) => (rm?.seats[i] && rm.players[rm.seats[i]]) || null;
+    return [p(0), p(1)];
+  }
+  leave() {
+    if (this.closed) return;
+    this.closed = true;
+    this.unsubs.forEach((f) => f());
+    this.unsubs = [];
+    const me = r(`rooms/${this.id}/watchers/${this.uid}`);
+    onDisconnect(me).cancel().catch(() => {});
+    remove(me).catch(() => {});
   }
 }
