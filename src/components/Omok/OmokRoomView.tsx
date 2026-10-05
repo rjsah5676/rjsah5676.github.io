@@ -454,7 +454,7 @@ export default function OmokRoomView({
   }
 
   return (
-    <div ref={topRef} className="mx-auto max-w-5xl scroll-mt-28 px-3 pt-8 pb-24 sm:px-6">
+    <div ref={topRef} className="mx-auto max-w-6xl scroll-mt-28 px-3 pt-8 pb-24 sm:px-6">
       {/* 헤더 */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -477,7 +477,7 @@ export default function OmokRoomView({
 
       <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
         {/* 보드 */}
-        <div className="w-full max-w-[max(300px,min(560px,calc(100dvh-280px)))]">
+        <div className="w-full max-w-[max(300px,min(720px,calc(100dvh-220px)))]">
           <PlayerBar
             {...seat(opp)}
             color={opp}

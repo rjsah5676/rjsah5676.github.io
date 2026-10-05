@@ -384,7 +384,7 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
 
   return (
     <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
-      <div className="w-full max-w-[max(300px,min(560px,calc(100dvh-300px)))]">
+      <div className="w-full max-w-[max(300px,min(720px,calc(100dvh-240px)))]">
         <div className="relative">
           <SideBar
             color={top}

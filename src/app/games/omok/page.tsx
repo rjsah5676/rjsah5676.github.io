@@ -119,7 +119,7 @@ function OmokApp() {
     }`;
 
   return (
-    <div className="mx-auto max-w-5xl px-3 pt-6 pb-24 sm:px-6">
+    <div className="mx-auto max-w-6xl px-3 pt-6 pb-24 sm:px-6">
       <GameHeader
         icon="⚫"
         title="온라인 오목"
