@@ -83,14 +83,14 @@ const STAT_AXES: [keyof CharDef["stats"], string][] = [
 
 /** 육각형 능력치 (1~5) — 캐릭터 색으로 채움 */
 function StatRadar({ c }: { c: CharDef }) {
-  const R = 30;
+  const R = 27;
   const pt = (i: number, v: number) => {
     const ang = -Math.PI / 2 + (i * Math.PI * 2) / STAT_AXES.length;
     return [50 + Math.cos(ang) * R * v, 50 + Math.sin(ang) * R * v] as const;
   };
   const poly = (f: (i: number) => number) => STAT_AXES.map((_, i) => pt(i, f(i)).join(",")).join(" ");
   return (
-    <svg viewBox="0 0 100 100" className="h-[9.5cqw] w-[9.5cqw] shrink-0 overflow-visible" aria-label="능력치">
+    <svg viewBox="-14 4 128 92" className="h-[8.6cqw] w-[12cqw] shrink-0" aria-label="능력치">
       {[1, 0.8, 0.6, 0.4, 0.2].map((k) => (
         <polygon
           key={k}
@@ -110,20 +110,22 @@ function StatRadar({ c }: { c: CharDef }) {
         fill={c.color}
         fillOpacity={0.45}
         stroke={c.color}
-        strokeWidth={1.4}
+        strokeWidth={1.1}
         strokeLinejoin="round"
         style={{ transformOrigin: "50px 50px", animation: "modal-pop 250ms ease-out" }}
       />
       {STAT_AXES.map(([k, label], i) => {
-        const [x, y] = pt(i, 1.38);
+        // 위·아래 글자는 꼭짓점에서 조금 떨어뜨리고, 옆 글자는 꼭짓점 바깥쪽으로 붙여서 선과 안 겹치게
+        const side = i === 1 || i === 2 ? 1 : i === 4 || i === 5 ? -1 : 0;
+        const [x, y] = pt(i, side ? 1.1 : 1.3);
         return (
           <text
             key={k}
-            x={x}
+            x={x + side * 2}
             y={y}
-            textAnchor="middle"
+            textAnchor={side > 0 ? "start" : side < 0 ? "end" : "middle"}
             dominantBaseline="middle"
-            fontSize={9.5}
+            fontSize={8.5}
             fontWeight={800}
             fill="rgba(255,255,255,0.75)"
             style={{ fontFamily: "'Nanum Gothic', sans-serif" }}
