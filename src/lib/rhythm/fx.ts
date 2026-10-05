@@ -185,6 +185,18 @@ function pixelRect(g: CanvasRenderingContext2D, x: number, y: number, w: number,
 }
 
 /** 노트 머리(단노트·롱노트 머리). x: 레인 왼쪽, y: 노트 중심 */
+/** 노트 두께 (설정) — 그리기만 바뀌고 판정은 그대로 */
+export type NoteSize = "thin" | "normal" | "thick";
+export const NOTE_SIZES: { key: NoteSize; label: string; h: number }[] = [
+  { key: "thin", label: "얇게", h: 11 },
+  { key: "normal", label: "보통", h: 16 },
+  { key: "thick", label: "두껍게", h: 26 },
+];
+let noteH = 16;
+export function setNoteSize(k: NoteSize) {
+  noteH = NOTE_SIZES.find((n) => n.key === k)?.h ?? 16;
+}
+
 export function drawHead(
   g: CanvasRenderingContext2D,
   skin: Skin,
@@ -195,8 +207,8 @@ export function drawHead(
 ) {
   const nx = x + 4;
   const nw = laneW - 8;
-  const top = y - 8;
-  const h = 16;
+  const h = noteH;
+  const top = y - h / 2;
   switch (skin) {
     case "bar":
       g.fillStyle = color;

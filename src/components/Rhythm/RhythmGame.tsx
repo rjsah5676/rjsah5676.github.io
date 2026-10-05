@@ -10,8 +10,11 @@ import {
   HIT_SOUNDS,
   laneColors,
   makeHitSound,
+  NOTE_SIZES,
+  setNoteSize,
   SKINS,
   type HitSound,
+  type NoteSize,
   type Skin,
 } from "@/lib/rhythm/fx";
 import Stage, {
@@ -47,6 +50,8 @@ interface Settings {
   music: number;
   hitSound: HitSound;
   skin: Skin;
+  /** 노트 두께 */
+  noteSize: NoteSize;
   /** 레인 배치: 미러(좌우 반전) / 랜덤(판마다 레인 섞기) */
   lanes: LaneMod;
   /** 노트 가림: 페이드 / 서든 */
@@ -157,9 +162,12 @@ export default function RhythmGame() {
     music: 1,
     hitSound: "thump",
     skin: "bar",
+    noteSize: "normal",
     lanes: "none",
     cover: "none",
   });
+  // 노트 두께는 그리기 모듈에 바로 반영 (플레이 화면·미리보기 공용)
+  useEffect(() => setNoteSize(settings.noteSize), [settings.noteSize]);
   const [best, setBest] = useState<Record<string, Best>>({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -209,7 +217,11 @@ export default function RhythmGame() {
   const builtinSong = SONGS[songIdx];
 
   // ── 곡 미리 듣기: 선택 화면에서 커서가 곡에 머물면 하이라이트 구간을 잠깐 틀어 줌 ──
-  const previewRef = useRef<{ src: AudioBufferSourceNode; gain: GainNode; ctx: AudioContext } | null>(null);
+  const previewRef = useRef<{
+    src: AudioBufferSourceNode;
+    gain: GainNode;
+    ctx: AudioContext;
+  } | null>(null);
   const stopPreview = useCallback((fade = 0.25) => {
     const p = previewRef.current;
     if (!p) return;
@@ -242,7 +254,10 @@ export default function RhythmGame() {
         // 하이라이트: 곡의 1/3 지점 근처 마디 시작부터 18초
         const beat = 60 / builtinSong.bpm;
         const barSec = beat * 4;
-        const from = Math.max(0, Math.floor((buffer.duration / 3) / barSec) * barSec + (builtinSong.beatOffset ?? 0));
+        const from = Math.max(
+          0,
+          Math.floor(buffer.duration / 3 / barSec) * barSec + (builtinSong.beatOffset ?? 0)
+        );
         const len = Math.min(18, Math.max(4, buffer.duration - from - 0.5));
         const t = ctx.currentTime;
         const v = previewVol * 0.55;
@@ -301,6 +316,7 @@ export default function RhythmGame() {
           music: typeof s.music === "number" ? clamp(s.music, 0, 1) : 1,
           hitSound: HIT_SOUNDS.some((h) => h.key === s.hitSound) ? s.hitSound : "thump",
           skin: SKINS.some((k) => k.key === s.skin) ? s.skin : "bar",
+          noteSize: NOTE_SIZES.some((k) => k.key === s.noteSize) ? s.noteSize : "normal",
           lanes: LANE_MODS.some((k) => k.key === s.lanes) ? s.lanes : "none",
           cover: COVERS_OPT.some((k) => k.key === s.cover) ? s.cover : "none",
         });
@@ -318,7 +334,10 @@ export default function RhythmGame() {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings, songId: SONGS[songIdx].id, diff }));
+      localStorage.setItem(
+        SETTINGS_KEY,
+        JSON.stringify({ ...settings, songId: SONGS[songIdx].id, diff })
+      );
     } catch {}
   }, [hydrated, settings, songIdx, diff]);
 
@@ -893,8 +912,22 @@ export default function RhythmGame() {
                     : "border-white/10 hover:border-white/30"
                 }`}
               >
-                <SkinPreview skin={k.key} color={song.color} />
+                <SkinPreview skin={k.key} color={song.color} size={settings.noteSize} />
                 <div className="pb-1 font-mono text-[10px] text-white/60">{k.label}</div>
+              </button>
+            ))}
+          </div>
+
+          <label className="mt-4 block font-mono text-xs text-white/50">노트 두께</label>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {NOTE_SIZES.map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => setSettings((s) => ({ ...s, noteSize: m.key }))}
+                className={seg(settings.noteSize === m.key)}
+              >
+                {m.label}
               </button>
             ))}
           </div>
@@ -962,7 +995,7 @@ export default function RhythmGame() {
 }
 
 /** 설정에서 스킨 고를 때 보이는 작은 미리보기 (레인 4개 + 노트) */
-function SkinPreview({ skin, color }: { skin: Skin; color: string }) {
+function SkinPreview({ skin, color, size }: { skin: Skin; color: string; size: NoteSize }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current;
@@ -985,8 +1018,9 @@ function SkinPreview({ skin, color }: { skin: Skin; color: string }) {
     g.save();
     g.scale(0.5, 0.5);
     const ys = [22, 52, 36, 12];
+    setNoteSize(size);
     for (let l = 0; l < 4; l++) drawHead(g, skin, l * lw * 2, ys[l] * 2, lw * 2, cols[l]);
     g.restore();
-  }, [skin, color]);
+  }, [skin, color, size]);
   return <canvas ref={ref} className="block h-auto w-full" />;
 }
