@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { rankDateLabel } from "@/lib/rankDate";
 
 export interface RankRow {
@@ -5,7 +6,7 @@ export interface RankRow {
   /** 표시할 기록 (예: "123ms", "45.2s") */
   value: string;
   /** 이름 아래 작은 설명 (예: "vs 1600 · 32수") */
-  sub?: string;
+  sub?: ReactNode;
   date?: Date | null;
 }
 

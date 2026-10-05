@@ -100,9 +100,12 @@ export default function PatchNotes({ onClose }: { onClose: () => void }) {
               닫기 ✕
             </button>
           </div>
-          <div className="min-h-0 overflow-y-auto px-[2cqw] py-[1.4cqw]">
+          <div className="gold-scroll min-h-0 overflow-y-auto px-[2cqw] py-[1.4cqw]">
             {PATCHES.map((p, i) => (
-              <section key={p.ver} className={i > 0 ? "mt-[1.8cqw] border-t border-white/10 pt-[1.6cqw]" : ""}>
+              <section
+                key={p.ver}
+                className={i > 0 ? "mt-[1.8cqw] border-t border-white/10 pt-[1.6cqw]" : ""}
+              >
                 <div className="mb-[0.8cqw] flex items-center gap-[0.8cqw]">
                   {i === 0 && (
                     <span className="rounded-[0.3cqw] bg-[#FF4F8B] px-[0.6cqw] py-[0.1cqw] text-[1cqw] font-extrabold text-white">
@@ -116,7 +119,10 @@ export default function PatchNotes({ onClose }: { onClose: () => void }) {
                 </div>
                 <ul className="flex flex-col gap-[0.45cqw]">
                   {p.lines.map((l, k) => (
-                    <li key={k} className="flex gap-[0.7cqw] text-[1.25cqw] leading-snug break-keep text-white/85">
+                    <li
+                      key={k}
+                      className="flex gap-[0.7cqw] text-[1.25cqw] leading-snug break-keep text-white/85"
+                    >
                       <span className="mt-[0.55cqw] h-[0.5cqw] w-[0.5cqw] shrink-0 rotate-45 bg-[#F2C35B]/80" />
                       <span>{keyText(l)}</span>
                     </li>

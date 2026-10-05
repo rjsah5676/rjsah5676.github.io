@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import RankList from "./RankList";
 import { addAIRank, getAIRanks, type AIRankColl, type AIRankRow } from "@/firestore/aiRankings";
 import { clockLabel, pointsOf, type ScoreResult } from "@/lib/aiScore";
@@ -188,12 +188,15 @@ export function RankBoard({
   coll,
   oppLabel,
   refresh = 0,
+  vs = true,
   bare = false,
   skip = 0,
 }: {
   coll: AIRankColl;
-  oppLabel: (opp: string) => string;
+  oppLabel: (opp: string) => ReactNode;
   refresh?: number;
+  /** 상대 표기 앞에 "vs" 붙이기 (표기에 이미 vs가 있으면 false) */
+  vs?: boolean;
   /** 모달 안처럼 테두리·제목 없이 */
   bare?: boolean;
   /** 위쪽 몇 등 빼기 (시상대로 따로 보여 줄 때) */
@@ -228,7 +231,12 @@ export function RankBoard({
           rows={rows.map((r) => ({
             name: r.name,
             value: pointsOf(r.score).toLocaleString(),
-            sub: `vs ${oppLabel(r.opp)} · ${r.moves}수 · ${clockLabel(r.seconds)}`,
+            sub: (
+              <>
+                {vs && "vs "}
+                {oppLabel(r.opp)} · {r.moves}수 · {clockLabel(r.seconds)}
+              </>
+            ),
             date: r.createdAt,
           }))}
           skip={skip}

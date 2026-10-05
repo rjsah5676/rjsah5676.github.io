@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Faded from "@/components/Faded";
 import GameHeader from "@/components/GameHeader";
 import FightGame from "@/components/Fight/FightGame";
@@ -10,14 +10,18 @@ import { AI_LEVELS } from "@/lib/fight/ai";
 import { pointsOf } from "@/lib/aiScore";
 import { CHARS } from "@/lib/fight/chars";
 
-/** 기록의 상대 표기: "3" 또는 "3:kai>igna" (AI 단계:내 캐릭터>상대 캐릭터) */
-const oppLabel = (opp: string) => {
+/** 기록의 상대 표기: "3" 또는 "3:kai>igna" (AI 단계:내 캐릭터>상대 캐릭터) → "AI 3단계 고수 · **카이** vs 이그나" */
+const oppLabel = (opp: string): ReactNode => {
   const [lv, pair] = opp.split(":");
   const i = Number(lv) - 1;
   const base = AI_LEVELS[i] ? `AI ${i + 1}단계 ${AI_LEVELS[i].name}` : opp;
-  if (!pair) return base;
+  if (!pair) return `vs ${base}`;
   const [me, foe] = pair.split(">").map((id) => CHARS.find((c) => c.id === id)?.name ?? id);
-  return `${base} · ${me}로 ${foe} 이김`;
+  return (
+    <>
+      {base} · <b className="font-bold text-white/75">{me}</b> vs {foe}
+    </>
+  );
 };
 
 export default function FightPage() {
@@ -38,12 +42,13 @@ export default function FightPage() {
             top: top.map((r) => ({
               name: r.name,
               value: pointsOf(r.score).toLocaleString(),
-              sub: `vs ${oppLabel(r.opp)}`,
+              sub: oppLabel(r.opp),
             })),
             render: () => (
               <RankBoard
                 coll="fight_ai_rankings"
                 oppLabel={oppLabel}
+                vs={false}
                 bare
                 skip={3}
                 refresh={refresh}

@@ -10,7 +10,7 @@ export interface TopEntry {
   /** 표시할 기록 (예: "132점", "45.2s") */
   value: string;
   /** 작은 설명 (예: "vs 이순신(5단)") */
-  sub?: string;
+  sub?: ReactNode;
 }
 
 export interface RankSpec {
