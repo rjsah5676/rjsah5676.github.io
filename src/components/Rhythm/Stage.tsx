@@ -177,6 +177,8 @@ interface Props {
   /** 전체화면 여부·토글 (게임 전체 프레임이 전체화면이 됨) */
   fs: boolean;
   onToggleFs: () => void;
+  /** 휴대폰 세로: 레인만 세로 화면 가득 (위에 점수 띠) */
+  portrait?: boolean;
 }
 
 export default function Stage({
@@ -201,6 +203,7 @@ export default function Stage({
   field,
   fs,
   onToggleFs,
+  portrait = false,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -285,20 +288,37 @@ export default function Stage({
     const leadIn = cdEnd + vis + 0.25;
     const lanePointer = new Map<number, number>();
 
-    // ── 화면 배치 (논리 좌표 1280×720) ──
-    // gx: 레인 왼쪽, W: 레인 4개 폭, judgeY: 판정선 — 레인 틀 그림에 맞춤
-    const GS = LH / GEAR.h;
+    // ── 화면 배치 ──
+    // 가로: 논리 좌표 1280×720. 휴대폰 세로: 폭 720에 화면 비율대로 세로 — 레인 틀이 폭을 꽉 채우고 아래에 붙음
+    // gx: 레인 왼쪽, W: 레인 4개 폭, judgeY: 판정선, laneTop: 노트가 나타나는 위쪽 끝
+    const CW = portrait ? 720 : LW;
+    const CH = portrait
+      ? Math.round(
+          Math.min(
+            1700,
+            Math.max(1280, (720 * window.innerHeight) / Math.max(1, window.innerWidth))
+          )
+        )
+      : LH;
+    const GS = portrait ? CW / GEAR.w : LH / GEAR.h;
     const gearW = GEAR.w * GS;
-    const gearX = Math.round(
-      field === "left" ? 64 : field === "right" ? LW - 64 - gearW : (LW - gearW) / 2
-    );
+    const gearH = GEAR.h * GS;
+    const gearX = portrait
+      ? 0
+      : Math.round(field === "left" ? 64 : field === "right" ? LW - 64 - gearW : (LW - gearW) / 2);
+    const gearY = portrait ? CH - gearH : 0;
     const gx = gearX + GEAR.lane0 * GS;
     const W = GEAR.laneW * GS * 4;
-    const H = LH;
-    const judgeY = GEAR.judge * GS;
+    const H = CH;
+    const judgeY = gearY + GEAR.judge * GS;
+    /** 세로 화면 위쪽 점수 띠 높이 (그 아래부터 노트가 내려옴) */
+    const HUD_H = 170;
+    const laneTop = portrait ? HUD_H : 0;
+    /** 레인 위~판정선 사이 비율 위치 */
+    const midY = (r: number) => laneTop + (judgeY - laneTop) * r;
     /** 레인 틀 그림 좌표 → 화면 좌표 */
     const gpx = (x: number) => gearX + x * GS;
-    const gy = (y: number) => y * GS;
+    const gy = (y: number) => gearY + y * GS;
     // 정보판: 레인이 가운데면 양옆, 한쪽이면 반대쪽에 위아래로
     const side = field === "left" ? "right" : field === "right" ? "left" : null;
     const sideX = side === "right" ? gearX + gearW + 56 : 56;
@@ -349,32 +369,47 @@ export default function Stage({
     /** 안 바뀌는 바닥: 무대 배경 + 레인 뒤 어두운 판 + 정보판 유리 */
     let staticLayer: HTMLCanvasElement | null = null;
     const buildStatic = () => {
-      const { c, b } = layer(LW, LH);
+      const { c, b } = layer(CW, CH);
       if (ready(bgImg)) {
-        const sc = Math.max(LW / bgImg.naturalWidth, LH / bgImg.naturalHeight);
+        const sc = Math.max(CW / bgImg.naturalWidth, CH / bgImg.naturalHeight);
         const iw = bgImg.naturalWidth * sc;
         const ih = bgImg.naturalHeight * sc;
-        b.drawImage(bgImg, (LW - iw) / 2, (LH - ih) / 2, iw, ih);
+        b.drawImage(bgImg, (CW - iw) / 2, (CH - ih) / 2, iw, ih);
       } else {
         b.fillStyle = "#070814";
-        b.fillRect(0, 0, LW, LH);
+        b.fillRect(0, 0, CW, CH);
       }
       b.fillStyle = "rgba(4,5,14,0.35)";
-      b.fillRect(0, 0, LW, LH);
+      b.fillRect(0, 0, CW, CH);
       // 레인 뒤 판: 노트가 무대 조명에 묻히지 않게
-      const lane = b.createLinearGradient(0, 0, 0, judgeY);
+      const lane = b.createLinearGradient(0, laneTop, 0, judgeY);
       lane.addColorStop(0, "rgba(3,4,12,0.55)");
       lane.addColorStop(0.25, "rgba(3,4,12,0.82)");
       lane.addColorStop(1, "rgba(3,4,12,0.9)");
       b.fillStyle = lane;
-      b.fillRect(gx - 6, 0, W + 12, judgeY + 4);
+      b.fillRect(gx - 6, laneTop, W + 12, judgeY + 4 - laneTop);
       b.fillStyle = "rgba(255,255,255,0.07)";
-      for (let l = 1; l < 4; l++) b.fillRect(gx + (l * W) / 4 - 0.5, 0, 1, judgeY);
-      for (const box of [infoBox, scoreBox]) glass(b, box.x, box.y, box.w, box.h, song.color);
-      // 곡 커버 (정보판 왼쪽)
-      const cs = coverSize;
-      const cx = infoBox.x + 20;
-      const cy = infoBox.y + 20;
+      for (let l = 1; l < 4; l++) b.fillRect(gx + (l * W) / 4 - 0.5, laneTop, 1, judgeY - laneTop);
+      if (portrait) {
+        // 세로: 틀 위로 길게 나온 레인 양옆에 네온 줄 (틀 기둥이 이어지는 느낌)
+        for (const [x, col] of [
+          [gx - 8, "#F472B6"],
+          [gx + W + 5, "#38BDF8"],
+        ] as const) {
+          const rail = b.createLinearGradient(0, laneTop, 0, gearY + 60);
+          rail.addColorStop(0, `${col}00`);
+          rail.addColorStop(0.3, `${col}cc`);
+          rail.addColorStop(1, `${col}cc`);
+          b.fillStyle = rail;
+          b.fillRect(x, laneTop, 3, gearY + 60 - laneTop);
+        }
+        glass(b, 12, 12, CW - 24, HUD_H - 24, song.color);
+      } else
+        for (const box of [infoBox, scoreBox]) glass(b, box.x, box.y, box.w, box.h, song.color);
+      // 곡 커버 (정보판 왼쪽, 세로 화면은 위 띠 왼쪽)
+      const cs = portrait ? HUD_H - 56 : coverSize;
+      const cx = portrait ? 28 : infoBox.x + 20;
+      const cy = portrait ? 28 : infoBox.y + 20;
       if (ready(coverImg)) {
         b.save();
         b.beginPath();
@@ -406,9 +441,9 @@ export default function Stage({
     let gearLayer: HTMLCanvasElement | null = null;
     const buildGear = () => {
       if (!ready(gearImg)) return;
-      const { c, b } = layer(gearW, LH);
+      const { c, b } = layer(gearW, gearH);
       b.imageSmoothingQuality = "high";
-      b.drawImage(gearImg, 0, 0, gearW, LH);
+      b.drawImage(gearImg, 0, 0, gearW, gearH);
       gearLayer = c;
     };
     // 박자 번쩍임용 빛 (한 번 그려두고 투명도만 바꿔서 씀)
@@ -418,27 +453,34 @@ export default function Stage({
       c.width = 320;
       c.height = 180;
       const b = c.getContext("2d")!;
-      b.scale(c.width / LW, c.height / LH);
+      b.scale(c.width / CW, c.height / CH);
       const mx = gx + W / 2;
-      const gr = b.createRadialGradient(mx, LH * 0.55, W * 0.4, mx, LH * 0.55, LW * 0.55);
+      const gr = b.createRadialGradient(mx, CH * 0.55, W * 0.4, mx, CH * 0.55, CW * 0.55);
       gr.addColorStop(0, `${song.color}50`);
       gr.addColorStop(1, `${song.color}00`);
       b.fillStyle = gr;
-      b.fillRect(0, 0, LW, LH);
+      b.fillRect(0, 0, CW, CH);
       beatGlow = c;
     };
     // 캔버스 크기: 프레임 폭 × 화면 배율 (너무 크면 무거워서 2560px까지)
     let pxW = 0;
     const resize = () => {
-      const cssW = wrap.clientWidth;
+      // 세로 화면은 비율을 지키며 화면 안에 꽉 (남는 곳은 검은 띠)
+      const cssW = portrait
+        ? Math.min(wrap.clientWidth, (wrap.clientHeight * CW) / CH)
+        : wrap.clientWidth;
       if (!cssW) return;
+      if (portrait) {
+        canvas.style.width = `${cssW}px`;
+        canvas.style.height = `${(cssW * CH) / CW}px`;
+      }
       const dpr = Math.min(window.devicePixelRatio || 1, 2, 2560 / cssW);
       const nW = Math.round(cssW * dpr);
       if (nW === pxW) return;
       pxW = nW;
       canvas.width = nW;
-      canvas.height = Math.round((nW * LH) / LW);
-      k = nW / LW;
+      canvas.height = Math.round((nW * CH) / CW);
+      k = nW / CW;
       g.setTransform(k, 0, 0, k, 0, 0);
       rebuild();
     };
@@ -625,18 +667,64 @@ export default function Stage({
     let breakAt = -10;
     let breakFrom = 0;
 
+    /** 휴대폰 세로: 위쪽 띠에 곡·점수·정확도·HP·진행 */
+    const drawHudPortrait = (t: number) => {
+      const x0 = 28 + (HUD_H - 56) + 18;
+      const right = CW - 30;
+      const judged =
+        engine.counts.perfect + engine.counts.great + engine.counts.good + engine.counts.miss;
+      g.textBaseline = "top";
+      g.textAlign = "left";
+      g.fillStyle = "#fff";
+      g.font = `800 24px ${KR_FONT}`;
+      g.fillText(ellipsis(g, song.title, right - x0 - 210), x0, 30);
+      g.fillStyle = diffInfo.color;
+      g.font = `800 17px ${KR_FONT}`;
+      g.fillText(`${diffInfo.label}  Lv.${chart.level}`, x0, 64);
+      // 점수 (오른쪽)
+      g.textAlign = "right";
+      g.fillStyle = "#fff";
+      g.font = `italic 900 38px ${disp}`;
+      g.fillText(fmtScore(Math.round(shownScore)), right, 26);
+      const rk = judged ? rankOf(engine.accuracy) : "-";
+      g.font = `italic 900 20px ${disp}`;
+      g.fillStyle = judged ? "#fff" : "rgba(255,255,255,0.35)";
+      g.fillText(judged ? `${engine.accuracy.toFixed(2)}%` : "--.--%", right, 72);
+      const accW = g.measureText(judged ? `${engine.accuracy.toFixed(2)}%` : "--.--%").width;
+      g.fillStyle = judged ? rankColorOf(rk) : "rgba(255,255,255,0.3)";
+      g.fillText(rk, right - accW - 14, 72);
+      // HP (가로)
+      const hpr = engine.hp / HP_MAX;
+      const hc = hpr > 0.6 ? "#4ADE80" : hpr > 0.3 ? "#FBBF24" : "#F43F5E";
+      g.fillStyle = "rgba(255,255,255,0.12)";
+      roundRectFill(g, x0, 104, right - x0, 10, 5);
+      g.fillStyle = hc;
+      roundRectFill(g, x0, 104, Math.max(10, (right - x0) * hpr), 10, 5);
+      g.fillStyle = "rgba(255,255,255,0.55)";
+      g.font = `900 11px ${mono}`;
+      g.textAlign = "left";
+      g.fillText("HP", x0, 120);
+      // 진행 (얇게)
+      const prog = Math.max(0, Math.min(1, t / songEnd));
+      g.fillStyle = "rgba(255,255,255,0.12)";
+      g.fillRect(x0, 138, right - x0, 4);
+      g.fillStyle = song.color;
+      g.fillRect(x0, 138, (right - x0) * prog, 4);
+    };
+
     /** 바닥(배경·레인 판·정보판) + 박자 빛 + 정보판 글자 */
     const drawBackdrop = (t: number, pulse: number) => {
-      if (staticLayer) g.drawImage(staticLayer, 0, 0, LW, LH);
+      if (staticLayer) g.drawImage(staticLayer, 0, 0, CW, CH);
       else {
         g.fillStyle = "#070814";
-        g.fillRect(0, 0, LW, LH);
+        g.fillRect(0, 0, CW, CH);
       }
       if (beatGlow && pulse > 0.02) {
         g.globalAlpha = pulse * 0.3; // 박자 번쩍임은 은은하게 (눈 아프지 않게)
-        g.drawImage(beatGlow, 0, 0, LW, LH);
+        g.drawImage(beatGlow, 0, 0, CW, CH);
         g.globalAlpha = 1;
       }
+      if (portrait) return drawHudPortrait(t);
 
       // ── 곡 정보 ──
       const ib = infoBox;
@@ -790,9 +878,9 @@ export default function Stage({
       // 노트 (판정선 아래로 내려간 건 틀에 가려지게 잘라냄)
       g.save();
       g.beginPath();
-      g.rect(-4, 0, W + 8, judgeY + 6);
+      g.rect(-4, laneTop, W + 8, judgeY + 6 - laneTop);
       g.clip();
-      const yOf = (time: number) => judgeY - ((time - t) / vis) * judgeY;
+      const yOf = (time: number) => judgeY - ((time - t) / vis) * (judgeY - laneTop);
       // 마디선: 마디마다 가로줄이 같이 내려와서 박자 읽기 쉽게
       g.fillStyle = "rgba(255,255,255,0.13)";
       for (let kk = Math.max(0, Math.ceil(t / barSec)); kk * barSec < t + vis; kk++) {
@@ -802,7 +890,7 @@ export default function Stage({
       // 가림 옵션: y(0=위, judgeY=판정선) 위치에 따른 투명도
       const coverAlpha = (y: number) => {
         if (coverMode === "none") return 1;
-        const r = y / judgeY; // 0 위 → 1 판정선
+        const r = (y - laneTop) / (judgeY - laneTop); // 0 위 → 1 판정선
         if (coverMode === "fade") return r < 0.55 ? 1 : Math.max(0, 1 - (r - 0.55) / 0.3);
         // 서든: 위쪽 30%만 가리고 아래 70%는 보임 (반응 시간은 남기면서 미리 읽기만 막음)
         return r < 0.3 ? 0 : Math.min(1, (r - 0.3) / 0.1);
@@ -844,7 +932,7 @@ export default function Stage({
       g.restore(); // translate(gx)
 
       // 레인 틀 (기둥·패드)
-      if (gearLayer) g.drawImage(gearLayer, gearX, 0, gearW, LH);
+      if (gearLayer) g.drawImage(gearLayer, gearX, gearY, gearW, gearH);
       // 판정선: 틀의 네온 줄 위에 박자마다 번쩍
       g.save();
       g.globalCompositeOperation = "lighter";
@@ -947,8 +1035,8 @@ export default function Stage({
       g.restore();
       g.restore(); // translate(gx)
 
-      // HP 게이지: 기어 기둥 바깥
-      {
+      // HP 게이지: 기어 기둥 바깥 (세로 화면은 위 띠에 가로로)
+      if (!portrait) {
         const hpr = engine.hp / HP_MAX;
         const top = 70;
         const bh = judgeY - 20 - top;
@@ -1008,7 +1096,7 @@ export default function Stage({
         g.restore();
       }
       // 콤보: 레인 위쪽에 COMBO 글자 + 은색 큰 숫자 (오를 때마다 살짝 튐)
-      const cyC = H * 0.2;
+      const cyC = portrait ? midY(0.2) : H * 0.2;
       const ringAge = t - ringAt;
       if (ready(ringImg) && ringAge >= 0 && ringAge < 0.5) {
         const fr = Math.min(3, Math.floor(ringAge / 0.125));
@@ -1081,19 +1169,19 @@ export default function Stage({
         g.textAlign = "center";
         g.textBaseline = "middle";
         g.fillStyle = "rgba(0,0,0,0.6)";
-        roundRectFill(g, W / 2 - 80, H * 0.4 - 20, 160, 40, 20);
+        roundRectFill(g, W / 2 - 80, midY(0.48) - 20, 160, 40, 20);
         g.fillStyle = "#fff";
         g.font = `800 17px ${mono}`;
-        g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, H * 0.4);
+        g.fillText(`SPEED x${live.speed.toFixed(1)}`, W / 2, midY(0.48));
         g.globalAlpha = 1;
       }
-      drawCountdown(g, cd, t + leadIn, W, H);
+      drawCountdown(g, cd, t + leadIn, W, laneTop, judgeY);
       // R 꾹: 다시 시작 — 카운트다운처럼 비스듬한 띠에 게이지가 차오름
       if (rHoldAt !== null) {
         const pr = Math.min(1, (performance.now() - rHoldAt) / R_HOLD_MS);
         const bw = W - 24;
         const bh = 50;
-        const cy = H * 0.47;
+        const cy = midY(0.567);
         g.save();
         g.translate(W / 2, cy);
         g.transform(1, -0.08, 0, 1, 0, 0);
@@ -1250,7 +1338,7 @@ export default function Stage({
         if (!failing) return;
         const el = (performance.now() - t0) / 1000;
         draw(tFail);
-        drawFailed(g, el, failImg);
+        drawFailed(g, el, failImg, CW, CH);
         if (el >= 2.6) {
           failing = false;
           finish(true);
@@ -1356,7 +1444,7 @@ export default function Stage({
         if (wait > 0) {
           g.save();
           g.translate(gx, 0);
-          drawCountdown(g, RESUME_PHASES, el, W, H);
+          drawCountdown(g, RESUME_PHASES, el, W, laneTop, judgeY);
           g.restore();
         }
         if (el >= wait) {
@@ -1440,7 +1528,7 @@ export default function Stage({
     };
     const laneAt = (clientX: number) => {
       const r = canvas.getBoundingClientRect();
-      const x = ((clientX - r.left) / r.width) * LW - gx; // 레인 기준 위치
+      const x = ((clientX - r.left) / r.width) * CW - gx; // 레인 기준 위치
       return Math.max(0, Math.min(3, Math.floor((x / W) * 4)));
     };
     const onPointerDown = (e: PointerEvent) => {
@@ -1522,15 +1610,25 @@ export default function Stage({
   const rk = rankOf(pauseStats.acc);
 
   return (
-    <div ref={wrapRef} className="absolute inset-0 overflow-hidden">
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none select-none" />
-      <div className="absolute top-[1.2cqw] right-[1.2cqw] z-10 flex gap-[0.6cqw]">
+    <div
+      ref={wrapRef}
+      className={`absolute inset-0 overflow-hidden ${portrait ? "flex items-center justify-center bg-black" : ""}`}
+    >
+      <canvas
+        ref={canvasRef}
+        className={`touch-none select-none ${portrait ? "block" : "absolute inset-0 h-full w-full"}`}
+      />
+      {/* 세로 화면은 프레임 폭이 좁아서 버튼·일시정지 창을 크게 (zoom) */}
+      <div
+        className={`absolute z-10 flex gap-[0.6cqw] ${portrait ? "top-[1.2cqw] left-[1.2cqw]" : "top-[1.2cqw] right-[1.2cqw]"}`}
+        style={portrait ? { zoom: 2.6 } : undefined}
+      >
         <button
           type="button"
           onClick={() => ctrl.current.pause()}
           className="cursor-pointer rounded-[0.6cqw] bg-black/55 px-[0.9cqw] py-[0.35cqw] font-mono text-[1.1cqw] text-white/70 hover:bg-white/20 hover:text-white"
         >
-          II 일시정지 (Esc)
+          {portrait ? "II" : "II 일시정지 (Esc)"}
         </button>
         <button
           type="button"
@@ -1543,7 +1641,10 @@ export default function Stage({
       </div>
       {paused && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#05030f]/92 backdrop-blur-[4px] [animation:modal-fade_200ms_ease-out]">
-          <div className="flex w-[52cqw] flex-col items-center gap-[1cqw]">
+          <div
+            className={`flex flex-col items-center gap-[1cqw] ${portrait ? "w-[36cqw]" : "w-[52cqw]"}`}
+            style={portrait ? { zoom: 2.6 } : undefined}
+          >
             <p className="font-['Arial_Black',sans-serif] text-[3.4cqw] font-black tracking-[0.2em] text-white italic drop-shadow-[0_0_1.2cqw_#A78BFA]">
               PAUSE
             </p>
@@ -1646,7 +1747,9 @@ export default function Stage({
                 onChange={(v) => change({ hit: v })}
               />
             </div>
-            <div className="mt-[0.4cqw] flex justify-center gap-[0.8cqw]">
+            <div
+              className={`mt-[0.4cqw] flex justify-center gap-[0.8cqw] ${portrait ? "flex-wrap" : ""}`}
+            >
               <button
                 type="button"
                 className={`${pbtn} border-[#A78BFA]/60 bg-[#A78BFA]/20`}
@@ -1795,13 +1898,14 @@ function drawCountdown(
   phases: Phase[],
   s: number,
   W: number,
-  H: number
+  top: number,
+  judgeY: number
 ) {
   const ph = phases.find((p) => s >= p.from && s < p.from + p.dur);
   if (!ph) return;
   const p = (s - ph.from) / ph.dur;
   const cx = W / 2;
-  const cy = H * 0.4;
+  const cy = top + (judgeY - top) * 0.48;
   const go = ph.label === "GO!";
   const ready = ph.label === "READY";
   const fadeOut = p > 0.8 ? Math.max(0, 1 - (p - 0.8) / 0.2) : 1;
@@ -1811,7 +1915,7 @@ function drawCountdown(
   if (!go) {
     // 판정선 위까지만 (아래 패드는 레인보다 넓어서 덮으면 가장자리가 어둡게 잘려 보임)
     g.fillStyle = "rgba(0,0,0,0.3)";
-    g.fillRect(0, 0, W, H * (GEAR.judge / GEAR.h));
+    g.fillRect(0, top, W, judgeY - top);
   }
   // 비스듬한 띠: 왼쪽에서 쓱 들어옴
   const inP = Math.min(1, p / 0.18);
@@ -1959,7 +2063,13 @@ function PauseSlider({
 }
 
 /** HP가 바닥났을 때: 화면이 붉게 어두워지고 FAILED 배너가 쾅 */
-function drawFailed(g: CanvasRenderingContext2D, el: number, img: HTMLImageElement) {
+function drawFailed(
+  g: CanvasRenderingContext2D,
+  el: number,
+  img: HTMLImageElement,
+  LW: number,
+  LH: number
+) {
   g.save();
   g.globalAlpha = Math.min(1, el / 0.5) * 0.7;
   g.fillStyle = "#12020a";

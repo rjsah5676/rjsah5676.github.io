@@ -153,14 +153,14 @@ export default function RhythmGame() {
     document.addEventListener("fullscreenchange", on);
     return () => document.removeEventListener("fullscreenchange", on);
   }, []);
-  const toggleFs = useCallback(() => {
+  /** 전체화면 켜기 — landscape: 휴대폰을 가로로 고정 (세로 레인 플레이는 고정 안 함) */
+  const enterFs = useCallback((landscape: boolean) => {
     const el = rootRef.current;
-    if (!el) return;
-    if (pseudoFs) return setPseudoFs(false);
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    else if (typeof el.requestFullscreen === "function")
+    if (!el || document.fullscreenElement) return;
+    if (typeof el.requestFullscreen === "function")
       el.requestFullscreen({ navigationUI: "hide" })
         .then(() => {
+          if (!landscape) return;
           const o = window.screen.orientation as ScreenOrientation & {
             lock?: (o: string) => Promise<void>;
           };
@@ -168,7 +168,14 @@ export default function RhythmGame() {
         })
         .catch(() => setPseudoFs(true));
     else setPseudoFs(true);
-  }, [pseudoFs]);
+  }, []);
+  const toggleFs = useCallback(() => {
+    if (pseudoFs) return setPseudoFs(false);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else enterFs(true);
+  }, [pseudoFs, enterFs]);
+  /** 휴대폰 세로로 플레이: 레인만 세로 화면 가득 */
+  const [portrait, setPortrait] = useState(false);
 
   // 사이트 플로팅 메뉴가 게임 화면 구석(시작 버튼)을 가려서 이 페이지에선 숨김
   useEffect(() => {
@@ -403,8 +410,12 @@ export default function RhythmGame() {
     setErr("");
     setLoading(true);
     setSettingsOpen(false);
-    // 휴대폰은 플레이할 때 전체화면으로 (버튼을 누른 직후라 허용됨)
-    if (!fs && window.matchMedia("(pointer: coarse)").matches) toggleFs();
+    // 휴대폰은 플레이할 때 전체화면으로 (버튼을 누른 직후라 허용됨).
+    // 세로로 들고 있으면 가로로 돌리지 않고 레인만 세로 화면 가득 채움
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const tall = coarse && window.innerHeight > window.innerWidth;
+    setPortrait(tall);
+    if (!fs && coarse) enterFs(!tall);
     const fromResult = screen === "result";
     if (!fromResult) {
       sfx("song-decide");
@@ -426,7 +437,7 @@ export default function RhythmGame() {
       setLoading(false);
       setLaunching(false);
     }
-  }, [loading, customSel, isCustom, fs, toggleFs, screen, stopPreview, track, song]);
+  }, [loading, customSel, isCustom, fs, enterFs, screen, stopPreview, track, song]);
 
   const finish = useCallback(
     (r: Result) => {
@@ -485,9 +496,13 @@ export default function RhythmGame() {
     setScreen("select");
   }, []);
 
-  const frameCls = `fs-screen relative isolate aspect-video w-full overflow-hidden bg-black select-none [container-type:inline-size] ${
-    fs ? "" : "rounded-xl border border-white/10 shadow-[0_0_60px_rgba(108,99,255,0.18)]"
-  }`;
+  const portraitPlay = portrait && screen === "play";
+  const frameCls = portraitPlay
+    ? // 세로 레인: 화면 전체 (전체화면이 안 되는 브라우저도 화면을 덮음)
+      "fixed inset-0 z-[120] isolate h-[100dvh] w-screen overflow-hidden bg-black select-none [container-type:inline-size]"
+    : `fs-screen relative isolate aspect-video w-full overflow-hidden bg-black select-none [container-type:inline-size] ${
+        fs ? "" : "rounded-xl border border-white/10 shadow-[0_0_60px_rgba(108,99,255,0.18)]"
+      }`;
   const rootCls = fs
     ? `${pseudoFs ? "fixed inset-0 z-[100] " : ""}flex h-full w-full items-center justify-center bg-black [&>.fs-screen]:w-[min(100vw,calc(100dvh*16/9))]`
     : "mx-auto w-full max-w-[min(1120px,calc((100dvh-190px)*16/9))]";
@@ -578,6 +593,7 @@ export default function RhythmGame() {
               field={settings.field}
               fs={fs}
               onToggleFs={toggleFs}
+              portrait={portrait}
               onFinish={finish}
               onQuit={toSelect}
               onRestart={() =>
