@@ -363,7 +363,7 @@ const VELOCITY = audioSong("velocity", "Maximum Velocity", "/audio/velocity.mp3"
   desc: "180 BPM · AI 자작곡",
 });
 
-// 나이트메어(Lv18): npm run rhythm-chart -- fullcombo --straight --bpm-label 180 --boss '{"loud":0.55,"full":0.85,"burstEvery":8}'
+// 나이트메어(Lv18): npm run rhythm-chart -- fullcombo --straight --bpm-label 180 --boss '{"loud":0.5,"full":0.8,"burstEvery":8}'
 const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3", fullcomboData, {
   color: "#FB7185",
   desc: "180 BPM · K-POP 걸밴드 록 · AI 자작곡 (tunee.ai)",

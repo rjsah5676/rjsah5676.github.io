@@ -187,6 +187,12 @@ export function makeAutoChart(
   };
   if (tweak.finePos !== undefined) R.pos[3] = tweak.finePos;
   const beatSec = 60 / an.bpm;
+  // 세분 칸(32분·셋잇단 사이)이 70ms보다 좁은 빠른 곡: 세분 칸·격자 밖 타격은 안 씀.
+  // 16분 바로 옆에 붙어 '살짝 어긋난 동시치기'가 되거나, 일정하던 간격이 갑자기 1.5배가 되는 엇박이 됨
+  if (beatSec / an.div < 0.07) {
+    R.pos[3] = 0;
+    R.pos[4] = 0;
+  }
   const cands = an.onsets
     // 격자 밖 타격(셋잇단·싱커페이션 등)은 아주 셀 때만
     .filter((o) => o.s >= R.floor && R.pos[posKind(o, an.div)] > 0 && (o.grid >= 0 || o.s >= 0.5))
@@ -373,9 +379,20 @@ export function makeAutoChart(
         patCtx,
       }
     );
-    for (const n of nm) n.t += shift;
+    const nmHeld = addHoldsInStream(nm, {
+      beatSec,
+      barOf,
+      every: 4,
+      maxBeats: 2,
+      rmsAt,
+      beats: an.beats,
+    });
+    for (const n of nmHeld) {
+      n.t += shift;
+      if (n.end) n.end += shift;
+    }
     return finishChart(
-      nm.filter((n) => n.t > 0.3),
+      nmHeld.filter((n) => n.t > 0.3),
       diff
     );
   }
@@ -530,6 +547,20 @@ export function makeAutoChart(
     if (end - n.t >= 0.4) n.end = end;
   }
 
+  const holdEvery = diff === "hard" ? 2 : diff === "expert" ? 2 : 0;
+  if (holdEvery) {
+    const held = addHoldsInStream(notes, {
+      beatSec,
+      barOf,
+      every: holdEvery,
+      maxBeats: 2,
+      rmsAt,
+      beats: an.beats,
+    });
+    notes.length = 0;
+    notes.push(...held);
+  }
+
   const shift = shiftMs / 1000;
   if (shift)
     for (const n of notes) {
@@ -540,6 +571,73 @@ export function makeAutoChart(
     notes.filter((n) => n.t > 0.3),
     diff
   );
+}
+
+/**
+ * 누르면서 치는 롱노트 (어려움 이상): 빽빽한 곡은 노트 사이가 비지 않아 4)의 롱노트가 거의 안 생김 →
+ * 몇 마디마다 한 번, 박 위의 단노트를 1~2박 누르게 하고 그동안 다른 레인 노트는 그대로 침.
+ * 누르는 동안엔 손이 하나 묶이니 그 사이 동시치기는 한 개만 남김. 소리가 그동안 확 줄면 안 만듦.
+ */
+function addHoldsInStream(
+  notes: Note[],
+  o: {
+    beatSec: number;
+    barOf: (t: number) => number;
+    every: number;
+    maxBeats: number;
+    rmsAt: (t: number) => number;
+    beats: number[];
+  }
+) {
+  const { beatSec, barOf, every, maxBeats, rmsAt, beats } = o;
+  const onBeat = (t: number) => {
+    let a = 0;
+    let b = beats.length - 1;
+    while (b - a > 1) {
+      const m = (a + b) >> 1;
+      if (beats[m] <= t) a = m;
+      else b = m;
+    }
+    return Math.min(Math.abs(beats[a] - t), Math.abs(beats[b] - t)) < 0.03;
+  };
+  notes.sort((a, b) => a.t - b.t || a.lane - b.lane);
+  const at = new Map<number, Note[]>();
+  for (const n of notes) {
+    const k = Math.round(n.t * 1000);
+    at.set(k, [...(at.get(k) ?? []), n]);
+  }
+  let lastBar = -Infinity;
+  let holdUntil = -Infinity;
+  const drop = new Set<Note>();
+  for (const n of notes) {
+    if (n.end || drop.has(n) || n.t < holdUntil) continue;
+    const bar = barOf(n.t);
+    if (bar - lastBar < every) continue;
+    if ((at.get(Math.round(n.t * 1000)) ?? []).length > 1) continue; // 동시치기 머리는 안 씀
+    // 박 위의 노트만
+    if (!onBeat(n.t)) continue;
+    const nextSame = notes.find((m) => m !== n && m.lane === n.lane && m.t > n.t + 1e-3);
+    const room = (nextSame ? nextSame.t : n.t + maxBeats * beatSec + 1) - n.t;
+    // 빠른 곡은 1박이 너무 짧아서(180 BPM이면 0.33초) 최소 0.6초, 최대 2박 또는 1초 중 긴 쪽
+    const cap = Math.max(maxBeats, Math.round(1 / beatSec));
+    const len = Math.min(cap, Math.floor((room - beatSec * 0.5) / beatSec)) * beatSec;
+    if (len < Math.max(beatSec, 0.6) - 1e-3) continue;
+    let head = 0;
+    for (let t = n.t; t < n.t + 0.1; t += 1 / FPS) head = Math.max(head, rmsAt(t));
+    let sum = 0;
+    let cnt = 0;
+    for (let t = n.t + 0.1; t < n.t + len; t += 1 / FPS) ((sum += rmsAt(t)), cnt++);
+    if (!cnt || sum / cnt < head * 0.62) continue;
+    n.end = n.t + len;
+    lastBar = bar;
+    holdUntil = n.end;
+    // 누르는 동안의 동시치기는 한 개만
+    for (const [k, list] of at) {
+      if (k / 1000 <= n.t || k / 1000 > n.end + 1e-3 || list.length < 2) continue;
+      list.slice(1).forEach((m) => drop.add(m));
+    }
+  }
+  return notes.filter((m) => !drop.has(m));
 }
 
 /**

@@ -476,9 +476,24 @@ export function alignToGrid(beats: number[], raw: Onset[], straight = false) {
     };
     const avg = (list: number[]) =>
       list.length ? list.reduce((a, t) => a + lowAt(t), 0) / list.length : 0;
-    const fast = beatSec / 1.5;
+    // 박 간격은 중앙값이 아니라 전체 박에 직선을 맞춰서 (중앙값은 프레임 단위라 0.1~0.2% 틀려서
+    // 곡 끝으로 갈수록 반 박까지 밀림 → 노트가 엇박에 찍힘)
+    const n = beats.length;
+    let sk = 0,
+      st = 0,
+      skk = 0,
+      skt = 0;
+    beats.forEach((t, k) => ((sk += k), (st += t), (skk += k * k), (skt += k * t)));
+    const slope = n > 2 ? (n * skt - sk * st) / (n * skk - sk * sk) : beatSec;
+    const origin = n > 2 ? (st - slope * sk) / n : beats[0];
+    // 박 추적이 1.5배 템포 기준이라 조금씩 어긋나 있음 → 센 타격이 16분 격자에 가장 잘 맞는 템포·시작점을 ±1% 안에서 찾음
+    // (AI 곡은 템포가 고정이라 한 템포로 곡 끝까지 맞음)
+    const { period: fast, phase } = fitGrid(strong, slope / 1.5);
+    let start = phase;
+    while (start - fast > origin - fast) start -= fast;
+    while (start < origin - fast / 2) start += fast;
     const beatsB: number[] = [];
-    for (let t = beats[0]; t < beats[beats.length - 1] + beatSec; t += fast) beatsB.push(t);
+    for (let k = 0; start + k * fast < beats[n - 1] + slope; k++) beatsB.push(start + k * fast);
     // 1배 정박에 없는 1.5배 정박(사이에 끼는 자리)도 킥이 세면 1.5배가 진짜 템포
     const onlyB = beatsB.filter((t) => !beats.some((b) => Math.abs(b - t) < 0.02));
     if (straight || avg(onlyB) >= avg(beats) * 0.6) {
@@ -486,6 +501,38 @@ export function alignToGrid(beats: number[], raw: Onset[], straight = false) {
     }
   }
   return { ...alignWithBeats(beats, raw, beatSec, div), bpm };
+}
+
+/** 센 타격들이 16분 격자(박/4)에 가장 잘 맞는 박 간격·위상 (period ±1%, 위상 48칸) */
+function fitGrid(strong: Onset[], period: number) {
+  let best = { score: -1, period, phase: 0 };
+  for (let r = -0.01; r <= 0.01 + 1e-9; r += 0.0001) {
+    const P = period * (1 + r);
+    const q = P / 4;
+    for (let k = 0; k < 48; k++) {
+      const ph = (k / 48) * q;
+      let sc = 0;
+      for (const o of strong) {
+        const x = (o.t - ph) / q;
+        const d = Math.abs(x - Math.round(x)) * q;
+        if (d < 0.03) sc += o.s * Math.exp(-((d / 0.012) ** 2));
+      }
+      if (sc > best.score) best = { score: sc, period: P, phase: ph };
+    }
+  }
+  // 위상은 16분 단위로 찾았으니, 정박(4칸 중 어디가 박인지)은 킥이 가장 센 쪽으로
+  const q = best.period / 4;
+  let bestOff = 0;
+  let bestLow = -1;
+  for (let j = 0; j < 4; j++) {
+    let v = 0;
+    for (const o of strong) {
+      const x = (o.t - best.phase - j * q) / best.period;
+      if (Math.abs(x - Math.round(x)) * best.period < 0.02) v += o.low * o.s;
+    }
+    if (v > bestLow) ((bestLow = v), (bestOff = j));
+  }
+  return { period: best.period, phase: best.phase + bestOff * q };
 }
 
 function alignWithBeats(beats: number[], raw: Onset[], beatSec: number, div: number) {
