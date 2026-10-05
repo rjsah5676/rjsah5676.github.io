@@ -14,7 +14,7 @@ function Kbd({ children }: { children: string }) {
 type Row = [string, React.ReactNode, React.ReactNode?];
 const k = (...ks: string[]) => (
   <span className="inline-flex flex-nowrap items-center gap-0.5 whitespace-nowrap">
-    {ks.map((x, i) => (x === "/" ? <span key={i} className="px-0.5 text-white/30">/</span> : <Kbd key={i}>{x}</Kbd>))}
+    {ks.map((x, i) => (x === "/" || x === "+" ? <span key={i} className="px-0.5 text-white/30">{x}</span> : <Kbd key={i}>{x}</Kbd>))}
   </span>
 );
 
@@ -51,6 +51,7 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
         ["발차기", k("G"), k(".")],
         ["아이덴티티", k("H"), k(";")],
         ["필살기 (MAX)", k("T"), k("'")],
+        ["내려찍기 (공중)", k("S", "+", "G"), k("↓", "+", ".")],
       ]
     : [
         ["이동 (두 번 = 대시)", k("A", "D"), k("←", "→")],
@@ -60,6 +61,7 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
         ["발차기", k("K"), k("X")],
         ["아이덴티티", k("L"), k("C")],
         ["필살기 (MAX)", k("I"), k("V")],
+        ["내려찍기 (공중)", k("S", "+", "K"), k("↓", "+", "X")],
       ];
   return (
     <div className={`mt-3 grid gap-3 rounded-lg bg-black/20 px-3 py-3 ${KR} text-[11.5px] leading-relaxed text-white/60 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]`}>
