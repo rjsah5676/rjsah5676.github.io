@@ -308,18 +308,52 @@ export function makeChart(song: Song, diff: Difficulty): Chart {
   return finishChart(notes, diff);
 }
 
+/**
+ * 화면에 보이는 레벨 구간 (난이도마다 이 안에서만). 나이트메어 위 등급이 생기면 19+
+ */
+export const LEVEL_BANDS: Record<Difficulty, [number, number]> = {
+  easy: [1, 3],
+  normal: [4, 6],
+  hard: [7, 11],
+  expert: [12, 14],
+  nightmare: [15, 18],
+};
+
+/**
+ * 별점 레벨(osu!mania 별점 × 4) → 화면 레벨. 내장곡을 직접 쳐 보고 매긴 레벨에 맞춘 곡선
+ * (별점 레벨 5 ≈ Lv3, 8 ≈ 5, 11 ≈ 9, 15 ≈ 13, 19 ≈ 16)
+ */
+const LEVEL_MAP: [number, number][] = [
+  [2, 1],
+  [4, 2],
+  [5, 3],
+  [8, 5],
+  [11, 9],
+  [15, 13],
+  [19, 16],
+  [23, 18],
+];
+export function displayLevel(starLevel: number, diff: Difficulty): number {
+  let v = LEVEL_MAP[LEVEL_MAP.length - 1][1];
+  if (starLevel <= LEVEL_MAP[0][0]) v = LEVEL_MAP[0][1];
+  else
+    for (let i = 1; i < LEVEL_MAP.length; i++) {
+      const [x0, y0] = LEVEL_MAP[i - 1];
+      const [x1, y1] = LEVEL_MAP[i];
+      if (starLevel <= x1) {
+        v = y0 + ((starLevel - x0) / (x1 - x0)) * (y1 - y0);
+        break;
+      }
+    }
+  const [lo, hi] = LEVEL_BANDS[diff];
+  return Math.max(lo, Math.min(hi, Math.round(v)));
+}
+
 /** 정렬 + 판정 단위 수 + 레벨 계산 (자동 채보에서도 같이 씀) */
 export function finishChart(notes: Note[], diff: Difficulty = "normal"): Chart {
   notes.sort((a, b) => a.t - b.t || a.lane - b.lane);
   const units = notes.reduce((s, n) => s + (n.end ? 2 : 1), 0);
-  // 레벨 = osu!mania 별점 × 4 (stars.ts). 상한 없음, 난이도별 최저 레벨만 보장
-  const floor: Record<Difficulty, number> = {
-    easy: 1,
-    normal: 5,
-    hard: 9,
-    expert: 13,
-    nightmare: 17,
-  };
-  const level = Math.max(floor[diff], Math.round(starRating(notes) * 4));
+  // 별점 레벨(osu!mania 별점 × 4, stars.ts) → 난이도 구간 안의 화면 레벨
+  const level = displayLevel(starRating(notes) * 4, diff);
   return { notes, level, units };
 }

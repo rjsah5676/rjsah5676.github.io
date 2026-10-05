@@ -303,13 +303,16 @@ function audioSong(
   title: string,
   audio: string,
   data: AudioSongData,
-  extra: { color: string; desc: string }
+  extra: { color: string; desc: string },
+  /** 직접 쳐 보고 매긴 화면 레벨 [쉬움, 보통, 어려움, 매우 어려움, 나이트메어] — 채보를 다시 뽑아도 유지 */
+  levels?: number[]
 ): Song {
+  const order: Difficulty[] = ["easy", "normal", "hard", "expert", "nightmare"];
   const charts = Object.fromEntries(
     Object.entries(data.charts).map(([d, c]) => [
       d,
       {
-        level: c.level,
+        level: levels?.[order.indexOf(d as Difficulty)] ?? c.level,
         units: c.units,
         notes: c.notes.map(([t, lane, end]) => (end ? { t, lane, end } : { t, lane })),
       },
@@ -333,39 +336,88 @@ function audioSong(
   };
 }
 
-const JILJU = audioSong("jilju", "질주주의보", "/audio/jilju.mp3", jiljuData, {
-  color: "#38BDF8",
-  desc: "170 BPM · K-POP ROCK · AI 자작곡 (tunee.ai)",
-});
-const NATSU = audioSong("natsukasumi", "夏霞のあと", "/audio/natsukasumi.mp3", natsuData, {
-  color: "#F9A8D4",
-  desc: "119 BPM · J-ROCK / INDIE POP · AI 자작곡 (tunee.ai)",
-});
+const JILJU = audioSong(
+  "jilju",
+  "질주주의보",
+  "/audio/jilju.mp3",
+  jiljuData,
+  {
+    color: "#38BDF8",
+    desc: "170 BPM · K-POP ROCK · AI 자작곡 (tunee.ai)",
+  },
+  [3, 5, 8, 12]
+);
+const NATSU = audioSong(
+  "natsukasumi",
+  "夏霞のあと",
+  "/audio/natsukasumi.mp3",
+  natsuData,
+  {
+    color: "#F9A8D4",
+    desc: "119 BPM · J-ROCK / INDIE POP · AI 자작곡 (tunee.ai)",
+  },
+  [2, 4, 7, 12]
+);
 
-const RINKAKU = audioSong("rinkaku", "名前のない輪郭", "/audio/rinkaku.mp3", rinkakuData, {
-  color: "#FBBF24",
-  desc: "163 BPM · J-ROCK (12/8) · AI 자작곡 (tunee.ai)",
-});
+const RINKAKU = audioSong(
+  "rinkaku",
+  "名前のない輪郭",
+  "/audio/rinkaku.mp3",
+  rinkakuData,
+  {
+    color: "#FBBF24",
+    desc: "163 BPM · J-ROCK (12/8) · AI 자작곡 (tunee.ai)",
+  },
+  [2, 4, 8, 12]
+);
 
-const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimData, {
-  color: "#C084FC",
-  desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
-});
+const NEWDIM = audioSong(
+  "newdim",
+  "New Dimension",
+  "/audio/newdim.mp3",
+  newdimData,
+  {
+    color: "#C084FC",
+    desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
+  },
+  [3, 6, 10, 13, 15]
+);
 
-const MONARCH = audioSong("monarch", "Monarch's Fall", "/audio/monarch.mp3", monarchData, {
-  color: "#EF4444",
-  desc: "150 BPM · AI 자작곡",
-});
+const MONARCH = audioSong(
+  "monarch",
+  "Monarch's Fall",
+  "/audio/monarch.mp3",
+  monarchData,
+  {
+    color: "#EF4444",
+    desc: "150 BPM · AI 자작곡",
+  },
+  [3, 6, 11, 13, 16]
+);
 
-const VELOCITY = audioSong("velocity", "Maximum Velocity", "/audio/velocity.mp3", velocityData, {
-  color: "#F472B6",
-  desc: "180 BPM · AI 자작곡",
-});
+const VELOCITY = audioSong(
+  "velocity",
+  "Maximum Velocity",
+  "/audio/velocity.mp3",
+  velocityData,
+  {
+    color: "#F472B6",
+    desc: "180 BPM · AI 자작곡",
+  },
+  [3, 6, 11, 14, 17]
+);
 
-const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3", fullcomboData, {
-  color: "#FB7185",
-  desc: "180 BPM · K-POP 걸밴드 록 · AI 자작곡 (tunee.ai)",
-});
+const FULLCOMBO = audioSong(
+  "fullcombo",
+  "Full Combo!!",
+  "/audio/fullcombo.mp3",
+  fullcomboData,
+  {
+    color: "#FB7185",
+    desc: "180 BPM · K-POP 걸밴드 록 · AI 자작곡 (tunee.ai)",
+  },
+  [3, 6, 9, 13, 15]
+);
 
 /*
  * 채보 다시 뽑기 (npm run rhythm-chart -- <id> ...) — 엇박·살짝 어긋난 동시치기 줄인 규칙으로 전부 다시 뽑음

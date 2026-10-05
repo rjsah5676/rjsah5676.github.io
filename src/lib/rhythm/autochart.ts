@@ -842,10 +842,11 @@ function nightmareNotes(
  * 그 위 등급이 생기면 여기에 더하면 됨
  */
 export const TARGET_LEVEL: Record<Difficulty, number> = {
+  // 별점 레벨 기준 — 화면 레벨(chart.ts displayLevel)로는 대략 2 / 5 / 9 / 13 / 16 (각 구간 가운데)
   easy: 4,
   normal: 8,
-  hard: 12,
-  expert: 16,
+  hard: 11,
+  expert: 15,
   nightmare: 19,
 };
 /** 목표에서 이만큼 벗어나도 됨 */
