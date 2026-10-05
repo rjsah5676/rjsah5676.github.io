@@ -298,8 +298,7 @@ export class FightAI {
         press(IN.J);
         return finish();
       }
-      const airLeft = f.airUsed < 4 || f.airK < 2;
-      if ((f.st === "jump" || (f.st === "atk" && f.hit && (f.mv === "J" || f.mv === "K"))) && airLeft) {
+      if (f.st === "jump" || (f.st === "atk" && f.hit && (f.mv === "J" || f.mv === "K"))) {
         out |= toward;
         // 공중 연속: 약 위주로 이어 치다 마지막은 발차기 (박자: 판정이 맞은 직후에 누름)
         if (dist < 48 && dy > -25 && dy < 70 && this.r() < 0.35 + L.combo * 0.6)
@@ -473,7 +472,7 @@ export class FightAI {
       return finish();
     }
     // 공중 공격: 내려오면서 상대 위에 있으면
-    if (f.st === "jump" && (f.airUsed < 4 || f.airK < 2) && dist < 40 && dy < 0 && dy > -70 && f.vh < 0 && this.r() < L.aggro) {
+    if (f.st === "jump" && dist < 40 && dy < 0 && dy > -70 && f.vh < 0 && this.r() < L.aggro) {
       hitBtn(this.r() < 0.5 ? IN.A : IN.B);
       return finish();
     }

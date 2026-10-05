@@ -103,9 +103,6 @@ const CHAIN_STEP = 520;
 const FINISH_REC: Partial<Record<MoveId, number>> = { L: 14, H: 16 };
 /** 대시 길이 (프레임) */
 const DASH_T = 13;
-/** 한 번 뜰 때 쓸 수 있는 공중 공격 수: 공중 약 4번 + 공중 발차기 2번 (2단 점프하면 다시 채워짐) */
-const AIR_J_MAX = 4;
-const AIR_K_MAX = 2;
 /** 공중 공격을 맞힌 뒤 다음 공중 공격으로 이어 치는 창 (판정 시작 +1 ~ 판정 끝 + 이만큼) — 짧아서 박자 맞춰야 함 */
 const AIR_CHAIN_WIN = 3;
 /** 막은 뒤 가드 반격을 받아 주는 여유 프레임 (막는 경직 + 이만큼) */
@@ -130,9 +127,10 @@ const BUBBLE_POP_DMG = 20;
 const JUGGLE_POP = 520;
 /** 그때 때린 쪽이 느리게 떨어지는 프레임 (맞힐 때마다 다시) */
 const JUGGLE_HANG = 45;
-/** 공중 콤보가 이 수를 넘기면 점점 빨리 떨어짐, JUGGLE_HEAVY_N 대 더 맞으면 보통 낙하 */
-const JUGGLE_SOFT = 6;
-const JUGGLE_HEAVY_N = 4;
+/** 띄워진 지 이 프레임(2초)이 지나면 점점 빨리 떨어짐: RAMP 동안 보통 중력까지, 그 뒤 RAMP2 동안 중력 2배까지 */
+const FLOAT_SOFT_T = 120;
+const FLOAT_RAMP = 60;
+const FLOAT_RAMP2 = 120;
 
 export type FState =
   "idle" | "walk" | "dash" | "jump" | "atk" | "hit" | "block" | "down" | "rise" | "ko" | "win";
@@ -184,6 +182,8 @@ export interface Fighter {
   gcT: number;
   /** 띄워진 상태 (잡기·약 4단 마무리): 떨어지는 속도가 느려 공중 콤보를 넣기 쉬움, 땅에 닿으면 0 */
   float: number;
+  /** 띄워진 채로 맞고 있는 프레임 (float 1·2, 땅에 닿으면 0) — 2초 넘으면 점점 빨리 떨어짐 */
+  floatT: number;
   /** 공중에서 띄운 상대를 맞힌 뒤 남은 프레임: 그동안 때린 쪽도 상대와 같은 느린 중력으로 같이 내려옴 */
   juggle: number;
   /** 머리 위 표시: 1 ⏸ 일시정지, 2 💫 혼란 (맞는 동안만) */
@@ -361,6 +361,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     jumps: 0,
     gcT: 0,
     float: 0,
+    floatT: 0,
     juggle: 0,
     mark: 0,
     shock: 0,
@@ -463,6 +464,7 @@ export function hash(s: State): number {
     mix(f.airK);
     mix(f.gcT);
     mix(f.float);
+    mix(f.floatT);
     mix(f.juggle);
     mix(f.mark);
     mix(f.shock);
@@ -684,12 +686,12 @@ function airAttack(s: State, i: number): boolean {
     startMove(s, i, "S");
     return true;
   }
-  if (f.airK < AIR_K_MAX && pressed(f, IN.B, 3)) {
+  if (pressed(f, IN.B, 3)) {
     turn();
     startMove(s, i, "K");
     return true;
   }
-  if (f.airUsed < AIR_J_MAX && pressed(f, IN.A, 3)) {
+  if (pressed(f, IN.A, 3)) {
     turn();
     startMove(s, i, "J");
     return true;
@@ -1178,18 +1180,18 @@ function physics(s: State, i: number) {
   // (띄워진 상대: 중력 45%, 떨어지는 최고 속도도 낮게 → 공중 콤보 넣을 시간)
   // 띄운 상대를 공중에서 맞힌 쪽: 상대가 아직 떠 있는 동안 같은 느린 중력으로 같이 내려옴
   const o = s.p[1 - i];
+  if ((f.float === 1 || f.float === 2) && f.st === "hit") f.floatT = Math.min(f.floatT + 1, 1000);
+  else if (!f.float) f.floatT = 0;
   if (f.juggle > 0) f.juggle--;
   const hang = f.juggle > 0 && (f.st === "jump" || f.st === "atk") && o.st === "hit" && o.float === 1;
   if (!hang) f.juggle = 0;
   if (f.float === 3 && f.st === "hit" && f.stun > 0) f.vh = 0; // 💫 혼란: 그 자리에 둥실 멈춤
   else if ((f.float === 1 && f.st === "hit") || hang) {
     // 공중에서 6대 넘게 맞으면 한 대마다 중력·낙하 속도가 커져 4대 뒤엔 보통 낙하 (너무 오래 안 떠 있게)
-    const heavy = Math.min(JUGGLE_HEAVY_N, Math.max(0, (f.st === "hit" ? f.combo : o.combo) - JUGGLE_SOFT));
-    const g = FLOAT_G + Math.trunc(((GRAVITY - FLOAT_G) * heavy) / JUGGLE_HEAVY_N);
-    const cap = FLOAT_FALL + Math.trunc(((MAX_FALL - FLOAT_FALL) * heavy) / JUGGLE_HEAVY_N);
-    f.vh = Math.max(-cap, f.vh - g);
+    const ft = f.st === "hit" ? f.floatT : o.floatT;
+    f.vh = Math.max(-floatCap(ft, FLOAT_FALL), f.vh - floatG(ft, FLOAT_G));
   }
-  else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-1400, f.vh - GRAVITY);
+  else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-floatCap(f.floatT, 1400), f.vh - floatG(f.floatT, GRAVITY));
   else f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
   const gl = charOf(f).glide;
@@ -1250,6 +1252,19 @@ function settle(s: State, i: number, win: boolean) {
   if (f.st === "down" && f.t >= DOWN_T) ((f.st = "rise"), (f.t = 0));
   if (f.st === "rise" && f.t >= RISE_T) ((f.st = "idle"), (f.t = 0));
   if (win && f.st === "idle") ((f.st = "win"), (f.t = 0));
+}
+
+/** 띄워진 지 오래되면 중력·최고 낙하 속도가 점점 커짐 (2초 뒤 1초 동안 보통 중력까지, 이후 2초 동안 2배까지) */
+function floatG(t: number, g0: number) {
+  const over = t - FLOAT_SOFT_T;
+  if (over <= 0) return g0;
+  const g1 = g0 + Math.trunc(((GRAVITY - g0) * Math.min(over, FLOAT_RAMP)) / FLOAT_RAMP);
+  return over <= FLOAT_RAMP ? g1 : g1 + Math.trunc((GRAVITY * Math.min(over - FLOAT_RAMP, FLOAT_RAMP2)) / FLOAT_RAMP2);
+}
+function floatCap(t: number, c0: number) {
+  const over = t - FLOAT_SOFT_T;
+  if (over <= 0) return c0;
+  return c0 + Math.trunc(((MAX_FALL * 2 - c0) * Math.min(over, FLOAT_RAMP + FLOAT_RAMP2)) / (FLOAT_RAMP + FLOAT_RAMP2));
 }
 
 /** 콤보 피해 보정: 맞을수록 12%씩 줄고(최저 30%), 6대를 넘기면 한 대마다 5%씩 더 줄어 최저 10% (긴 공중 콤보 억제) */
@@ -1568,10 +1583,10 @@ function attacks(s: State) {
     const r = hitRect(s.p[i]);
     const h = hurtRect(s.p[1 - i]);
     if (!r || !h || !overlap(r, h)) continue;
-    // 잡기는 땅에 서 있는(경직 아닌) 상대만 — 단, 끌어당겨 온 상대는 경직 중이어도 잡을 수 있음
+    // 잡기는 땅에 서 있는(경직 아닌) 상대만 — 단, 끌어당겨 온 상대·감전된 상대(땅)·방울에 갇힌 상대는 잡을 수 있음
     if (s.p[i].mv === "T") {
       const o = s.p[1 - i];
-      if (airborneS(s, o) || (o.st === "hit" && !o.pulled)) continue;
+      if (o.trapT === 0 && (airborneS(s, o) || (o.st === "hit" && !o.pulled && o.shock === 0))) continue;
     }
     hits.push(i);
   }
