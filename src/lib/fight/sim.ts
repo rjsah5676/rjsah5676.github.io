@@ -123,6 +123,8 @@ const CHAIN_LAUNCH_VH = 1425;
 const JUGGLE_VH = 950;
 const JUGGLE_PUSH = 45;
 const JUGGLE_STUN = 36;
+/** 비눗방울에 갇힌 상대를 때려 터뜨리면 추가 피해 */
+const BUBBLE_POP_DMG = 20;
 /** 공중에서 띄운 상대를 맞히면 둘 다 이만큼 살짝 떠올랐다가 같이 천천히 내려옴 */
 const JUGGLE_POP = 520;
 /** 그때 때린 쪽이 느리게 떨어지는 프레임 (맞힐 때마다 다시) */
@@ -1265,12 +1267,14 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     if (d.shock > 0 && shocker) base = Math.trunc((base * 110) / 100);
     const dmg = m.multi || m.summon ? m.dmg : scaleDmg(base, d.combo);
     const wasAir = airborneS(s, d);
+    let popBonus = 0;
     if (d.trapT > 0) {
-      // 갇힌 상대를 때리면 방울이 터짐
+      // 갇힌 상대를 때리면 방울이 터짐 — 터뜨린 타격에 추가 피해
       d.trapT = 0;
+      popBonus = BUBBLE_POP_DMG;
       s.ev.push({ k: "pop", p: ai, x: d.x, h: d.h + 30 * SUB, v: 0 });
     }
-    d.hp -= dmg;
+    d.hp -= dmg + popBonus;
     d.combo++;
     d.st = "hit";
     d.t = 0;
@@ -1393,7 +1397,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     a.meter = Math.min(METER_MAX, a.meter + m.meter);
     d.meter = Math.min(METER_MAX, d.meter + (dmg >> 4));
     s.stop = Math.max(s.stop, m.hitstop);
-    s.ev.push({ k: mid === "T" ? "throw" : "hit", p: ai, x: d.x - dir * 8 * SUB, h: eh, v: dmg, m: mid });
+    s.ev.push({ k: mid === "T" ? "throw" : "hit", p: ai, x: d.x - dir * 8 * SUB, h: eh, v: dmg + popBonus, m: mid });
   }
   if (d.hp <= 0) d.hp = 0;
 }

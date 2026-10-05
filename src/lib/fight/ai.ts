@@ -78,12 +78,12 @@ export const AI_LEVELS: AILevel[] = [
   {
     id: "6",
     name: "달인",
-    react: 6,
-    block: 0.9,
-    combo: 0.96,
-    antiAir: 0.86,
-    aggro: 0.65,
-    special: 0.014,
+    react: 4,
+    block: 0.95,
+    combo: 1,
+    antiAir: 0.95,
+    aggro: 0.72,
+    special: 0.02,
   },
 ];
 
@@ -401,6 +401,13 @@ export class FightAI {
           press(IN.B);
           return finish();
         }
+      }
+      // 누운 상대: 다가가서 때리거나(피해 절반, 못 막음) 잡아서 다시 띄움 — 일어나기 직전엔 안 들어감
+      if (o.st === "down" && Math.abs(dy) < 20 && o.t < 28 && this.r() < L.combo) {
+        if (dist > tReach - 2) out |= toward;
+        else if (faceOk && this.r() < L.combo * 0.5) press(IN.A | IN.B);
+        else hitBtn(IN.A);
+        return finish();
       }
       // 묶인 상대 때리기: 탄·끌어당김에 맞아 경직 중이면 달려가서 콤보
       if (o.st === "hit" && o.stun > 8 && aligned && this.r() < L.combo) {

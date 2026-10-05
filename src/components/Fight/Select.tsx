@@ -12,6 +12,7 @@ import { AI_LEVELS } from "@/lib/fight/ai";
 import { loadSheet } from "@/lib/fight/sprites";
 import { sfxUi } from "@/lib/fight/sfx";
 import { KeyCap, keyText } from "./KeyCap";
+import PatchNotes, { LATEST } from "./PatchNotes";
 
 export type Mode = "ai" | "2p" | "online";
 export interface Setup {
@@ -123,6 +124,7 @@ export default function Select({
   onBack?: () => void;
 }) {
   const [stage, setStage] = useState<"mode" | "char" | "map" | "vs">(entry);
+  const [notes, setNotes] = useState(false);
   const [lock, setLock] = useState<[boolean, boolean]>([false, false]);
   const [mapCur, setMapCur] = useState(setup.map);
   /** 캐릭터 칸 커서가 '랜덤'에 있나 (쪽마다) */
@@ -372,6 +374,22 @@ export default function Select({
               <span className="h-[0.15cqw] w-[8cqw] bg-gradient-to-l from-transparent to-[#FFD27A]" />
             </div>
           </div>
+
+          {/* 오른쪽 위: 패치노트 */}
+          <button
+            type="button"
+            onClick={() => {
+              sfxUi("ok");
+              setNotes(true);
+            }}
+            className={`${KR} absolute top-[2.2cqw] right-[2cqw] flex cursor-pointer items-center gap-[0.6cqw] rounded-full border-[0.15cqw] border-[#F2C35B]/70 bg-[#140A24]/75 px-[1.3cqw] py-[0.45cqw] text-[1.2cqw] font-bold text-[#FFE9A8] backdrop-blur-[3px] transition-colors hover:bg-[#2B1840]/90`}
+          >
+            📜 패치노트
+            <span className="font-mono text-[1cqw] font-normal text-white/55">
+              {LATEST.ver} · {LATEST.date.slice(5)}
+            </span>
+          </button>
+          {notes && <PatchNotes onClose={() => setNotes(false)} />}
 
           {/* 아래 돌바닥 위: 모드 · 난이도 · 시작 */}
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-[1.5cqw] pb-[3.6cqw]">
