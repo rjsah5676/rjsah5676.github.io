@@ -155,15 +155,7 @@ export function PlayerTop({
             animation: hp <= 0.25 && hp > 0 ? "hud-pulse 0.7s ease-in-out infinite" : undefined,
           }}
         />
-        {/* 눈금 + 윗면 광택 */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "repeating-linear-gradient(90deg, transparent 0 calc(10% - 0.12cqw), rgba(18,8,31,0.45) calc(10% - 0.12cqw) 10%)",
-          }}
-        />
+        {/* 윗면 광택 */}
         <div
           style={{
             position: "absolute",
