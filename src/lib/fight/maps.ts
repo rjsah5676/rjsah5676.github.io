@@ -106,13 +106,13 @@ export const MAPS: MapDef[] = [
     // 그림: public/fight/bg/skyscraper.webp (1920×1080) — 높이 다른 아파트 두 동 옥상, 가운데는 낭떠러지
     id: "skyscraper",
     name: "달밤 마천루",
-    desc: "보름달 뜬 도시 위 아파트 옥상 두 동 — 오른쪽 동이 더 높고, 사이로 떨어지면 끝",
+    desc: "보름달 뜬 도시 위 아파트 옥상 두 동 — 오른쪽 동이 더 높고, 사이가 넓어 2단 점프에 공중 대시까지 써야 건넘",
     plats: [
-      { x0: 0, x1: 495, y: 200, solid: true, wall: true, kind: "roof" },
-      { x0: 648, x1: 1152, y: 270, solid: true, wall: true, kind: "roof" },
+      { x0: 0, x1: 420, y: 200, solid: true, wall: true, kind: "roof" },
+      { x0: 720, x1: 1152, y: 270, solid: true, wall: true, kind: "roof" },
     ],
-    spawn: [280, 880],
-    respawn: [250, 900],
+    spawn: [230, 940],
+    respawn: [210, 940],
     bg: "/fight/bg/skyscraper.webp",
     bgPlats: true,
     bgm: "/fight/bgm-rooftop.mp3",

@@ -5,6 +5,7 @@
  */
 import { CHARS, SUB, type MoveDef } from "./chars";
 import { IN, VIEW_H, isAir, mapOf, platBelow, type Fighter, type State } from "./sim";
+import type { Plat } from "./maps";
 
 export interface AILevel {
   id: string;
@@ -127,6 +128,14 @@ export class FightAI {
   private gcDecision: boolean | null = null;
   /** 대시 입력 (톡·떼고·톡) 남은 프레임 */
   private dashSeq: number[] = [];
+  /** 낭떠러지 건너가는 중: 목표 발판 (2단 점프 + 공중 대시로) */
+  private crossTo: Plat | null = null;
+  private jump2At = 0;
+  private wasAir = false;
+  /** 떨어지는 중 발판으로 복귀하는 중 (착지할 때까지) */
+  private recover = false;
+  private prevDir = 0;
+  private dirTapAt: Record<number, number> = { [IN.L]: -99, [IN.R]: -99 };
   /** 저스트 가드 노리기: 상대 판정이 나오기 이 프레임 전에 ↓ */
   private justPlan = -1;
 
@@ -159,6 +168,16 @@ export class FightAI {
     };
     const finish = () => {
       this.lastPress = out & (IN.A | IN.B | IN.C | IN.X | IN.J);
+      // 방금 톡 했던 방향을 다시 누르면 대시가 나감 → 대시 거리 안에 낭떠러지면 이번엔 안 누름
+      if (!isAir(s, f) && !this.crossTo && f.st !== "dash") {
+        for (const b of [IN.L, IN.R]) {
+          const tap = out & b & ~this.prevDir && s.f - this.dirTapAt[b] <= 15;
+          if (tap && !platBelow(map, f.x + (b === IN.R ? 160 : -160) * SUB, f.h)) out &= ~b;
+        }
+      }
+      // 방향키를 새로 누른 프레임 기록
+      for (const b of [IN.L, IN.R]) if (out & b & ~this.prevDir) this.dirTapAt[b] = s.f;
+      this.prevDir = out & (IN.L | IN.R);
       return out;
     };
 
@@ -180,21 +199,53 @@ export class FightAI {
     }
     this.techDecision = null;
 
+    // 공중 대시 입력 (톡·떼고·톡): 3~14프레임 안에 두 번 눌러야 함
+    const airDash = (dir: number) => {
+      this.dashSeq = [0, dir, dir, 0, 0, dir, dir, dir];
+      return finish();
+    };
+    // 건너가기는 착지하거나 맞으면 끝
+    if ((!air && this.wasAir) || f.st === "hit" || f.st === "down") this.crossTo = null;
+    if (!air) this.recover = false;
+    this.wasAir = air;
+    // ── 건너편 발판으로 점프 중: 꼭대기에서 2단 점프, 그다음 공중 대시 ──
+    if (air && this.crossTo && f.st === "jump") {
+      const t = this.crossTo;
+      const dir = (t.x0 + t.x1) / 2 > f.x / SUB ? IN.R : IN.L;
+      out |= dir;
+      if (f.jumps < 2 && f.vh <= 0) {
+        press(IN.J);
+        this.jump2At = s.f;
+      } else if (f.jumps >= 2 && !f.airDash && s.f - this.jump2At >= 4) return airDash(dir);
+      if (c.glide && f.jumps >= 2 && f.vh < 0) out |= IN.J;
+      return finish();
+    }
+
     // ── 떨어지는 중: 가까운 발판으로 복귀 ──
     if (air && f.st !== "hit" && f.st !== "ko") {
       // 지금 속도로 가면 착지할 발판이 없으면
       const under = platBelow(map, f.x + f.vx * 24, f.h);
-      if (!under || f.h / SUB > VIEW_H) {
+      // 한 번 복귀하기 시작하면 착지할 때까지 계속 (발판 끝에서 왔다 갔다 하지 않게)
+      if (!under || f.h / SUB > VIEW_H || this.recover) {
+        this.recover = true;
         let best = map.plats[0];
         let bd = Infinity;
+        // 지금 날아가는 쪽(관성)을 감안해서 가까운 발판
+        const px = f.x + f.vx * 16;
         for (const p of map.plats) {
           const cx = ((p.x0 + p.x1) / 2) * SUB;
-          const d = Math.abs(cx - f.x) + Math.max(0, p.y * SUB - f.h) * 2;
+          const ex = Math.max(p.x0 * SUB, Math.min(p.x1 * SUB, px));
+          const d = Math.abs(ex - px) + Math.max(0, p.y * SUB - f.h) * 2 + Math.abs(cx - px) * 0.1;
           if (d < bd) ((bd = d), (best = p));
         }
+        if (this.crossTo) best = this.crossTo;
         const cx = ((best.x0 + best.x1) / 2) * SUB;
-        out |= cx > f.x ? IN.R : IN.L;
+        // 발판 위에 들어와 있으면 그냥 내려앉음, 아니면 안쪽으로
+        const inside = f.x > best.x0 * SUB + 12 * SUB && f.x < best.x1 * SUB - 12 * SUB;
+        if (!inside) out |= cx > f.x ? IN.R : IN.L;
         if (f.jumps < 2 && f.vh < 0 && f.h < best.y * SUB + 40 * SUB) press(IN.J);
+        // 점프를 다 써도 못 닿으면 공중 대시
+        else if (f.jumps >= 2 && !f.airDash && f.vh < 0 && !inside && f.h < best.y * SUB + 60 * SUB) return airDash(cx > f.x ? IN.R : IN.L);
         // 우산 활강 (점프를 다 쓴 뒤)
         if (c.glide && f.vh < 0 && f.jumps >= 2) out |= IN.J;
         return finish();
@@ -420,7 +471,8 @@ export class FightAI {
         const stopAt = hReach > oReach + 10 ? Math.max(oReach + 6, hReach - 10) : 0;
         if (dist > stopAt) out |= toward;
         else if (free && aligned && this.r() < 0.3 + L.aggro * 0.3) hitBtn(dist < lReach ? IN.A : IN.B);
-        if (free && !air && dist > 200 && this.r() < 0.05 + L.aggro * 0.05) this.dashSeq = [0, toward, toward, toward];
+        if (free && !air && dist > 200 && this.r() < 0.05 + L.aggro * 0.05 && platBelow(map, f.x + (toward === IN.R ? 220 : -220) * SUB, f.h)?.y === platBelow(map, f.x, f.h)?.y)
+          this.dashSeq = [0, toward, toward, toward];
         if (dist < lReach && free && aligned && this.r() < L.aggro * 0.2) hitBtn(IN.A);
         break;
       }
@@ -491,11 +543,26 @@ export class FightAI {
     if (c.glide && f.st === "jump" && f.vh < 0 && f.jumps >= 2 && dist > 60) out |= IN.J;
     // 기술 중엔 뒤로 누르지 않음 (방향키 우선이라 누르면 돌아섬)
     if (f.st === "atk" && !air) out &= ~away;
-    // 걷다가 낭떠러지면 멈춤 (아래에 발판이 없으면)
+    // 건너가기로 했으면 끝까지 걸어가서 (멀리 뛰려고) 가장자리에서 점프 (대시가 나갔으면 대시 점프)
+    if (!air && this.crossTo && (free || f.st === "dash")) {
+      const t = this.crossTo;
+      const dir = (t.x0 + t.x1) / 2 > f.x / SUB ? 1 : -1;
+      out = (out & ~(IN.L | IN.R)) | (dir > 0 ? IN.R : IN.L);
+      if (!platBelow(map, f.x + dir * (f.st === "dash" ? 24 : 10) * SUB, f.h)) press(IN.J);
+      return finish();
+    }
+    // 걷다가 낭떠러지면 멈춤 (아래에 발판이 없으면) — 상대가 건너편 발판에 있으면 가끔 뛰어서 건넘
     if (!air && (out & (IN.L | IN.R))) {
       const dir = out & IN.R ? 1 : -1;
       const ax = f.x + dir * 24 * SUB;
-      if (!platBelow(map, ax, f.h)) out &= ~(IN.L | IN.R);
+      if (!platBelow(map, ax, f.h)) {
+        out &= ~(IN.L | IN.R);
+        const there = !isAir(s, o) ? platBelow(map, o.x, o.h) : null;
+        if (free && there && there !== platBelow(map, f.x, f.h) && (dir > 0) === (o.x > f.x) && this.r() < 0.08 + L.aggro * 0.1) {
+          this.crossTo = there;
+          out |= dir > 0 ? IN.R : IN.L;
+        }
+      }
     }
     return finish();
   }

@@ -7,8 +7,6 @@ import { AI_LEVELS, FightAI } from "@/lib/fight/ai";
 import {
   IN,
   METER_MAX,
-  ROUND_SEC,
-  WINS_NEEDED,
   hpRatio,
   newMatch,
   step,
@@ -41,6 +39,7 @@ const SFX_EL: Record<string, Element> = { kai: "wind", igna: "fire", soyoung: "w
 import { FightRenderer } from "./render";
 import { FightInput } from "./input";
 import HowTo from "./HowTo";
+import { Banner, Combo, HUD_CSS, PlayerBottom, PlayerTop, TimerBox, WinQuote, type BannerKind } from "./Hud";
 import Select, { type Setup } from "./Select";
 import { scrollToGameTop } from "@/components/GameHeader";
 import { RankSubmit } from "@/components/AIRank";
@@ -191,111 +190,6 @@ function hudOf(s: State): Hud {
 }
 
 const KR = "font-['Nanum_Gothic',sans-serif]";
-
-/** 한쪽 선수 HUD: 얼굴 · 이름 · 체력 · 필살기 게이지 · 아이덴티티 대기 */
-function PlayerHud({
-  ch,
-  hp,
-  meter,
-  cd,
-  wins,
-  tag,
-  right,
-}: {
-  ch: number;
-  hp: number;
-  meter: number;
-  cd: number;
-  wins: number;
-  tag: string;
-  right?: boolean;
-}) {
-  const c = CHARS[ch];
-  const full = meter >= METER_MAX;
-  const cdLeft = cd * (c.cd / 60);
-  const ready = cdLeft < 0.05;
-  const flip = right ? "scale-x-[-1]" : "";
-  return (
-    <div className={`flex min-w-0 flex-1 items-start gap-[1cqw] ${right ? "flex-row-reverse" : ""}`}>
-      <img
-        src={`/fight/art/${c.id}-face.webp`}
-        alt={c.name}
-        className={`h-[6.4cqw] w-[8cqw] shrink-0 rounded-[0.5cqw] border-[0.25cqw] object-cover shadow-[0_0.3cqw_0_#000] [image-rendering:pixelated] ${flip}`}
-        style={{ borderColor: c.color }}
-      />
-      <div className={`flex min-w-0 flex-1 flex-col gap-[0.45cqw] ${right ? "items-end" : ""}`}>
-        <div className={`flex items-baseline gap-[0.8cqw] ${right ? "flex-row-reverse" : ""}`}>
-          <span className={`${KR} text-[2.1cqw] leading-none font-extrabold text-white drop-shadow-[0_0.2cqw_0_#000]`}>
-            {c.name}
-          </span>
-          <span className="font-mono text-[1.1cqw] text-white/55 drop-shadow-[0_0.1cqw_0_#000]">{tag}</span>
-          <span className="flex gap-[0.4cqw] self-center">
-            {Array.from({ length: WINS_NEEDED }, (_, i) => (
-              <span
-                key={i}
-                className={`h-[1.1cqw] w-[1.1cqw] rotate-45 border border-black/60 ${i < wins ? "bg-[#FDE047]" : "bg-white/15"}`}
-              />
-            ))}
-          </span>
-        </div>
-        {/* 체력 (비스듬한 막대) */}
-        <div className={`w-full ${flip}`}>
-          <div className="relative h-[2.2cqw] w-full -skew-x-[20deg] overflow-hidden border-[0.2cqw] border-black/70 bg-[#2A0D18] shadow-[0_0.25cqw_0_rgba(0,0,0,0.6)]">
-            <div className="absolute inset-y-0 left-0 bg-white/70 transition-[width] duration-700" style={{ width: `${hp * 100}%` }} />
-            <div
-              className={`absolute inset-y-0 left-0 bg-gradient-to-b ${hp < 0.25 ? "from-[#FF6B81] to-[#C81E3A]" : "from-[#FFE97A] to-[#F5A524]"}`}
-              style={{ width: `${hp * 100}%` }}
-            />
-            <div className="absolute inset-x-0 top-0 h-[35%] bg-white/25" />
-          </div>
-        </div>
-        {/* 필살기 게이지 + 아이덴티티 */}
-        <div className={`flex w-full items-center gap-[0.8cqw] ${right ? "flex-row-reverse" : ""}`}>
-          <div
-            className={`relative flex h-[2.6cqw] w-[2.6cqw] shrink-0 items-center justify-center rounded-full border-[0.2cqw] ${ready ? "border-[#FDE047]" : "border-white/25"}`}
-            style={{
-              background: ready
-                ? "radial-gradient(circle, rgba(253,224,71,0.35), rgba(0,0,0,0.5))"
-                : `conic-gradient(rgba(255,255,255,0.35) ${(1 - cd) * 360}deg, rgba(0,0,0,0.55) 0)`,
-            }}
-            title={`아이덴티티 · ${c.idName}`}
-          >
-            <span className={`font-mono text-[1.1cqw] font-bold ${ready ? "text-[#FDE047]" : "text-white"}`}>
-              {ready ? "L" : cdLeft.toFixed(1)}
-            </span>
-          </div>
-          <span className={`${KR} whitespace-nowrap text-[1.1cqw] font-bold ${ready ? "text-[#FDE047]" : "text-white/45"} drop-shadow-[0_0.1cqw_0_#000]`}>
-            {c.idName}
-          </span>
-          <div className={`ml-auto ${right ? "mr-auto ml-0" : ""} flex items-center gap-[0.6cqw] ${right ? "flex-row-reverse" : ""}`}>
-            <div
-              className={`relative -skew-x-[20deg] overflow-hidden border bg-black/50 transition-all ${flip} ${
-                full
-                  ? "h-[1.6cqw] w-[14cqw] border-[#A5F3FC] shadow-[0_0_1.2cqw_rgba(34,211,238,0.9)]"
-                  : "h-[1.2cqw] w-[14cqw] border-black/60"
-              }`}
-            >
-              <div
-                className={`absolute inset-y-0 left-0 ${full ? "bg-gradient-to-r from-[#0EA5E9] via-[#A5F3FC] to-[#22D3EE]" : "bg-[#3B82F6]"}`}
-                style={{ width: `${Math.min(100, meter)}%` }}
-              />
-              {full && (
-                <div className="absolute inset-y-0 w-[30%] animate-[meter-shine_1.1s_linear_infinite] bg-gradient-to-r from-transparent via-white/80 to-transparent" />
-              )}
-            </div>
-            {full ? (
-              <span className="animate-pulse whitespace-nowrap font-mono text-[1.4cqw] font-black text-[#A5F3FC] [text-shadow:0_0_0.8cqw_#22D3EE,0_0.1cqw_0_#000]">
-                {c.ultName} READY! <span className="rounded-[0.2cqw] bg-[#22D3EE] px-[0.4cqw] text-black">I</span>
-              </span>
-            ) : (
-              <span className="font-mono text-[1.2cqw] font-black text-white/50 drop-shadow-[0_0.1cqw_0_#000]">{meter}%</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const [setup, setSetup] = useState<Setup>({ mode: "ai", c1: 0, c2: 1, level: 2, map: -1 });
@@ -684,11 +578,12 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     setPaused(false);
     setHud(null);
   }, [playBgm]);
-  /** 온라인: 대기실로 (again = 바로 준비) */
+  /** 온라인: 대기실로 (again = 바로 준비 — 방장은 빼고: 방장까지 준비돼 있으면 상대가 준비하자마자 바로 시작돼 버림) */
   const toRoom = useCallback(
     (again: boolean) => {
       toMenu();
-      if (again) sessRef.current?.setReady(true);
+      const sess = sessRef.current;
+      if (again && sess && !sess.isHost) sess.setReady(true);
     },
     [toMenu]
   );
@@ -797,33 +692,29 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     : ["1P", setup.mode === "ai" ? `CPU ${level.name}` : "2P"];
   const meSeat = ol?.seat ?? 0;
 
-  let banner: { text: string; sub?: string; color?: string } | null = null;
+  let banner: { kind: BannerKind; text: string; name?: string; nameColor?: string } | null = null;
   if (hud) {
-    if (hud.phase === "intro")
-      banner = hud.pt < 60 ? { text: `ROUND ${hud.round}` } : { text: "FIGHT!", color: "#FDE047" };
-    else if (hud.phase === "fight" && hud.pt < 30) banner = { text: "FIGHT!", color: "#FDE047" };
-    else if (hud.phase === "roundEnd")
+    if (hud.phase === "intro") banner = hud.pt < 60 ? { kind: "round", text: `ROUND ${hud.round}` } : { kind: "fight", text: "FIGHT!" };
+    else if (hud.phase === "fight" && hud.pt < 30) banner = { kind: "fight", text: "FIGHT!" };
+    else if (hud.phase === "roundEnd") {
+      const w = CHARS[hud.ch[hud.roundWinner]];
       banner =
         hud.pt < 50
-          ? { text: hud.timeUp ? "TIME UP" : "K.O.", color: "#F43F5E" }
-          : {
-              text:
-                hud.roundWinner === 2
-                  ? "무승부"
-                  : `${CHARS[hud.ch[hud.roundWinner]].name} 승리`,
-            };
-    else if (hud.phase === "over")
-      banner = {
-        text:
-          hud.winner === 2
-            ? "DRAW"
-            : setup.mode === "ai" || ol
-              ? hud.winner === meSeat
-                ? "YOU WIN!"
-                : "YOU LOSE"
-              : `${hud.winner === 0 ? "1P" : "2P"} WIN!`,
-        color: hud.winner === meSeat || (setup.mode === "2p" && !ol) ? "#FDE047" : "#F87171",
-      };
+          ? hud.timeUp
+            ? { kind: "timeup", text: "TIME UP" }
+            : { kind: "ko", text: "K.O." }
+          : hud.roundWinner === 2
+            ? { kind: "draw", text: "무승부" }
+            : { kind: "roundWin", text: "승리", name: w.name, nameColor: w.color };
+    } else if (hud.phase === "over")
+      banner =
+        hud.winner === 2
+          ? { kind: "draw", text: "DRAW" }
+          : setup.mode === "ai" || ol
+            ? hud.winner === meSeat
+              ? { kind: "win", text: "YOU WIN!" }
+              : { kind: "lose", text: "YOU LOSE" }
+            : { kind: "win", text: `${hud.winner === 0 ? "1P" : "2P"} WIN!` };
   }
 
   const winCh = hud && hud.phase === "over" && hud.winner !== 2 ? CHARS[hud.ch[hud.winner]] : null;
@@ -832,62 +723,21 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       <div className="fs-screen relative w-full overflow-hidden rounded-xl border border-white/10 bg-black [container-type:inline-size]">
         <canvas ref={canvasRef} className="block aspect-video w-full [image-rendering:pixelated]" />
         {fsBtn(true)}
-        {winCh && hud && hud.pt >= 80 && (
-          // 최종 승리: 이긴 캐릭터 얼굴 + 도발 대사
-          <div
-            className={`pointer-events-none absolute top-[50%] ${hud.winner === 0 ? "left-[4%]" : "right-[4%] flex-row-reverse"} flex items-center gap-[1.2cqw] [animation:modal-fade_300ms_ease-out]`}
-          >
-            <img
-              src={`/fight/art/${winCh.id}-face.webp`}
-              alt=""
-              className="h-[9cqw] w-[9cqw] rounded-[0.8cqw] border-[0.3cqw] object-cover shadow-[0_0_2cqw_rgba(0,0,0,0.7)]"
-              style={{ borderColor: winCh.color }}
-            />
-            <div className="max-w-[32cqw] rounded-[1cqw] border-[0.2cqw] border-white/70 bg-black/75 px-[1.4cqw] py-[0.9cqw] font-['Nanum_Gothic',sans-serif]">
-              <div className="text-[1.3cqw] font-extrabold" style={{ color: winCh.color }}>
-                {winCh.name}
-              </div>
-              <div className="text-[1.7cqw] leading-snug font-bold text-white">“{winCh.winQuote}”</div>
-            </div>
-          </div>
-        )}
+        {winCh && hud && hud.pt >= 80 && <WinQuote ch={hud.ch[hud.winner]} right={hud.winner === 1} />}
         {hud && (
-          <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-[1.6cqw]">
-            <div className="flex items-start gap-[2cqw]">
-              <PlayerHud ch={hud.ch[0]} hp={hud.hp[0]} meter={hud.meter[0]} cd={hud.cd[0]} wins={hud.wins[0]} tag={names[0]} />
-              <div className="flex w-[7cqw] shrink-0 flex-col items-center pt-[0.4cqw]">
-                <span
-                  className={`font-mono text-[4cqw] leading-none font-black drop-shadow-[0_0.3cqw_0_#000] ${hud.sec <= 10 && hud.phase === "fight" ? "text-[#F87171]" : "text-white"}`}
-                >
-                  {Math.min(ROUND_SEC, hud.sec)}
-                </span>
-              </div>
-              <PlayerHud ch={hud.ch[1]} hp={hud.hp[1]} meter={hud.meter[1]} cd={hud.cd[1]} wins={hud.wins[1]} tag={names[1]} right />
+          <div className="pointer-events-none absolute inset-0 flex flex-col justify-between px-[1.6cqw] py-[1.4cqw]">
+            <style>{HUD_CSS}</style>
+            <div className="flex items-start gap-[1.4cqw]">
+              <PlayerTop ch={hud.ch[0]} hp={hud.hp[0]} tag={names[0]} />
+              <TimerBox sec={hud.sec} round={hud.round} wins={hud.wins} hurry={hud.sec <= 10 && hud.phase === "fight"} />
+              <PlayerTop ch={hud.ch[1]} hp={hud.hp[1]} tag={names[1]} right />
             </div>
-            <div />
-            {hud.combo.map(
-              (c, i) =>
-                c >= 2 && (
-                  <div
-                    key={i}
-                    className={`absolute top-[22%] ${i === 0 ? "left-[3%]" : "right-[3%]"} font-mono font-black italic drop-shadow-[0_2px_0_#000]`}
-                  >
-                    <span className="text-[5cqw] text-[#FDE047]">{c}</span>
-                    <span className="ml-[0.5cqw] text-[2.4cqw] text-white">HITS</span>
-                  </div>
-                )
-            )}
-            {banner && (
-              <div className="absolute inset-x-0 top-[34%] text-center">
-                <div
-                  key={banner.text}
-                  className="font-mono text-[8cqw] font-black tracking-wider italic drop-shadow-[0_0.5cqw_0_#000] [animation:modal-fade_200ms_ease-out]"
-                  style={{ color: banner.color ?? "#fff" }}
-                >
-                  {banner.text}
-                </div>
-              </div>
-            )}
+            <div className="flex items-end justify-between">
+              <PlayerBottom ch={hud.ch[0]} meter={hud.meter[0]} cd={hud.cd[0]} />
+              <PlayerBottom ch={hud.ch[1]} meter={hud.meter[1]} cd={hud.cd[1]} right />
+            </div>
+            {hud.combo.map((c, i) => c >= 2 && <Combo key={i} n={c} right={i === 1} />)}
+            {banner && <Banner {...banner} />}
           </div>
         )}
         {paused && (
@@ -938,7 +788,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
               onClick={() => toRoom(true)}
               className="cursor-pointer rounded-full bg-[#6C63FF] px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#2E2A7A] hover:bg-[#5b52f0]"
             >
-              ↻ 한 판 더 (준비)
+              ↻ 한 판 더
             </button>
             <button
               type="button"
