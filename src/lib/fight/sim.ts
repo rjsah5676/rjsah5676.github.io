@@ -123,6 +123,10 @@ const CHAIN_LAUNCH_VH = 1425;
 const JUGGLE_VH = 950;
 const JUGGLE_PUSH = 45;
 const JUGGLE_STUN = 36;
+/** 공중에서 띄운 상대를 맞히면 둘 다 이만큼 살짝 떠올랐다가 같이 천천히 내려옴 */
+const JUGGLE_POP = 520;
+/** 그때 때린 쪽이 느리게 떨어지는 프레임 (맞힐 때마다 다시) */
+const JUGGLE_HANG = 45;
 
 export type FState =
   "idle" | "walk" | "dash" | "jump" | "atk" | "hit" | "block" | "down" | "rise" | "ko" | "win";
@@ -172,6 +176,8 @@ export interface Fighter {
   gcT: number;
   /** 띄워진 상태 (잡기·약 4단 마무리): 떨어지는 속도가 느려 공중 콤보를 넣기 쉬움, 땅에 닿으면 0 */
   float: number;
+  /** 공중에서 띄운 상대를 맞힌 뒤 남은 프레임: 그동안 때린 쪽도 상대와 같은 느린 중력으로 같이 내려옴 */
+  juggle: number;
   /** 감전 남은 프레임: 걷기·대시가 느려지고, 감전시킨 캐릭터의 공격에 더 아픔 */
   shock: number;
   /** 화상 남은 프레임 (이그나 — 15프레임마다 체력이 조금씩 닳음, 화상으로는 안 죽음) */
@@ -342,6 +348,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     jumps: 0,
     gcT: 0,
     float: 0,
+    juggle: 0,
     shock: 0,
     burn: 0,
     aerial: 0,
@@ -440,6 +447,7 @@ export function hash(s: State): number {
     mix(f.airDash);
     mix(f.gcT);
     mix(f.float);
+    mix(f.juggle);
     mix(f.shock);
     mix(f.burn);
     mix(f.aerial);
@@ -509,8 +517,12 @@ export function boxRect(f: Fighter, b: Box): Rect {
 }
 const overlap = (a: Rect, b: Rect) => a.l < b.r && b.l < a.r && a.lo < b.hi && b.lo < a.hi;
 
+/** 누워 있을 때 맞는 범위 (낮고 넓게) */
+const DOWN_HURT: Box = { x: -28, y: 36, w: 56, h: 36 };
+
 export function hurtRect(f: Fighter): Rect | null {
-  if (f.st === "down" || f.st === "rise" || f.st === "ko" || f.inv > 0 || invincible(f)) return null;
+  if (f.st === "rise" || f.st === "ko" || f.inv > 0 || invincible(f)) return null;
+  if (f.st === "down") return boxRect(f, DOWN_HURT);
   return boxRect(f, charOf(f).hurt);
 }
 
@@ -621,6 +633,7 @@ function jump(s: State, i: number, v: number) {
   f.st = "jump";
   f.t = 0;
   f.airUsed = 0;
+  f.juggle = 0;
   f.jumps++;
   f.vh = v;
   f.vx = holding(f, IN.R) ? spd(f, c.jumpVx) : holding(f, IN.L) ? -spd(f, c.jumpVx) : Math.trunc(f.vx / 2);
@@ -782,6 +795,20 @@ function control(s: State, i: number) {
         startMove(s, i, "T");
         return;
       }
+      // 점프 우선: 약·발차기 중에도 점프를 누르면 바로 뜀 (땅 → 점프, 공중 → 2단 점프)
+      // (아이덴티티·필살기·잡기·가드 반격은 끊지 않고, 끝나자마자 뜀 — 아래 끝 처리)
+      if (pressed(f, JUMP_BITS, 2)) {
+        if (!air && (f.mv === "L" || f.mv === "H")) {
+          f.mv = "";
+          jump(s, i, JUMP_V);
+          return;
+        }
+        if (air && (f.mv === "J" || f.mv === "K") && f.jumps < 2) {
+          f.mv = "";
+          jump(s, i, JUMP2_V);
+          return;
+        }
+      }
       // 방향키 우선: 기술 중에도 누르는 쪽으로 돎 (돌진기는 돌진 시작 전까지만)
       if (f.mv !== "T" && f.mv !== "G" && (!(m.rush || m.lunge) || f.t < m.startup)) steerFace(f);
       if (air) {
@@ -870,6 +897,11 @@ function control(s: State, i: number) {
         f.mv = "";
         f.t = 0;
         f.st = onGround(s, f) ? "idle" : "jump";
+        // 기술 중에 미리 누른 점프는 끝나자마자
+        if (pressed(f, JUMP_BITS, 16)) {
+          if (f.st === "idle") jump(s, i, JUMP_V);
+          else if (f.jumps < 2) jump(s, i, JUMP2_V);
+        }
       }
       return;
     }
@@ -975,6 +1007,7 @@ function control(s: State, i: number) {
 function landed(s: State, i: number, f: Fighter) {
   f.jumps = 0;
   f.float = 0;
+  f.juggle = 0;
   if (f.spiked && f.st === "hit") {
     // 내리꽂혀 땅에 닿음: 살짝 튀어 오름
     f.spiked = 0;
@@ -1105,7 +1138,12 @@ function physics(s: State, i: number) {
   }
   // 공중 (띄워진 상대는 천천히 떨어짐)
   // (띄워진 상대: 중력 45%, 떨어지는 최고 속도도 낮게 → 공중 콤보 넣을 시간)
-  if (f.float === 1 && f.st === "hit") f.vh = Math.max(-FLOAT_FALL, f.vh - FLOAT_G);
+  // 띄운 상대를 공중에서 맞힌 쪽: 상대가 아직 떠 있는 동안 같은 느린 중력으로 같이 내려옴
+  const o = s.p[1 - i];
+  if (f.juggle > 0) f.juggle--;
+  const hang = f.juggle > 0 && (f.st === "jump" || f.st === "atk") && o.st === "hit" && o.float === 1;
+  if (!hang) f.juggle = 0;
+  if ((f.float === 1 && f.st === "hit") || hang) f.vh = Math.max(-FLOAT_FALL, f.vh - FLOAT_G);
   else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-1400, f.vh - GRAVITY);
   else f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
@@ -1180,6 +1218,19 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
   const dir = d.x >= srcX ? 1 : -1; // d가 밀려날 방향
   if (!m.proj && !m.summon) a.hit = 1;
   const eh = d.h + 28 * SUB;
+  d.juggle = 0;
+  if (d.st === "down" && mid !== "T") {
+    // 누워 있는 상대: 못 막음, 피해 절반, 계속 누워 있음 (일어나는 시간은 그대로 → 무한 콤보 없음)
+    // (잡기는 아래 보통 처리 → 붙잡아서 다시 띄움)
+    const dmg = Math.max(1, scaleDmg(m.dmg, d.combo) >> 1);
+    d.hp -= dmg;
+    d.combo++;
+    a.meter = Math.min(METER_MAX, a.meter + (m.meter >> 1));
+    s.stop = Math.max(s.stop, m.hitstop - 2);
+    s.ev.push({ k: "hit", p: ai, x: d.x - dir * 8 * SUB, h: d.h + 14 * SUB, v: dmg, m: mid });
+    if (d.hp <= 0) d.hp = 0;
+    return;
+  }
   if (mid !== "T" && canBlock(s, d, srcX)) {
     // 저스트 가드: 가드를 올린 지 JUST_T 프레임 안에 막으면 경직 반, 깎임 없음, 게이지 보너스
     const wasBlocking = d.st === "block";
@@ -1249,8 +1300,16 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
         // 띄워진 상대 공중 콤보(저글): 멀리 안 날아가고 다시 살짝 떠올라 다음 타를 넣을 수 있음
         // 때린 쪽이 아직 떠오르는 중이면 그 속도에 맞춰 같이 떠오름 (위로 지나쳐 버리지 않게)
         // 이후엔 때린 쪽과 같은 중력(float=2)으로 같이 움직여서 다음 타가 닿음
-        d.vh = airborneS(s, a) ? Math.max(a.vh, JUGGLE_VH - 400) : JUGGLE_VH;
-        d.float = 2;
+        if (airborneS(s, a)) {
+          // 공중에서 맞힘: 둘 다 살짝 떠올랐다가 같은 느린 중력으로 같이 내려옴 → 다음 타가 계속 닿음
+          d.vh = JUGGLE_POP;
+          d.float = 1;
+          a.vh = JUGGLE_POP;
+          a.juggle = JUGGLE_HANG;
+        } else {
+          d.vh = JUGGLE_VH;
+          d.float = 2;
+        }
         d.vx = Math.trunc((dir * m.push * JUGGLE_PUSH) / 100);
         d.stun = Math.max(d.stun, JUGGLE_STUN);
       }

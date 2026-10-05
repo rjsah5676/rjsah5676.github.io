@@ -11,6 +11,7 @@ import { MAPS } from "@/lib/fight/maps";
 import { AI_LEVELS } from "@/lib/fight/ai";
 import { loadSheet } from "@/lib/fight/sprites";
 import { sfxUi } from "@/lib/fight/sfx";
+import { KeyCap, keyText } from "./KeyCap";
 
 export type Mode = "ai" | "2p" | "online";
 export interface Setup {
@@ -54,14 +55,14 @@ function SkillRow({ c, k }: { c: CharDef; k: "S" | "X" }) {
         <span
           className={`rounded-[0.3cqw] px-[0.5cqw] text-[1.05cqw] font-bold text-black ${isId ? "bg-[#FDE047]/90" : "bg-[#22D3EE]/90"}`}
         >
-          {isId ? "아이덴티티 L" : "필살기 I"} · {isId ? c.idName : c.ultName}
+          {isId ? "아이덴티티" : "필살기"} <KeyCap k={isId ? "L" : "I"} /> {isId ? c.idName : c.ultName}
         </span>
-        <span className="text-[1.05cqw] leading-snug break-keep text-white/80">{isId ? c.idDesc : c.ultDesc}</span>
+        <span className="text-[1.05cqw] leading-snug break-keep text-white/80">{keyText(isId ? c.idDesc : c.ultDesc)}</span>
         {isId && (
           <span className={`flex items-start gap-[0.4cqw]`}>
             {c.airLabel && <SkillIcon key={`${c.id}-A`} c={c} k="A" small />}
             <span className="text-[0.95cqw] leading-snug break-keep text-white/55">
-              <b className="text-[#FDE047]/80">{c.airLabel ?? "점프 중 L"}</b> {c.airDesc}
+              <b className="text-[#FDE047]/80">{keyText(c.airLabel ?? "점프 중 L")}</b> {keyText(c.airDesc)}
             </span>
           </span>
         )}
@@ -599,9 +600,9 @@ export default function Select({
             <div className={`${KR} text-center text-[1.1cqw] text-white/45`}>
               {ai
                 ? side === 0
-                  ? "내 캐릭터 고르기 — A·D(←→) 이동, J(Enter)·한 번 더 클릭 결정, Esc 뒤로"
+                  ? keyText("내 캐릭터 고르기 — A·D(←→) 이동, J(Enter)·한 번 더 클릭 결정, Esc 뒤로")
                   : "상대(CPU) 캐릭터 고르기 — Esc(.) 내 캐릭터 다시"
-                : "1P A·D + J 결정 · 2P ←→ + Enter 결정 (Esc / . 취소)"}
+                : keyText("1P A·D + J 결정 · 2P ←→ + Enter 결정 (Esc / . 취소)")}
             </div>
           </div>
         </>

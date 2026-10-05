@@ -9,6 +9,7 @@ import { CHARS, type CharDef } from "@/lib/fight/chars";
 import { MAPS } from "@/lib/fight/maps";
 import { loadSheet } from "@/lib/fight/sprites";
 import { sfxUi } from "@/lib/fight/sfx";
+import { keyText } from "./KeyCap";
 import { useChessUser } from "@/components/Chess/useChessUser";
 import {
   cleanupEmptyRoom,
@@ -629,7 +630,7 @@ function Room({
               );
             })}
           </div>
-          <div className={`${KR} text-[1cqw] text-white/40`}>A·D(←→) 고르기 · J(Enter) 준비 · Esc 나가기 · 둘 다 준비하면 시작</div>
+          <div className={`${KR} text-[1cqw] text-white/40`}>{keyText("A·D(←→) 고르기 · J(Enter) 준비 · Esc 나가기 · 둘 다 준비하면 시작")}</div>
         </div>
         <button type="button" disabled={!foe && !me.ready} onClick={() => (sfxUi(me.ready ? "back" : "ready"), s.setReady(!me.ready))} className={`${bigBtn} mb-[1.6cqw] min-w-[12cqw]`}>
           {me.ready ? "준비 취소" : foe ? "준비" : "상대 대기"}

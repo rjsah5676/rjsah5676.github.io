@@ -3,15 +3,12 @@
  * 경기 중엔 지금 싸우는 두 캐릭터의 기술도 보여 줌.
  */
 import { CHARS } from "@/lib/fight/chars";
+import { KeyCap, keyText } from "./KeyCap";
 
 const KR = "font-['Nanum_Gothic',sans-serif]";
 
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="inline-flex min-w-[1.6em] items-center justify-center rounded border border-white/20 border-b-white/35 bg-white/[0.07] px-1 py-px font-mono text-[10.5px] leading-tight text-white/85">
-      {children}
-    </kbd>
-  );
+function Kbd({ children }: { children: string }) {
+  return <KeyCap k={children} style={{ fontSize: "10.5px" }} />;
 }
 
 type Row = [string, React.ReactNode, React.ReactNode?];
@@ -22,12 +19,14 @@ const k = (...ks: string[]) => (
 );
 
 const TECH: [string, string][] = [
-  ["연속기", "약은 4단, 발차기는 2단까지 이어져요. 마지막 동작은 세지만 빈틈이 커서 막히면 반격당해요"],
-  ["캔슬", "맞히는 중에 아이덴티티(L)·필살기(I)를 누르면 바로 이어 나가요"],
-  ["잡기", "약+발차기 동시 — 가드를 뚫고 위로 띄워요. 잡힌 직후 약+발차기로 풀 수 있어요"],
-  ["가드 반격", "막는 중이나 막은 직후 발차기 — 게이지 25를 쓰고 상대를 띄워요"],
+  ["연속기", "약 J는 4단, 발차기 K는 2단까지 이어져요. 마지막 동작은 세지만 빈틈이 커서 막히면 반격당해요"],
+  ["캔슬", "맞히는 중에 아이덴티티 L · 필살기 I 를 누르면 바로 이어 나가요"],
+  ["점프 우선", "J · K 공격 중에도 점프를 누르면 바로 뛰어요 (L · I 는 끝나자마자 뜀)"],
+  ["잡기", "J + K 동시 — 가드를 뚫고 위로 띄워요. 잡힌 직후 J + K 로 풀 수 있어요"],
+  ["다운 공격", "누워 있는 상대도 맞아요 (못 막음, 피해 절반). J + K 로 잡으면 다시 띄워요"],
+  ["가드 반격", "막는 중이나 막은 직후 K — 게이지 25를 쓰고 상대를 띄워요"],
   ["저스트 가드", "맞기 직전에 가드 — 경직 절반, 깎임 없음, 게이지 +"],
-  ["띄우기 콤보", "띄운 뒤 바로 점프(미리 눌러도 됨) → 공중 약·발차기 → 2단 점프로 한 번 더"],
+  ["띄우기 콤보", "띄운 뒤 바로 점프(미리 눌러도 됨) → 공중 J · K (맞히면 나도 같이 천천히 내려옴) → 2단 점프로 한 번 더"],
   ["카운터", "상대가 기술을 내는 중이거나 대시 중에 맞히면 1.25배, 경직도 길어요"],
 ];
 
@@ -96,13 +95,13 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
                     </b>
                   </div>
                   <p>
-                    <b className="text-[#FDE047]/85">L {c.idName}</b> {c.idDesc}
+                    <KeyCap k="L" /> <b className="text-[#FDE047]/85">{c.idName}</b> {keyText(c.idDesc)}
                   </p>
                   <p>
-                    <b className="text-[#FDE047]/60">{c.airLabel ?? "점프 중 L"}</b> {c.airDesc}
+                    <b className="text-[#FDE047]/60">{keyText(c.airLabel ?? "점프 중 L")}</b> {keyText(c.airDesc)}
                   </p>
                   <p>
-                    <b className="text-[#22D3EE]/85">I {c.ultName}</b> {c.ultDesc}
+                    <KeyCap k="I" /> <b className="text-[#22D3EE]/85">{c.ultName}</b> {keyText(c.ultDesc)}
                   </p>
                 </div>
               );
@@ -113,7 +112,7 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
           {TECH.map(([t, d]) => (
             <div key={t} className="flex gap-2">
               <dt className="w-[4.6rem] shrink-0 font-bold text-white/75">{t}</dt>
-              <dd className="min-w-0 break-keep">{d}</dd>
+              <dd className="min-w-0 break-keep">{keyText(d)}</dd>
             </div>
           ))}
         </dl>

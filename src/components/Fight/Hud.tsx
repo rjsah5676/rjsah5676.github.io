@@ -6,6 +6,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { CHARS } from "@/lib/fight/chars";
 import { METER_MAX, ROUND_SEC, WINS_NEEDED } from "@/lib/fight/sim";
+import { KeyCap } from "./KeyCap";
 
 export const HUD_FONT = "'Black Han Sans', 'Nanum Gothic', sans-serif";
 const MONO = "'JetBrains Mono', monospace";
@@ -351,22 +352,6 @@ export function PlayerBottom({
   const ready = cdLeft < 0.05;
   const mir: CSSProperties = right ? { transform: "scaleX(-1)" } : {};
   const clip = "polygon(0 0, 100% 0, calc(100% - 1cqw) 100%, 0 100%)";
-  const key = (k: string, on: boolean) => (
-    <span
-      style={{
-        fontFamily: MONO,
-        fontWeight: 800,
-        fontSize: "0.95cqw",
-        lineHeight: 1,
-        padding: "0.2cqw 0.4cqw",
-        borderRadius: "0.25cqw",
-        background: on ? "#FFE27A" : "rgba(255,255,255,0.18)",
-        color: on ? INK : "rgba(255,255,255,0.75)",
-      }}
-    >
-      {k}
-    </span>
-  );
   return (
     <div
       style={{
@@ -376,51 +361,75 @@ export function PlayerBottom({
         flexDirection: right ? "row-reverse" : "row",
       }}
     >
-      {/* 아이덴티티 대기: 둥근 시계 */}
+      {/* 아이덴티티(L): 기술 아이콘 — 대기 중엔 어둡게 + 남은 만큼 가림 + 남은 초 */}
       <div
-        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.3cqw" }}
+        style={{
+          position: "relative",
+          width: "4.4cqw",
+          height: "4.4cqw",
+          borderRadius: "0.7cqw",
+          padding: "0.22cqw",
+          background: ready ? GOLD : "linear-gradient(180deg, #6B5A80, #2B1E3A)",
+          boxShadow: ready ? `0 0 1.2cqw ${c.color}` : "0 0.25cqw 0 rgba(0,0,0,0.5)",
+        }}
+        title={`아이덴티티 · ${c.idName}`}
       >
         <div
           style={{
-            width: "3.6cqw",
-            height: "3.6cqw",
-            borderRadius: "50%",
-            padding: "0.22cqw",
-            background: ready ? GOLD : "linear-gradient(180deg, #6B5A80, #2B1E3A)",
-            boxShadow: ready ? `0 0 1.2cqw ${c.color}` : "0 0.25cqw 0 rgba(0,0,0,0.5)",
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            borderRadius: "0.5cqw",
+            overflow: "hidden",
+            background: `radial-gradient(circle at 40% 35%, ${c.color}, #1A0B2A 80%)`,
           }}
-          title={`아이덴티티 · ${c.idName}`}
         >
-          <div
+          <img
+            src={`/fight/icon/${c.id}-S.webp`}
+            alt={c.idName}
             style={{
               width: "100%",
               height: "100%",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: ready
-                ? `radial-gradient(circle at 40% 35%, ${c.color}, #1A0B2A 80%)`
-                : `conic-gradient(rgba(255,255,255,0.32) ${(1 - cd) * 360}deg, rgba(18,8,31,0.9) 0)`,
+              objectFit: "cover",
+              filter: ready ? "none" : "grayscale(0.7) brightness(0.6)",
             }}
-          >
-            {ready ? (
-              key("L", true)
-            ) : (
+          />
+          {!ready && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `conic-gradient(transparent ${(1 - cd) * 360}deg, rgba(12,6,22,0.7) 0)`,
+              }}
+            >
               <span
                 style={{
                   fontFamily: MONO,
                   fontWeight: 800,
-                  fontSize: "1.1cqw",
+                  fontSize: "1.2cqw",
                   color: "#fff",
-                  textShadow: `0 0.1cqw 0 ${INK}`,
+                  textShadow: `0 0.12cqw 0 ${INK}, 0 0 0.4cqw ${INK}`,
                 }}
               >
                 {cdLeft.toFixed(1)}
               </span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
+        <KeyCap
+          k="L"
+          style={{
+            position: "absolute",
+            bottom: "-0.5cqw",
+            [right ? "left" : "right"]: "-0.6cqw",
+            fontSize: "0.9cqw",
+            margin: 0,
+            opacity: ready ? 1 : 0.6,
+          }}
+        />
       </div>
       {/* 필살기 게이지 */}
       <div
@@ -467,7 +476,7 @@ export function PlayerBottom({
                 animation: "hud-pulse 0.9s ease-in-out infinite",
               }}
             >
-              {c.ultName} {key("I", true)}
+              {c.ultName} <KeyCap k="I" style={{ fontSize: "1cqw" }} />
             </span>
           ) : (
             <span
