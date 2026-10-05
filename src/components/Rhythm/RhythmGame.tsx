@@ -31,6 +31,8 @@ import SettingsModal, { LANE_MODS, type LaneMod, type Settings } from "./Setting
 import ResultScreen from "./ResultScreen";
 
 const SETTINGS_KEY = "rhythm_settings";
+/** 저장 설정 버전 — 2: 노트 모양 기본값을 메탈로 바꾼 뒤 (그 전에 저장된 설정은 한 번 메탈로) */
+const SETTINGS_VER = 2;
 const BEST_KEY = "rhythm_best";
 
 /** 레인 옵션 적용: 미러는 3-lane, 랜덤은 판마다 다른 순열 (동시치기는 그대로 동시치기) */
@@ -366,7 +368,10 @@ export default function RhythmGame() {
           music: typeof s.music === "number" ? clamp(s.music, 0, 1) : 1,
           sfx: typeof s.sfx === "number" ? clamp(s.sfx, 0, 1) : 0.7,
           hitSound: HIT_SOUNDS.some((h) => h.key === s.hitSound) ? s.hitSound : "thump",
-          skin: SKINS.some((k) => k.key === s.skin) ? s.skin : "metal",
+          skin:
+            (Number(s.v) || 1) >= SETTINGS_VER && SKINS.some((k) => k.key === s.skin)
+              ? s.skin
+              : "metal",
           noteSize: NOTE_SIZES.some((k) => k.key === s.noteSize) ? s.noteSize : "normal",
           lanes: LANE_MODS.some((k) => k.key === s.lanes) ? s.lanes : "none",
           cover: COVERS_OPT.some((k) => k.key === s.cover) ? s.cover : "none",
@@ -388,7 +393,7 @@ export default function RhythmGame() {
     try {
       localStorage.setItem(
         SETTINGS_KEY,
-        JSON.stringify({ ...settings, songId: builtinSong.id, diff })
+        JSON.stringify({ ...settings, songId: builtinSong.id, diff, v: SETTINGS_VER })
       );
     } catch {}
   }, [hydrated, settings, builtinSong.id, diff]);
