@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Song } from "@/lib/rhythm/music";
 import { DIFFICULTIES, type Chart, type Difficulty } from "@/lib/rhythm/chart";
 import { audio, sfx } from "@/lib/rhythm/sfx";
-import { COVERS } from "./SongCarousel";
+import { COVERS, coverOf, CUSTOM_COVER } from "./SongCarousel";
 import CustomMusic, { type CustomTrack } from "./CustomMusic";
 import { RankingBoard } from "./RankingBoard";
 import { RankEmblem } from "./Stage";
@@ -64,7 +64,6 @@ export default function SongSelect({
   fs: boolean;
   onToggleFs: () => void;
 }) {
-  const n = songs.length + 1;
   const custom = sel === songs.length;
   const color = custom ? CUSTOM_COLOR : (song?.color ?? CUSTOM_COLOR);
   const chartOf = (d: Difficulty): Chart | null =>
@@ -74,8 +73,33 @@ export default function SongSelect({
   const diffInfo = DIFFICULTIES.find((d) => d.key === diff)!;
   const curChart = chartOf(diff);
 
+  // 곡 검색: 글자가 바뀔 때마다(0.25초 디바운스) 목록 자체를 걸러 냄
+  const [q, setQ] = useState("");
+  const [dq, setDq] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => setDq(q), 250);
+    return () => clearTimeout(id);
+  }, [q]);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const visible = useMemo(() => {
+    const norm = (x: string) => x.toLowerCase().replace(/\s+/g, "");
+    const k = norm(dq);
+    const all = [
+      ...songs.map((s, i) => ({ i, text: `${s.title} ${s.desc}` })),
+      { i: songs.length, text: "내 음악 my music mp3 custom" },
+    ];
+    return all.filter((x) => !k || norm(x.text).includes(k)).map((x) => x.i);
+  }, [dq, songs]);
+  // 걸러진 목록에 지금 곡이 없으면 첫 곡으로
+  useEffect(() => {
+    if (visible.length && !visible.includes(sel)) onSel(visible[0]);
+  }, [visible, sel, onSel]);
+
   const move = (dir: number) => {
-    onSel((sel + dir + n) % n);
+    if (!visible.length) return;
+    const k = visible.indexOf(sel);
+    const j = k < 0 ? 0 : (k + dir + visible.length) % visible.length;
+    onSel(visible[j]);
     sfx("ui-move", 0.6);
   };
   const moveDiff = (dir: number) => {
@@ -129,23 +153,7 @@ export default function SongSelect({
     });
   }, [sel]);
 
-  // 곡 검색: 제목·설명에 들어간 말로 찾아서 바로 이동
-  const [q, setQ] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
-  const norm = (x: string) => x.toLowerCase().replace(/\s+/g, "");
-  const matches = q.trim()
-    ? songs
-        .map((s, i) => ({ s, i }))
-        .filter(({ s }) => norm(`${s.title} ${s.desc}`).includes(norm(q)))
-    : [];
-  const pickMatch = (i: number) => {
-    onSel(i);
-    sfx("ui-select", 0.7);
-    setQ("");
-    searchRef.current?.blur();
-  };
-
-  const cover = !custom && song ? COVERS[song.id]?.src : undefined;
+  const cover = custom ? (song?.cover ?? CUSTOM_COVER) : song ? coverOf(song) : undefined;
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#06041a]">
@@ -175,62 +183,6 @@ export default function SongSelect({
         <div className="flex items-baseline gap-[1.2cqw]">
           <span className={`${DISP} text-[2.2cqw] tracking-[0.06em] text-white`}>SELECT MUSIC</span>
           <span className={`${KR} text-[1.1cqw] text-white/45`}>곡 선택</span>
-        </div>
-        <div className="relative z-20 w-[26cqw]">
-          <input
-            ref={searchRef}
-            type="text"
-            inputMode="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && matches[0]) pickMatch(matches[0].i);
-              if (e.key === "Escape") {
-                e.stopPropagation();
-                setQ("");
-                searchRef.current?.blur();
-              }
-            }}
-            placeholder="🔍 곡 검색 (F)"
-            aria-label="곡 검색"
-            className="w-full rounded-full border border-white/15 bg-black/40 px-[1.2cqw] py-[0.45cqw] font-['Nanum_Gothic',sans-serif] text-[1.15cqw] text-white placeholder:text-white/35 focus:border-[#A78BFA] focus:outline-none"
-          />
-          {q.trim() && (
-            <ul className="bd-scroll absolute top-full right-0 left-0 mt-[0.5cqw] max-h-[24cqw] overflow-y-auto rounded-[0.8cqw] border border-white/15 bg-[#120f26]/95 py-[0.4cqw] shadow-2xl backdrop-blur">
-              {matches.length === 0 ? (
-                <li className={`${KR} px-[1.2cqw] py-[0.6cqw] text-[1.1cqw] text-white/40`}>
-                  검색 결과가 없어요
-                </li>
-              ) : (
-                matches.map(({ s, i }) => (
-                  <li key={s.id}>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => pickMatch(i)}
-                      className="flex w-full cursor-pointer items-center gap-[0.8cqw] px-[1cqw] py-[0.45cqw] text-left hover:bg-white/10"
-                    >
-                      <img
-                        src={COVERS[s.id]?.src}
-                        alt=""
-                        className="h-[2.6cqw] w-[2.6cqw] shrink-0 rounded-[0.3cqw] object-cover"
-                      />
-                      <span className="min-w-0">
-                        <span
-                          className={`${KR} block truncate text-[1.15cqw] font-bold text-white`}
-                        >
-                          {s.title}
-                        </span>
-                        <span className="block truncate font-mono text-[0.85cqw] text-white/40">
-                          {s.desc}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-          )}
         </div>
         <div className="flex items-center gap-[0.6cqw]">
           <TopBtn onClick={onSettings}>
@@ -390,11 +342,37 @@ export default function SongSelect({
         {/* 랭킹: 내 기록 바로 아래 */}
         <div className="flex min-h-0 flex-1 flex-col rounded-[0.9cqw] border border-white/10 bg-black/45 px-[1.4cqw] py-[0.8cqw]">
           <div className="flex items-baseline justify-between gap-[1cqw]">
-            <span className={`${DISP} text-[1.3cqw] tracking-[0.12em] text-white`}>RANKING</span>
-            <span className="font-mono text-[0.9cqw] text-white/40">
-              {custom ? "내 음악은 랭킹 없음" : `${diffInfo.label} TOP 10`}
+            <span className={`${DISP} text-[1.3cqw] tracking-[0.12em] text-white`}>
+              {custom ? "HOW IT WORKS" : "RANKING"}
+            </span>
+            <span className={`${KR} text-[0.95cqw] text-white/45`}>
+              {custom ? "랭킹 없음 · 기록은 이 브라우저에만" : `${diffInfo.label} TOP 10`}
             </span>
           </div>
+          {custom && (
+            <ul
+              className={`${KR} mt-[0.8cqw] flex flex-col gap-[0.5cqw] text-[1.15cqw] leading-snug text-white/75`}
+            >
+              {[
+                "드럼·박자를 분석해서 쉬움~나이트메어 5단계 채보를 바로 만들어요",
+                "파일은 서버로 올라가지 않고 이 브라우저 안에서만 쓰여요",
+                "파일에 앨범 사진이 있으면 재킷으로 보여 줘요",
+              ].map((t, i) => (
+                <li
+                  key={t}
+                  className="flex items-center gap-[0.8cqw] rounded-[0.5cqw] border border-white/[0.07] bg-white/[0.04] py-[0.4cqw] pr-[0.9cqw] pl-[0.4cqw]"
+                >
+                  <span
+                    className={`${DISP} flex h-[2cqw] w-[2.6cqw] shrink-0 -skew-x-12 items-center justify-center rounded-[0.35cqw] text-[1.05cqw] text-[#0b1020]`}
+                    style={{ background: CUSTOM_COLOR }}
+                  >
+                    <span className="skew-x-12">{String(i + 1).padStart(2, "0")}</span>
+                  </span>
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           {!custom && song && (
             <div className="bd-scroll mt-[0.4cqw] min-h-0 flex-1 overflow-y-auto">
               <RankingBoard songId={song.id} diff={diff} label="" game />
@@ -403,12 +381,77 @@ export default function SongSelect({
         </div>
       </div>
 
-      {/* 오른쪽: 곡 목록 */}
+      {/* 오른쪽: 곡 검색 + 곡 목록 */}
+      <label className="absolute top-[6.5cqw] right-[2.4cqw] z-10 flex w-[42.6cqw] cursor-text items-center gap-[0.9cqw] rounded-[0.7cqw] border border-white/10 bg-black/55 py-[0.45cqw] pr-[1cqw] pl-[0.6cqw] transition-colors focus-within:border-[#A78BFA]/70 focus-within:bg-black/70">
+        <span className="flex h-[2.6cqw] w-[2.6cqw] shrink-0 items-center justify-center rounded-[0.45cqw] bg-white/10">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-[1.4cqw] w-[1.4cqw]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.6}
+            strokeLinecap="round"
+          >
+            <circle cx="10.5" cy="10.5" r="6.5" className="text-white/70" stroke="currentColor" />
+            <path d="M15.5 15.5L21 21" className="text-white/70" stroke="currentColor" />
+          </svg>
+        </span>
+        <input
+          ref={searchRef}
+          type="text"
+          inputMode="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              move(e.key === "ArrowUp" ? -1 : 1);
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              setDq(q);
+              searchRef.current?.blur();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              e.stopPropagation();
+              setQ("");
+              setDq("");
+              searchRef.current?.blur();
+            }
+          }}
+          placeholder="곡 이름으로 찾기"
+          aria-label="곡 검색"
+          className={`${KR} min-w-0 flex-1 bg-transparent text-[1.25cqw] font-bold text-white placeholder:font-normal placeholder:text-white/35 focus:outline-none`}
+        />
+        {q ? (
+          <button
+            type="button"
+            aria-label="검색 지우기"
+            onClick={() => {
+              setQ("");
+              setDq("");
+            }}
+            className="shrink-0 cursor-pointer rounded-full px-[0.4cqw] font-mono text-[1.1cqw] text-white/50 hover:text-white"
+          >
+            ✕
+          </button>
+        ) : (
+          <K>F</K>
+        )}
+        <span className="shrink-0 font-mono text-[0.95cqw] text-white/40">
+          {visible.filter((i) => i < songs.length).length}곡
+        </span>
+      </label>
       <div
         ref={listRef}
-        className="absolute top-[5.4cqw] right-0 bottom-[5cqw] w-[48cqw] overflow-y-auto py-[12cqw] pr-[2.4cqw] pl-[3cqw] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="absolute top-[10.4cqw] right-0 bottom-[5cqw] w-[48cqw] overflow-y-auto py-[9cqw] pr-[2.4cqw] pl-[3cqw] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
+        {visible.length === 0 && (
+          <p className={`${KR} pt-[2cqw] text-center text-[1.3cqw] text-white/45`}>
+            검색 결과가 없어요
+          </p>
+        )}
         {[...songs, null].map((s, i) => {
+          if (!visible.includes(i)) return null;
           const on = i === sel;
           const c = s ? s.color : CUSTOM_COLOR;
           const lv = s ? charts[s.id][diff]?.level : customCharts?.[diff]?.level;
@@ -447,13 +490,11 @@ export default function SongSelect({
               <div
                 className={`shrink-0 overflow-hidden rounded-[0.5cqw] border border-white/20 bg-[#0e3a4a] ${on ? "h-[5cqw] w-[5cqw]" : "h-[3.6cqw] w-[3.6cqw]"}`}
               >
-                {s ? (
-                  <img src={COVERS[s.id]?.src} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[1.8cqw]">
-                    🎵
-                  </div>
-                )}
+                <img
+                  src={s ? COVERS[s.id]?.src : (track?.cover ?? CUSTOM_COVER)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <div
@@ -535,14 +576,11 @@ export default function SongSelect({
               )}
             </div>
             <div className="[animation:bd-slide-left_500ms_150ms_ease-out_backwards]">
-              <div
-                className="font-mono text-[1.3cqw] tracking-[0.3em]"
-                style={{ color: diffInfo.color }}
-              >
+              <div className={`${KR} text-[1.4cqw] font-bold`} style={{ color: diffInfo.color }}>
                 {diffInfo.label} · Lv.{curChart?.level ?? "-"}
               </div>
               <div
-                className={`${KR} mt-[0.4cqw] max-w-[44cqw] text-[3.6cqw] leading-tight font-extrabold text-white`}
+                className={`${KR} mt-[0.4cqw] line-clamp-2 max-w-[44cqw] text-[3cqw] leading-tight font-extrabold break-all text-white`}
               >
                 {song.title}
               </div>

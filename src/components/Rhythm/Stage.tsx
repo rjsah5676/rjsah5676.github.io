@@ -6,7 +6,7 @@ import type { Chart, Difficulty } from "@/lib/rhythm/chart";
 import { Engine, HP_MAX, rankOf, type Judge } from "@/lib/rhythm/engine";
 import { AUTO_SYNC, autoSyncStep } from "@/lib/rhythm/autosync";
 import { DIFFICULTIES } from "@/lib/rhythm/chart";
-import { COVERS } from "./SongCarousel";
+import { coverOf } from "./SongCarousel";
 import HoldButton from "./HoldButton";
 import {
   drawHead,
@@ -327,7 +327,7 @@ export default function Stage({
       () => buildStatic()
     );
     const gearImg = loadImg("/rhythm/gear.webp", () => buildGear());
-    const coverImg = loadImg(COVERS[song.id]?.src ?? "", () => buildStatic());
+    const coverImg = loadImg(coverOf(song), () => buildStatic());
     const hitImg = loadImg("/rhythm/hit.webp", () => {});
     const ringImg = loadImg("/rhythm/ring.webp", () => {});
     setCountdownRing(ringImg);
@@ -633,7 +633,7 @@ export default function Stage({
         g.fillRect(0, 0, LW, LH);
       }
       if (beatGlow && pulse > 0.02) {
-        g.globalAlpha = pulse;
+        g.globalAlpha = pulse * 0.3; // 박자 번쩍임은 은은하게 (눈 아프지 않게)
         g.drawImage(beatGlow, 0, 0, LW, LH);
         g.globalAlpha = 1;
       }
@@ -652,13 +652,14 @@ export default function Stage({
       const titleX = infoWide ? tx : ib.x + 20;
       const titleW = infoWide ? tw : ib.w - 40;
       const titleY = infoWide ? ib.y + 44 : ib.y + 20 + coverSize + 14;
+      // 제목: 한글·긴 파일 이름도 자연스럽게 — 나눔고딕, 넘치면 말줄임 (글자를 눌러 찌그러뜨리지 않음)
       g.fillStyle = "#fff";
-      g.font = `900 ${infoWide ? 30 : 24}px ${disp}`;
-      g.fillText(song.title, titleX, titleY, titleW);
+      g.font = `800 ${infoWide ? 28 : 22}px ${KR_FONT}`;
+      g.fillText(ellipsis(g, song.title, titleW), titleX, titleY);
       const y0 = infoWide ? ib.y + 86 : ib.y + 46;
       g.fillStyle = diffInfo.color;
-      g.font = `900 15px ${mono}`;
-      g.fillText(diffInfo.label.toUpperCase(), tx, y0, tw);
+      g.font = `800 15px ${KR_FONT}`;
+      g.fillText(diffInfo.label, tx, y0, tw);
       g.fillStyle = "#fff";
       g.font = `900 22px ${disp}`;
       g.fillText(`Lv.${chart.level}`, tx, y0 + 20, tw);
@@ -847,7 +848,7 @@ export default function Stage({
       // 판정선: 틀의 네온 줄 위에 박자마다 번쩍
       g.save();
       g.globalCompositeOperation = "lighter";
-      g.globalAlpha = 0.25 + 0.6 * pulse;
+      g.globalAlpha = 0.25 + 0.3 * pulse;
       const jl = g.createLinearGradient(0, judgeY - 10, 0, judgeY + 10);
       jl.addColorStop(0, "rgba(255,255,255,0)");
       jl.addColorStop(0.5, "rgba(255,255,255,0.9)");
@@ -989,7 +990,7 @@ export default function Stage({
         const im = judgeImg[lastJudge.judge];
         g.save();
         // 노트를 가리지 않게 살짝 비침
-        g.globalAlpha = 0.72 * (age < 0.42 ? 1 : Math.max(0, 1 - (age - 0.42) / 0.18));
+        g.globalAlpha = 0.55 * (age < 0.42 ? 1 : Math.max(0, 1 - (age - 0.42) / 0.18));
         g.translate(W / 2 + shake, yy);
         g.scale(sc, sc);
         if (ready(im)) {
@@ -1087,18 +1088,47 @@ export default function Stage({
         g.globalAlpha = 1;
       }
       drawCountdown(g, cd, t + leadIn, W, H);
-      // R 꾹: 다시 시작 게이지
+      // R 꾹: 다시 시작 — 카운트다운처럼 비스듬한 띠에 게이지가 차오름
       if (rHoldAt !== null) {
         const pr = Math.min(1, (performance.now() - rHoldAt) / R_HOLD_MS);
-        g.fillStyle = "rgba(0,0,0,0.65)";
-        roundRectFill(g, W / 2 - 110, H * 0.47 - 22, 220, 44, 22);
-        g.fillStyle = "#F472B6";
-        roundRectFill(g, W / 2 - 110, H * 0.47 - 22, 220 * pr, 44, 22);
-        g.fillStyle = "#fff";
-        g.font = `900 15px ${mono}`;
+        const bw = W - 24;
+        const bh = 50;
+        const cy = H * 0.47;
+        g.save();
+        g.translate(W / 2, cy);
+        g.transform(1, -0.08, 0, 1, 0, 0);
+        // 바탕
+        g.fillStyle = "rgba(10,6,26,0.85)";
+        g.fillRect(-bw / 2, -bh / 2, bw, bh);
+        // 차오르는 게이지
+        const fill = g.createLinearGradient(-bw / 2, 0, bw / 2, 0);
+        fill.addColorStop(0, "#DB2777");
+        fill.addColorStop(1, "#7C3AED");
+        g.fillStyle = fill;
+        g.shadowColor = "#EC4899";
+        g.shadowBlur = 16;
+        g.fillRect(-bw / 2, -bh / 2, bw * pr, bh);
+        g.shadowBlur = 0;
+        // 위아래 흰 줄
+        g.fillStyle = "rgba(255,255,255,0.8)";
+        g.fillRect(-bw / 2, -bh / 2, bw, 2);
+        g.fillRect(-bw / 2, bh / 2 - 2, bw, 2);
+        // 키캡 R
+        const kx = -bw / 2 + 14;
+        g.fillStyle = "rgba(255,255,255,0.95)";
+        roundRectFill(g, kx, -15, 30, 30, 6);
+        g.fillStyle = "#1a1030";
+        g.font = `italic 900 18px ${disp}`;
         g.textAlign = "center";
         g.textBaseline = "middle";
-        g.fillText("R 꾹 · 다시 시작", W / 2, H * 0.47);
+        g.fillText("R", kx + 15, 1);
+        // 글자
+        g.fillStyle = "#fff";
+        g.font = `italic 900 19px ${disp}`;
+        (g as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "4px";
+        g.fillText("RESTART", 18, 1);
+        (g as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "0px";
+        g.restore();
       }
       g.restore();
     };
@@ -1653,6 +1683,15 @@ export function RankEmblem({ rank, className = "" }: { rank: string; className?:
       className={`object-contain ${className}`}
     />
   );
+}
+
+const KR_FONT = "'Nanum Gothic', 'Malgun Gothic', sans-serif";
+/** 폭을 넘으면 끝을 …로 */
+function ellipsis(g: CanvasRenderingContext2D, text: string, max: number) {
+  if (g.measureText(text).width <= max) return text;
+  let t = text;
+  while (t.length > 1 && g.measureText(`${t}…`).width > max) t = t.slice(0, -1);
+  return `${t}…`;
 }
 
 /** 곡 색이 붉은·분홍 계열인지 (플레이 배경 고르기) */

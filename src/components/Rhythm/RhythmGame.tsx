@@ -22,6 +22,7 @@ import Stage, {
 import { makeAutoCharts } from "@/lib/rhythm/autochart";
 import { displayBpm } from "@/lib/rhythm/analyze";
 import type { CustomTrack } from "./CustomMusic";
+import { CUSTOM_COVER } from "./SongCarousel";
 import TitleScreen from "./TitleScreen";
 import SongSelect from "./SongSelect";
 import SettingsModal, { LANE_MODS, type LaneMod, type Settings } from "./SettingsModal";
@@ -75,6 +76,17 @@ const loadSong = (s: Song) => {
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+/** 내 음악 곡 색 후보 (노트·연출 색) */
+const CUSTOM_COLORS = [
+  "#22D3EE",
+  "#F472B6",
+  "#A78BFA",
+  "#34D399",
+  "#FBBF24",
+  "#FB7185",
+  "#60A5FA",
+  "#F97316",
+];
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type Screen = "title" | "select" | "play" | "result";
@@ -95,11 +107,11 @@ export default function RhythmGame() {
     music: 1,
     sfx: 0.7,
     hitSound: "thump",
-    skin: "bar",
+    skin: "metal",
     noteSize: "normal",
     lanes: "none",
     cover: "none",
-    field: "center",
+    field: "left",
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   // 노트 두께는 그리기 모듈에 바로 반영 (플레이 화면·미리보기 공용)
@@ -211,7 +223,9 @@ export default function RhythmGame() {
       events: [],
       sections: [[0, ""]],
       sound: { lead: "sine", arp: "sine", delaySteps: 0 },
-      color: "#22D3EE",
+      // 채보(노트) 색: 곡마다 랜덤 (같은 파일이면 늘 같은 색)
+      color: CUSTOM_COLORS[parseInt(track.key, 36) % CUSTOM_COLORS.length],
+      cover: track.cover ?? CUSTOM_COVER,
       desc: "내 음악",
       beatOffset: a.beats[0] ?? 0,
       custom: true,
@@ -336,11 +350,11 @@ export default function RhythmGame() {
           music: typeof s.music === "number" ? clamp(s.music, 0, 1) : 1,
           sfx: typeof s.sfx === "number" ? clamp(s.sfx, 0, 1) : 0.7,
           hitSound: HIT_SOUNDS.some((h) => h.key === s.hitSound) ? s.hitSound : "thump",
-          skin: SKINS.some((k) => k.key === s.skin) ? s.skin : "bar",
+          skin: SKINS.some((k) => k.key === s.skin) ? s.skin : "metal",
           noteSize: NOTE_SIZES.some((k) => k.key === s.noteSize) ? s.noteSize : "normal",
           lanes: LANE_MODS.some((k) => k.key === s.lanes) ? s.lanes : "none",
           cover: COVERS_OPT.some((k) => k.key === s.cover) ? s.cover : "none",
-          field: FIELD_POS.some((k) => k.key === s.field) ? s.field : "center",
+          field: FIELD_POS.some((k) => k.key === s.field) ? s.field : "left",
         });
         // 곡은 id로 기억 (새 곡이 맨 앞에 끼어들어도 고르던 곡 그대로)
         const si = SONGS.findIndex((x) => x.id === s.songId);

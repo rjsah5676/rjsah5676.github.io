@@ -9,6 +9,61 @@ export interface CustomTrack {
   name: string;
   buffer: AudioBuffer;
   analysis: Analysis;
+  /** 파일에 들어 있던 앨범 사진 (object URL) */
+  cover?: string;
+}
+
+/** mp3(ID3v2 APIC/PIC)에 든 앨범 사진 꺼내기 — 없거나 못 읽으면 null */
+function findCover(ab: ArrayBuffer): Blob | null {
+  try {
+    const b = new Uint8Array(ab);
+    if (b[0] !== 0x49 || b[1] !== 0x44 || b[2] !== 0x33) return null; // "ID3"
+    const ver = b[3];
+    const syncsafe = (i: number) => (b[i] << 21) | (b[i + 1] << 14) | (b[i + 2] << 7) | b[i + 3];
+    const end = Math.min(b.length, 10 + syncsafe(6));
+    let p = 10;
+    if (b[5] & 0x40)
+      p += ver === 4 ? syncsafe(10) : ((b[10] << 24) | (b[11] << 16) | (b[12] << 8) | b[13]) + 4; // 확장 헤더
+    const str = (i: number, n: number) => String.fromCharCode(...b.subarray(i, i + n));
+    while (p + 10 < end) {
+      const v2 = ver === 2;
+      const id = str(p, v2 ? 3 : 4);
+      if (!/^[A-Z0-9]{3,4}$/.test(id)) break;
+      const size = v2
+        ? (b[p + 3] << 16) | (b[p + 4] << 8) | b[p + 5]
+        : ver === 4
+          ? syncsafe(p + 4)
+          : ((b[p + 4] << 24) | (b[p + 5] << 16) | (b[p + 6] << 8) | b[p + 7]) >>> 0;
+      const body = p + (v2 ? 6 : 10);
+      if (size <= 0 || body + size > b.length) break;
+      if (id === "APIC" || id === "PIC") {
+        const enc = b[body];
+        let i = body + 1;
+        let mime = "image/jpeg";
+        if (id === "PIC") {
+          mime = str(i, 3).toUpperCase() === "PNG" ? "image/png" : "image/jpeg";
+          i += 3;
+        } else {
+          const z = b.indexOf(0, i);
+          mime = str(i, z - i) || mime;
+          if (!mime.includes("/")) mime = `image/${mime.toLowerCase()}`;
+          i = z + 1;
+        }
+        i += 1; // 그림 종류
+        // 설명 글 (UTF-16이면 0x00 0x00으로 끝남)
+        if (enc === 1 || enc === 2) {
+          while (i + 1 < body + size && !(b[i] === 0 && b[i + 1] === 0)) i += 2;
+          i += 2;
+        } else {
+          while (i < body + size && b[i] !== 0) i++;
+          i += 1;
+        }
+        if (i < body + size) return new Blob([b.slice(i, body + size)], { type: mime });
+      }
+      p = body + size;
+    }
+  } catch {}
+  return null;
 }
 
 const MAX_BYTES = 40 * 1024 * 1024;
@@ -44,14 +99,23 @@ export default function CustomMusic({
     setBusy({ ratio: 0, label: "파일 읽는 중" });
     try {
       const ctx = await getCtx();
-      const buffer = await ctx.decodeAudioData(await file.arrayBuffer());
+      const raw = await file.arrayBuffer();
+      const pic = findCover(raw); // 디코딩하면 버퍼가 비워져서 먼저
+      const buffer = await ctx.decodeAudioData(raw);
       if (buffer.duration > MAX_SEC) throw new Error("12분이 넘는 곡은 분석할 수 없어요.");
       if (buffer.duration < 15) throw new Error("15초보다 짧은 파일은 분석할 수 없어요.");
       const analysis = await analyzeAudio(buffer, (ratio, label) => setBusy({ ratio, label }));
       if (analysis.onsets.length < 20)
         throw new Error("박자를 찾지 못했어요. 다른 곡으로 해보세요.");
       const key = hashOf(`${file.name}:${file.size}:${buffer.duration.toFixed(2)}`);
-      onTrack({ key, name: file.name.replace(/\.[^.]+$/, ""), buffer, analysis });
+      if (track?.cover) URL.revokeObjectURL(track.cover);
+      onTrack({
+        key,
+        name: file.name.replace(/\.[^.]+$/, ""),
+        buffer,
+        analysis,
+        cover: pic ? URL.createObjectURL(pic) : undefined,
+      });
     } catch (e) {
       console.error(e);
       setErr(
@@ -114,9 +178,11 @@ export default function CustomMusic({
             </>
           ) : (
             <>
-              <span className="text-[3cqw]">🎵</span>
-              <p className={`${KR} text-[1.25cqw] font-bold break-keep text-white/90`}>
-                음악 파일을 끌어다 놓거나 눌러서 고르세요
+              <span className="text-[2.4cqw]">🎵</span>
+              <p className={`${KR} text-[1.25cqw] leading-snug font-bold break-keep text-white/90`}>
+                음악 파일을 끌어다 놓거나
+                <br />
+                눌러서 고르세요
               </p>
               <p className="font-mono text-[1.05cqw] text-white/40">
                 mp3 · wav · ogg · m4a · 12분 이하
@@ -126,10 +192,6 @@ export default function CustomMusic({
           {input}
         </div>
         {err && <p className="text-center font-mono text-[1.1cqw] text-red-300">{err}</p>}
-        <ul className={`${KR} space-y-[0.2cqw] text-[1.05cqw] leading-relaxed text-white/45`}>
-          <li>• 박자를 분석해 5단계 채보 자동 생성</li>
-          <li>• 파일은 서버로 안 올라가요 · 랭킹 없음</li>
-        </ul>
       </div>
     );
 

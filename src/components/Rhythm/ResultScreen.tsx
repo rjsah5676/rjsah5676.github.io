@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Song } from "@/lib/rhythm/music";
 import { DIFFICULTIES } from "@/lib/rhythm/chart";
 import { sfx, tick } from "@/lib/rhythm/sfx";
-import { COVERS } from "./SongCarousel";
+import { coverOf } from "./SongCarousel";
 import { RankEmblem, type Result } from "./Stage";
 import { SubmitRanking } from "./RankingBoard";
 
@@ -104,7 +104,7 @@ export default function ResultScreen({
     1,
     result.counts.perfect + result.counts.great + result.counts.good + result.counts.miss
   );
-  const cover = COVERS[song.id]?.src;
+  const cover = coverOf(song);
   const rows = [
     ["PERFECT", result.counts.perfect, "#7DF9FF"],
     ["GREAT", result.counts.great, "#4ADE80"],
@@ -143,7 +143,7 @@ export default function ResultScreen({
             <div className={`${KR} truncate text-[1.6cqw] font-extrabold text-white`}>
               {song.title}
             </div>
-            <div className="font-mono text-[1.1cqw] font-bold" style={{ color: d.color }}>
+            <div className={`${KR} text-[1.15cqw] font-bold`} style={{ color: d.color }}>
               {d.label}
             </div>
           </div>
