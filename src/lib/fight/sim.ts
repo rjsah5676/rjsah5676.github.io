@@ -103,6 +103,11 @@ const CHAIN_STEP = 520;
 const FINISH_REC: Partial<Record<MoveId, number>> = { L: 14, H: 16 };
 /** 대시 길이 (프레임) */
 const DASH_T = 13;
+/** 같은 공중 공격을 연달아 쓸 수 있는 수: 약 4번, 발차기 2번 (다른 공격을 섞으면 다시 채워짐) */
+const AIR_J_MAX = 4;
+const AIR_K_MAX = 2;
+/** 공중 발차기로 띄운 상대를 맞히면 때린 쪽은 이만큼(%)만 따라감 → 상대가 살짝 더 밀려나 이어 치기 어려움 */
+const AIR_K_FOLLOW = 75;
 /** 공중 공격을 맞힌 뒤 다음 공중 공격으로 이어 치는 창 (판정 시작 +1 ~ 판정 끝 + 이만큼) — 짧아서 박자 맞춰야 함 */
 const AIR_CHAIN_WIN = 3;
 /** 막은 뒤 가드 반격을 받아 주는 여유 프레임 (막는 경직 + 이만큼) */
@@ -595,8 +600,9 @@ function startMove(s: State, i: number, id: MoveId) {
   if (id === "G") f.meter = Math.max(0, f.meter - GUARD_COUNTER_COST);
   if (id === "T" || id === "G") f.vx = 0;
   if (airborneS(s, f)) {
-    if (id === "J") f.airUsed++;
-    else if (id === "K") f.airK++;
+    // 같은 공중 공격은 연달아 약 4번·발차기 2번까지 — 다른 걸 섞으면 다시 채워짐 (4-2-4-2, 1-1-1-1 …)
+    if (id === "J") ((f.airUsed = f.airUsed + 1), (f.airK = 0));
+    else if (id === "K") ((f.airK = f.airK + 1), (f.airUsed = 0));
     f.dashT = 0;
     if (m.lunge) {
       f.vx = f.face * m.lunge;
@@ -686,12 +692,12 @@ function airAttack(s: State, i: number): boolean {
     startMove(s, i, "S");
     return true;
   }
-  if (pressed(f, IN.B, 3)) {
+  if (f.airK < AIR_K_MAX && pressed(f, IN.B, 3)) {
     turn();
     startMove(s, i, "K");
     return true;
   }
-  if (pressed(f, IN.A, 3)) {
+  if (f.airUsed < AIR_J_MAX && pressed(f, IN.A, 3)) {
     turn();
     startMove(s, i, "J");
     return true;
@@ -1369,7 +1375,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
           d.float = 1;
           a.vh = JUGGLE_POP;
           // 가로로도 같이 밀려감 (간격 유지 → 다음 공중 공격이 닿음)
-          a.vx = d.vx;
+          a.vx = mid === "K" ? Math.trunc((d.vx * AIR_K_FOLLOW) / 100) : d.vx;
           a.juggle = JUGGLE_HANG;
         } else {
           d.vh = JUGGLE_VH;

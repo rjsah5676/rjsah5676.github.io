@@ -302,7 +302,7 @@ export class FightAI {
         out |= toward;
         // 공중 연속: 약 위주로 이어 치다 마지막은 발차기 (박자: 판정이 맞은 직후에 누름)
         if (dist < 48 && dy > -25 && dy < 70 && this.r() < 0.35 + L.combo * 0.6)
-          hitBtn(f.airUsed < 3 || f.airK >= 2 ? IN.A : IN.B);
+          hitBtn(f.airK >= 2 || (f.airUsed < 3 && f.airK === 0) ? IN.A : IN.B);
         else if (f.jumps < 2 && f.vh < 0 && dy > 30) press(IN.J);
         return finish();
       }
