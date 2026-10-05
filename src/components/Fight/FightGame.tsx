@@ -5,7 +5,6 @@ import { CHARS } from "@/lib/fight/chars";
 import { MAPS } from "@/lib/fight/maps";
 import { AI_LEVELS, FightAI } from "@/lib/fight/ai";
 import {
-  IN,
   METER_MAX,
   hpRatio,
   newMatch,
@@ -46,6 +45,7 @@ import { Banner, Combo, HUD_CSS, PlayerBottom, PlayerTop, TimerBox, WinQuote, ty
 import Select, { type Setup } from "./Select";
 import { scrollToGameTop } from "@/components/GameHeader";
 import ResultPanel from "./Result";
+import TouchControls, { loadMoveMode, saveMoveMode, type MoveMode } from "./Touch";
 import { fightScore } from "@/lib/aiScore";
 import Online, { type MatchCfg } from "./Online";
 import { OnlineMatch } from "./onlineMatch";
@@ -63,91 +63,6 @@ const btn =
   "cursor-pointer rounded-full border border-white/15 px-3 py-1.5 font-mono text-xs whitespace-nowrap text-white/75 transition-colors hover:border-[#6C63FF]/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
 const primaryBtn =
   "cursor-pointer rounded-full bg-[#6C63FF] px-4 py-1.5 font-mono text-xs whitespace-nowrap text-white transition-colors hover:bg-[#5b52f0] disabled:cursor-not-allowed disabled:opacity-40";
-
-const PAD =
-  "flex select-none items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] font-['Nanum_Gothic',sans-serif] text-white/80 active:bg-[#6C63FF]/40 touch-none";
-
-function PadBtn({
-  bit,
-  onPad,
-  className,
-  children,
-}: {
-  bit: number;
-  onPad: (pointer: number, bit: number) => void;
-  className: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={`${PAD} ${className}`}
-      onPointerDown={(e) => {
-        e.preventDefault();
-        e.currentTarget.setPointerCapture?.(e.pointerId);
-        onPad(e.pointerId, bit);
-      }}
-      onPointerUp={(e) => onPad(e.pointerId, 0)}
-      onPointerCancel={(e) => onPad(e.pointerId, 0)}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      {children}
-    </button>
-  );
-}
-
-/** 화면 버튼 (휴대폰) — 손가락마다 누른 버튼을 기억해서 합침 */
-function TouchPad({ input }: { input: FightInput }) {
-  const held = useRef(new Map<number, number>());
-  const onPad = useCallback(
-    (pointer: number, bit: number) => {
-      if (bit) held.current.set(pointer, bit);
-      else held.current.delete(pointer);
-      let v = 0;
-      held.current.forEach((b) => (v |= b));
-      input.setTouch(v);
-    },
-    [input]
-  );
-  return (
-    <div className="mt-3 flex items-end justify-between gap-4 select-none">
-      <div className="grid grid-cols-3 grid-rows-3 gap-1.5">
-        <span />
-        <PadBtn bit={IN.U} onPad={onPad} className="h-12 w-12 text-lg">
-          ▲
-        </PadBtn>
-        <span />
-        <PadBtn bit={IN.L} onPad={onPad} className="h-12 w-12 text-lg">
-          ◀
-        </PadBtn>
-        <PadBtn bit={IN.D} onPad={onPad} className="h-12 w-12 text-xs">
-          가드
-        </PadBtn>
-        <PadBtn bit={IN.R} onPad={onPad} className="h-12 w-12 text-lg">
-          ▶
-        </PadBtn>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <PadBtn bit={IN.C} onPad={onPad} className="h-14 w-14 text-sm">
-          아이덴티티
-        </PadBtn>
-        <PadBtn bit={IN.X} onPad={onPad} className="h-14 w-14 text-sm text-[#FDE047]">
-          필살기
-        </PadBtn>
-        <span />
-        <PadBtn bit={IN.A} onPad={onPad} className="h-14 w-14 text-sm">
-          약
-        </PadBtn>
-        <PadBtn bit={IN.B} onPad={onPad} className="h-14 w-14 text-sm">
-          발차기
-        </PadBtn>
-        <PadBtn bit={IN.J} onPad={onPad} className="h-14 w-14 text-sm">
-          점프
-        </PadBtn>
-      </div>
-    </div>
-  );
-}
 
 interface Hud {
   ch: [number, number];
@@ -204,6 +119,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const [vol, setVol] = useState({ sfx: 0.8, bgm: 0.7 });
   const volRef = useRef(vol);
   const [coarse, setCoarse] = useState(false);
+  /** 휴대폰 이동 방식: 스틱 / 키 */
+  const [moveMode, setMoveMode] = useState<MoveMode>("stick");
   const [result, setResult] = useState<{
     win: boolean;
     seconds: number;
@@ -236,7 +153,10 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const [initialRoom, setInitialRoom] = useState<string | null>(null);
   // 전체화면: 선택 화면·게임 화면이 같은 바깥 div 안에서 바뀌어서 화면이 넘어가도 전체화면 유지
   const rootRef = useRef<HTMLDivElement>(null);
-  const [fs, setFs] = useState(false);
+  const [fsReal, setFs] = useState(false);
+  /** 진짜 전체화면이 안 되는 브라우저(아이폰 사파리 등): 화면을 꽉 채우는 흉내 전체화면 */
+  const [pseudoFs, setPseudoFs] = useState(false);
+  const fs = fsReal || pseudoFs;
   useEffect(() => {
     const on = () => {
       const now = document.fullscreenElement === rootRef.current && !!rootRef.current;
@@ -253,11 +173,20 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const toggleFs = () => {
     const el = rootRef.current;
     if (!el) return;
+    if (pseudoFs) return setPseudoFs(false);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    else if (typeof el.requestFullscreen === "function") el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+    else if (typeof el.requestFullscreen === "function")
+      el.requestFullscreen({ navigationUI: "hide" })
+        .then(() => {
+          // 휴대폰: 가로로 고정 (되는 브라우저만)
+          const o = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+          o?.lock?.("landscape").catch(() => {});
+        })
+        .catch(() => setPseudoFs(true));
+    else setPseudoFs(true);
   };
   const rootCls = fs
-    ? "flex h-full w-full flex-col items-center justify-center bg-black [&>*:not(.fs-screen)]:hidden [&>.fs-screen]:w-[min(100vw,calc(100vh*16/9))]"
+    ? `${pseudoFs ? "fixed inset-0 z-[100] " : ""}flex h-full w-full flex-col items-center justify-center bg-black [&>*:not(.fs-screen)]:hidden [&>.fs-screen]:w-[min(100vw,calc(100dvh*16/9))]`
     : "mx-auto w-full max-w-[min(960px,calc((100dvh-170px)*16/9))]";
   const fsBtn = (bottom = false) => (
     <button
@@ -287,6 +216,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       setFightVolume(m ? 0 : vv.sfx);
     } catch {}
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
+    setMoveMode(loadMoveMode());
     // 초대 링크 (?room=ID) → 바로 온라인 방으로
     const room = new URLSearchParams(window.location.search).get("room");
     if (room && /^[-\w]{6,40}$/.test(room)) {
@@ -765,8 +695,19 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             {banner && <Banner {...banner} top={result ? "15%" : undefined} />}
           </div>
         )}
+        {coarse && hud && !paused && !result && !netEnd && (
+          <TouchControls
+            input={input}
+            mode={moveMode}
+            onMode={(m) => {
+              setMoveMode(m);
+              saveMoveMode(m);
+            }}
+            onPause={() => setPaused(true)}
+          />
+        )}
         {paused && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/65">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/65">
             <div className="font-mono text-lg text-white">{ol ? "메뉴" : "일시정지"}</div>
             {ol && <div className={`${KR} text-xs text-white/55`}>온라인 대전은 멈추지 않아요 — 메뉴가 열린 동안 내 캐릭터는 가만히 있어요</div>}
             <div className="flex gap-2">
@@ -855,7 +796,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         )}
       </div>
 
-      {coarse && <TouchPad input={input} />}
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => setPaused((p) => !p)} className={btn}>
