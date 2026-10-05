@@ -142,6 +142,8 @@ export interface CharDef {
   tagline: string;
   /** 난이도 (1 쉬움 ~ 3 어려움) — 선택 화면 표시 */
   difficulty: 1 | 2 | 3;
+  /** 캐릭터 선택 화면 육각형 (1~5): 공격력 · 리치 · 기동력 · 제어력(묶기·상태 이상) · 콤보 · 체력 */
+  stats: { atk: number; reach: number; move: number; control: number; combo: number; hp: number };
   /** 피격 박스 */
   hurt: Box;
   /** 밀어내기 폭(px) */
@@ -183,6 +185,7 @@ const RAW: CharSrc[] = [
     winQuote: "그게 다야? 다음엔 좀 더 버텨 봐.",
     tagline: "RELENTLESS FIGHTER",
     difficulty: 2,
+    stats: { atk: 3, reach: 2, move: 5, control: 2, combo: 5, hp: 5 },
     idName: "질풍권",
     idDesc: "바람을 두르고 돌진하며 2연타",
     ultName: "천풍난무",
@@ -302,6 +305,7 @@ const RAW: CharSrc[] = [
     winQuote: "후후, 잘 탔네~ 불장난은 나랑만 하는 거야!",
     tagline: "BLAZING SOUL",
     difficulty: 1,
+    stats: { atk: 4, reach: 4, move: 3, control: 3, combo: 3, hp: 3 },
     idName: "화염구",
     idDesc: "빠르게 날아가는 불꽃 탄. 맞으면 화상 — 한동안 체력이 조금씩 닳음",
     ultName: "업화주",
@@ -418,6 +422,7 @@ const RAW: CharSrc[] = [
     winQuote: "오늘 수업은 여기까지. 복습해 와.",
     tagline: "STRICT BUT KIND",
     difficulty: 3,
+    stats: { atk: 3, reach: 5, move: 2, control: 4, combo: 3, hp: 3 },
     idName: "지도편달",
     idDesc: "아주 긴 채찍으로 낚아채 바로 앞까지 끌어당김 — 맞히면 약 콤보·잡기가 확정으로 이어짐",
     ultName: "보충수업",
@@ -550,6 +555,7 @@ const RAW: CharSrc[] = [
     winQuote: "헤헤~ 내가 이겼다! 우산 빌려줄까?",
     tagline: "KINDERGARTEN GIRL",
     difficulty: 2,
+    stats: { atk: 2, reach: 3, move: 3, control: 5, combo: 3, hp: 2 },
     idName: "비눗방울",
     idDesc: "느리고 오래 가는 큰 비눗방울로 길목을 막음 — 맞으면 갇혀서 둥실 떠오름 (때리면 터짐, 연타로 탈출)",
     ultName: "장마 파도",
@@ -664,6 +670,7 @@ const RAW: CharSrc[] = [
     winQuote: "찌릿했지? 다음엔 피뢰침 챙겨 와~",
     tagline: "THUNDER LANCER",
     difficulty: 2,
+    stats: { atk: 5, reach: 4, move: 3, control: 3, combo: 3, hp: 2 },
     idName: "뇌창",
     idDesc: "번개 창을 아주 빠르게 던짐. 맞으면 감전 — 잠깐 몸이 굳고, 한동안 느려지며 제나의 공격에 더 아프게 맞음",
     ultName: "천뢰강림",
@@ -777,6 +784,7 @@ const RAW: CharSrc[] = [
     winQuote: "빌드 성공. 버그는 너였네.",
     tagline: "FULLSTACK DEBUGGER",
     difficulty: 3,
+    stats: { atk: 2, reach: 3, move: 2, control: 5, combo: 5, hp: 4 },
     idName: "Ctrl+A",
     idDesc: "넓은 파란 선택 박스를 펼쳐, 맞은 상대를 눈앞까지 끌어와 ⏸ 일시정지",
     ultName: "금요일 배포",

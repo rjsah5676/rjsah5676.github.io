@@ -72,9 +72,75 @@ function SkillRow({ c, k }: { c: CharDef; k: "S" | "X" }) {
   );
 }
 
+const STAT_AXES: [keyof CharDef["stats"], string][] = [
+  ["atk", "공격력"],
+  ["reach", "리치"],
+  ["move", "기동력"],
+  ["control", "제어력"],
+  ["combo", "콤보"],
+  ["hp", "체력"],
+];
+
+/** 육각형 능력치 (1~5) — 캐릭터 색으로 채움 */
+function StatRadar({ c }: { c: CharDef }) {
+  const R = 30;
+  const pt = (i: number, v: number) => {
+    const ang = -Math.PI / 2 + (i * Math.PI * 2) / STAT_AXES.length;
+    return [50 + Math.cos(ang) * R * v, 50 + Math.sin(ang) * R * v] as const;
+  };
+  const poly = (f: (i: number) => number) => STAT_AXES.map((_, i) => pt(i, f(i)).join(",")).join(" ");
+  return (
+    <svg viewBox="0 0 100 100" className="h-[9.5cqw] w-[9.5cqw] shrink-0 overflow-visible" aria-label="능력치">
+      {[1, 0.8, 0.6, 0.4, 0.2].map((k) => (
+        <polygon
+          key={k}
+          points={poly(() => k)}
+          fill={k === 1 ? "rgba(0,0,0,0.35)" : "none"}
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth={0.6}
+        />
+      ))}
+      {STAT_AXES.map((_, i) => {
+        const [x, y] = pt(i, 1);
+        return <line key={i} x1={50} y1={50} x2={x} y2={y} stroke="rgba(255,255,255,0.12)" strokeWidth={0.6} />;
+      })}
+      <polygon
+        key={c.id}
+        points={poly((i) => c.stats[STAT_AXES[i][0]] / 5)}
+        fill={c.color}
+        fillOpacity={0.45}
+        stroke={c.color}
+        strokeWidth={1.4}
+        strokeLinejoin="round"
+        style={{ transformOrigin: "50px 50px", animation: "modal-pop 250ms ease-out" }}
+      />
+      {STAT_AXES.map(([k, label], i) => {
+        const [x, y] = pt(i, 1.38);
+        return (
+          <text
+            key={k}
+            x={x}
+            y={y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={9.5}
+            fontWeight={800}
+            fill="rgba(255,255,255,0.75)"
+            style={{ fontFamily: "'Nanum Gothic', sans-serif" }}
+          >
+            {label}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
+
 function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
   return (
     <div className={`flex flex-col gap-[0.5cqw] ${right ? "items-end text-right" : ""}`}>
+      <div className={`flex w-full items-center justify-between gap-[0.6cqw] ${right ? "flex-row-reverse" : ""}`}>
+        <div className={`flex min-w-0 flex-col gap-[0.5cqw] ${right ? "items-end" : ""}`}>
       <div className="font-mono text-[1.1cqw] tracking-[0.25em] text-white/45">{c.tagline}</div>
       <div className={`${KR} flex items-center gap-[0.6cqw] text-[1.3cqw] text-white/60 ${right ? "flex-row-reverse" : ""}`}>
         <span>{c.title}</span>
@@ -88,6 +154,9 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
         style={{ color: c.color }}
       >
         {c.name}
+      </div>
+        </div>
+        <StatRadar c={c} />
       </div>
       <div
         key={c.id}
