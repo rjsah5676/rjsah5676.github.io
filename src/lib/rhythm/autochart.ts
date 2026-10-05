@@ -53,7 +53,8 @@ interface AutoRule {
 //   동시치기 줄 비율               6 · 14 · 26 · 37 · 46%  (3개짜리 0 · 0 · 1 · 4 · 8%)
 //   잭(앞 줄과 같은 레인)          3 · 4 · 8 · 12 · 18%
 //   롱노트 비율·길이               12%·2박 · 11%·0.47초(2박) · 8%·0.33초(1박) · 9%·0.27초 · 7%·0.17초(반박)
-//   (롱노트는 osu 중앙값의 절반쯤으로 — 실제로 쳐보니 중앙값 그대로는 많게 느껴짐. osu도 하위 25%는 3% 안팎)
+//   (롱노트는 osu 중앙값의 절반쯤으로 — 실제로 쳐보니 중앙값 그대로는 많게 느껴짐. osu도 하위 25%는 3% 안팎.
+//    길이는 반 박짜리 짧은 롱노트는 빼고 최소 0.33초·거의 한 박부터)
 const AUTO_RULES: Record<Difficulty, AutoRule> = {
   easy: {
     nps: 3,
@@ -92,7 +93,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     thick: [1.37, 1.1, 1.05],
     jackAllow: 0.4,
     jackRun: 3,
-    ln: { ratio: 0.04, lens: [0.5, 1, 1, 1.5, 2], maxSec: 0.6, onBeat: 0.81 },
+    ln: { ratio: 0.04, lens: [1, 1, 1.5, 2], maxSec: 0.9, onBeat: 0.81 },
   },
   expert: {
     nps: 11.3,
@@ -105,7 +106,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     thick: [1.69, 1.2, 1.06],
     jackAllow: 0.6,
     jackRun: 3,
-    ln: { ratio: 0.04, lens: [0.5, 0.5, 1, 1, 1.5], maxSec: 0.45, onBeat: 0.69 },
+    ln: { ratio: 0.04, lens: [1, 1, 1, 1.5, 2], maxSec: 0.8, onBeat: 0.69 },
   },
   // 나이트메어: 매우 어려움보다 촘촘하게 고른 뒤, 센 마디는 16분으로 꽉 채우고 패턴으로만 레인을 깖 (아래 nightmareNotes)
   nightmare: {
@@ -119,7 +120,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     thick: [1.85, 1.34, 1.12],
     jackAllow: 0.85,
     jackRun: 4,
-    ln: { ratio: 0.03, lens: [0.5, 0.5, 0.5, 1], maxSec: 0.33, onBeat: 0.63 },
+    ln: { ratio: 0.03, lens: [1, 1, 1, 1.5], maxSec: 0.7, onBeat: 0.63 },
   },
 };
 
@@ -425,6 +426,14 @@ export function makeAutoChart(
     picked.sort((a, b) => a.t - b.t);
   }
 
+  // 1.8) 어려움 이상: 리듬 고르게 — 간격이 직전 간격의 같음·2배·반이 아닌 걸로 갑자기 바뀌는 자리
+  //      (osu 4★대 랭크 채보 4%, 손대기 전 우리 10~17%)를 사이에 박을 넣거나 약한 쪽을 빼서 정리
+  if (diff === "hard" || diff === "expert" || diff === "nightmare") {
+    const fixed = regularizeRhythm(picked, R.minGap, (t) => nearestCen(an, t));
+    picked.length = 0;
+    picked.push(...fixed);
+  }
+
   // 2) 레인: 주변 4초 안에서 음색 높이 순위 → 0~3
   //    + 계단: 가까운(8분 이내) 타격 3개 이상이 음색 높이가 한 방향으로 흐르면 레인도 한 칸씩
   const stairs = new Map<number, 1 | -1>();
@@ -479,7 +488,13 @@ export function makeAutoChart(
         thick: R.thick,
       }
     );
-    const nmHeld = addLongNotes(nm, { ...R.ln, beatSec, beatTimes: an.beats, rmsAt, rnd });
+    const nmHeld = addLongNotes(regularizeRows(nm), {
+      ...R.ln,
+      beatSec,
+      beatTimes: an.beats,
+      rmsAt,
+      rnd,
+    });
     for (const n of nmHeld) {
       n.t += shift;
       if (n.end) n.end += shift;
@@ -688,6 +703,80 @@ export function makeAutoChart(
   );
 }
 
+/** 간격 비율이 같음(≈1)·2배·반이면 고른 리듬 */
+const evenRatio = (r: number) =>
+  (r > 0.8 && r < 1.25) || (r > 1.8 && r < 2.2) || (r > 0.45 && r < 0.55);
+/** 빠른 구간(간격 0.4초 미만)에서만 따짐 — 느린 데선 리듬이 바뀌어도 읽을 시간이 있음 */
+const FAST_GAP = 0.4;
+
+/**
+ * 리듬 고르게: 연달아 빠른 두 간격 g1→g2가 고르지 않으면
+ *  ① 긴 쪽을 짧은 쪽 길이로 나눠 사이에 노트를 넣어 보고(남는 간격도 고르면),
+ *  ② 안 되면 가운데 노트(약하면) 또는 뒤 노트를 뺌.
+ * 넣는 노트는 원래 간격의 배수 자리라 격자 위에 떨어짐.
+ */
+function regularizeRhythm(src: Onset[], minGap: number, cenAt: (t: number) => number): Onset[] {
+  const a = [...src].sort((x, y) => x.t - y.t);
+  const okNew = (prev: number | undefined, g: number) =>
+    prev === undefined || prev >= FAST_GAP || g >= FAST_GAP || evenRatio(g / prev);
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    for (let i = 2; i < a.length; i++) {
+      const g1 = a[i - 1].t - a[i - 2].t;
+      const g2 = a[i].t - a[i - 1].t;
+      if (g1 >= FAST_GAP || g2 >= FAST_GAP || evenRatio(g2 / g1)) continue;
+      changed = true;
+      // ① 넣기
+      if (g2 > g1 && g1 >= minGap) {
+        const t = a[i - 1].t + g1;
+        const rest = a[i].t - t;
+        const g3 = a[i + 1] ? a[i + 1].t - a[i].t : undefined;
+        if (rest >= minGap && evenRatio(rest / g1) && okNew(rest, g3 ?? FAST_GAP)) {
+          a.splice(i, 0, { t, s: 0.3, low: 0.3, mid: 0.3, high: 0.3, cen: cenAt(t), grid: 0 });
+          continue;
+        }
+      }
+      if (g1 > g2 && g2 >= minGap) {
+        const t = a[i - 1].t - g2;
+        const rest = t - a[i - 2].t;
+        const g0 = i >= 3 ? a[i - 2].t - a[i - 3].t : undefined;
+        if (rest >= minGap && evenRatio(rest / g2) && okNew(g0, rest)) {
+          a.splice(i - 1, 0, { t, s: 0.3, low: 0.3, mid: 0.3, high: 0.3, cen: cenAt(t), grid: 0 });
+          continue;
+        }
+      }
+      // ② 빼기: 가운데가 뒤보다 약하면 가운데, 아니면 뒤
+      a.splice(a[i - 1].s <= a[i].s ? i - 1 : i, 1);
+      i = Math.max(1, i - 2);
+    }
+    if (!changed) break;
+  }
+  return a;
+}
+
+/** 나이트메어 마무리: 채우기 마디 경계 등에서 생긴 고르지 않은 리듬을 줄 단위로 빼서 정리 (넣지는 않음) */
+function regularizeRows(notes: Note[]): Note[] {
+  const rows = new Map<number, Note[]>();
+  for (const n of notes) rows.set(n.t, [...(rows.get(n.t) ?? []), n]);
+  const ts = [...rows.keys()].sort((x, y) => x - y);
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    for (let i = 2; i < ts.length; i++) {
+      const g1 = ts[i - 1] - ts[i - 2];
+      const g2 = ts[i] - ts[i - 1];
+      if (g1 >= FAST_GAP || g2 >= FAST_GAP || evenRatio(g2 / g1)) continue;
+      changed = true;
+      // 노트가 적은 줄(같으면 가운데)을 뺌
+      const k = rows.get(ts[i])!.length < rows.get(ts[i - 1])!.length ? i : i - 1;
+      rows.delete(ts[k]);
+      ts.splice(k, 1);
+      i = Math.max(1, i - 2);
+    }
+    if (!changed) break;
+  }
+  return ts.flatMap((t) => rows.get(t)!);
+}
+
 /**
  * 롱노트 깔기 — 노트 중 ratio만큼을 짧은 롱노트로. 길이는 박 단위 후보(beats)에서 고르고 maxSec까지,
  * 같은 레인 다음 노트 전에 끝나게. 정박에서 시작하는 걸 onBeat 비율만큼 우선하고, 소리가 남는 자리일수록 먼저.
@@ -731,7 +820,8 @@ function addLongNotes(
     const d = Math.min(Math.abs((bt[lo] ?? -9) - t), Math.abs((bt[lo - 1] ?? -9) - t));
     return d < Math.max(0.03, o.beatSec * 0.08);
   };
-  const minLen = Math.max(0.12, o.beatSec * 0.45);
+  // 너무 짧은 롱노트(단노트랑 구분이 안 되고 떼기만 귀찮은)는 안 넣음: 최소 0.33초·거의 한 박
+  const minLen = Math.max(0.33, o.beatSec * 0.9);
   type Cand = { i: number; len: number; score: number; on: boolean };
   const cands: Cand[] = [];
   out.forEach((n, i) => {
