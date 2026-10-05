@@ -30,6 +30,9 @@ import {
   sfxLaunch,
   sfxMeter,
   sfxRespawn,
+  sfxSkill,
+  sfxStatus,
+  hasSkillSfx,
   setFightVolume,
   type Element,
 } from "@/lib/fight/sfx";
@@ -458,6 +461,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         steps++;
         const prevSt = [s.p[0].st, s.p[1].st];
         const prevT = [s.p[0].t, s.p[1].t];
+        const prevMv = [s.p[0].mv, s.p[1].mv];
         if (om) {
           // 온라인: 앞서 있으면 한 프레임 쉬고, 상대 입력이 너무 늦으면 기다림 (되감기는 세션이 알아서)
           if (om.shouldWait()) continue;
@@ -471,6 +475,11 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         }
         // 소리
         const elOf = (p: number) => SFX_EL[CHARS[s.p[p].ch].id] ?? "wind";
+        // 지금 쓰는 L·I에 캐릭터 소리 파일이 있으면 탄·돌진 합성음은 생략
+        const skillFile = (p: number) => {
+          const f = s.p[p];
+          return (f.mv === "S" || f.mv === "X") && hasSkillSfx(CHARS[f.ch].id, f.mv === "S" ? "l" : "i", !!f.aerial);
+        };
         for (const e of s.ev) {
           if (e.k === "hit") {
             sfxHit(e.m === "X" ? 2 : e.m === "H" || e.m === "S" || e.m === "K" ? 1 : 0, elOf(e.p));
@@ -484,12 +493,16 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             if (e.p === (ol?.seat ?? 0)) hits++;
           } else if (e.k === "tech") sfxTech();
           else if (e.k === "launch") sfxLaunch();
-          else if (e.k === "proj") sfxProj(elOf(e.p), s.p[e.p].mv === "X");
+          else if (e.k === "proj") {
+            if (!skillFile(e.p)) sfxProj(elOf(e.p), s.p[e.p].mv === "X");
+          } else if (e.k === "burn" || e.k === "shock" || e.k === "trap" || e.k === "pop") sfxStatus(e.k);
           else if (e.k === "super") sfxSuper();
           else if (e.k === "ko") sfxKO();
           else if (e.k === "jump") sfxJump();
           else if (e.k === "land") sfxLand();
-          else if (e.k === "dash") sfxDash();
+          else if (e.k === "dash") {
+            if (!(e.v === 2 && skillFile(e.p))) sfxDash();
+          }
           else if (e.k === "round") sfxBell(false);
           else if (e.k === "fight") sfxBell(true);
         }
@@ -500,6 +513,12 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           prevMeter[i] = f.meter;
           if (f.st === "atk" && (prevSt[i] !== "atk" || f.t < prevT[i]) && f.mv !== "S")
             sfxWhoosh(f.mv === "H" || f.mv === "K" || f.mv === "X", SFX_EL[CHARS[f.ch].id] ?? "wind");
+          // 아이덴티티·필살기가 실제로 나가는 순간 (발동 준비가 끝난 프레임)
+          if (f.st === "atk" && (f.mv === "S" || f.mv === "X")) {
+            const su = CHARS[f.ch].moves[f.mv].startup;
+            const fresh = prevSt[i] !== "atk" || prevMv[i] !== f.mv || prevT[i] > f.t;
+            if (f.t >= su && (fresh || prevT[i] < su)) sfxSkill(CHARS[f.ch].id, f.mv === "S" ? "l" : "i", !!f.aerial);
+          }
         }
         if (process.env.NODE_ENV !== "production")
           (window as unknown as { __fight: State }).__fight = s;

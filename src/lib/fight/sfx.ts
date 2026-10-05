@@ -57,6 +57,25 @@ function ac(): AudioContext | null {
 
 /** 파일 이름 → 음량 (파일은 최대 음량을 맞춰 둠, 8bit 사각파는 크게 들려서 낮게) */
 const SAMPLES: Record<string, number> = {
+  // 캐릭터 아이덴티티(L)·필살기(I) — 기술이 실제로 나가는 순간
+  "kai-l": 0.5,
+  "kai-l-air": 0.5,
+  "kai-i": 0.55,
+  "igna-l": 0.5,
+  "igna-i": 0.55,
+  "soyoung-l": 0.45,
+  "soyoung-l-air": 0.45,
+  "soyoung-i": 0.5,
+  "lily-l": 0.45,
+  "lily-i": 0.5,
+  "zena-l": 0.55,
+  "zena-i": 0.5,
+  // 상태 이상
+  burn: 0.35,
+  shock: 0.4,
+  "lily-trap": 0.45,
+  "lily-pop": 0.45,
+  "super-ready": 0.32,
   "hit-l": 0.5,
   "hit-h": 0.62,
   "hit-x": 0.75,
@@ -394,7 +413,23 @@ export function sfxTech() {
 }
 /** 필살기 게이지 MAX */
 export function sfxMeter() {
-  sample("meter");
+  if (!sample("super-ready")) sample("meter");
+}
+/** 아이덴티티(l)·필살기(i) 소리 파일 이름 (공중 버전 파일이 있으면 그것) */
+function skillName(id: string, kind: "l" | "i", air: boolean) {
+  return air && kind === "l" && buffers.has(`${id}-l-air`) ? `${id}-l-air` : `${id}-${kind}`;
+}
+/** 이 기술 소리 파일이 준비됐나 (있으면 탄·돌진의 합성음 대신 이걸 씀) */
+export function hasSkillSfx(id: string, kind: "l" | "i", air = false) {
+  return buffers.has(skillName(id, kind, air));
+}
+/** 아이덴티티(L)·필살기(I)가 실제로 나가는 순간 */
+export function sfxSkill(id: string, kind: "l" | "i", air = false) {
+  return sample(skillName(id, kind, air));
+}
+/** 상태 이상: 화상 · 감전 · 방울에 갇힘 · 방울 터짐 */
+export function sfxStatus(kind: "burn" | "shock" | "trap" | "pop") {
+  sample(kind === "trap" || kind === "pop" ? `lily-${kind}` : kind);
 }
 /** 떨어졌다 다시 등장 */
 export function sfxRespawn() {
