@@ -39,6 +39,7 @@ const ELEMENT: Record<string, "fire" | "bolt" | "ice" | "wind" | "whip" | "water
   igna: "fire",
   soyoung: "whip",
   lily: "water",
+  gunmo: "ice",
 };
 
 /** 탄 그림 (public/fight/fx/<이름>.webp, 오른쪽을 보는 그림) — 처음 쓸 때 불러옴 */
@@ -81,6 +82,17 @@ const FX_SETS: Record<string, Record<string, [number, number, boolean]>> = {
   soyoung: { spark: [4, 0.6, true], guard: [2, 0.6, true], dust: [4, 0.5, false], burst: [4, 1.0, true] },
   lily: { spark: [4, 0.6, true], guard: [2, 0.6, true], dust: [4, 0.5, false] },
   zena: { spark: [4, 0.6, true], guard: [2, 0.6, true], dust: [4, 0.5, false] },
+  // 건모: box(Ctrl+A 선택 박스)·win(Alt+Tab 창)·err(금요일 배포 블록)·pause(⏸)·confuse(💫 로딩 원)는 따로 그림
+  gunmo: {
+    spark: [4, 0.6, true],
+    guard: [2, 0.6, true],
+    dust: [2, 0.5, false],
+    box: [4, 1, true],
+    win: [4, 1, true],
+    err: [4, 1, true],
+    pause: [2, 1, true],
+    confuse: [2, 1, true],
+  },
 };
 /** 캐릭터 하나가 쓰는 그림 효과 파일 이름 전부 */
 function fxNames(id: string): string[] {
@@ -634,6 +646,40 @@ export class FightRenderer {
       g.fill();
       g.restore();
     }
+    if (CHARS[f.ch].id === "gunmo" && f.st === "atk" && f.mv === "S" && cm) {
+      // Ctrl+A 선택 박스 / Alt+Tab 창: 판정 크기에 맞춰 펼침 (준비 끝 ~ 판정 끝 + 잠깐)
+      const lt = f.t - cm.startup + 2;
+      const dur = cm.active + 8;
+      if (lt >= 0 && lt < dur) {
+        const name = f.aerial ? "win" : "box";
+        const k = lt < 2 ? 0 : lt < cm.active + 2 ? 1 + (lt % 2) : 3;
+        const im = fxImg(`gunmo-${name}-${k}`);
+        if (im) {
+          const b = cm.box;
+          const w = b.w * 1.08,
+            h = b.h * 1.08;
+          g.save();
+          g.globalCompositeOperation = "lighter";
+          g.globalAlpha = lt >= cm.active + 2 ? 0.6 : 0.9;
+          g.translate(x + f.face * (b.x + b.w / 2), y - (b.y - b.h / 2));
+          if (f.face < 0) g.scale(-1, 1);
+          g.drawImage(im, -w / 2, -h / 2, w, h);
+          g.restore();
+        }
+      }
+    }
+    if (f.mark && f.st === "hit") {
+      // 머리 위: ⏸ 일시정지 / 💫 혼란 로딩 원
+      const im = fxImg(f.mark === 1 ? `gunmo-pause-${Math.floor(s.f / 10) % 2}` : `gunmo-confuse-${Math.floor(s.f / 6) % 2}`);
+      if (im) {
+        const hgt = 22;
+        const wid = (hgt * im.width) / im.height;
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        g.drawImage(im, x - wid / 2, y - 84 - hgt / 2 + Math.sin(s.f * 0.2) * 1.5, wid, hgt);
+        g.restore();
+      }
+    }
   }
 
   /** 한 프레임 그리기: 발(x, y)을 기준으로 연출 변형을 걸어서 */
@@ -665,6 +711,10 @@ export class FightRenderer {
     const sm = CHARS[s.p[p.o].ch].moves.X.summon!;
     const x = p.x / SUB;
     const y = screenY(p.h);
+    if (CHARS[s.p[p.o].ch].id === "gunmo") {
+      this.drawDeploy(p, sm, x, y);
+      return;
+    }
     if (p.t < sm.delay) {
       const k = p.t / sm.delay;
       g.save();
@@ -700,6 +750,37 @@ export class FightRenderer {
     }
     g.restore();
     glowAt(g, x, y - sm.h / 2, sm.h * 0.6, "rgba(255,120,40,0.25)");
+  }
+
+  /** 건모 필살기 「금요일 배포」: 넓은 범위에 에러 블록이 타마다 하나씩 떨어져 깨짐 */
+  private drawDeploy(p: Proj, sm: { w: number; h: number; delay: number; life: number; every: number }, x: number, y: number) {
+    const g = this.g;
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    if (p.t < sm.delay) {
+      // 떨어지기 전: 바닥에 붉은 경고 띠
+      const k = p.t / sm.delay;
+      g.fillStyle = `rgba(255,70,80,${0.15 + 0.35 * k * (0.7 + 0.3 * Math.sin(p.t * 0.8))})`;
+      g.fillRect(x - sm.w / 2, y - 3, sm.w, 4);
+      g.restore();
+      return;
+    }
+    const at = p.t - sm.delay;
+    const OFF = [-0.3, 0.28, -0.05, 0.38, -0.22];
+    for (let j = 0; j * sm.every < sm.life; j++) {
+      const lt = at - j * sm.every + 6; // 맞는 타 6프레임 전부터 떨어지기 시작
+      if (lt < 0 || lt >= 22) continue;
+      const bx = x + OFF[j % OFF.length] * sm.w;
+      const k = lt < 6 ? 0 : lt < 10 ? 1 : lt < 15 ? 2 : 3;
+      const im = fxImg(`gunmo-err-${k}`);
+      if (!im) continue;
+      const wid = sm.w * 0.62;
+      const hgt = (wid * im.height) / im.width;
+      const fall = lt < 6 ? (1 - lt / 6) * sm.h * 0.8 : 0;
+      g.globalAlpha = lt >= 15 ? Math.max(0, 1 - (lt - 15) / 7) : 1;
+      g.drawImage(im, bx - wid / 2, y - hgt - fall + 4, wid, hgt);
+    }
+    g.restore();
   }
 
   private drawProj(s: State) {

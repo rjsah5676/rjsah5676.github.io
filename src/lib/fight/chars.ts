@@ -90,6 +90,8 @@ export interface MoveDef {
     every: number;
     /** 타마다 상대 발밑으로 다시 떨어짐 (추적) */
     track?: boolean;
+    /** 상대 발밑 대신 내 앞 이 거리(px)에 세움 (넓은 범위기) */
+    front?: number;
   };
   /** 맞히면 상대를 감전시키는 프레임 수 (느려지고, 같은 캐릭터의 공격에 더 아픔) */
   shock?: number;
@@ -107,6 +109,10 @@ export interface MoveDef {
   spike?: boolean;
   /** 끌어당기며 띄우기 (공중 기술: 때린 쪽 높이까지 띄우고 앞으로 끌어옴 → 공중 콤보) */
   pullUp?: boolean;
+  /** 맞히면 상대를 ⏸ 일시정지 (경직 = hitstun, 머리 위에 표시) */
+  pause?: boolean;
+  /** 맞히면 상대와 자리를 바꾸고 💫 혼란: hitstun 동안 그 자리에 떠 있다가 넘어짐 (아래가 낭떠러지면 안 넘어짐) */
+  swap?: boolean;
   /** 맞히면 상대를 물방울에 가둠 (프레임 수) — 둥실 떠서 못 움직이고, 버튼 연타로 빨리 빠져나옴, 맞으면 터짐 */
   trap?: number;
   proj?: ProjDef;
@@ -317,18 +323,18 @@ const RAW: CharSrc[] = [
         cancel: ["H", "S", "X"],
       },
       H: {
-        startup: 10,
+        startup: 12, // 10.05: 10→12 (발차기 견제가 너무 셈)
         active: 5,
         recovery: 20,
         dmg: 86,
         chip: 8,
         hitstun: 21,
-        blockstun: 13,
+        blockstun: 15,
         push: 1150,
         hitstop: 10,
         meter: 10,
         box: { x: 0, y: 68, w: 64, h: 60 },
-        onBlock: -6,
+        onBlock: -8, // 막혔을 때 이득 2프레임 줄임 (10.05)
         cancel: ["S", "X"],
         step: 160,
       },
@@ -751,6 +757,141 @@ const RAW: CharSrc[] = [
         kd: true,
         summon: { w: 48, h: 160, delay: 16, life: 36, every: 12, track: true },
         shock: 90,
+      },
+    },
+  },
+  {
+    id: "gunmo",
+    name: "건모",
+    title: "디버거 · 코딩",
+    desc: "넓은 선택 박스로 묶고 크게 콤보를 넣는 개발자. 헛치면 빈틈이 커요",
+    hp: 1250,
+    walk: 1120,
+    jumpVx: 1000,
+    dash: 2550,
+    cd: 180,
+    hurt: { x: -8, y: 58, w: 16, h: 58 },
+    width: 17,
+    color: "#3B9CFF",
+    quote: "버그는 금방 고쳐. 너도.",
+    winQuote: "빌드 성공. 버그는 너였네.",
+    tagline: "FULLSTACK DEBUGGER",
+    difficulty: 3,
+    idName: "Ctrl+A",
+    idDesc: "넓은 파란 선택 박스를 펼쳐, 맞은 상대를 ⏸ 일시정지 — 그 사이 약·잡기로 콤보 확정. 피해는 거의 없고 막히면 빈틈이 큼",
+    ultName: "금요일 배포",
+    ultDesc: "앞쪽 넓게 에러 블록이 빗발쳐 5연타, 마지막 타에 넘어뜨림",
+    airLabel: "공중 L Alt+Tab",
+    airDesc: "앞에 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란 — 둥실 멈췄다가 바닥에 넘어짐 (아래가 낭떠러지면 안 넘어짐)",
+    moves: {
+      L: {
+        // 약 (J): 허공 타자 연타, 4단째 엔터키 올려치기 (띄우기)
+        startup: 3,
+        active: 3,
+        recovery: 6,
+        dmg: 40,
+        chip: 0,
+        hitstun: 14,
+        blockstun: 9,
+        push: 560,
+        hitstop: 5,
+        meter: 5,
+        box: { x: 4, y: 46, w: 42, h: 18 },
+        cancel: ["H", "S", "X"],
+        launcher: true,
+      },
+      H: {
+        // 발차기 (K): 키보드 가로 휘두르기 → 내려찍기
+        startup: 10,
+        active: 4,
+        recovery: 19,
+        dmg: 96,
+        chip: 0,
+        hitstun: 20,
+        blockstun: 14,
+        push: 1150,
+        hitstop: 9,
+        meter: 9,
+        box: { x: 4, y: 60, w: 62, h: 34 },
+        cancel: ["S", "X"],
+        step: 200,
+      },
+      J: {
+        // 공중 약: 노트북 펼쳐 치기
+        startup: 5,
+        active: 7,
+        recovery: 7,
+        dmg: 58,
+        chip: 0,
+        hitstun: 16,
+        blockstun: 10,
+        push: 600,
+        hitstop: 6,
+        meter: 5,
+        box: { x: 2, y: 44, w: 52, h: 28 },
+      },
+      K: {
+        // 공중 발차기: 키보드 앞쪽 아래로 내려찍기
+        startup: 7,
+        active: 7,
+        recovery: 11,
+        dmg: 88,
+        chip: 0,
+        hitstun: 20,
+        blockstun: 12,
+        push: 1200,
+        hitstop: 8,
+        meter: 8,
+        box: { x: 0, y: 34, w: 58, h: 36 },
+        lunge: 1800,
+      },
+      S: {
+        // 아이덴티티 「Ctrl+A」: 넓은 선택 박스 — 피해는 작고, 맞으면 ⏸ 일시정지(긴 경직) → 약·잡기·필살기로 확정 콤보
+        startup: 9,
+        active: 4,
+        recovery: 26,
+        dmg: 22,
+        chip: 0,
+        hitstun: 36,
+        blockstun: 10,
+        push: 200,
+        hitstop: 8,
+        meter: 6,
+        box: { x: 6, y: 70, w: 96, h: 74 },
+        onBlock: -12,
+        pause: true,
+        cancel: ["L", "T", "X"],
+        // 공중 「Alt+Tab」: 앞에 창 — 맞으면 자리 바꾸고 💫 혼란(둥실 멈춤) → 넘어뜨림
+        air: {
+          startup: 7,
+          active: 5,
+          recovery: 18,
+          dmg: 10,
+          hitstun: 24,
+          push: 0,
+          hitstop: 10,
+          box: { x: 2, y: 40, w: 54, h: 70 },
+          pause: false,
+          swap: true,
+          cancel: undefined,
+          hover: 300,
+        },
+      },
+      X: {
+        // 필살기 「금요일 배포」: 내 앞 넓은 범위에 에러 블록이 빗발침 (5연타, 마지막 타 다운)
+        startup: 10,
+        active: 1,
+        recovery: 30,
+        dmg: 34,
+        chip: 6,
+        hitstun: 20,
+        blockstun: 14,
+        push: 300,
+        hitstop: 4,
+        meter: 0,
+        box: { x: 0, y: 0, w: 0, h: 0 },
+        kd: true,
+        summon: { w: 180, h: 160, delay: 18, life: 40, every: 8, front: 110 },
       },
     },
   },

@@ -180,6 +180,8 @@ export interface Fighter {
   float: number;
   /** 공중에서 띄운 상대를 맞힌 뒤 남은 프레임: 그동안 때린 쪽도 상대와 같은 느린 중력으로 같이 내려옴 */
   juggle: number;
+  /** 머리 위 표시: 1 ⏸ 일시정지, 2 💫 혼란 (맞는 동안만) */
+  mark: number;
   /** 감전 남은 프레임: 걷기·대시가 느려지고, 감전시킨 캐릭터의 공격에 더 아픔 */
   shock: number;
   /** 화상 남은 프레임 (이그나 — 15프레임마다 체력이 조금씩 닳음, 화상으로는 안 죽음) */
@@ -240,7 +242,9 @@ export type EvKind =
   | "pop"
   | "tech"
   | "just"
-  | "counter";
+  | "counter"
+  | "pause"
+  | "swap";
 export interface Ev {
   k: EvKind;
   /** 관련 플레이어 (hit/block은 때린 쪽) */
@@ -351,6 +355,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     gcT: 0,
     float: 0,
     juggle: 0,
+    mark: 0,
     shock: 0,
     burn: 0,
     aerial: 0,
@@ -450,6 +455,7 @@ export function hash(s: State): number {
     mix(f.gcT);
     mix(f.float);
     mix(f.juggle);
+    mix(f.mark);
     mix(f.shock);
     mix(f.burn);
     mix(f.aerial);
@@ -706,6 +712,7 @@ function control(s: State, i: number) {
   const map = mapOf(s);
   f.t++;
   if (f.gcT > 0) f.gcT--;
+  if (f.st !== "hit") f.mark = 0;
   switch (f.st) {
     case "idle":
     case "walk": {
@@ -831,10 +838,12 @@ function control(s: State, i: number) {
         s.ev.push({ k: "dash", p: i, x: f.x, h: f.h, v: 2 });
       }
       if (m.summon && f.t === m.startup) {
-        // 상대 발밑(또는 그 아래 발판)에 불기둥
+        // 상대 발밑(또는 그 아래 발판)에 불기둥 — front면 내 앞 넓은 범위
         const o = s.p[1 - i];
-        const under = platBelow(map, o.x, o.h);
-        s.proj.push({ k: 1, mv: 1, n: 0, t: 0, o: i, x: o.x, h: under ? under.y * SUB : o.h, vx: 0, vh: 0, life: m.summon.delay + m.summon.life });
+        const sx = m.summon.front ? f.x + f.face * m.summon.front * SUB : o.x;
+        const under = platBelow(map, sx, m.summon.front ? f.h : o.h);
+        const sh = under ? under.y * SUB : m.summon.front ? f.h : o.h;
+        s.proj.push({ k: 1, mv: 1, n: 0, t: 0, o: i, x: sx, h: sh, vx: 0, vh: 0, life: m.summon.delay + m.summon.life });
       }
       // 연타 돌진기는 판정 동안 계속 나아감
       if (m.multi && m.rush && f.t >= m.startup && f.t < m.startup + m.active) f.vx = f.face * m.rush.vx;
@@ -1072,11 +1081,18 @@ function respawn(s: State, i: number) {
   const f = s.p[i];
   const o = s.p[1 - i];
   const map = mapOf(s);
-  // 상대에게서 가장 먼 후보
-  let bx = map.respawn[0];
-  for (const x of map.respawn) if (Math.abs(x * SUB - o.x) > Math.abs(bx * SUB - o.x)) bx = x;
+  // 떨어진 자리 바로 위에서 다시 내려옴 — 그 아래에 발판이 없으면 가장 가까운 발판 위로
+  void o;
+  let best = map.plats[0];
+  let bd = Infinity;
+  for (const p of map.plats) {
+    const d = f.x < p.x0 * SUB ? p.x0 * SUB - f.x : f.x > p.x1 * SUB ? f.x - p.x1 * SUB : 0;
+    if (d < bd || (d === bd && p.y > best.y)) ((bd = d), (best = p));
+  }
+  const m0 = Math.min(24, Math.trunc((best.x1 - best.x0) / 2));
+  const bx = Math.max(best.x0 * SUB + m0 * SUB, Math.min(best.x1 * SUB - m0 * SUB, f.x));
   s.ev.push({ k: "fall", p: i, x: f.x, h: 0, v: 0 });
-  f.x = bx * SUB;
+  f.x = bx;
   f.h = RESPAWN_H;
   f.vx = 0;
   f.vh = 0;
@@ -1092,6 +1108,7 @@ function respawn(s: State, i: number) {
   f.dashT = 0;
   f.gcT = 0;
   f.float = 0;
+  f.mark = 0;
   f.trapT = 0;
   f.inv = RESPAWN_INV;
 }
@@ -1145,7 +1162,8 @@ function physics(s: State, i: number) {
   if (f.juggle > 0) f.juggle--;
   const hang = f.juggle > 0 && (f.st === "jump" || f.st === "atk") && o.st === "hit" && o.float === 1;
   if (!hang) f.juggle = 0;
-  if ((f.float === 1 && f.st === "hit") || hang) f.vh = Math.max(-FLOAT_FALL, f.vh - FLOAT_G);
+  if (f.float === 3 && f.st === "hit" && f.stun > 0) f.vh = 0; // 💫 혼란: 그 자리에 둥실 멈춤
+  else if ((f.float === 1 && f.st === "hit") || hang) f.vh = Math.max(-FLOAT_FALL, f.vh - FLOAT_G);
   else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-1400, f.vh - GRAVITY);
   else f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
@@ -1363,6 +1381,33 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.vx = 0;
       d.vh = 0;
       d.kd = 0;
+    }
+    if (m.pause && !kd) {
+      // ⏸ 일시정지: 긴 경직 그대로 (콤보 보정으로 줄지 않게)
+      d.stun = Math.max(d.stun, m.hitstun);
+      d.mark = 1;
+      s.ev.push({ k: "pause", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
+    }
+    if (m.swap) {
+      // Alt+Tab: 자리를 바꾸고 💫 혼란 — 그 자리에 떠 있다가 넘어짐 (아래에 발판이 없으면 안 넘어뜨림)
+      const ax = a.x,
+        ah = a.h;
+      a.x = d.x;
+      a.h = d.h;
+      d.x = ax;
+      d.h = ah;
+      a.face = d.x >= a.x ? 1 : -1;
+      d.face = -a.face as 1 | -1;
+      a.vx = 0;
+      a.vh = 0;
+      d.vx = 0;
+      d.vh = 0;
+      d.float = 3;
+      d.stun = m.hitstun;
+      d.kd = platBelow(mapOf(s), d.x, d.h) ? 1 : 0;
+      d.mark = 2;
+      d.pulled = 0;
+      s.ev.push({ k: "swap", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
     }
     if (m.trap && !kd) {
       // 비눗방울에 갇힘: 그 자리에서 둥실 떠오름

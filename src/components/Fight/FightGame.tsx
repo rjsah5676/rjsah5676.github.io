@@ -38,7 +38,7 @@ import {
 } from "@/lib/fight/sfx";
 
 /** 캐릭터별 효과음 성격 */
-const SFX_EL: Record<string, Element> = { kai: "wind", igna: "fire", soyoung: "whip", lily: "water", zena: "bolt" };
+const SFX_EL: Record<string, Element> = { kai: "wind", igna: "fire", soyoung: "whip", lily: "water", zena: "bolt", gunmo: "key" };
 import { FightRenderer } from "./render";
 import { FightInput } from "./input";
 import HowTo from "./HowTo";
@@ -495,7 +495,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           else if (e.k === "launch") sfxLaunch();
           else if (e.k === "proj") {
             if (!skillFile(e.p)) sfxProj(elOf(e.p), s.p[e.p].mv === "X");
-          } else if (e.k === "burn" || e.k === "shock" || e.k === "trap" || e.k === "pop") sfxStatus(e.k);
+          } else if (e.k === "burn" || e.k === "shock" || e.k === "trap" || e.k === "pop" || e.k === "pause" || e.k === "swap") sfxStatus(e.k);
           else if (e.k === "super") sfxSuper();
           else if (e.k === "ko") sfxKO();
           else if (e.k === "jump") sfxJump();

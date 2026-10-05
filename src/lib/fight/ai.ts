@@ -310,7 +310,8 @@ export class FightAI {
       if (this.comboDecision === null) this.comboDecision = this.r() < L.combo;
       if (this.comboDecision) {
         // 끌어당긴 뒤: 잡기로 띄우거나 약 콤보
-        if (f.mv === "S" && o.pulled) press(this.r() < 0.5 ? IN.A | IN.B : IN.A);
+        // 끌어당김(소영)·일시정지(건모) 뒤: 잡기로 띄우거나 약 콤보
+        if (f.mv === "S" && (o.pulled || o.mark === 1)) press(this.r() < 0.5 ? IN.A | IN.B : IN.A);
         else if (f.mv === "L") press(f.chain < 4 && this.r() < 0.6 ? IN.A : IN.B);
         else if (f.mv === "H") {
           if (f.meter >= 100 && this.r() < 0.6) press(IN.X);
@@ -460,6 +461,12 @@ export class FightAI {
     if (f.st === "jump" && dy > 70 && f.vh < 200 && f.jumps < 2) {
       out |= toward;
       press(IN.J);
+      return finish();
+    }
+    // 공중 아이덴티티로 자리 바꾸기 (건모 Alt+Tab): 상대 위에서 내려오는 중이면 가끔
+    if (f.st === "jump" && f.cd === 0 && c.moves.S.air?.swap && dist < 50 && dy < -10 && dy > -90 && this.r() < L.aggro * 0.2) {
+      out |= toward;
+      press(IN.C);
       return finish();
     }
     // 공중 공격: 내려오면서 상대 위에 있으면

@@ -7,7 +7,7 @@
  * 마지막에 압축기(컴프레서)를 걸어 소리가 단단하고 크게 들리게 함.
  * 능력별(불·바람·채찍·물)로 맞는 소리·탄 소리를 조금씩 다르게.
  */
-export type Element = "fire" | "wind" | "whip" | "water" | "bolt" | "ice";
+export type Element = "fire" | "wind" | "whip" | "water" | "bolt" | "ice" | "key";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -70,6 +70,12 @@ const SAMPLES: Record<string, number> = {
   "lily-i": 0.5,
   "zena-l": 0.55,
   "zena-i": 0.5,
+  "gunmo-l": 0.55,
+  "gunmo-l-air": 0.55,
+  "gunmo-i": 0.55,
+  "gunmo-pause": 0.5,
+  "gunmo-confuse": 0.45,
+  "gunmo-whoosh": 0.3,
   // 상태 이상
   burn: 0.35,
   shock: 0.4,
@@ -288,6 +294,8 @@ export function sfxWhoosh(heavy: boolean, el: Element = "wind") {
     burst(c, t + (heavy ? 0.11 : 0.07), 5000, 0.8, heavy ? 0.6 : 0.45, 0.02, "highpass", 0.3);
     return;
   }
+  // 키보드 휘두르기 (건모)
+  if (el === "key" && sample("gunmo-whoosh", heavy ? 1 : 0.75, heavy ? 0.92 : 1.08)) return;
   if (sample(heavy ? "whoosh-h" : "whoosh-l")) return;
   burst(c, t, heavy ? 450 : 800, 1.4, heavy ? 0.26 : 0.16, heavy ? 0.16 : 0.1, "bandpass", 0, heavy ? 2200 : 3000);
 }
@@ -427,9 +435,11 @@ export function hasSkillSfx(id: string, kind: "l" | "i", air = false) {
 export function sfxSkill(id: string, kind: "l" | "i", air = false) {
   return sample(skillName(id, kind, air));
 }
-/** 상태 이상: 화상 · 감전 · 방울에 갇힘 · 방울 터짐 */
-export function sfxStatus(kind: "burn" | "shock" | "trap" | "pop") {
-  sample(kind === "trap" || kind === "pop" ? `lily-${kind}` : kind);
+/** 상태 이상: 화상 · 감전 · 방울에 갇힘 · 방울 터짐 · ⏸ 일시정지 · 💫 자리 바꿈 혼란 */
+export function sfxStatus(kind: "burn" | "shock" | "trap" | "pop" | "pause" | "swap") {
+  if (kind === "pause") sample("gunmo-pause");
+  else if (kind === "swap") sample("gunmo-confuse");
+  else sample(kind === "trap" || kind === "pop" ? `lily-${kind}` : kind);
 }
 /** 떨어졌다 다시 등장 */
 export function sfxRespawn() {
