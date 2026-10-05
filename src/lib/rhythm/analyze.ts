@@ -120,7 +120,12 @@ function movingMean(x: Float32Array, before: number, after: number) {
 
 // ───────────── 본체 ─────────────
 
-export async function analyzeAudio(buffer: AudioBuffer, progress: Progress): Promise<Analysis> {
+export async function analyzeAudio(
+  buffer: AudioBuffer,
+  progress: Progress,
+  /** straight: 셋잇단처럼 보여도 1.5배 템포 4/4로 (내장곡 채보 만들 때 직접 지정) */
+  opt: { straight?: boolean } = {}
+): Promise<Analysis> {
   progress(0.02, "모노로 변환 중");
   const len = Math.ceil(buffer.duration * SR);
   const off = new OfflineAudioContext(1, len, SR);
@@ -354,7 +359,7 @@ export async function analyzeAudio(buffer: AudioBuffer, progress: Progress): Pro
 
   progress(0.9, "박자 격자에 맞추는 중");
   await tick();
-  return { duration: buffer.duration, ...alignToGrid(beats, kept), rms };
+  return { duration: buffer.duration, ...alignToGrid(beats, kept, opt.straight), rms };
 }
 
 /** 비트 간격이 거의 일정하면 직선으로 맞춤 (아니면 4비트 이동평균으로만 다듬음) */
@@ -439,7 +444,7 @@ function nearestIdx(g: number[], t: number) {
  * 비트 → 세분 격자, 격자 위치를 실제 타격에 맞춰 옮기고 타격을 스냅.
  * 32분 격자와 셋잇단 격자 중 센 타격이 더 많이 들어맞는 쪽을 씀 (스윙·셔플 곡 자동 감지).
  */
-export function alignToGrid(beats: number[], raw: Onset[]) {
+export function alignToGrid(beats: number[], raw: Onset[], straight = false) {
   const ivs = beats.slice(1).map((b, i) => b - beats[i]);
   const beatSec = median(ivs) || 0.5;
   const bpm = 60 / beatSec;
@@ -476,7 +481,7 @@ export function alignToGrid(beats: number[], raw: Onset[]) {
     for (let t = beats[0]; t < beats[beats.length - 1] + beatSec; t += fast) beatsB.push(t);
     // 1배 정박에 없는 1.5배 정박(사이에 끼는 자리)도 킥이 세면 1.5배가 진짜 템포
     const onlyB = beatsB.filter((t) => !beats.some((b) => Math.abs(b - t) < 0.02));
-    if (avg(onlyB) >= avg(beats) * 0.6) {
+    if (straight || avg(onlyB) >= avg(beats) * 0.6) {
       return { ...alignWithBeats(beatsB, raw, fast, DIV), bpm: 60 / fast };
     }
   }

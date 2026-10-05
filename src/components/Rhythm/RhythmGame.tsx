@@ -304,7 +304,9 @@ export default function RhythmGame() {
           lanes: LANE_MODS.some((k) => k.key === s.lanes) ? s.lanes : "none",
           cover: COVERS_OPT.some((k) => k.key === s.cover) ? s.cover : "none",
         });
-        if (typeof s.songIdx === "number" && SONGS[s.songIdx]) setPos(s.songIdx);
+        // 곡은 id로 기억 (새 곡이 맨 앞에 끼어들어도 고르던 곡 그대로)
+        const si = SONGS.findIndex((x) => x.id === s.songId);
+        if (si >= 0) setPos(si);
         if (DIFFICULTIES.some((d) => d.key === s.diff)) setDiff(s.diff);
       }
       if (b) setBest(b);
@@ -316,7 +318,7 @@ export default function RhythmGame() {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings, songIdx, diff }));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings, songId: SONGS[songIdx].id, diff }));
     } catch {}
   }, [hydrated, settings, songIdx, diff]);
 

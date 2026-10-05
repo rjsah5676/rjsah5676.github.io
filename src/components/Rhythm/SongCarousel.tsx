@@ -9,6 +9,7 @@ import rinkakuCover from "@/img/rhythm/rinkaku.jpg";
 import newdimCover from "@/img/rhythm/newdim.jpg";
 import monarchCover from "@/img/rhythm/monarch.jpg";
 import velocityCover from "@/img/rhythm/velocity.jpg";
+import fullcomboCover from "@/img/rhythm/fullcombo.jpg";
 
 export const COVERS: Record<string, StaticImageData> = {
   jilju: jiljuCover,
@@ -17,6 +18,7 @@ export const COVERS: Record<string, StaticImageData> = {
   newdim: newdimCover,
   monarch: monarchCover,
   velocity: velocityCover,
+  fullcombo: fullcomboCover,
 };
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;

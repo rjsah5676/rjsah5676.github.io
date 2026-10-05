@@ -10,6 +10,7 @@
  *   --bpm-label <n>   화면에 보일 BPM (분석기가 셔플로 잘못 보면 직접 지정)
  *   --boss '<json>'   보스곡: 나이트메어 난이도를 추가 (src/lib/rhythm/autochart의 NightmareTweak, {}면 기본값)
  *   --hard-slots      쉬움·보통·어려움을 한 단계 위 규칙으로 (보스곡용: 대략 Lv6 / 11 / 14)
+ *   --straight        분석기가 셋잇단(12/8)으로 잘못 볼 때 1.5배 템포 4/4로 강제
  *   --dry             파일은 안 쓰고 난이도별 통계만 출력
  *   --stats           패턴을 얼마나 다양하게 썼는지 출력
  *
@@ -50,6 +51,7 @@ const opt = (name) => {
 const bpmLabelArg = opt("--bpm-label");
 const bossArg = opt("--boss");
 const hardSlots = argv.includes("--hard-slots");
+const straight = argv.includes("--straight");
 const dry = argv.includes("--dry");
 
 // ── src/lib/rhythm의 TS를 임시 폴더에 JS로 옮겨서 불러옴 ──
@@ -88,7 +90,7 @@ globalThis.OfflineAudioContext = class {
     return { getChannelData: () => pcm };
   }
 };
-const a = await analyzeAudio({ duration: pcm.length / SR }, () => {});
+const a = await analyzeAudio({ duration: pcm.length / SR }, () => {}, { straight });
 console.log(
   `분석: ${a.bpm.toFixed(2)} BPM (표시 ${displayBpm(a).toFixed(1)}), 비트 ${a.beats.length}, 타격 ${a.onsets.length}, ${a.duration.toFixed(1)}초`
 );

@@ -12,6 +12,7 @@ import rinkakuData from "@/data/rhythm/rinkaku.json";
 import newdimData from "@/data/rhythm/newdim.json";
 import monarchData from "@/data/rhythm/monarch.json";
 import velocityData from "@/data/rhythm/velocity.json";
+import fullcomboData from "@/data/rhythm/fullcombo.json";
 
 export type Kind =
   | "kick"
@@ -362,7 +363,14 @@ const VELOCITY = audioSong("velocity", "Maximum Velocity", "/audio/velocity.mp3"
   desc: "180 BPM · AI 자작곡",
 });
 
-export const SONGS: Song[] = [JILJU, NATSU, RINKAKU, NEWDIM, MONARCH, VELOCITY];
+// 나이트메어(Lv18): npm run rhythm-chart -- fullcombo --straight --bpm-label 180 --boss '{"loud":0.55,"full":0.85,"burstEvery":8}'
+const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3", fullcomboData, {
+  color: "#FB7185",
+  desc: "180 BPM · K-POP 걸밴드 록 · AI 자작곡 (tunee.ai)",
+});
+
+/** 새 곡은 항상 맨 앞에 */
+export const SONGS: Song[] = [FULLCOMBO, JILJU, NATSU, RINKAKU, NEWDIM, MONARCH, VELOCITY];
 
 // 작곡 엔진 외부 노출 (지금은 안 쓰지만 신스 곡을 다시 넣을 때 사용)
 export { build, type SongSpec };
