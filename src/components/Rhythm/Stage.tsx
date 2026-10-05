@@ -1156,7 +1156,16 @@ export default function Stage({
     };
     // 전체화면이 풀리면(안드로이드 뒤로가기는 먼저 전체화면을 끔) 일시정지, 크기는 다시 계산
     const onFullscreen = () => {
-      setIsFs(document.fullscreenElement === wrap);
+      const fsNow = document.fullscreenElement === wrap;
+      setIsFs(fsNow);
+      // 전체화면에선 Esc를 게임이 받게(일시정지) — 키보드 잠금이 되는 브라우저(크롬·엣지)만, 나머지는 Esc가 전체화면을 끔
+      const kb = (
+        navigator as Navigator & {
+          keyboard?: { lock?: (k: string[]) => Promise<void>; unlock?: () => void };
+        }
+      ).keyboard;
+      if (fsNow) kb?.lock?.(["Escape"]).catch(() => {});
+      else kb?.unlock?.();
       resize();
       if (!document.fullscreenElement && (running || resuming)) pause();
     };
@@ -1376,6 +1385,23 @@ export default function Stage({
               </button>
               <button type="button" className={btn} onClick={onRestart}>
                 처음부터
+              </button>
+              <button
+                type="button"
+                className={btn}
+                onClick={() => {
+                  const el = wrapRef.current;
+                  if (!el) return;
+                  if (document.fullscreenElement) {
+                    setPcWantsFs(false);
+                    document.exitFullscreen().catch(() => {});
+                  } else {
+                    setPcWantsFs(true);
+                    enterFullscreen(el, true);
+                  }
+                }}
+              >
+                {isFs ? "전체화면 끄기" : "⛶ 전체화면"}
               </button>
               <button type="button" className={btn} onClick={onQuit}>
                 곡 선택으로
