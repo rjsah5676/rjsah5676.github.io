@@ -45,8 +45,8 @@ import HowTo from "./HowTo";
 import { Banner, Combo, HUD_CSS, PlayerBottom, PlayerTop, TimerBox, WinQuote, type BannerKind } from "./Hud";
 import Select, { type Setup } from "./Select";
 import { scrollToGameTop } from "@/components/GameHeader";
-import { RankSubmit } from "@/components/AIRank";
-import { clockLabel, fightScore } from "@/lib/aiScore";
+import ResultPanel from "./Result";
+import { fightScore } from "@/lib/aiScore";
 import Online, { type MatchCfg } from "./Online";
 import { OnlineMatch } from "./onlineMatch";
 import type { RoomSession } from "@/realtime/fight";
@@ -433,6 +433,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     };
     document.addEventListener("visibilitychange", onVis);
     const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
       if (e.code === "Escape" || e.code === "KeyP") setPaused((p) => !p);
     };
     window.addEventListener("keydown", onKey);
@@ -751,16 +753,16 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
               <TimerBox sec={hud.sec} round={hud.round} wins={hud.wins} hurry={hud.sec <= 10 && hud.phase === "fight"} />
               <PlayerTop ch={hud.ch[1]} hp={hud.hp[1]} tag={names[1]} right />
             </div>
-            <div className="flex items-end justify-between">
+            <div className={`flex items-end justify-between ${result ? "invisible" : ""}`}>
               <PlayerBottom ch={hud.ch[0]} meter={hud.meter[0]} cd={hud.cd[0]} />
               <PlayerBottom ch={hud.ch[1]} meter={hud.meter[1]} cd={hud.cd[1]} right />
             </div>
             {hud.combo.map((c, i) => c >= 2 && <Combo key={i} n={c} right={i === 1} />)}
-            {banner && <Banner {...banner} />}
+            {banner && <Banner {...banner} top={result ? "15%" : undefined} />}
           </div>
         )}
         {paused && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/65">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/65">
             <div className="font-mono text-lg text-white">{ol ? "메뉴" : "일시정지"}</div>
             {ol && <div className={`${KR} text-xs text-white/55`}>온라인 대전은 멈추지 않아요 — 메뉴가 열린 동안 내 캐릭터는 가만히 있어요</div>}
             <div className="flex gap-2">
@@ -800,41 +802,52 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             </button>
           </div>
         )}
-        {result && ol && (
-          <div className="absolute inset-x-0 bottom-[14%] flex justify-center gap-[1.4cqw]">
-            <button
-              type="button"
-              onClick={() => toRoom(true)}
-              className="cursor-pointer rounded-full bg-[#6C63FF] px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#2E2A7A] hover:bg-[#5b52f0]"
-            >
-              ↻ 한 판 더
-            </button>
-            <button
-              type="button"
-              onClick={() => toRoom(false)}
-              className="cursor-pointer rounded-full border-[0.2cqw] border-white bg-black/75 px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#000] hover:bg-white hover:text-black"
-            >
-              대기실로
-            </button>
-          </div>
-        )}
-        {result && !ol && (
-          <div className="absolute inset-x-0 bottom-[14%] flex justify-center gap-[1.4cqw]">
-            <button
-              type="button"
-              onClick={() => restartRef.current()}
-              className="cursor-pointer rounded-full bg-[#6C63FF] px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#2E2A7A] hover:bg-[#5b52f0]"
-            >
-              ↻ 다시하기
-            </button>
-            <button
-              type="button"
-              onClick={toChars}
-              className="cursor-pointer rounded-full border-[0.2cqw] border-white bg-black/75 px-[3cqw] py-[1cqw] font-['Nanum_Gothic',sans-serif] text-[1.8cqw] font-bold text-white shadow-[0_0.4cqw_0_#000] hover:bg-white hover:text-black"
-            >
-              캐릭터 선택
-            </button>
-          </div>
+        {result && (
+          <ResultPanel
+            side={!winCh ? "center" : hud?.winner === 1 ? "left" : "right"}
+            title={
+              hud?.winner === 2
+                ? "무승부"
+                : setup.mode === "ai" || ol
+                  ? result.win
+                    ? "승리"
+                    : "패배"
+                  : `${hud?.winner === 0 ? "1P" : "2P"} 승리`
+            }
+            seconds={result.seconds}
+            hits={result.hits}
+            hp={result.hp}
+            rank={
+              setup.mode === "ai" && !ol && result.win
+                ? {
+                    coll: "fight_ai_rankings",
+                    score: fightScore(setup.level + 1, result.hp, result.seconds),
+                    entry: {
+                      opp: `${setup.level + 1}:${CHARS[setup.c1].id}>${CHARS[setup.c2].id}`,
+                      moves: Math.max(2, result.hits),
+                      seconds: result.seconds,
+                      lead: result.hp,
+                    },
+                    done: submitted,
+                    onSaved: () => {
+                      setSubmitted(true);
+                      onRanked?.();
+                    },
+                  }
+                : undefined
+            }
+            buttons={
+              ol
+                ? [
+                    { label: "↻ 한 판 더", onClick: () => toRoom(true), primary: true },
+                    { label: "대기실로", onClick: () => toRoom(false) },
+                  ]
+                : [
+                    { label: "↻ 다시하기", onClick: () => restartRef.current(), primary: true },
+                    { label: "캐릭터 선택", onClick: toChars },
+                  ]
+            }
+          />
         )}
       </div>
 
@@ -858,28 +871,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
 
       {!coarse && hud && <HowTo mode={ol ? "online" : setup.mode} chars={hud.ch} />}
 
-      {result && setup.mode === "ai" && !ol && result.win && (
-        <div className="mt-3 max-w-md">
-          <RankSubmit
-            coll="fight_ai_rankings"
-            result={fightScore(setup.level + 1, result.hp, result.seconds)}
-            entry={{
-              opp: `${setup.level + 1}:${CHARS[setup.c1].id}>${CHARS[setup.c2].id}`,
-              moves: Math.max(2, result.hits),
-              seconds: result.seconds,
-              lead: result.hp,
-            }}
-            done={submitted}
-            onSaved={() => {
-              setSubmitted(true);
-              onRanked?.();
-            }}
-          />
-          <p className="mt-1.5 px-1 font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
-            {clockLabel(result.seconds)} · 적중 {result.hits}회 · 남은 체력 {result.hp}%
-          </p>
-        </div>
-      )}
     </div>
   );
 }

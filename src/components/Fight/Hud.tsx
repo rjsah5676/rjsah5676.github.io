@@ -11,9 +11,9 @@ import { KeyCap } from "./KeyCap";
 export const HUD_FONT = "'Black Han Sans', 'Nanum Gothic', sans-serif";
 const MONO = "'JetBrains Mono', monospace";
 
-const GOLD = "linear-gradient(180deg, #FFF4C2 0%, #F2C35B 45%, #9A6A1E 100%)";
-const PANEL = "linear-gradient(180deg, #2B1840 0%, #140A22 100%)";
-const INK = "#12081F";
+export const GOLD = "linear-gradient(180deg, #FFF4C2 0%, #F2C35B 45%, #9A6A1E 100%)";
+export const PANEL = "linear-gradient(180deg, #2B1840 0%, #140A22 100%)";
+export const INK = "#12081F";
 
 /** 애니메이션 (전역 CSS 안 건드리고 HUD 안에서만) */
 export const HUD_CSS = `
@@ -29,7 +29,7 @@ export const HUD_CSS = `
 `;
 
 /** 금테 두른 모양: 바깥은 금색, 안쪽은 같은 모양으로 한 겹 안 */
-function Trim({
+export function Trim({
   clip,
   pad = "0.22cqw",
   style,
@@ -573,11 +573,14 @@ export function Banner({
   text,
   name,
   nameColor,
+  top = "33%",
 }: {
   kind: BannerKind;
   text: string;
   name?: string;
   nameColor?: string;
+  /** 띠 위치 (결과 화면에선 위로 올림) */
+  top?: string;
 }) {
   const line = BANNER_LINE[kind];
   const big = kind === "ko" ? "10cqw" : kind === "round" ? "6.4cqw" : "7.6cqw";
@@ -587,8 +590,9 @@ export function Banner({
         position: "absolute",
         left: 0,
         right: 0,
-        top: "33%",
+        top,
         height: "13cqw",
+        transition: "top 300ms ease-out",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

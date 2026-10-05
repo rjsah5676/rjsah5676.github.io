@@ -96,8 +96,6 @@ const AIR_ACC = 70;
 const JUST_T = 5;
 /** 잡힌 뒤 풀 수 있는 프레임 */
 const THROW_TECH_T = 8;
-/** 공중에서 이 콤보 수를 넘기면 강제 다운 */
-const JUGGLE_MAX = 7;
 /** 연속 동작 수: 약(L) 4단, 발차기(H) 2단 */
 const CHAIN_MAX: Partial<Record<MoveId, number>> = { L: 4, H: 2 };
 const CHAIN_STEP = 520;
@@ -132,6 +130,9 @@ const BUBBLE_POP_DMG = 20;
 const JUGGLE_POP = 520;
 /** 그때 때린 쪽이 느리게 떨어지는 프레임 (맞힐 때마다 다시) */
 const JUGGLE_HANG = 45;
+/** 공중 콤보가 이 수를 넘기면 점점 빨리 떨어짐, JUGGLE_HEAVY_N 대 더 맞으면 보통 낙하 */
+const JUGGLE_SOFT = 6;
+const JUGGLE_HEAVY_N = 4;
 
 export type FState =
   "idle" | "walk" | "dash" | "jump" | "atk" | "hit" | "block" | "down" | "rise" | "ko" | "win";
@@ -1181,7 +1182,13 @@ function physics(s: State, i: number) {
   const hang = f.juggle > 0 && (f.st === "jump" || f.st === "atk") && o.st === "hit" && o.float === 1;
   if (!hang) f.juggle = 0;
   if (f.float === 3 && f.st === "hit" && f.stun > 0) f.vh = 0; // 💫 혼란: 그 자리에 둥실 멈춤
-  else if ((f.float === 1 && f.st === "hit") || hang) f.vh = Math.max(-FLOAT_FALL, f.vh - FLOAT_G);
+  else if ((f.float === 1 && f.st === "hit") || hang) {
+    // 공중에서 6대 넘게 맞으면 한 대마다 중력·낙하 속도가 커져 4대 뒤엔 보통 낙하 (너무 오래 안 떠 있게)
+    const heavy = Math.min(JUGGLE_HEAVY_N, Math.max(0, (f.st === "hit" ? f.combo : o.combo) - JUGGLE_SOFT));
+    const g = FLOAT_G + Math.trunc(((GRAVITY - FLOAT_G) * heavy) / JUGGLE_HEAVY_N);
+    const cap = FLOAT_FALL + Math.trunc(((MAX_FALL - FLOAT_FALL) * heavy) / JUGGLE_HEAVY_N);
+    f.vh = Math.max(-cap, f.vh - g);
+  }
   else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-1400, f.vh - GRAVITY);
   else f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
@@ -1245,8 +1252,10 @@ function settle(s: State, i: number, win: boolean) {
   if (win && f.st === "idle") ((f.st = "win"), (f.t = 0));
 }
 
+/** 콤보 피해 보정: 맞을수록 12%씩 줄고(최저 30%), 6대를 넘기면 한 대마다 5%씩 더 줄어 최저 10% (긴 공중 콤보 억제) */
 function scaleDmg(dmg: number, combo: number) {
-  return Math.trunc((dmg * Math.max(30, 100 - 12 * combo)) / 100);
+  const floor = combo < 6 ? 30 : Math.max(10, 30 - 5 * (combo - 5));
+  return Math.max(1, Math.trunc((dmg * Math.max(floor, 100 - 12 * combo)) / 100));
 }
 
 /** a가 d를 m으로 때림 (src = 판정 위치 x, 탄이면 탄 위치) */
@@ -1329,9 +1338,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.pulled = 1;
     }
     const a0 = s.p[ai];
-    // 공중 콤보 한도: 공중에서 일정 수 넘게 맞으면 강제 다운 (저글 한계)
-    const juggleOut = wasAir && d.combo >= JUGGLE_MAX;
-    const kd = juggleOut || (m.kd && !(m.multi && mid !== "S" && a0.st === "atk" && a0.t < m.startup + m.active - m.multi));
+    // 공중에서 맞는 횟수엔 한도 없음 (때리는 쪽 공중 공격 수만 제한)
+    const kd = (m.kd && !(m.multi && mid !== "S" && a0.st === "atk" && a0.t < m.startup + m.active - m.multi));
     if (wasAir || kd) {
       d.vh = kd ? 1500 : 700;
       d.kd = kd ? 1 : 0;
