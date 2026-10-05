@@ -106,6 +106,8 @@ const DASH_T = 13;
 /** 돌진 잡기: 대시 중 J + K — 대시 속도로 파고들며 잡음 (막고 있는 상대를 멀리서 잡는 수단, 헛치면 빈틈이 큼) */
 const DASH_GRAB: Partial<MoveDef> = { startup: 6, active: 4, recovery: 24, box: { x: 0, y: 56, w: 46, h: 44 } };
 const DASH_GRAB_V = 1100;
+/** 돌진 잡기에 드는 게이지 (가드 반격과 같음) */
+const DASH_GRAB_COST = 25;
 /** 점프마다 쓸 수 있는 공중 공격 수: 약 4번, 발차기 2번 (2단 점프하면 다시 채워짐, 내려찍기는 따로 1번) */
 const AIR_J_MAX = 4;
 const AIR_K_MAX = 2;
@@ -622,8 +624,9 @@ function startMove(s: State, i: number, id: MoveId) {
   const f = s.p[i];
   // 같은 기술을 이어 누르면 다음 동작 (약 4단 · 발차기 2단)
   f.chain = f.st === "atk" && f.mv === id && CHAIN_MAX[id] ? f.chain + 1 : 1;
-  // 대시 중에 낸 잡기 = 돌진 잡기
-  f.lg = id === "T" && f.st === "dash" ? 1 : 0;
+  // 대시 중에 낸 잡기 = 돌진 잡기 (게이지가 있을 때만, 없으면 그 자리 보통 잡기)
+  f.lg = id === "T" && f.st === "dash" && f.meter >= DASH_GRAB_COST ? 1 : 0;
+  if (f.lg) f.meter -= DASH_GRAB_COST;
   f.st = "atk";
   f.mv = id;
   f.t = 0;
