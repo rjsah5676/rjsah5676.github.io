@@ -205,14 +205,14 @@ export default function SongSelect({
             className="flex min-w-0 flex-1 flex-col justify-center [animation:bd-slide-left_300ms_ease-out]"
           >
             {custom ? (
-              <>
+              <div className="flex h-[22cqw] flex-col gap-[0.5cqw]">
                 <div className="font-mono text-[1cqw] tracking-[0.25em]" style={{ color }}>
                   MY MUSIC
                 </div>
-                <div className={`${KR} mt-[0.4cqw] text-[1.25cqw] leading-relaxed text-white/60`}>
-                  내 mp3를 넣으면 박자를 분석해서 바로 채보를 만들어요.
+                <div className="min-h-0 flex-1">
+                  <CustomMusic track={track} onTrack={onTrack} getCtx={audio} />
                 </div>
-              </>
+              </div>
             ) : (
               song && (
                 <>
@@ -244,12 +244,6 @@ export default function SongSelect({
             )}
           </div>
         </div>
-
-        {custom && (
-          <div className="h-[11cqw]">
-            <CustomMusic track={track} onTrack={onTrack} getCtx={audio} />
-          </div>
-        )}
 
         {/* 난이도 */}
         <div className="flex gap-[0.6cqw]">

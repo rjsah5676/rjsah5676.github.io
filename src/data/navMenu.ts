@@ -91,7 +91,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/games/rhythm",
         image: imgRhythm,
         label: "리듬게임",
-        desc: "4키 리듬게임, 곡·난이도별 랭킹",
+        desc: "BEAT DASH · 4키 리듬게임, 곡·난이도별 랭킹",
         icon: "🎹",
       },
       {

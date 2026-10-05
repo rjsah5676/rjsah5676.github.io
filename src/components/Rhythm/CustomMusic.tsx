@@ -79,7 +79,7 @@ export default function CustomMusic({
 
   if (!track)
     return (
-      <div className="flex h-full flex-col gap-[1cqw]">
+      <div className="flex h-full flex-col gap-[0.6cqw]">
         <div
           role="button"
           tabIndex={0}
@@ -105,7 +105,7 @@ export default function CustomMusic({
           {busy ? (
             <>
               <p className={`${KR} text-[1.4cqw] text-white/85`}>{busy.label}…</p>
-              <div className="h-[0.5cqw] w-[24cqw] overflow-hidden rounded-full bg-white/10">
+              <div className="h-[0.5cqw] w-[80%] overflow-hidden rounded-full bg-white/10">
                 <div
                   className="h-full bg-gradient-to-r from-[#22D3EE] to-[#A78BFA] transition-[width]"
                   style={{ width: `${Math.round(busy.ratio * 100)}%` }}
@@ -114,8 +114,8 @@ export default function CustomMusic({
             </>
           ) : (
             <>
-              <span className="text-[4cqw]">🎵</span>
-              <p className={`${KR} text-[1.5cqw] font-bold text-white/90`}>
+              <span className="text-[3cqw]">🎵</span>
+              <p className={`${KR} text-[1.25cqw] font-bold break-keep text-white/90`}>
                 음악 파일을 끌어다 놓거나 눌러서 고르세요
               </p>
               <p className="font-mono text-[1.05cqw] text-white/40">
@@ -127,9 +127,8 @@ export default function CustomMusic({
         </div>
         {err && <p className="text-center font-mono text-[1.1cqw] text-red-300">{err}</p>}
         <ul className={`${KR} space-y-[0.2cqw] text-[1.05cqw] leading-relaxed text-white/45`}>
-          <li>• 파일은 서버로 올라가지 않아요. 이 브라우저 안에서만 분석하고 재생해요.</li>
-          <li>• 드럼과 박자를 분석해서 쉬움~나이트메어 채보를 자동으로 만들어요.</li>
-          <li>• 직접 넣은 곡은 랭킹에 올라가지 않아요.</li>
+          <li>• 박자를 분석해 5단계 채보 자동 생성</li>
+          <li>• 파일은 서버로 안 올라가요 · 랭킹 없음</li>
         </ul>
       </div>
     );
@@ -137,7 +136,11 @@ export default function CustomMusic({
   const a = track.analysis;
   return (
     <div className="flex flex-col gap-[0.6cqw]">
-      <p className={`${KR} truncate text-[2.4cqw] font-extrabold text-white`}>{track.name}</p>
+      <p
+        className={`${KR} line-clamp-2 text-[2cqw] leading-tight font-extrabold break-all text-white`}
+      >
+        {track.name}
+      </p>
       <p className="flex flex-wrap items-center gap-x-[1.2cqw] gap-y-[0.4cqw] font-mono text-[1.2cqw] text-white/55">
         <span>{fmt(a.duration)}</span>
         <span className="flex items-center gap-[0.5cqw]">
