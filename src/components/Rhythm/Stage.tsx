@@ -65,12 +65,28 @@ export const rankColorOf = (rank: string) =>
         ? "#60A5FA"
         : "#F87171";
 
+/** PC에서 전체화면 버튼으로 켠 적이 있으면 다음 판도 전체화면으로 */
+const FS_KEY = "rhythm:fullscreen";
+const pcWantsFs = () => {
+  try {
+    return localStorage.getItem(FS_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+const setPcWantsFs = (v: boolean) => {
+  try {
+    localStorage.setItem(FS_KEY, v ? "1" : "0");
+  } catch {}
+};
+
 /**
- * 모바일(터치)에서만 플레이 화면을 전체화면으로. 시작·재개 버튼을 누른 직후(사용자 동작 안)에 불러야 함.
- * 아이폰 사파리처럼 요소 전체화면을 지원하지 않으면 그냥 넘어감
+ * 플레이 화면을 전체화면으로 — 모바일(터치)은 늘, PC는 전체화면 버튼으로 켜 둔 경우만.
+ * 시작·재개 버튼을 누른 직후(사용자 동작 안)에 불러야 함. 아이폰 사파리처럼 지원 안 하면 그냥 넘어감
  */
-function enterFullscreen(el: HTMLElement) {
-  if (document.fullscreenElement || !window.matchMedia("(pointer: coarse)").matches) return;
+function enterFullscreen(el: HTMLElement, force = false) {
+  if (document.fullscreenElement) return;
+  if (!force && !window.matchMedia("(pointer: coarse)").matches && !pcWantsFs()) return;
   if (typeof el.requestFullscreen !== "function") return;
   el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
 }
@@ -162,6 +178,7 @@ export default function Stage({
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [paused, setPaused] = useState(false);
+  const [isFs, setIsFs] = useState(false);
   // 일시정지 화면에 보여줄 지금까지의 타이밍 (결과 화면과 같은 계산)
   const [pauseTiming, setPauseTiming] = useState<{
     avgMs: number | null;
@@ -1139,6 +1156,7 @@ export default function Stage({
     };
     // 전체화면이 풀리면(안드로이드 뒤로가기는 먼저 전체화면을 끔) 일시정지, 크기는 다시 계산
     const onFullscreen = () => {
+      setIsFs(document.fullscreenElement === wrap);
       resize();
       if (!document.fullscreenElement && (running || resuming)) pause();
     };
@@ -1207,7 +1225,10 @@ export default function Stage({
     "cursor-pointer rounded-full border border-white/15 px-5 py-2 whitespace-nowrap font-mono text-sm text-white/80 transition-colors hover:border-[#6C63FF]/60 hover:text-white";
 
   return (
-    <div ref={wrapRef} className="relative flex w-full flex-col items-center">
+    <div
+      ref={wrapRef}
+      className={`relative flex w-full flex-col items-center ${isFs ? "justify-center bg-[#08090D]" : ""}`}
+    >
       <canvas
         ref={canvasRef}
         className="touch-none rounded-xl border border-white/10 select-none"
@@ -1218,6 +1239,24 @@ export default function Stage({
         className="absolute top-8 left-1/2 -translate-x-1/2 cursor-pointer rounded-full bg-white/5 px-3 py-1 font-mono text-[11px] text-white/45 hover:text-white"
       >
         II 일시정지 (Esc)
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const el = wrapRef.current;
+          if (!el) return;
+          if (document.fullscreenElement) {
+            setPcWantsFs(false);
+            document.exitFullscreen().catch(() => {});
+          } else {
+            setPcWantsFs(true);
+            enterFullscreen(el, true);
+          }
+        }}
+        title={isFs ? "전체화면 끄기" : "전체화면 (다음 판도 전체화면으로 시작)"}
+        className="absolute top-8 right-4 cursor-pointer rounded-full bg-white/5 px-3 py-1 font-mono text-[11px] text-white/45 hover:text-white"
+      >
+        {isFs ? "✕ 전체화면 끄기" : "⛶ 전체화면"}
       </button>
       {paused && (
         <div className="absolute inset-0 flex items-center justify-center overflow-y-auto rounded-xl bg-black/75 p-4 backdrop-blur-sm">
