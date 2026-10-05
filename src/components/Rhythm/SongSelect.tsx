@@ -487,14 +487,23 @@ export default function SongSelect({
                   : undefined
               }
             >
-              <div
-                className={`shrink-0 overflow-hidden rounded-[0.5cqw] border border-white/20 bg-[#0e3a4a] ${on ? "h-[5cqw] w-[5cqw]" : "h-[3.6cqw] w-[3.6cqw]"}`}
-              >
-                <img
-                  src={s ? COVERS[s.id]?.src : (track?.cover ?? CUSTOM_COVER)}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+              {/* 재킷 + 오른쪽 아래 모서리에 내 최고 랭크 */}
+              <div className="relative shrink-0">
+                <div
+                  className={`overflow-hidden rounded-[0.5cqw] border border-white/20 bg-[#0e3a4a] ${on ? "h-[5cqw] w-[5cqw]" : "h-[3.6cqw] w-[3.6cqw]"}`}
+                >
+                  <img
+                    src={s ? COVERS[s.id]?.src : (track?.cover ?? CUSTOM_COVER)}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                {bb && (
+                  <RankEmblem
+                    rank={bb.rank}
+                    className={`absolute -right-[0.9cqw] -bottom-[0.35cqw] drop-shadow-[0_0.1cqw_0.3cqw_rgba(0,0,0,0.8)] ${on ? "h-[2.8cqw] w-[2.8cqw]" : "h-[2.2cqw] w-[2.2cqw]"}`}
+                  />
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div
@@ -508,7 +517,6 @@ export default function SongSelect({
                   {s ? s.desc : "MY MUSIC · mp3 자동 채보"}
                 </div>
               </div>
-              {bb && <RankEmblem rank={bb.rank} className="h-[3cqw] w-[3cqw] shrink-0" />}
               <div className="flex w-[4.2cqw] shrink-0 flex-col items-center">
                 <span className="font-mono text-[0.8cqw] text-white/60">Lv</span>
                 <span className={`${DISP} text-[1.8cqw] leading-none text-white`}>{lv ?? "-"}</span>

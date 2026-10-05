@@ -334,3 +334,18 @@ body.game-full .quick-menu-fab {
   border-radius: 8px;
   background: linear-gradient(180deg, #a78bfa, #ec4899);
 }
+
+/* 로고 박동 (메뉴 BGM 한 박보다 25% 느리게) */
+@keyframes bd-beat {
+  0% {
+    transform: scale(1.045);
+    filter: brightness(1.15);
+  }
+  35% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

@@ -23,6 +23,8 @@ import { makeAutoCharts } from "@/lib/rhythm/autochart";
 import { displayBpm } from "@/lib/rhythm/analyze";
 import type { CustomTrack } from "./CustomMusic";
 import { CUSTOM_COVER } from "./SongCarousel";
+import GameHeader from "@/components/GameHeader";
+import { RHYTHM_GUIDE } from "@/data/gameGuides";
 import TitleScreen from "./TitleScreen";
 import SongSelect from "./SongSelect";
 import SettingsModal, { LANE_MODS, type LaneMod, type Settings } from "./SettingsModal";
@@ -488,97 +490,123 @@ export default function RhythmGame() {
   }`;
   const rootCls = fs
     ? `${pseudoFs ? "fixed inset-0 z-[100] " : ""}flex h-full w-full items-center justify-center bg-black [&>.fs-screen]:w-[min(100vw,calc(100dvh*16/9))]`
-    : "mx-auto w-full max-w-[min(1120px,calc((100dvh-120px)*16/9))]";
+    : "mx-auto w-full max-w-[min(1120px,calc((100dvh-190px)*16/9))]";
 
   return (
-    <div ref={rootRef} className={rootCls}>
-      <div className={frameCls}>
-        {screen === "title" && (
-          <TitleScreen
-            entered={entered}
-            onEnter={enter}
-            onStart={() => setScreen("select")}
-            onSettings={() => setSettingsOpen(true)}
-            fs={fs}
-            onToggleFs={toggleFs}
-            blocked={settingsOpen}
-          />
-        )}
-        {screen === "select" && (
-          <SongSelect
-            songs={SONGS}
-            sel={sel}
-            onSel={setSel}
-            charts={charts}
-            diffs={diffs}
-            diff={diff}
-            onDiff={setDiff}
-            best={best}
-            track={track}
-            onTrack={setTrack}
-            customCharts={customCharts}
-            song={customSel ? customSong : builtinSong}
-            onStart={start}
-            starting={loading}
-            launching={launching}
-            canStart={!!chart}
-            err={err}
-            onBack={() => setScreen("title")}
-            onSettings={() => setSettingsOpen(true)}
-            blocked={settingsOpen}
-            fs={fs}
-            onToggleFs={toggleFs}
-          />
-        )}
-        {screen === "play" && play && chart && (
-          <Stage
-            key={play.round}
-            song={song}
-            diff={diff}
-            chart={applyLaneMod(chart, settings.lanes, play.seed)}
-            cover={settings.cover}
-            buffer={play.buffer}
-            ctx={play.ctx}
-            speed={settings.speed}
-            offset={settings.offset}
-            judgeOffset={settings.judge}
-            autoSync={settings.autoSync}
-            hitVolume={settings.hit}
-            musicVolume={settings.music}
-            onSettings={onLiveSettings}
-            hitSound={settings.hitSound}
-            skin={settings.skin}
-            field={settings.field}
-            fs={fs}
-            onToggleFs={toggleFs}
-            onFinish={finish}
-            onQuit={toSelect}
-            onRestart={() =>
-              setPlay((p) => p && { ...p, round: p.round + 1, seed: Math.random() * 1e9 })
-            }
-          />
-        )}
-        {screen === "result" && result && (
-          <ResultScreen
-            result={result}
-            song={song}
-            autoSync={settings.autoSync}
-            offset={settings.offset}
-            judge={settings.judge}
-            onRetry={start}
-            onSelect={toSelect}
-            starting={loading}
-          />
-        )}
-        {settingsOpen && (
-          <SettingsModal
-            settings={settings}
-            setSettings={setSettings}
-            color={song?.color ?? "#A78BFA"}
-            onClose={() => setSettingsOpen(false)}
-          />
-        )}
+    <>
+      {/* 다른 게임 페이지와 같은 머리말 (창모드에서만 보임 — 전체화면은 게임 화면만) */}
+      <GameHeader
+        icon="🎹"
+        title="BEAT DASH"
+        en="Rhythm Game"
+        accent="#EC4899"
+        desc="DFJK 4키 리듬게임 — 곡·난이도별 랭킹, 내 mp3도 자동 채보"
+        guide={RHYTHM_GUIDE}
+      />
+      {!fs && (
+        <button
+          type="button"
+          onClick={toggleFs}
+          className="group mx-auto mb-3 flex w-full max-w-[min(1120px,calc((100dvh-190px)*16/9))] cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#EC4899]/45 bg-[linear-gradient(90deg,rgba(236,72,153,0.18),rgba(124,58,237,0.18))] px-4 py-2 font-['Nanum_Gothic',sans-serif] text-[13px] text-white/85 shadow-[0_0_24px_-6px_rgba(236,72,153,0.55)] transition-colors hover:border-[#EC4899] hover:text-white"
+        >
+          <span className="rounded-md bg-[#EC4899] px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
+            ⛶
+          </span>
+          <b className="font-bold text-white">전체화면 플레이 권장</b>
+          <span className="text-white/55">
+            — 여기를 누르면 전체화면으로 (게임 안에서도 켜고 끌 수 있어요)
+          </span>
+        </button>
+      )}
+      <div ref={rootRef} className={rootCls}>
+        <div className={frameCls}>
+          {screen === "title" && (
+            <TitleScreen
+              entered={entered}
+              onEnter={enter}
+              onStart={() => setScreen("select")}
+              onSettings={() => setSettingsOpen(true)}
+              fs={fs}
+              onToggleFs={toggleFs}
+              blocked={settingsOpen}
+            />
+          )}
+          {screen === "select" && (
+            <SongSelect
+              songs={SONGS}
+              sel={sel}
+              onSel={setSel}
+              charts={charts}
+              diffs={diffs}
+              diff={diff}
+              onDiff={setDiff}
+              best={best}
+              track={track}
+              onTrack={setTrack}
+              customCharts={customCharts}
+              song={customSel ? customSong : builtinSong}
+              onStart={start}
+              starting={loading}
+              launching={launching}
+              canStart={!!chart}
+              err={err}
+              onBack={() => setScreen("title")}
+              onSettings={() => setSettingsOpen(true)}
+              blocked={settingsOpen}
+              fs={fs}
+              onToggleFs={toggleFs}
+            />
+          )}
+          {screen === "play" && play && chart && (
+            <Stage
+              key={play.round}
+              song={song}
+              diff={diff}
+              chart={applyLaneMod(chart, settings.lanes, play.seed)}
+              cover={settings.cover}
+              buffer={play.buffer}
+              ctx={play.ctx}
+              speed={settings.speed}
+              offset={settings.offset}
+              judgeOffset={settings.judge}
+              autoSync={settings.autoSync}
+              hitVolume={settings.hit}
+              musicVolume={settings.music}
+              onSettings={onLiveSettings}
+              hitSound={settings.hitSound}
+              skin={settings.skin}
+              field={settings.field}
+              fs={fs}
+              onToggleFs={toggleFs}
+              onFinish={finish}
+              onQuit={toSelect}
+              onRestart={() =>
+                setPlay((p) => p && { ...p, round: p.round + 1, seed: Math.random() * 1e9 })
+              }
+            />
+          )}
+          {screen === "result" && result && (
+            <ResultScreen
+              result={result}
+              song={song}
+              autoSync={settings.autoSync}
+              offset={settings.offset}
+              judge={settings.judge}
+              onRetry={start}
+              onSelect={toSelect}
+              starting={loading}
+            />
+          )}
+          {settingsOpen && (
+            <SettingsModal
+              settings={settings}
+              setSettings={setSettings}
+              color={song?.color ?? "#A78BFA"}
+              onClose={() => setSettingsOpen(false)}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

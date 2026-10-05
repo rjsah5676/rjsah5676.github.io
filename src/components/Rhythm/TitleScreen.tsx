@@ -95,14 +95,19 @@ export default function TitleScreen({
         className="absolute inset-0 h-full w-full object-cover"
       />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,transparent_30%,rgba(4,2,16,0.7)_100%)]" />
-      <img
-        src="/rhythm/logo.webp"
-        alt="BEAT DASH"
-        draggable={false}
-        className={`absolute left-1/2 w-[54cqw] -translate-x-1/2 drop-shadow-[0_0_2cqw_rgba(167,139,250,0.55)] transition-[top] duration-500 ${
+      {/* 로고: 들어올 때 쾅, 그다음 메뉴 BGM(128BPM)에 맞춰 두근두근 */}
+      <div
+        className={`absolute left-1/2 w-[54cqw] -translate-x-1/2 transition-[top] duration-500 ${
           entered ? "top-[4cqw]" : "top-[9cqw]"
-        } [animation:bd-logo-in_900ms_cubic-bezier(.2,.9,.3,1.2)]`}
-      />
+        }`}
+      >
+        <img
+          src="/rhythm/logo.webp"
+          alt="BEAT DASH"
+          draggable={false}
+          className="w-full drop-shadow-[0_0_2cqw_rgba(167,139,250,0.55)] [animation:bd-logo-in_900ms_cubic-bezier(.2,.9,.3,1.2),bd-beat_586ms_ease-out_900ms_infinite]"
+        />
+      </div>
 
       {!entered ? (
         <div className="absolute inset-x-0 bottom-[6.4cqw] bg-[linear-gradient(90deg,transparent,rgba(6,3,20,0.75)_25%,rgba(6,3,20,0.75)_75%,transparent)] py-[1.2cqw] text-center">
