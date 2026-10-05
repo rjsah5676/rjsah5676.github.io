@@ -103,6 +103,9 @@ const CHAIN_STEP = 520;
 const FINISH_REC: Partial<Record<MoveId, number>> = { L: 14, H: 16 };
 /** 대시 길이 (프레임) */
 const DASH_T = 13;
+/** 돌진 잡기: 대시 중 J + K — 대시 속도로 파고들며 잡음 (막고 있는 상대를 멀리서 잡는 수단, 헛치면 빈틈이 큼) */
+const DASH_GRAB: Partial<MoveDef> = { startup: 6, active: 4, recovery: 24, box: { x: 0, y: 56, w: 46, h: 44 } };
+const DASH_GRAB_V = 1100;
 /** 점프마다 쓸 수 있는 공중 공격 수: 약 4번, 발차기 2번 (2단 점프하면 다시 채워짐, 내려찍기는 따로 1번) */
 const AIR_J_MAX = 4;
 const AIR_K_MAX = 2;
@@ -178,6 +181,8 @@ export interface Fighter {
   airK: number;
   /** 이번 공중에서 내려찍기(↓ + K) 썼나 */
   airS: number;
+  /** 대시 중에 낸 잡기 = 돌진 잡기 (빠르게 파고들고 닿는 거리 김, 헛치면 빈틈 큼) */
+  lg: number;
   /** 남은 대시 프레임 (땅·공중) */
   dashT: number;
   /** 이번 공중에서 대시 썼나 */
@@ -317,6 +322,7 @@ const finishRec = (f: Fighter) => (isFinisher(f) ? (FINISH_REC[f.mv as MoveId] ?
 const moveOf = (f: Fighter): MoveDef | null => {
   if (!f.mv) return null;
   const m = charOf(f).moves[f.mv];
+  if (f.mv === "T" && f.lg) return { ...m, ...DASH_GRAB };
   return f.aerial && m.air ? { ...m, ...m.air } : m;
 };
 const totalOf = (m: MoveDef) => m.startup + m.active + m.recovery;
@@ -374,6 +380,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     airUsed: 0,
     airK: 0,
     airS: 0,
+    lg: 0,
     dashT: 0,
     airDash: 0,
     dive: 0,
@@ -489,6 +496,7 @@ export function hash(s: State): number {
     mix(f.airUsed);
     mix(f.airK);
     mix(f.airS);
+    mix(f.lg);
     mix(f.gcT);
     mix(f.float);
     mix(f.floatT);
@@ -614,6 +622,8 @@ function startMove(s: State, i: number, id: MoveId) {
   const f = s.p[i];
   // 같은 기술을 이어 누르면 다음 동작 (약 4단 · 발차기 2단)
   f.chain = f.st === "atk" && f.mv === id && CHAIN_MAX[id] ? f.chain + 1 : 1;
+  // 대시 중에 낸 잡기 = 돌진 잡기
+  f.lg = id === "T" && f.st === "dash" ? 1 : 0;
   f.st = "atk";
   f.mv = id;
   f.t = 0;
@@ -893,6 +903,8 @@ function control(s: State, i: number) {
         const sh = under ? under.y * SUB : m.summon.front ? f.h : o.h;
         s.proj.push({ k: 1, mv: 1, n: 0, t: 0, o: i, x: sx, h: sh, vx: 0, vh: 0, life: m.summon.delay + m.summon.life });
       }
+      // 돌진 잡기: 잡을 때까지 앞으로 파고듦
+      if (f.mv === "T" && f.lg && f.t < m.startup + m.active) f.vx = f.face * DASH_GRAB_V;
       // 연타 돌진기는 판정 동안 계속 나아감
       if (m.multi && m.rush && f.t >= m.startup && f.t < m.startup + m.active) f.vx = f.face * m.rush.vx;
       // 연타기: 일정 프레임마다 다시 맞을 수 있게
@@ -1109,7 +1121,12 @@ function landed(s: State, i: number, f: Fighter) {
     }
   }
   f.dive = 0;
-  if (f.st === "jump" || (f.st === "atk" && (f.mv === "J" || f.mv === "K" || lm?.lunge || lm?.rush || (f.aerial && f.mv && charOf(f).moves[f.mv].air)))) {
+  // 연타 돌진 필살기(카이 천풍난무)는 공중에서 써도 착지 뒤 땅에서 마저 돌진 (끊기지 않게)
+  const keepRush = f.st === "atk" && !!lm?.rush && !!lm.multi && f.t < lm.startup + lm.active;
+  if (keepRush) {
+    f.vh = 0;
+    f.aerial = 0;
+  } else if (f.st === "jump" || (f.st === "atk" && (f.mv === "J" || f.mv === "K" || lm?.lunge || lm?.rush || (f.aerial && f.mv && charOf(f).moves[f.mv].air)))) {
     f.st = "idle";
     f.mv = "";
     f.t = 0;
