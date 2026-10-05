@@ -53,6 +53,7 @@ interface AutoRule {
 //   동시치기 줄 비율               6 · 14 · 26 · 37 · 46%  (3개짜리 0 · 0 · 1 · 4 · 8%)
 //   잭(앞 줄과 같은 레인)          3 · 4 · 8 · 12 · 18%
 //   롱노트 비율·길이               12%·2박 · 11%·0.47초(2박) · 8%·0.33초(1박) · 9%·0.27초 · 7%·0.17초(반박)
+//   (롱노트는 osu 중앙값의 절반쯤으로 — 실제로 쳐보니 중앙값 그대로는 많게 느껴짐. osu도 하위 25%는 3% 안팎)
 const AUTO_RULES: Record<Difficulty, AutoRule> = {
   easy: {
     nps: 3,
@@ -65,7 +66,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     thick: [1.04, 1, 1],
     jackAllow: 0.12,
     jackRun: 2,
-    ln: { ratio: 0.12, lens: [1, 2, 2, 3, 4], maxSec: 1.2, onBeat: 0.95 },
+    ln: { ratio: 0.05, lens: [1, 1, 2, 2, 3], maxSec: 1, onBeat: 0.95 },
   },
   normal: {
     nps: 5,
@@ -78,7 +79,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     thick: [1.16, 1.06, 1.01],
     jackAllow: 0.2,
     jackRun: 2,
-    ln: { ratio: 0.11, lens: [1, 1, 2, 2, 3], maxSec: 1, onBeat: 0.94 },
+    ln: { ratio: 0.05, lens: [1, 1, 1, 2, 2], maxSec: 0.8, onBeat: 0.94 },
   },
   hard: {
     nps: 8.5,
@@ -91,7 +92,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     thick: [1.37, 1.1, 1.05],
     jackAllow: 0.4,
     jackRun: 3,
-    ln: { ratio: 0.08, lens: [0.5, 1, 1, 1.5, 2], maxSec: 0.6, onBeat: 0.81 },
+    ln: { ratio: 0.04, lens: [0.5, 1, 1, 1.5, 2], maxSec: 0.6, onBeat: 0.81 },
   },
   expert: {
     nps: 11.3,
@@ -104,7 +105,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     thick: [1.69, 1.2, 1.06],
     jackAllow: 0.6,
     jackRun: 3,
-    ln: { ratio: 0.09, lens: [0.5, 0.5, 1, 1, 1.5], maxSec: 0.45, onBeat: 0.69 },
+    ln: { ratio: 0.04, lens: [0.5, 0.5, 1, 1, 1.5], maxSec: 0.45, onBeat: 0.69 },
   },
   // 나이트메어: 매우 어려움보다 촘촘하게 고른 뒤, 센 마디는 16분으로 꽉 채우고 패턴으로만 레인을 깖 (아래 nightmareNotes)
   nightmare: {
@@ -118,7 +119,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     thick: [1.85, 1.34, 1.12],
     jackAllow: 0.85,
     jackRun: 4,
-    ln: { ratio: 0.07, lens: [0.5, 0.5, 0.5, 1], maxSec: 0.33, onBeat: 0.63 },
+    ln: { ratio: 0.03, lens: [0.5, 0.5, 0.5, 1], maxSec: 0.33, onBeat: 0.63 },
   },
 };
 
