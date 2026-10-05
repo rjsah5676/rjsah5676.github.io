@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import GuideView from "@/components/GuideView";
 import { RHYTHM_GUIDE } from "@/data/gameGuides";
 import { sfx } from "@/lib/rhythm/sfx";
+import PatchNotes, { LATEST } from "./PatchNotes";
 
 const DISP = "font-['Arial_Black','Segoe_UI_Black',Impact,sans-serif] font-black italic";
 
@@ -27,6 +28,7 @@ export default function TitleScreen({
 }) {
   const [cur, setCur] = useState(0);
   const [guide, setGuide] = useState(false);
+  const [notes, setNotes] = useState(false);
   const items: { label: string; sub: string; run: () => void }[] = [
     { label: "GAME START", sub: "곡 고르기", run: onStart },
     { label: "SETTINGS", sub: "속도 · 싱크 · 레인 위치", run: onSettings },
@@ -50,7 +52,7 @@ export default function TitleScreen({
     return () => window.removeEventListener("keydown", onKey);
   }, [guide]);
   useEffect(() => {
-    if (blocked || guide) return;
+    if (blocked || guide || notes) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (!entered) {
@@ -161,6 +163,20 @@ export default function TitleScreen({
       <div className="absolute right-[1.6cqw] bottom-[1.2cqw] font-mono text-[0.95cqw] text-white/40">
         DFJK 4KEY · {entered ? "↑ ↓ 이동 · Enter 선택" : "BEAT DASH"}
       </div>
+
+      {/* 패치노트 (오른쪽 위) */}
+      <button
+        type="button"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => setNotes(true)}
+        className="absolute top-[1.6cqw] right-[1.6cqw] z-10 flex cursor-pointer items-center gap-[0.6cqw] rounded-full border border-[#F472B6]/60 bg-[#0b0820]/75 px-[1.3cqw] py-[0.45cqw] font-['Nanum_Gothic',sans-serif] text-[1.2cqw] font-bold text-white backdrop-blur-[3px] transition-colors hover:border-[#F472B6] hover:bg-[#2a1240]/85"
+      >
+        📜 패치노트
+        <span className="font-mono text-[1cqw] font-normal text-white/55">
+          {LATEST.ver} · {LATEST.date.slice(5)}
+        </span>
+      </button>
+      {notes && <PatchNotes onClose={() => setNotes(false)} />}
 
       {guide && (
         <div
