@@ -375,7 +375,7 @@ const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3",
  *   rinkaku     --tweak '{"expert":{"fill":0.4}}'
  *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8}' --tweak '{"expert":{"fill":0.4}}'
  *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}'
- *   velocity    --bpm-label 180 --hard-slots --boss '{"loud":0.3,"full":0.5,"loudSub":2,"fullSub":4,"chordFull":2,"burstSub":8,"burstEvery":1}'
+ *   velocity    --bpm-label 180 --boss '{"loud":0.3,"full":0.5,"loudSub":2,"fullSub":4,"chordFull":2,"burstSub":8,"burstEvery":1}'
  */
 /** 새 곡은 항상 맨 앞에 */
 export const SONGS: Song[] = [FULLCOMBO, JILJU, NATSU, RINKAKU, NEWDIM, MONARCH, VELOCITY];

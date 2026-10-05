@@ -144,7 +144,8 @@ const BASE: Pattern[] = [
       [2, 3],
     ],
     chord: true,
-    w: 2,
+    // 두 모양만 번갈아 → 길면 지루해서 가볍게 (섞인 점프스트림 쪽을 더 자주)
+    w: 0.8,
     minLen: 4,
     tier: 1,
     mood: [0.4, 1.6],
@@ -157,7 +158,8 @@ const BASE: Pattern[] = [
       [1, 2],
     ],
     chord: true,
-    w: 1.5,
+    // DK FJ DK FJ… 가 너무 자주 나와서 확 줄임
+    w: 0.35,
     minLen: 4,
     tier: 1,
     mood: [0.4, 1.6],
@@ -170,7 +172,7 @@ const BASE: Pattern[] = [
       [1, 3],
     ],
     chord: true,
-    w: 1.3,
+    w: 0.7,
     minLen: 4,
     tier: 2,
     mood: [0.4, 1.6],
@@ -292,6 +294,8 @@ function subdivision(g: number, beatSec: number): 1 | 2 | 4 {
 
 /** 곡 전체에서 패턴을 얼마나 썼는지 — 다양성 유지용 */
 interface History {
+  /** 최근 동시치기 모양 (짝 고를 때 같은 모양이 번갈아 반복되지 않게) */
+  chords: string[];
   /** 모양(반전·역방향 묶음)별 사용 횟수 */
   shape: Map<string, number>;
   /** 최근에 고른 모양 (오래된 것부터) */
@@ -305,7 +309,7 @@ interface History {
  */
 export function assignPatterns(slots: Slot[], ctx: PatternCtx): Map<number, number[]> {
   const out = new Map<number, number[]>();
-  const hist: History = { shape: new Map(), recent: [], lastFamily: null };
+  const hist: History = { chords: [], shape: new Map(), recent: [], lastFamily: null };
   // 쉬움·보통은 노트가 띄엄띄엄이라 2박까지를 "이어진다"고 봄 (D _ F _ J _ K 도 계단으로 읽힘)
   // 나이트메어도 2박: 거의 모든 노트를 패턴 안에 넣기 위해
   const maxGap =
@@ -480,15 +484,54 @@ function layStream(
         out.set(k, lanes.slice(0, Math.max(1, slots[k].count)));
         continue;
       }
-      // 이 칸은 원래 동시치기인데 패턴은 단노트: 짝은 반대편 레인 — 앞뒤 칸과 겹치지 않는 쪽으로
+      // 이 칸은 원래 동시치기인데 패턴은 단노트: 짝은 앞뒤 칸과 겹치지 않게, 최근 모양과 다르게
       const main = lanes[0];
       const near = new Set([...stepAt(phase + 1), ...(k > a ? stepAt(phase - 1) : prevOf(out, k))]);
-      const partner = [3 - main, (main + 2) % 4, (main + 1) % 4, (main + 3) % 4].find(
-        (l) => l !== main && !near.has(l)
-      );
+      const [partner] = chordPartners(main, 1, {
+        avoid: near,
+        ok: () => true,
+        recent: hist.chords,
+        rnd: ctx.rnd,
+      });
       out.set(k, partner === undefined ? [main] : [main, partner]);
     }
   }
+}
+
+/**
+ * 동시치기 짝 레인 고르기 — 늘 거울 모양(D+K, F+J)만 나와 DK FJ DK FJ 처럼 번갈지 않게.
+ * 바로 앞 줄에 쓴 레인(avoid)·최근 두 동시치기와 같은 모양은 피하고, 나머지는 섞어서 고름.
+ * recent에 고른 모양을 쌓음 (최근 3개).
+ */
+export function chordPartners(
+  main: number,
+  n: number,
+  opts: { avoid: Set<number>; ok: (l: number) => boolean; recent: string[]; rnd: () => number }
+): number[] {
+  const picked: number[] = [];
+  const shapeOf = (ls: number[]) => [...ls].sort((x, y) => x - y).join("");
+  for (let c = 0; c < n; c++) {
+    const cands = [0, 1, 2, 3].filter((l) => l !== main && !picked.includes(l) && opts.ok(l));
+    if (!cands.length) break;
+    const score = (l: number) => {
+      const shape = shapeOf([main, ...picked, l]);
+      const r = opts.recent;
+      return (
+        (opts.avoid.has(l) ? 3 : 0) +
+        (shape === r[r.length - 1] ? 2.5 : 0) +
+        (shape === r[r.length - 2] ? 2 : 0) +
+        (shape === r[r.length - 3] ? 0.8 : 0) +
+        opts.rnd() * 1.5
+      );
+    };
+    cands.sort((x, y) => score(x) - score(y));
+    picked.push(cands[0]);
+  }
+  if (picked.length) {
+    opts.recent.push(shapeOf([main, ...picked]));
+    if (opts.recent.length > 3) opts.recent.shift();
+  }
+  return picked;
 }
 
 /** 가중치 뽑기 (가중치 합이 0이면 null) */

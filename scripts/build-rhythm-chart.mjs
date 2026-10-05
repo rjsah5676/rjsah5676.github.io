@@ -57,7 +57,7 @@ const dry = argv.includes("--dry");
 
 // ── src/lib/rhythm의 TS를 임시 폴더에 JS로 옮겨서 불러옴 ──
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rhythm-chart-"));
-for (const n of ["analyze", "autochart", "chart", "patterns"]) {
+for (const n of ["analyze", "autochart", "chart", "patterns", "stars"]) {
   const src = fs.readFileSync(path.join(ROOT, "src/lib/rhythm", `${n}.ts`), "utf8");
   let out = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -68,6 +68,7 @@ for (const n of ["analyze", "autochart", "chart", "patterns"]) {
 const load = (n) => import(pathToFileURL(path.join(tmp, `${n}.mjs`)).href);
 const { analyzeAudio, displayBpm, SR } = await load("analyze");
 const { makeAutoCharts } = await load("autochart");
+if (process.env.DEBUG_LV) globalThis.DEBUG_LV = true;
 
 // ── 음원 → 22.05kHz 모노 PCM (분석기가 쓰는 OfflineAudioContext는 이 데이터를 돌려주는 가짜로) ──
 const mp3 = path.join(ROOT, "public/audio", `${id}.mp3`);
@@ -96,7 +97,8 @@ console.log(
   `분석: ${a.bpm.toFixed(2)} BPM (표시 ${displayBpm(a).toFixed(1)}), 비트 ${a.beats.length}, 타격 ${a.onsets.length}, ${a.duration.toFixed(1)}초`
 );
 
-// ── 난이도별 채보 (아래 난이도보다 최소 3레벨 높아지게 밀도·채우기를 자동으로 올림) ──
+// ── 난이도별 채보 (목표 레벨 TARGET_LEVEL에 맞을 때까지 밀도·채우기를 자동 조절, 레벨 = osu 별점 × 4) ──
+//    DEBUG_LV=1 이면 난이도별로 맞춰 가는 과정 출력
 const diffs = ["easy", "normal", "hard", "expert"];
 if (bossArg !== undefined) diffs.push("nightmare");
 const tweaks = hardSlots

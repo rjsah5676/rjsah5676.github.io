@@ -17,7 +17,8 @@
 import type { Analysis, Onset } from "./analyze";
 import { FPS, gridPos } from "./analyze";
 import { finishChart, type Chart, type Difficulty, type Note } from "./chart";
-import { assignPatterns, type PatternCtx } from "./patterns";
+import { assignPatterns, chordPartners, type PatternCtx } from "./patterns";
+import { starRating } from "./stars";
 
 interface AutoRule {
   /** 목표 초당 노트 수 (곡에 타격이 그만큼 없으면 그보다 적게) */
@@ -32,54 +33,69 @@ interface AutoRule {
   chord: { every: number; need: number } | null;
   /** 롱노트가 되려면 다음 노트까지 최소 비트 수 */
   holdBeats: number;
+  /**
+   * 박 위치별 평균 동시 노트 수 [정박, 반박(셋잇단은 1/3·2/3박), 그 밖].
+   * 위치마다 센 타격부터 이 평균이 될 때까지 동시치기(2개, 넘치면 3개)로 만듦
+   */
+  thick: [number, number, number];
 }
 
+// 목표값은 osu!mania 4키 랭크 채보 103개(27곡)를 별점 구간별로 잰 중앙값
+// (쉬움 ≈1★ · 보통 2★ · 어려움 3★ · 매우 어려움 4★ · 나이트메어 4.5★+, 레벨 = 별점 × 4)
+//   초당 노트 3.1 / 5.1 / 8.5 / 11.3 / 13.1, 가장 짧은 간격 205 / 150 / 86 / 80 / 72ms
+//   (어려움은 180 BPM 16분(83ms)이 들어가게 80ms),
+//   동시치기 11 / 28 / 41 / 43 / 47%, 정박 동시 노트 수 1.1 / 1.35 / 1.7 / 1.9 / 2.0
 const AUTO_RULES: Record<Difficulty, AutoRule> = {
   easy: {
-    nps: 1.6,
-    minGap: 0.34,
-    jackGap: 0.8,
-    pos: [1, 0.45, 0, 0, 0],
-    floor: 0.18,
-    chord: null,
+    nps: 3,
+    minGap: 0.2,
+    jackGap: 0.5,
+    pos: [1, 0.6, 0.1, 0, 0],
+    floor: 0.15,
+    chord: { every: 8, need: 0.55 },
     holdBeats: 2,
+    thick: [1.12, 1.03, 1],
   },
   normal: {
-    nps: 3,
-    minGap: 0.17,
-    jackGap: 0.4,
-    pos: [1, 0.8, 0.3, 0, 0],
-    floor: 0.12,
-    chord: { every: 16, need: 0.55 },
+    nps: 5,
+    minGap: 0.15,
+    jackGap: 0.3,
+    pos: [1, 0.85, 0.35, 0, 0],
+    floor: 0.1,
+    chord: { every: 4, need: 0.45 },
     holdBeats: 1.5,
+    thick: [1.35, 1.09, 1],
   },
   hard: {
-    nps: 6,
-    minGap: 0.09,
-    jackGap: 0.2,
-    pos: [1, 0.9, 0.65, 0.25, 0],
-    floor: 0.08,
-    chord: { every: 4, need: 0.7 },
+    nps: 8.5,
+    minGap: 0.08,
+    jackGap: 0.17,
+    pos: [1, 0.95, 0.75, 0.3, 0],
+    floor: 0.07,
+    chord: { every: 2, need: 0.45 },
     holdBeats: 1.5,
+    thick: [1.72, 1.19, 1.05],
   },
   expert: {
-    nps: 9.5,
-    minGap: 0.055,
-    jackGap: 0.13,
-    pos: [1, 0.95, 0.85, 0.75, 0.45],
+    nps: 11.3,
+    minGap: 0.075,
+    jackGap: 0.12,
+    pos: [1, 1, 0.9, 0.75, 0.45],
     floor: 0.05,
-    chord: { every: 2, need: 0.6 },
+    chord: { every: 2, need: 0.4 },
     holdBeats: 1.25,
+    thick: [1.91, 1.31, 1.1],
   },
   // 나이트메어: 매우 어려움보다 촘촘하게 고른 뒤, 센 마디는 16분으로 꽉 채우고 패턴으로만 레인을 깖 (아래 nightmareNotes)
   nightmare: {
-    nps: 11,
-    minGap: 0.05,
-    jackGap: 0.11,
+    nps: 13,
+    minGap: 0.072,
+    jackGap: 0.1,
     pos: [1, 1, 0.95, 0.85, 0.5],
     floor: 0.04,
-    chord: { every: 2, need: 0.6 },
+    chord: { every: 2, need: 0.35 },
     holdBeats: 1.25,
+    thick: [2.03, 1.43, 1.15],
   },
 };
 
@@ -301,10 +317,11 @@ export function makeAutoChart(
   picked.sort((a, b) => a.t - b.t);
 
   // 1.5) 격자 채우기 — 어려움은 센 마디를 8분으로, 매우 어려움은 아주 센 마디를 16분으로 (fill이 클수록 더 넓게)
-  if ((diff === "hard" || diff === "expert") && (tweak.fill ?? 0) > 0) {
+  if ((diff === "normal" || diff === "hard" || diff === "expert") && (tweak.fill ?? 0) > 0) {
     // fill 1을 넘으면(1~1.6) 어지간한 마디까지 다 채움
     const fill = Math.min(1.6, tweak.fill ?? 0);
     const loudT = Math.max(0.05, 0.8 - 0.5 * fill);
+    // 보통은 8분까지만, 어려움은 8분, 매우 어려움은 아주 센 마디만 16분
     const fullT = diff === "expert" ? Math.max(0.2, 0.95 - 0.45 * fill) : 2;
     const have = picked.map((o) => o.t);
     const beatT = (k: number) =>
@@ -387,6 +404,7 @@ export function makeAutoChart(
         barOf,
         intensity: (b) => intensity[Math.max(0, Math.min(nBars - 1, b))],
         patCtx,
+        thick: R.thick,
       }
     );
     const nmHeld = addHoldsInStream(nm, {
@@ -407,8 +425,43 @@ export function makeAutoChart(
     );
   }
 
+  // 3) 동시치기 개수 — 박 위치별로 센 타격(센 마디일수록 우선)부터 목표 평균(R.thick)이 될 때까지
+  //    (osu 랭크 채보: 동시치기는 정박에 몰리고, 반박·16분으로 갈수록 얇음)
+  const extra = new Map<number, number>();
+  {
+    const beatsArr = an.beats;
+    const kindAt = (t: number) => {
+      let a = 0;
+      let b = beatsArr.length - 1;
+      while (b - a > 1) {
+        const m = (a + b) >> 1;
+        if (beatsArr[m] <= t) a = m;
+        else b = m;
+      }
+      const base = t >= beatsArr[b] ? beatsArr[b] : beatsArr[a];
+      const f = (t - base) / beatSec;
+      const near = (x: number) => Math.abs(f - x) < 0.04;
+      if (near(0) || near(1)) return 0;
+      if (near(0.5) || (an.div === 12 && (near(1 / 3) || near(2 / 3)))) return 1;
+      return 2;
+    };
+    const groups: number[][] = [[], [], []];
+    picked.forEach((o, i) => groups[kindAt(o.t)].push(i));
+    const score = (i: number) => picked[i].s * (0.5 + intensity[Math.max(0, Math.min(nBars - 1, barOf(picked[i].t)))]);
+    groups.forEach((g, k) => {
+      const m = R.thick[k];
+      const two = Math.round(g.length * Math.min(1, m - 1));
+      const three = Math.round(g.length * Math.max(0, m - 2));
+      g.sort((x, y) => score(y) - score(x)).forEach((i, r) => {
+        if (r < two) extra.set(i, r < three ? 2 : 1);
+      });
+    });
+  }
+
   const notes: Note[] = [];
   const laneLast = [-Infinity, -Infinity, -Infinity, -Infinity];
+  /** 최근 동시치기 모양 (chordPartners) */
+  const chordHist: string[] = [];
   let prevLane = -1;
   let sameRun = 0;
   for (let i = 0, lo = 0, hi = 0; i < picked.length; i++) {
@@ -477,23 +530,26 @@ export function makeAutoChart(
       }
     }
 
-    // 3) 동시치기 — 규칙 자리 + 구간 진입(드롭·코러스) 첫 노트
+    // 동시치기 붙이기 — 3)에서 정한 개수 + 구간 진입(드롭·코러스) 첫 노트는 최소 1개
     const entry =
       R.chord !== null &&
       sectionStart(barOf(o.t)) &&
       (i === 0 || barOf(picked[i - 1].t) !== barOf(o.t));
-    if (
-      entry ||
-      (R.chord &&
-        o.grid >= 0 &&
-        o.grid % ((R.chord.every * an.div) / 4) === 0 &&
-        // need가 0이면 대역 조건 없이 세기만 봄 (곡별 손보기)
-        (R.chord.need === 0 || (o.low >= R.chord.need && o.high >= R.chord.need * 0.8)) &&
-        o.s >= Math.max(0.2, R.chord.need))
-    ) {
-      let l2 = 3 - want;
-      if (l2 === want || o.t - laneLast[l2] < R.jackGap) l2 = (want + 2) % 4;
-      if (o.t - laneLast[l2] >= R.jackGap) {
+    const more = Math.max(extra.get(i) ?? 0, entry ? 1 : 0);
+    if (more > 0) {
+      // 짝 레인: 거울(D+K·F+J)만 반복되지 않게 — 바로 앞 줄 레인·최근 동시치기 모양은 피함
+      const prevRow = new Set<number>();
+      for (let k = notes.length - 2; k >= 0 && notes[k].t !== o.t; k--) {
+        if (prevRow.size && notes[k].t !== notes[k + 1].t) break;
+        prevRow.add(notes[k].lane);
+      }
+      const ls = chordPartners(want, more, {
+        avoid: prevRow,
+        ok: (l) => o.t - laneLast[l] >= R.jackGap && !notes.some((m) => m.t === o.t && m.lane === l),
+        recent: chordHist,
+        rnd,
+      });
+      for (const l2 of ls) {
         notes.push({ t: o.t, lane: l2 });
         laneLast[l2] = o.t;
       }
@@ -664,6 +720,7 @@ function nightmareNotes(
     barOf: (t: number) => number;
     intensity: (bar: number) => number;
     patCtx: PatternCtx;
+    thick: [number, number, number];
   }
 ): Note[] {
   const { beatSec, barOf, intensity } = ctx;
@@ -716,6 +773,32 @@ function nightmareNotes(
     if (full && beatInBar === 3 && b % P.burstEvery === P.burstEvery - 1)
       for (let i = 0; i < P.burstSub; i++) put(t0 + (i * (t1 - t0)) / P.burstSub, 1, true);
   }
+  // 박 위치별 두께를 목표 평균(thick)까지 — 센 마디부터 2개, 넘치면 3개
+  {
+    const kindAt = (t: number) => {
+      const k = Math.round((t - (beats[0] ?? 0)) / beatSec);
+      const f = (t - beatT(Math.max(0, Math.min(k, nBeats)))) / beatSec;
+      const near = (x: number) => Math.abs(f - x) < 0.04;
+      if (near(0)) return 0;
+      if (near(0.5) || near(-0.5) || (an.div === 12 && (near(1 / 3) || near(-1 / 3)))) return 1;
+      return 2;
+    };
+    const groups: number[][] = [[], [], []];
+    const ks = [...slots.keys()];
+    ks.forEach((t) => groups[kindAt(t)].push(t));
+    groups.forEach((g, k) => {
+      let need = Math.round(g.length * ctx.thick[k] - g.reduce((a, t) => a + slots.get(t)!, 0));
+      const order = [...g].sort((x, y) => intensity(barOf(y)) - intensity(barOf(x)) || x - y);
+      for (let round = 0; round < 2 && need > 0; round++)
+        for (const t of order) {
+          if (need <= 0) break;
+          const c = slots.get(t)!;
+          if (c >= 2 + round) continue;
+          slots.set(t, c + 1);
+          need--;
+        }
+    });
+  }
   const times = [...slots.keys()].sort((a, b) => a - b);
   // 패턴용 음색: 가장 가까운 타격의 음색
   const cen = times.map((t) => nearestCen(an, t));
@@ -754,12 +837,24 @@ function nightmareNotes(
   return notes;
 }
 
-/** 난이도 사이 최소 레벨 차 */
-export const LEVEL_STEP = 3;
+/**
+ * 난이도별 목표 레벨 (레벨 = osu!mania 별점 × 4). 나이트메어는 17 이상 —
+ * 그 위 등급이 생기면 여기에 더하면 됨
+ */
+export const TARGET_LEVEL: Record<Difficulty, number> = {
+  easy: 4,
+  normal: 8,
+  hard: 12,
+  expert: 16,
+  nightmare: 19,
+};
+/** 목표에서 이만큼 벗어나도 됨 */
+const LEVEL_TOL = 1;
 
 /**
- * 난이도별 채보를 한 번에 — 아래 난이도보다 레벨이 최소 LEVEL_STEP 높아질 때까지
- * 밀도·격자 채우기를 조금씩 올려 가며 다시 뽑는다 (곡에 타격이 적어 두 난이도가 비슷해지는 걸 막음).
+ * 난이도별 채보를 한 번에 — 각 난이도가 목표 레벨(TARGET_LEVEL)에 들어올 때까지
+ * 밀도(·어려움 이상은 격자 채우기)를 조절해 다시 뽑는다. 가장 가까운 결과를 씀.
+ * 곡에 타격이 적어 목표까지 못 올라가도, 아래 난이도보다는 최소 2레벨 높게.
  * @param diffs 만들 난이도 (보스곡·내 음악은 nightmare 포함)
  */
 export function makeAutoCharts(
@@ -772,15 +867,31 @@ export function makeAutoCharts(
   let prevLevel = -Infinity;
   for (const d of diffs) {
     const base = tweaks[d] ?? {};
-    let chart = makeAutoChart(an, d, shiftMs, base);
-    for (let attempt = 1; attempt <= 8 && chart.level < prevLevel + LEVEL_STEP; attempt++)
-      chart = makeAutoChart(an, d, shiftMs, {
-        ...base,
-        density: (base.density ?? 1) * (1 + 0.12 * attempt),
-        fill: Math.min(1.6, (base.fill ?? 0) + attempt / 5),
-      });
-    out[d] = chart;
-    prevLevel = chart.level;
+    const target = Math.max(TARGET_LEVEL[d], prevLevel + 2);
+    const canFill = d !== "easy";
+    let density = base.density ?? 1;
+    let fill = base.fill ?? 0;
+    let best: Chart | null = null;
+    let bestRaw = 0;
+    for (let attempt = 0; attempt < 7; attempt++) {
+      const chart = makeAutoChart(an, d, shiftMs, { ...base, density, fill });
+      // 레벨은 난이도별 최저값으로 올려 놓은 값이라, 맞춰 갈 때는 별점 그대로 잼
+      const raw = Math.round(starRating(chart.notes) * 4);
+      if (!best || Math.abs(raw - target) < Math.abs(bestRaw - target)) {
+        best = chart;
+        bestRaw = raw;
+      }
+      const miss = raw - target;
+      if ((globalThis as { DEBUG_LV?: boolean }).DEBUG_LV) console.log(`  ${d} 시도${attempt} 밀도x${density.toFixed(2)} 채우기${fill.toFixed(1)} → Lv${raw} 노트${chart.notes.length}`);
+      if (Math.abs(miss) <= LEVEL_TOL) break;
+      // 레벨은 밀도에 거의 비례 → 비율로 맞춰 감 (한 번에 너무 크게는 안 움직임)
+      const ratio = Math.min(1.6, Math.max(0.6, target / Math.max(1, raw)));
+      density *= ratio;
+      // 밀도를 올려도 곡에서 찾은 타격이 모자라면 격자 채우기로
+      if (miss < 0 && canFill) fill = Math.min(1.6, fill + 0.3);
+    }
+    out[d] = best!;
+    prevLevel = bestRaw;
   }
   return out;
 }

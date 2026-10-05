@@ -9,6 +9,7 @@
  *  - 롤(roll): 탐 필인은 3→2→1→0 처럼 레인을 쓸어내리며
  *  - 진입 동시치기(entry chord): 구간이 바뀌는 첫 박은 난이도만큼 동시치기
  */
+import { starRating } from "./stars";
 import type { Kind, MusicEvent, Song } from "./music";
 
 export type Difficulty = "easy" | "normal" | "hard" | "expert" | "nightmare";
@@ -307,50 +308,18 @@ export function makeChart(song: Song, diff: Difficulty): Chart {
   return finishChart(notes, diff);
 }
 
-/**
- * 밀도(초당 노트 + 최고 구간 가중) → 레벨. 난이도와 상관없이 한 자로 잼
- * (대략 쉬움 2~4 · 보통 5~8 · 어려움 10~12 · 매우 어려움 14~16 · 나이트메어 18+)
- */
-const LEVEL_CURVE: [number, number][] = [
-  [0, 1],
-  [2, 2],
-  [5, 6],
-  [8.5, 11],
-  [12.5, 15],
-  [17, 18],
-  [24, 22],
-];
-export function levelOfDensity(density: number): number {
-  for (let i = 1; i < LEVEL_CURVE.length; i++) {
-    const [d0, l0] = LEVEL_CURVE[i - 1];
-    const [d1, l1] = LEVEL_CURVE[i];
-    if (density <= d1) return Math.round(l0 + ((density - d0) / (d1 - d0)) * (l1 - l0));
-  }
-  return LEVEL_CURVE[LEVEL_CURVE.length - 1][1];
-}
-
 /** 정렬 + 판정 단위 수 + 레벨 계산 (자동 채보에서도 같이 씀) */
 export function finishChart(notes: Note[], diff: Difficulty = "normal"): Chart {
   notes.sort((a, b) => a.t - b.t || a.lane - b.lane);
   const units = notes.reduce((s, n) => s + (n.end ? 2 : 1), 0);
-
-  // 밀도: 초당 노트 수(평균) + 가장 빽빽한 4초 구간 가중
-  const playSec = notes.length ? notes[notes.length - 1].t - notes[0].t + 1 : 1;
-  const avg = notes.length / playSec;
-  let peak = 0;
-  for (let i = 0, j = 0; i < notes.length; i++) {
-    while (notes[i].t - notes[j].t > 4) j++;
-    peak = Math.max(peak, (i - j + 1) / 4);
-  }
-  const density = avg + peak * 0.45;
-  // 쉬움은 1~4, 나머지는 밀도 그대로 (난이도별 최저 레벨만 보장)
+  // 레벨 = osu!mania 별점 × 4 (stars.ts). 상한 없음, 난이도별 최저 레벨만 보장
   const floor: Record<Difficulty, number> = {
     easy: 1,
-    normal: 4,
-    hard: 8,
-    expert: 12,
-    nightmare: 16,
+    normal: 5,
+    hard: 9,
+    expert: 13,
+    nightmare: 17,
   };
-  const level = Math.max(floor[diff], Math.min(22, levelOfDensity(density)));
+  const level = Math.max(floor[diff], Math.round(starRating(notes) * 4));
   return { notes, level, units };
 }
