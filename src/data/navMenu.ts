@@ -90,14 +90,14 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         href: "/games/rhythm",
         image: imgRhythm,
-        label: "리듬게임",
-        desc: "BEAT DASH · 4키 리듬게임, 곡·난이도별 랭킹",
+        label: "BEAT DASH",
+        desc: "4키 리듬게임, 곡·난이도별 랭킹",
         icon: "🎹",
       },
       {
         href: "/games/fight",
         image: imgFight,
-        label: "픽셀 격투",
+        label: "PIXEL FIGHT",
         desc: "1:1 플랫폼 격투, AI 모드 · 2인 모드 · 온라인 모드",
         icon: "🥊",
       },
