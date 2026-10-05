@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { omokSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
 import OmokBoard from "./OmokBoard";
+import { BoardSizePicker, boardMaxWidth, useBoardSize } from "./boardSize";
 import { END_REASON, SIDE_KO, SideBar } from "./OmokParts";
 import { useOmokAI } from "./useOmokAI";
 import {
@@ -111,6 +112,7 @@ export function OmokNotation({ moves }: { moves: string[] }) {
 }
 
 export default function OmokAIGame({ numbers }: { numbers: boolean }) {
+  const [boardSize, setBoardSize] = useBoardSize();
   const [settings, setSettings] = useState<Settings>({
     me: "w",
     bot: DEFAULT_OMOK_BOT,
@@ -384,7 +386,7 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
 
   return (
     <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
-      <div className="w-full max-w-[max(300px,min(720px,calc(100dvh-240px)))]">
+      <div className="w-full" style={{ maxWidth: boardMaxWidth(boardSize, 300) }}>
         <div className="relative">
           <SideBar
             color={top}
@@ -411,6 +413,7 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
       </div>
 
       <div className="flex w-full max-w-[560px] flex-col gap-3 lg:w-72">
+        <BoardSizePicker size={boardSize} onChange={setBoardSize} />
         <div className="rounded-xl border border-white/10 bg-[#1C1E24] px-4 py-3 font-['Nanum_Gothic',sans-serif] text-sm text-white/80">
           {status}
           <div className="mt-1 font-mono text-[11px] text-white/35">{RULE_LABEL[rule]}</div>
