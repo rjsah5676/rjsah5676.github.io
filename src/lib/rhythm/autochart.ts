@@ -187,15 +187,22 @@ export function makeAutoChart(
   };
   if (tweak.finePos !== undefined) R.pos[3] = tweak.finePos;
   const beatSec = 60 / an.bpm;
-  // 세분 칸(32분·셋잇단 사이)이 70ms보다 좁은 빠른 곡: 세분 칸·격자 밖 타격은 안 씀.
-  // 16분 바로 옆에 붙어 '살짝 어긋난 동시치기'가 되거나, 일정하던 간격이 갑자기 1.5배가 되는 엇박이 됨
-  if (beatSec / an.div < 0.07) {
-    R.pos[3] = 0;
-    R.pos[4] = 0;
-  }
+  // 격자 한 칸이 70ms보다 좁은 빠른 곡: 홀수 칸(4/4는 32분, 12/8은 셋잇단 16분 사이)·격자 밖 타격은 안 씀.
+  // 바로 옆 칸에 붙어 '살짝 어긋난 동시치기'가 되거나, 일정하던 간격이 갑자기 1.5배가 되는 엇박이 됨
+  // (12/8의 셋잇단 8분·16분은 짝수 칸이라 그대로)
+  const tightGrid = beatSec / an.div < 0.07;
+  if (tightGrid) R.pos[4] = 0;
+  // 노트 사이 최소 72ms — 그보다 붙으면 손으로는 동시치기처럼 느껴져서 '살짝 어긋난 동시치기'가 됨
+  R.minGap = Math.max(R.minGap, 0.072);
   const cands = an.onsets
     // 격자 밖 타격(셋잇단·싱커페이션 등)은 아주 셀 때만
-    .filter((o) => o.s >= R.floor && R.pos[posKind(o, an.div)] > 0 && (o.grid >= 0 || o.s >= 0.5))
+    .filter(
+      (o) =>
+        o.s >= R.floor &&
+        R.pos[posKind(o, an.div)] > 0 &&
+        (o.grid >= 0 || o.s >= 0.5) &&
+        !(tightGrid && o.grid % 2 !== 0)
+    )
     .map((o) => ({
       o,
       w: o.s * R.pos[posKind(o, an.div)] * (0.8 + 0.2 * Math.max(o.low, o.mid)),
@@ -311,7 +318,10 @@ export function makeAutoChart(
       if (t0 > lastPick) break;
       const I = intensity[Math.max(0, Math.min(nBars - 1, barOf(t0)))];
       if (I < loudT) continue;
-      const sub = I >= fullT ? 4 : 2;
+      // 12/8(셋잇단 격자)은 점4분을 3·6으로 나눠야 곡 박자에 맞음
+      // 잘게 나눈 칸이 너무 촘촘하면(90ms 미만) 한 단계 덜 나눔
+      const fine = an.div === 12 ? 6 : 4;
+      const sub = I >= fullT && beatSec / fine >= 0.08 ? fine : fine / 2;
       const t1 = beatT(k + 1);
       for (let i = 0; i < sub; i++) {
         const t = t0 + (i * (t1 - t0)) / sub;
@@ -663,15 +673,28 @@ function nightmareNotes(
   // 슬롯: 시각 → 노트 수 (1 또는 2)
   const slots = new Map<number, number>();
   const key = (t: number) => Math.round(t * 200) / 200; // 5ms 격자
-  const put = (t: number, count = 1) => {
+  const near = (k: number, range: number) => {
+    let best: number | null = null;
+    for (const s of slots.keys())
+      if (Math.abs(s - k) <= range && (best === null || Math.abs(s - k) < Math.abs(best - k)))
+        best = s;
+    return best;
+  };
+  /** burst: 32분 연타처럼 일부러 촘촘한 노트 (합치지 않음) */
+  const put = (t: number, count = 1, burst = false) => {
     if (t <= 0 || t > an.duration - 0.2) return;
     const k = key(t);
-    // 아주 가까운 슬롯이 이미 있으면 거기 합침
-    for (const d of [0, 0.005, -0.005, 0.01, -0.01, 0.015, -0.015, 0.02, -0.02])
-      if (slots.has(key(k + d))) {
-        slots.set(key(k + d), Math.max(slots.get(key(k + d))!, count));
-        return;
-      }
+    // 아주 가까운 슬롯(20ms)은 같은 노트, 72ms 안은 '살짝 어긋난 동시치기'가 되니 딱 붙은 동시치기로 합침
+    const same = near(k, 0.02);
+    if (same !== null) {
+      slots.set(same, Math.max(slots.get(same)!, count));
+      return;
+    }
+    const flam = burst ? null : near(k, 0.072);
+    if (flam !== null) {
+      slots.set(flam, 2);
+      return;
+    }
     slots.set(k, count);
   };
   for (const o of picked) put(o.t, 1);
@@ -691,7 +714,7 @@ function nightmareNotes(
     for (let i = 0; i < sub; i++) put(t0 + (i * (t1 - t0)) / sub, 1);
     const beatInBar = Math.round((t0 - (beats[0] ?? 0)) / beatSec) % 4;
     if (full && beatInBar === 3 && b % P.burstEvery === P.burstEvery - 1)
-      for (let i = 0; i < P.burstSub; i++) put(t0 + (i * (t1 - t0)) / P.burstSub, 1);
+      for (let i = 0; i < P.burstSub; i++) put(t0 + (i * (t1 - t0)) / P.burstSub, 1, true);
   }
   const times = [...slots.keys()].sort((a, b) => a - b);
   // 패턴용 음색: 가장 가까운 타격의 음색

@@ -11,6 +11,7 @@
  *   --boss '<json>'   보스곡: 나이트메어 난이도를 추가 (src/lib/rhythm/autochart의 NightmareTweak, {}면 기본값)
  *   --hard-slots      쉬움·보통·어려움을 한 단계 위 규칙으로 (보스곡용: 대략 Lv6 / 11 / 14)
  *   --straight        분석기가 셋잇단(12/8)으로 잘못 볼 때 1.5배 템포 4/4로 강제
+ *   --tweak '<json>'  난이도별 AutoTweak 덮어쓰기 (예: '{"expert":{"fill":0.6}}')
  *   --dry             파일은 안 쓰고 난이도별 통계만 출력
  *   --stats           패턴을 얼마나 다양하게 썼는지 출력
  *
@@ -36,7 +37,7 @@ const ts = require("typescript");
 // ── 인자 ──
 const argv = process.argv.slice(2);
 const id = argv.find(
-  (a) => !a.startsWith("--") && !argv[argv.indexOf(a) - 1]?.match(/^--(bpm-label|boss)$/)
+  (a) => !a.startsWith("--") && !argv[argv.indexOf(a) - 1]?.match(/^--(bpm-label|boss|tweak)$/)
 );
 if (!id) {
   console.error(
@@ -107,6 +108,9 @@ const tweaks = hardSlots
     }
   : {};
 if (bossArg !== undefined) tweaks.nightmare = { nightmare: JSON.parse(bossArg) };
+const tweakArg = opt("--tweak");
+if (tweakArg)
+  for (const [d, t] of Object.entries(JSON.parse(tweakArg))) tweaks[d] = { ...(tweaks[d] ?? {}), ...t };
 // --stats: 난이도별로 어떤 패턴을 얼마나 썼는지 (다양성 점검)
 const stats = argv.includes("--stats");
 const picks = {};

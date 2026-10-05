@@ -345,30 +345,36 @@ const RINKAKU = audioSong("rinkaku", "名前のない輪郭", "/audio/rinkaku.mp
   desc: "163 BPM · J-ROCK (12/8) · AI 자작곡 (tunee.ai)",
 });
 
-// 나이트메어(Lv17)도 있음: --boss '{"loud":0.55,"full":0.85,"burstEvery":8}'
 const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimData, {
   color: "#C084FC",
   desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
 });
 
-// 나이트메어 난이도(센 마디마다 16분 연타·박마다 동시치기·프레이즈 끝 32분 연타, 레인은 전부 패턴
 const MONARCH = audioSong("monarch", "Monarch's Fall", "/audio/monarch.mp3", monarchData, {
   color: "#EF4444",
   desc: "150 BPM · AI 자작곡",
 });
 
-// 같은 방식에 180 BPM 16분 연타·2마디마다 32분 연타
 const VELOCITY = audioSong("velocity", "Maximum Velocity", "/audio/velocity.mp3", velocityData, {
   color: "#F472B6",
   desc: "180 BPM · AI 자작곡",
 });
 
-// 나이트메어(Lv18): npm run rhythm-chart -- fullcombo --straight --bpm-label 180 --boss '{"loud":0.5,"full":0.8,"burstEvery":8}'
 const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3", fullcomboData, {
   color: "#FB7185",
   desc: "180 BPM · K-POP 걸밴드 록 · AI 자작곡 (tunee.ai)",
 });
 
+/*
+ * 채보 다시 뽑기 (npm run rhythm-chart -- <id> ...) — 엇박·살짝 어긋난 동시치기 줄인 규칙으로 전부 다시 뽑음
+ *   fullcombo   --bpm-label 180 --boss '{"loud":0.5,"full":0.8,"burstEvery":8}'
+ *   jilju       --tweak '{"hard":{"fill":0.3},"expert":{"fill":0.15}}'
+ *   natsukasumi --tweak '{"hard":{"fill":0.9},"expert":{"fill":1.3}}'
+ *   rinkaku     --tweak '{"expert":{"fill":0.4}}'
+ *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8}' --tweak '{"expert":{"fill":0.4}}'
+ *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}'
+ *   velocity    --bpm-label 180 --hard-slots --boss '{"loud":0.3,"full":0.5,"loudSub":2,"fullSub":4,"chordFull":2,"burstSub":8,"burstEvery":1}'
+ */
 /** 새 곡은 항상 맨 앞에 */
 export const SONGS: Song[] = [FULLCOMBO, JILJU, NATSU, RINKAKU, NEWDIM, MONARCH, VELOCITY];
 
