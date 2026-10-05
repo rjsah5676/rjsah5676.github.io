@@ -18,18 +18,51 @@ const k = (...ks: string[]) => (
   </span>
 );
 
-const TECH: [string, string][] = [
-  ["연속기", "약 J는 4단, 발차기 K는 2단까지 이어져요. 마지막 동작은 세지만 빈틈이 커서 막히면 반격당해요"],
-  ["캔슬", "맞히는 중에 아이덴티티 L · 필살기 I 를 누르면 바로 이어 나가요"],
-  ["점프 우선", "J · K 공격 중에도 점프를 누르면 바로 뛰어요 (L · I 는 끝나자마자 뜀)"],
-  ["잡기", "J + K 동시 — 가드를 뚫고 위로 띄워요. 잡힌 직후 J + K 로 풀 수 있어요"],
-  ["다운 공격", "누워 있는 상대도 맞아요 (못 막음, 피해 절반). J + K 로 잡으면 다시 띄워요"],
-  ["가드 반격", "막는 중이나 막은 직후 K — 게이지 25를 쓰고 상대를 띄워요"],
-  ["저스트 가드", "맞기 직전에 가드 — 경직 절반, 깎임 없음, 게이지 +"],
-  ["띄우기 콤보", "띄운 뒤 바로 점프 → 공중 J · K (맞히면 나도 같이 천천히 내려옴). 점프마다 J 4번 + K 2번 (2단 점프하면 다시), 섞어 치면 더 아파요"],
-  ["내려찍기", "공중 콤보 마무리: 공중에서 ↓ + K 로 상대를 바닥에 꽂아 튕긴 뒤 다운 (피해 1.4배, 점프마다 1번 · 발차기 횟수와 따로)"],
-  ["카운터", "상대가 기술을 내는 중이거나 대시 중에 맞히면 1.25배, 경직도 길어요"],
+/** 콤보·기술: 묶음별 [이름, 설명] */
+const TECH: { title: string; color: string; items: [string, string][] }[] = [
+  {
+    title: "공격 잇기",
+    color: "#FDE047",
+    items: [
+      ["연속기", "약 J 는 4단, 발차기 K 는 2단까지. 마지막 동작은 세지만 막히면 반격당해요"],
+      ["캔슬", "맞히는 중에 L · I 를 누르면 바로 이어 나가요"],
+      ["점프 우선", "J · K 공격 중에도 점프가 바로 나가요 (L · I 는 끝나자마자)"],
+      ["카운터", "상대가 기술을 내는 중·대시 중에 맞히면 1.25배, 경직도 길어요"],
+    ],
+  },
+  {
+    title: "잡기 · 가드",
+    color: "#7DD3FC",
+    items: [
+      ["잡기", "J + K 동시 — 가드를 뚫고 위로 띄워요. 잡힌 직후 J + K 로 풀기"],
+      ["가드 반격", "막는 중·막은 직후 K — 게이지 25 쓰고 상대를 띄워요"],
+      ["저스트 가드", "맞기 직전에 가드 — 경직 절반, 깎임 없음, 게이지 +"],
+      ["다운 공격", "누운 상대도 맞아요 (못 막음, 피해 절반). J + K 로 잡으면 다시 띄움"],
+    ],
+  },
+  {
+    title: "공중 콤보",
+    color: "#FF8A3D",
+    items: [
+      ["띄우고 점프", "잡기·가드 반격 등으로 띄운 뒤 바로 점프 → 공중 J · K (맞히면 나도 같이 천천히 내려옴)"],
+      ["공중 횟수", "점프마다 J 4번 + K 2번 (2단 점프하면 다시). 섞어 맞히면 더 아프고, 같은 것만 반복하면 덜 아파요"],
+      ["내려찍기", "마무리로 공중에서 ↓ + K — 바닥에 꽂아 튕긴 뒤 다운 (피해 1.4배, 점프마다 1번 · K 횟수와 따로)"],
+    ],
+  },
 ];
+
+/** 묶음 제목: 왼쪽 색 막대 + 글자 */
+function Sec({ title, color, children }: { title: string; color: string; children?: React.ReactNode }) {
+  return (
+    <div className="mb-1.5 flex items-center gap-1.5">
+      <span className="h-3 w-[3px] rounded-full" style={{ background: color }} />
+      <span className="text-[11px] font-extrabold tracking-wide text-white/80">{title}</span>
+      {children}
+    </div>
+  );
+}
+
+const CARD = "rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-2";
 
 /** 상태 이상: [이름, 누가, 색, 설명] */
 const STATUS: [string, string, string, string][] = [
@@ -51,7 +84,6 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
         ["발차기", k("K"), k(".")],
         ["아이덴티티", k("L"), k(";")],
         ["필살기 (MAX)", k("I"), k("'")],
-        ["공중콤보 내려찍기", k("S", "+", "K"), k("↓", "+", ".")],
       ]
     : [
         ["이동 (두 번 = 대시)", k("A", "D"), k("←", "→")],
@@ -61,84 +93,106 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
         ["발차기", k("K"), k("X")],
         ["아이덴티티", k("L"), k("C")],
         ["필살기 (MAX)", k("I"), k("V")],
-        ["공중콤보 내려찍기", k("S", "+", "K"), k("↓", "+", "X")],
       ];
   return (
-    <div className={`mt-3 grid gap-3 rounded-lg bg-black/20 px-3 py-3 ${KR} text-[11.5px] leading-relaxed text-white/60 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]`}>
-      {/* 키 */}
-      <div>
-        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 gap-y-1">
-          <span className="pb-0.5 text-[10.5px] text-white/35">조작</span>
-          <span className="min-w-20 pb-0.5 text-center text-[10.5px] text-white/35">{two ? "1P" : "기본"}</span>
-          <span className="min-w-16 pb-0.5 text-center text-[10.5px] text-white/35">{two ? "2P" : "또는"}</span>
-          {rows.map(([label, a, b]) => (
-            <div key={label} className="contents">
-              <span className="break-keep text-white/65">{label}</span>
-              <span className="flex min-w-20 justify-center">{a}</span>
-              <span className="flex min-w-16 justify-center">{b}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-2 text-[10.5px] text-white/35">
-          {mode === "online" ? "온라인은 멈추지 않아요 · Esc 메뉴" : "Esc·P 일시정지"} · 게임패드·휴대폰 화면 버튼도 돼요
-        </div>
-      </div>
-      {/* 기술 */}
-      <div className="min-w-0">
-        {chars && (
-          <div className="mb-2.5 grid gap-2 sm:grid-cols-2">
-            {chars.map((ci, i) => {
-              const c = CHARS[ci];
-              return (
-                <div key={i} className="rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-2">
-                  <div className="mb-1 flex items-center gap-1.5">
-                    <span className="rounded px-1 font-mono text-[10px] font-bold text-white" style={{ background: i === 0 ? "#3B82F6" : "#F43F5E" }}>
-                      {i === 0 ? "1P" : "2P"}
-                    </span>
-                    <b className="text-[12px]" style={{ color: c.color }}>
-                      {c.name}
-                    </b>
-                  </div>
-                  <p>
-                    <KeyCap k="L" /> <b className="text-[#FDE047]/85">{c.idName}</b> {keyText(c.idDesc)}
-                  </p>
-                  <p>
-                    <b className="text-[#FDE047]/60">{keyText(c.airLabel ?? "점프 중 L")}</b> {keyText(c.airDesc)}
-                  </p>
-                  <p>
-                    <KeyCap k="I" /> <b className="text-[#22D3EE]/85">{c.ultName}</b> {keyText(c.ultDesc)}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
-          {TECH.map(([t, d]) => (
-            <div key={t} className="flex gap-2">
-              <dt className="w-[4.6rem] shrink-0 font-bold text-white/75">{t}</dt>
-              <dd className="min-w-0 break-keep">{keyText(d)}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-2.5 border-t border-white/10 pt-2">
-          <div className="mb-1 text-[10.5px] text-white/35">상태 이상</div>
-          <div className="grid gap-1">
-            {STATUS.map(([n, who, col, d]) => (
-              <div key={n} className="flex items-start gap-2">
-                <span
-                  className="mt-px shrink-0 rounded px-1.5 text-[10.5px] font-bold text-black"
-                  style={{ background: col }}
-                >
-                  {n}
-                </span>
-                <span className="w-9 shrink-0 text-white/45">{who}</span>
-                <span className="min-w-0 break-keep">{d}</span>
+    <div className={`mt-3 flex flex-col gap-3 rounded-lg bg-black/20 px-3 py-3 ${KR} text-[11.5px] leading-relaxed text-white/60`}>
+      <div className="grid gap-3 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
+        {/* 조작 */}
+        <section className={CARD}>
+          <Sec title="조작" color="#A78BFA" />
+          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 gap-y-1">
+            <span />
+            <span className="min-w-20 text-center text-[10px] text-white/35">{two ? "1P" : "기본"}</span>
+            <span className="min-w-16 text-center text-[10px] text-white/35">{two ? "2P" : "또는"}</span>
+            {rows.map(([label, a, b]) => (
+              <div key={label} className="contents">
+                <span className="break-keep text-white/70">{label}</span>
+                <span className="flex min-w-20 justify-center">{a}</span>
+                <span className="flex min-w-16 justify-center">{b}</span>
               </div>
             ))}
           </div>
-        </div>
+          <div className="mt-2 border-t border-white/10 pt-1.5 text-[10.5px] text-white/35">
+            {mode === "online" ? "온라인은 멈추지 않아요 · Esc 메뉴" : "Esc·P 일시정지"} · 게임패드·휴대폰 화면 버튼도 돼요
+          </div>
+        </section>
+        {/* 캐릭터 */}
+        {chars ? (
+          <section className="min-w-0">
+            <Sec title="캐릭터 기술" color="#F472B6" />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {chars.map((ci, i) => {
+                const c = CHARS[ci];
+                return (
+                  <div key={i} className={`${CARD} flex flex-col gap-1`}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="rounded px-1 font-mono text-[10px] font-bold text-white" style={{ background: i === 0 ? "#3B82F6" : "#F43F5E" }}>
+                        {i === 0 ? "1P" : "2P"}
+                      </span>
+                      <b className="text-[12px]" style={{ color: c.color }}>
+                        {c.name}
+                      </b>
+                    </div>
+                    <p className="break-keep">
+                      <KeyCap k="L" /> <b className="text-[#FDE047]/85">{c.idName}</b> {keyText(c.idDesc)}
+                    </p>
+                    <p className="break-keep">
+                      <b className="text-[#FDE047]/60">{keyText(c.airLabel ?? "점프 중 L")}</b> {keyText(c.airDesc)}
+                    </p>
+                    <p className="break-keep">
+                      <KeyCap k="I" /> <b className="text-[#22D3EE]/85">{c.ultName}</b> {keyText(c.ultDesc)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : (
+          <StatusList />
+        )}
       </div>
+      {/* 콤보·기술 */}
+      <section>
+        <Sec title="콤보 · 기술" color="#FDE047" />
+        <div className="grid gap-2 lg:grid-cols-3">
+          {TECH.map((g) => (
+            <div key={g.title} className={CARD}>
+              <div className="mb-1 text-[10.5px] font-bold" style={{ color: g.color }}>
+                {g.title}
+              </div>
+              <dl className="flex flex-col gap-1">
+                {g.items.map(([t, d]) => (
+                  <div key={t}>
+                    <dt className="font-bold text-white/80">{t}</dt>
+                    <dd className="break-keep text-white/55">{keyText(d)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))}
+        </div>
+      </section>
+      {chars && <StatusList />}
     </div>
+  );
+}
+
+/** 상태 이상 */
+function StatusList() {
+  return (
+    <section className="min-w-0">
+      <Sec title="상태 이상" color="#34D399" />
+      <div className={`${CARD} grid gap-1`}>
+        {STATUS.map(([n, who, col, d]) => (
+          <div key={n} className="flex items-start gap-2">
+            <span className="mt-px w-14 shrink-0 rounded px-1.5 text-center text-[10.5px] font-bold text-black" style={{ background: col }}>
+              {n}
+            </span>
+            <span className="w-9 shrink-0 text-white/45">{who}</span>
+            <span className="min-w-0 break-keep">{d}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
