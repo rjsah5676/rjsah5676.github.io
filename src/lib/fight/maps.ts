@@ -11,6 +11,8 @@ export interface Plat {
   y: number;
   /** 못 내려가는 바닥 */
   solid?: boolean;
+  /** 건물처럼 아래까지 막힌 덩어리 — 윗면보다 낮으면 옆에서 못 들어감 */
+  wall?: boolean;
   /** 그림 종류 */
   kind: string;
 }
@@ -75,6 +77,39 @@ export const MAPS: MapDef[] = [
     spawn: [380, 772],
     respawn: [360, 576, 800],
     bg: "/fight/bg/rooftop.webp",
+    bgPlats: true,
+    bgm: "/fight/bgm-rooftop.mp3",
+  },
+  {
+    // 그림: public/fight/bg/sky.webp (1920×1080 = 판 ×5/3) — 배경에 발판 구름 5개를 합성해 둠
+    id: "sky",
+    name: "천공 구름길",
+    desc: "하늘 위 떠다니는 구름 발판 다섯 개 — 가운데 큰 구름 말고는 전부 낭떠러지",
+    plats: [
+      { x0: 310, x1: 845, y: 150, solid: true, kind: "cloud" },
+      { x0: 40, x1: 230, y: 270, kind: "cloud" },
+      { x0: 922, x1: 1112, y: 270, kind: "cloud" },
+      { x0: 270, x1: 490, y: 390, kind: "cloud" },
+      { x0: 662, x1: 882, y: 390, kind: "cloud" },
+    ],
+    spawn: [440, 712],
+    respawn: [380, 576, 772],
+    bg: "/fight/bg/sky.webp",
+    bgPlats: true,
+    bgm: "/fight/bgm.mp3",
+  },
+  {
+    // 그림: public/fight/bg/skyscraper.webp (1920×1080) — 높이 다른 아파트 두 동 옥상, 가운데는 낭떠러지
+    id: "skyscraper",
+    name: "달밤 마천루",
+    desc: "보름달 뜬 도시 위 아파트 옥상 두 동 — 오른쪽 동이 더 높고, 사이로 떨어지면 끝",
+    plats: [
+      { x0: 0, x1: 495, y: 200, solid: true, wall: true, kind: "roof" },
+      { x0: 648, x1: 1152, y: 270, solid: true, wall: true, kind: "roof" },
+    ],
+    spawn: [280, 880],
+    respawn: [250, 900],
+    bg: "/fight/bg/skyscraper.webp",
     bgPlats: true,
     bgm: "/fight/bgm-rooftop.mp3",
   },

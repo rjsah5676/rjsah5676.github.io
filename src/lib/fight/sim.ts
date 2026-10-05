@@ -1024,6 +1024,15 @@ function moveX(f: Fighter, dx: number) {
   f.x = nx;
 }
 
+/** 벽 발판(건물): 윗면보다 낮은 높이에선 옆으로 못 파고듦 → 벽면에 막힘 */
+function hitWall(map: MapDef, f: Fighter, px: number) {
+  for (const p of map.plats) {
+    if (!p.wall || f.h >= p.y * SUB || !inX(p, f.x) || inX(p, px)) continue;
+    f.x = px < p.x0 * SUB ? p.x0 * SUB - 1 : p.x1 * SUB + 1;
+    f.vx = 0;
+  }
+}
+
 function respawn(s: State, i: number) {
   const f = s.p[i];
   const o = s.p[1 - i];
@@ -1102,7 +1111,9 @@ function physics(s: State, i: number) {
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
   const gl = charOf(f).glide;
   if (gl && f.vh < -gl && (f.st === "jump" || f.st === "atk") && holding(f, JUMP_BITS)) f.vh = -gl;
+  const px = f.x;
   moveX(f, f.vx);
+  hitWall(map, f, px);
   const prev = f.h;
   const next = f.h + f.vh;
   if (f.vh <= 0) {
