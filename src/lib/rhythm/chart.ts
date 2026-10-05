@@ -319,41 +319,12 @@ export const LEVEL_BANDS: Record<Difficulty, [number, number]> = {
   nightmare: [15, 18],
 };
 
-/**
- * 별점 레벨(osu!mania 별점 × 4) → 화면 레벨. 내장곡을 직접 쳐 보고 매긴 레벨에 맞춘 곡선
- * (별점 레벨 5 ≈ Lv3, 8 ≈ 5, 11 ≈ 9, 15 ≈ 13, 19 ≈ 16)
- */
-const LEVEL_MAP: [number, number][] = [
-  [2, 1],
-  [4, 2],
-  [5, 3],
-  [8, 5],
-  [11, 9],
-  [15, 13],
-  [19, 16],
-  [23, 18],
-];
-export function displayLevel(starLevel: number, diff: Difficulty): number {
-  let v = LEVEL_MAP[LEVEL_MAP.length - 1][1];
-  if (starLevel <= LEVEL_MAP[0][0]) v = LEVEL_MAP[0][1];
-  else
-    for (let i = 1; i < LEVEL_MAP.length; i++) {
-      const [x0, y0] = LEVEL_MAP[i - 1];
-      const [x1, y1] = LEVEL_MAP[i];
-      if (starLevel <= x1) {
-        v = y0 + ((starLevel - x0) / (x1 - x0)) * (y1 - y0);
-        break;
-      }
-    }
-  const [lo, hi] = LEVEL_BANDS[diff];
-  return Math.max(lo, Math.min(hi, Math.round(v)));
-}
-
 /** 정렬 + 판정 단위 수 + 레벨 계산 (자동 채보에서도 같이 씀) */
 export function finishChart(notes: Note[], diff: Difficulty = "normal"): Chart {
   notes.sort((a, b) => a.t - b.t || a.lane - b.lane);
   const units = notes.reduce((s, n) => s + (n.end ? 2 : 1), 0);
-  // 별점 레벨(osu!mania 별점 × 4, stars.ts) → 난이도 구간 안의 화면 레벨
-  const level = displayLevel(starRating(notes) * 4, diff);
+  // 레벨 = osu!mania 별점 × 4 (stars.ts). 자동 채보가 구간 안으로 맞춰 뽑고, 살짝 벗어나면 구간 끝으로
+  const [lo, hi] = LEVEL_BANDS[diff];
+  const level = Math.max(lo, Math.min(hi, Math.round(starRating(notes) * 4)));
   return { notes, level, units };
 }

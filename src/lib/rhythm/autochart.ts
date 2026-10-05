@@ -175,6 +175,8 @@ export interface AutoTweak {
   fill?: number;
   /** 다른 난이도의 규칙을 빌려 씀 (보스곡의 쉬움을 어려움 규칙 절반 밀도로 뽑는 식) */
   rule?: Difficulty;
+  /** 목표 레벨을 직접 (내장곡: 직접 쳐 보고 정한 레벨) — 없으면 TARGET_LEVEL */
+  level?: number;
   /** 진단용: 패턴을 고를 때마다 (이름, 마디, 길이) */
   onPick?: PatternCtx["onPick"];
 }
@@ -594,7 +596,9 @@ export function makeAutoChart(
   }
 
   // 4) 롱노트: 다음 타격까지 충분히 멀고, 그동안 소리가 거의 안 줄면
+  //    (노트가 듬성한 쉬운 채보는 거의 다 롱노트가 될 수 있어서 비율 상한 — 소리가 가장 길게 남는 것부터)
   const times = [...new Set(notes.map((n) => n.t))].sort((a, b) => a - b);
+  const holdCands: { n: Note; end: number; keep: number }[] = [];
   for (const n of notes) {
     const idx = times.indexOf(n.t);
     const next = times[idx + 1];
@@ -610,8 +614,13 @@ export function makeAutoChart(
     }
     if (!cnt || sum / cnt < head * 0.62) continue;
     const end = next - Math.max(beatSec * 0.25, 0.12);
-    if (end - n.t >= 0.4) n.end = end;
+    if (end - n.t >= 0.4) holdCands.push({ n, end, keep: sum / cnt / Math.max(1e-6, head) });
   }
+  const maxHolds = Math.round(notes.length * HOLD_CAP[diff]);
+  holdCands
+    .sort((a, b) => b.keep - a.keep)
+    .slice(0, maxHolds)
+    .forEach((h) => (h.n.end = h.end));
 
   const holdEvery = diff === "hard" ? 2 : diff === "expert" ? 2 : 0;
   if (holdEvery) {
@@ -842,12 +851,20 @@ function nightmareNotes(
  * 그 위 등급이 생기면 여기에 더하면 됨
  */
 export const TARGET_LEVEL: Record<Difficulty, number> = {
-  // 별점 레벨 기준 — 화면 레벨(chart.ts displayLevel)로는 대략 2 / 5 / 9 / 13 / 16 (각 구간 가운데)
-  easy: 4,
-  normal: 8,
-  hard: 11,
-  expert: 15,
-  nightmare: 19,
+  // 각 레벨 구간(chart.ts LEVEL_BANDS: 1~3 / 4~6 / 7~11 / 12~14 / 15~18)의 가운데
+  easy: 2,
+  normal: 5,
+  hard: 9,
+  expert: 13,
+  nightmare: 16,
+};
+/** 롱노트(소리가 이어지는 자리) 비율 상한 */
+const HOLD_CAP: Record<Difficulty, number> = {
+  easy: 0.2,
+  normal: 0.15,
+  hard: 0.12,
+  expert: 0.1,
+  nightmare: 0.1,
 };
 /** 목표에서 이만큼 벗어나도 됨 */
 const LEVEL_TOL = 1;
@@ -868,28 +885,47 @@ export function makeAutoCharts(
   let prevLevel = -Infinity;
   for (const d of diffs) {
     const base = tweaks[d] ?? {};
-    const target = Math.max(TARGET_LEVEL[d], prevLevel + 2);
+    // 직접 정한 레벨은 그대로, 아니면 구간 가운데 (아래 난이도보다는 최소 1 높게)
+    const target = base.level ?? Math.max(TARGET_LEVEL[d], prevLevel + 1);
+    const tol = base.level !== undefined ? 0 : LEVEL_TOL;
     const canFill = d !== "easy";
     let density = base.density ?? 1;
     let fill = base.fill ?? 0;
+    // 나이트메어는 밀도보다 16분 채우는 마디(full)·8분 마디(loud)·연타 간격으로 난이도가 정해짐
+    let nm: Required<NightmareTweak> = { ...NIGHTMARE_DEFAULT, ...(base.nightmare ?? {}) };
     let best: Chart | null = null;
     let bestRaw = 0;
-    for (let attempt = 0; attempt < 7; attempt++) {
-      const chart = makeAutoChart(an, d, shiftMs, { ...base, density, fill });
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const chart = makeAutoChart(an, d, shiftMs, { ...base, density, fill, nightmare: nm });
       // 레벨은 난이도별 최저값으로 올려 놓은 값이라, 맞춰 갈 때는 별점 그대로 잼
       const raw = Math.round(starRating(chart.notes) * 4);
-      if (!best || Math.abs(raw - target) < Math.abs(bestRaw - target)) {
+      // 같은 거리면 쉬운 쪽
+      const dNew = Math.abs(raw - target);
+      const dBest = Math.abs(bestRaw - target);
+      if (!best || dNew < dBest || (dNew === dBest && raw < bestRaw)) {
         best = chart;
         bestRaw = raw;
       }
       const miss = raw - target;
       if ((globalThis as { DEBUG_LV?: boolean }).DEBUG_LV) console.log(`  ${d} 시도${attempt} 밀도x${density.toFixed(2)} 채우기${fill.toFixed(1)} → Lv${raw} 노트${chart.notes.length}`);
-      if (Math.abs(miss) <= LEVEL_TOL) break;
+      if (Math.abs(miss) <= tol) break;
       // 레벨은 밀도에 거의 비례 → 비율로 맞춰 감 (한 번에 너무 크게는 안 움직임)
       const ratio = Math.min(1.6, Math.max(0.6, target / Math.max(1, raw)));
       density *= ratio;
-      // 밀도를 올려도 곡에서 찾은 타격이 모자라면 격자 채우기로
-      if (miss < 0 && canFill) fill = Math.min(1.6, fill + 0.3);
+      // 밀도를 올려도 곡에서 찾은 타격이 모자라면 격자 채우기로 (너무 어려우면 채우기부터 줄임)
+      // 오갈수록 조금씩 (안 그러면 두 값 사이를 계속 왔다 갔다)
+      const step = 0.3 / (1 + attempt * 0.6);
+      if (miss < 0 && canFill) fill = Math.min(1.6, fill + step);
+      if (miss > 0 && fill > 0) fill = Math.max(0, fill - step);
+      if (d === "nightmare") {
+        const k = (Math.sign(miss) * Math.min(3, Math.abs(miss))) / (1 + attempt * 0.6);
+        nm = {
+          ...nm,
+          full: Math.max(0.3, Math.min(1.05, nm.full + 0.06 * k)),
+          loud: Math.max(0.2, Math.min(1, nm.loud + 0.05 * k)),
+          burstEvery: miss > 0 ? Math.min(16, nm.burstEvery * 2) : nm.burstEvery,
+        };
+      }
     }
     out[d] = best!;
     prevLevel = bestRaw;

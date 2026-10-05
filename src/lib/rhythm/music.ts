@@ -303,16 +303,13 @@ function audioSong(
   title: string,
   audio: string,
   data: AudioSongData,
-  extra: { color: string; desc: string },
-  /** 직접 쳐 보고 매긴 화면 레벨 [쉬움, 보통, 어려움, 매우 어려움, 나이트메어] — 채보를 다시 뽑아도 유지 */
-  levels?: number[]
+  extra: { color: string; desc: string }
 ): Song {
-  const order: Difficulty[] = ["easy", "normal", "hard", "expert", "nightmare"];
   const charts = Object.fromEntries(
     Object.entries(data.charts).map(([d, c]) => [
       d,
       {
-        level: levels?.[order.indexOf(d as Difficulty)] ?? c.level,
+        level: c.level,
         units: c.units,
         notes: c.notes.map(([t, lane, end]) => (end ? { t, lane, end } : { t, lane })),
       },
@@ -336,98 +333,49 @@ function audioSong(
   };
 }
 
-const JILJU = audioSong(
-  "jilju",
-  "질주주의보",
-  "/audio/jilju.mp3",
-  jiljuData,
-  {
-    color: "#38BDF8",
-    desc: "170 BPM · K-POP ROCK · AI 자작곡 (tunee.ai)",
-  },
-  [3, 5, 8, 12]
-);
-const NATSU = audioSong(
-  "natsukasumi",
-  "夏霞のあと",
-  "/audio/natsukasumi.mp3",
-  natsuData,
-  {
-    color: "#F9A8D4",
-    desc: "119 BPM · J-ROCK / INDIE POP · AI 자작곡 (tunee.ai)",
-  },
-  [2, 4, 7, 12]
-);
+const JILJU = audioSong("jilju", "질주주의보", "/audio/jilju.mp3", jiljuData, {
+  color: "#38BDF8",
+  desc: "170 BPM · K-POP ROCK · AI 자작곡 (tunee.ai)",
+});
+const NATSU = audioSong("natsukasumi", "夏霞のあと", "/audio/natsukasumi.mp3", natsuData, {
+  color: "#F9A8D4",
+  desc: "119 BPM · J-ROCK / INDIE POP · AI 자작곡 (tunee.ai)",
+});
 
-const RINKAKU = audioSong(
-  "rinkaku",
-  "名前のない輪郭",
-  "/audio/rinkaku.mp3",
-  rinkakuData,
-  {
-    color: "#FBBF24",
-    desc: "163 BPM · J-ROCK (12/8) · AI 자작곡 (tunee.ai)",
-  },
-  [2, 4, 8, 12]
-);
+const RINKAKU = audioSong("rinkaku", "名前のない輪郭", "/audio/rinkaku.mp3", rinkakuData, {
+  color: "#FBBF24",
+  desc: "163 BPM · J-ROCK (12/8) · AI 자작곡 (tunee.ai)",
+});
 
-const NEWDIM = audioSong(
-  "newdim",
-  "New Dimension",
-  "/audio/newdim.mp3",
-  newdimData,
-  {
-    color: "#C084FC",
-    desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
-  },
-  [3, 6, 10, 13, 15]
-);
+const NEWDIM = audioSong("newdim", "New Dimension", "/audio/newdim.mp3", newdimData, {
+  color: "#C084FC",
+  desc: "155 BPM · 사이버펑크 록 (12/8) · AI 자작곡 (tunee.ai)",
+});
 
-const MONARCH = audioSong(
-  "monarch",
-  "Monarch's Fall",
-  "/audio/monarch.mp3",
-  monarchData,
-  {
-    color: "#EF4444",
-    desc: "150 BPM · AI 자작곡",
-  },
-  [3, 6, 11, 13, 16]
-);
+const MONARCH = audioSong("monarch", "Monarch's Fall", "/audio/monarch.mp3", monarchData, {
+  color: "#EF4444",
+  desc: "150 BPM · AI 자작곡",
+});
 
-const VELOCITY = audioSong(
-  "velocity",
-  "Maximum Velocity",
-  "/audio/velocity.mp3",
-  velocityData,
-  {
-    color: "#F472B6",
-    desc: "180 BPM · AI 자작곡",
-  },
-  [3, 6, 11, 14, 17]
-);
+const VELOCITY = audioSong("velocity", "Maximum Velocity", "/audio/velocity.mp3", velocityData, {
+  color: "#F472B6",
+  desc: "180 BPM · AI 자작곡",
+});
 
-const FULLCOMBO = audioSong(
-  "fullcombo",
-  "Full Combo!!",
-  "/audio/fullcombo.mp3",
-  fullcomboData,
-  {
-    color: "#FB7185",
-    desc: "180 BPM · K-POP 걸밴드 록 · AI 자작곡 (tunee.ai)",
-  },
-  [3, 6, 9, 13, 15]
-);
+const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3", fullcomboData, {
+  color: "#FB7185",
+  desc: "180 BPM · K-POP 걸밴드 록 · AI 자작곡 (tunee.ai)",
+});
 
 /*
- * 채보 다시 뽑기 (npm run rhythm-chart -- <id> ...) — 엇박·살짝 어긋난 동시치기 줄인 규칙으로 전부 다시 뽑음
- *   fullcombo   --bpm-label 180 --boss '{"loud":0.5,"full":0.8,"burstEvery":8}'
- *   jilju       --tweak '{"hard":{"fill":0.3},"expert":{"fill":0.15}}'
- *   natsukasumi --tweak '{"hard":{"fill":0.9},"expert":{"fill":1.3}}'
- *   rinkaku     --tweak '{"expert":{"fill":0.4}}'
- *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8}' --tweak '{"expert":{"fill":0.4}}'
- *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}'
- *   velocity    --bpm-label 180 --boss '{"loud":0.3,"full":0.5,"loudSub":2,"fullSub":4,"chordFull":2,"burstSub":8,"burstEvery":1}'
+ * 채보 다시 뽑기 (npm run rhythm-chart -- <id> ...) — --levels는 직접 쳐 보고 정한 레벨 (쉬움부터)
+ *   fullcombo   --bpm-label 180 --boss '{"loud":0.5,"full":0.8,"burstEvery":8}' --levels 3,6,9,13,16
+ *   jilju       --tweak '{"hard":{"fill":0.3},"expert":{"fill":0.15}}' --levels 3,5,8,12
+ *   natsukasumi --tweak '{"hard":{"fill":0.9},"expert":{"fill":1.3}}' --levels 2,4,7,12
+ *   rinkaku     --tweak '{"expert":{"fill":0.4}}' --levels 2,4,8,12
+ *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8}' --tweak '{"expert":{"fill":0.4}}' --levels 3,6,10,13,15
+ *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}' --levels 3,6,11,13,16
+ *   velocity    --bpm-label 180 --boss '{"loud":0.3,"full":0.5,"loudSub":2,"fullSub":4,"chordFull":2,"burstSub":8,"burstEvery":1}' --levels 3,6,11,14,17
  */
 /** 새 곡은 항상 맨 앞에 */
 export const SONGS: Song[] = [FULLCOMBO, JILJU, NATSU, RINKAKU, NEWDIM, MONARCH, VELOCITY];
