@@ -1,9 +1,7 @@
 import Faded from "@/components/Faded";
 import MainLanding from "@/components/Main/MainLanding";
 import githubIcon from "@/img/Page/info/github.png";
-import ohsoriIcon from "@/img/Page/info/mimyo/ohsori.png";
 import acmicpcIcon from "@/img/Page/info/acmicpc_small.png";
-import mimyoIcon from "@/img/Page/info/mimyo/mimyo_logo.jpg";
 import meImg from "@/img/Page/info/me.webp";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 import type { SiteLink } from "@/components/SiteLinks";
@@ -39,12 +37,6 @@ const jsonLd = {
 const sites: SiteLink[] = [
   { icon: githubIcon, label: "GitHub", href: "https://github.com/rjsah5676" },
   { icon: acmicpcIcon, label: "BAEKJOON", href: "https://www.acmicpc.net/user/rjsah5676" },
-  { icon: ohsoriIcon, label: "Oh! Sori", href: "https://ohsori.my/", unavailable: true },
-  {
-    icon: mimyoIcon,
-    label: "MIMYO",
-    href: "https://drive.google.com/file/d/1ZVTpuval2WbT_x1n-3tOS7dhkpnCJQ8C/view",
-  },
 ];
 
 export default function Home() {
