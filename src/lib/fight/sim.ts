@@ -178,8 +178,6 @@ export interface Fighter {
   airK: number;
   /** 이번 공중에서 내려찍기(↓ + K) 썼나 */
   airS: number;
-  /** 마지막으로 발판(땅)을 딛고 있던 x — 떨어지면 이 위에서 다시 내려옴 (0 = 아직 없음) */
-  gx: number;
   /** 남은 대시 프레임 (땅·공중) */
   dashT: number;
   /** 이번 공중에서 대시 썼나 */
@@ -376,7 +374,6 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     airUsed: 0,
     airK: 0,
     airS: 0,
-    gx: 0,
     dashT: 0,
     airDash: 0,
     dive: 0,
@@ -492,7 +489,6 @@ export function hash(s: State): number {
     mix(f.airUsed);
     mix(f.airK);
     mix(f.airS);
-    mix(f.gx);
     mix(f.gcT);
     mix(f.float);
     mix(f.floatT);
@@ -1148,19 +1144,8 @@ function hitWall(map: MapDef, f: Fighter, px: number) {
 
 function respawn(s: State, i: number) {
   const f = s.p[i];
-  const o = s.p[1 - i];
-  const map = mapOf(s);
-  // 마지막으로 딛고 있던 자리(떨어지기 직전) 바로 위에서 다시 내려옴 — 발판 끝이면 안쪽으로 조금 들임
-  void o;
-  const tx = f.gx || f.x;
-  let best = map.plats[0];
-  let bd = Infinity;
-  for (const p of map.plats) {
-    const d = tx < p.x0 * SUB ? p.x0 * SUB - tx : tx > p.x1 * SUB ? tx - p.x1 * SUB : 0;
-    if (d < bd || (d === bd && p.y > best.y)) ((bd = d), (best = p));
-  }
-  const m0 = Math.min(24, Math.trunc((best.x1 - best.x0) / 2));
-  const bx = Math.max(best.x0 * SUB + m0 * SUB, Math.min(best.x1 * SUB - m0 * SUB, tx));
+  // 떨어진 그 자리(지금 x) 바로 위 화면 꼭대기에서 다시 내려옴 — 아래가 낭떠러지면 공중 조작·2단 점프·대시로 건너감
+  const bx = Math.max(WALL_L + 24 * SUB, Math.min(WALL_R - 24 * SUB, f.x));
   s.ev.push({ k: "fall", p: i, x: f.x, h: 0, v: 0 });
   f.x = bx;
   f.h = RESPAWN_H;
@@ -1190,7 +1175,6 @@ function physics(s: State, i: number) {
   const map = mapOf(s);
   const m = moveOf(f);
   if (f.inv > 0) f.inv--;
-  if (!airborneS(s, f)) f.gx = f.x;
   if (f.trapT > 0) {
     // 방울 안: 천천히 떠오르다 멈춤 (중력 없음)
     f.vx = 0;

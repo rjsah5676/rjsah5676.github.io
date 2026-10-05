@@ -27,7 +27,7 @@ const TECH: [string, string][] = [
   ["가드 반격", "막는 중이나 막은 직후 K — 게이지 25를 쓰고 상대를 띄워요"],
   ["저스트 가드", "맞기 직전에 가드 — 경직 절반, 깎임 없음, 게이지 +"],
   ["띄우기 콤보", "띄운 뒤 바로 점프 → 공중 J · K (맞히면 나도 같이 천천히 내려옴). 점프마다 J 4번 + K 2번 (2단 점프하면 다시), 섞어 치면 더 아파요"],
-  ["내려찍기", "공중 콤보 마무리: ↓ + K 로 상대를 바닥에 꽂아 튕긴 뒤 다운 (피해 1.4배, 점프마다 1번 · 발차기 횟수와 따로)"],
+  ["내려찍기 (SLAM)", "공중 콤보 마무리: 공중에서 ↓ + K 로 상대를 바닥에 꽂아 튕긴 뒤 다운 (피해 1.4배, 점프마다 1번 · 발차기 횟수와 따로)"],
   ["카운터", "상대가 기술을 내는 중이거나 대시 중에 맞히면 1.25배, 경직도 길어요"],
 ];
 
@@ -47,11 +47,11 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
         ["이동 (두 번 = 대시)", k("A", "D"), k("←", "→")],
         ["점프 (2단)", k("W", "/", "Space"), k("↑", "/", "Enter")],
         ["가드", k("S"), k("↓")],
-        ["약", k("F"), k(",")],
-        ["발차기", k("G"), k(".")],
-        ["아이덴티티", k("H"), k(";")],
-        ["필살기 (MAX)", k("T"), k("'")],
-        ["내려찍기 (공중)", k("S", "+", "G"), k("↓", "+", ".")],
+        ["약", k("J"), k(",")],
+        ["발차기", k("K"), k(".")],
+        ["아이덴티티", k("L"), k(";")],
+        ["필살기 (MAX)", k("I"), k("'")],
+        ["공중콤보 내려찍기(SLAM)", k("S", "+", "K"), k("↓", "+", ".")],
       ]
     : [
         ["이동 (두 번 = 대시)", k("A", "D"), k("←", "→")],
@@ -61,7 +61,7 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
         ["발차기", k("K"), k("X")],
         ["아이덴티티", k("L"), k("C")],
         ["필살기 (MAX)", k("I"), k("V")],
-        ["내려찍기 (공중)", k("S", "+", "K"), k("↓", "+", "X")],
+        ["공중콤보 내려찍기(SLAM)", k("S", "+", "K"), k("↓", "+", "X")],
       ];
   return (
     <div className={`mt-3 grid gap-3 rounded-lg bg-black/20 px-3 py-3 ${KR} text-[11.5px] leading-relaxed text-white/60 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]`}>
@@ -73,7 +73,7 @@ export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; c
           <span className="min-w-16 pb-0.5 text-center text-[10.5px] text-white/35">{two ? "2P" : "또는"}</span>
           {rows.map(([label, a, b]) => (
             <div key={label} className="contents">
-              <span className="whitespace-nowrap text-white/65">{label}</span>
+              <span className="break-keep text-white/65">{label}</span>
               <span className="flex min-w-20 justify-center">{a}</span>
               <span className="flex min-w-16 justify-center">{b}</span>
             </div>
