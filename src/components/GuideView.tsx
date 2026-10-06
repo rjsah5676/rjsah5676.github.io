@@ -146,8 +146,10 @@ function Slides({
   // 장을 넘기면 가이드 창 스크롤을 맨 위로 (긴 장 아래쪽에서 '다음'을 눌러도 새 장 처음부터 보이게)
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    for (let el = root.current?.parentElement; el; el = el.parentElement) {
-      if (el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY !== "visible") {
+    // 가이드 창 자체의 스크롤 칸만 (넘치지 않아도 거기서 멈춤 — 더 올라가 페이지까지 올리지 않게)
+    for (let el = root.current?.parentElement; el && el !== document.body; el = el.parentElement) {
+      const oy = getComputedStyle(el).overflowY;
+      if (oy === "auto" || oy === "scroll") {
         el.scrollTop = 0;
         break;
       }
