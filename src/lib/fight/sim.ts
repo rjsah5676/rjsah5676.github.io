@@ -1726,7 +1726,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId, p
       d.pulled = 0;
       // 때린 쪽도 상대가 혼란에 떠 있는 동안 천천히 떨어짐 (공중 콤보 넣을 시간)
       a.juggle = d.stun;
-      s.ev.push({ k: "swap", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
+      // (x·h = 때린 쪽이 원래 있던 자리 — 화면에서 "떠난 자리"에 창을 남기는 데 씀)
+      s.ev.push({ k: "swap", p: ai, x: ax, h: ah, v: 0 });
     }
     if (m.trap && !kd && !popBonus) {
       // 비눗방울에 갇힘: 그 자리에서 둥실 떠오름

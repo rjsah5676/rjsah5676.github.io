@@ -902,7 +902,8 @@ const RAW: CharSrc[] = [
           hitstun: 46,
           push: 0,
           hitstop: 10,
-          box: { x: -4, y: 64, w: 90, h: 160 },
+          // 발 위 64px ~ 발 아래 56px (전엔 아래 96px까지라 너무 넓었음 — 10.06 아래쪽 줄임)
+          box: { x: -4, y: 64, w: 90, h: 120 },
           pause: false,
           swap: true,
           cancel: undefined,

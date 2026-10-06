@@ -117,6 +117,12 @@ interface FxAnim {
   glow: boolean;
   /** 아래 가운데 기준 (먼지 등 바닥 것) */
   ground: boolean;
+  /** 그릴 크기(px)를 정해 둘 때 (없으면 그림 크기 × k) */
+  size?: [number, number];
+  /** 이 프레임부터 재생 (앞 프레임 건너뜀) */
+  from?: number;
+  /** 진하기 배율 */
+  alpha?: number;
 }
 
 function glowAt(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
@@ -145,25 +151,35 @@ export class FightRenderer {
   private fx: FxAnim[] = [];
 
   /** 그림 효과 하나 띄우기 (그 캐릭터에 그 효과 그림이 있을 때만) — 성공하면 true */
-  private spawnFx(ch: number, name: string, x: number, y: number, face: number, dur = 16, ground = false) {
+  private spawnFx(
+    ch: number,
+    name: string,
+    x: number,
+    y: number,
+    face: number,
+    dur = 16,
+    ground = false,
+    opt: { size?: [number, number]; from?: number; alpha?: number } = {}
+  ) {
     const id = CHARS[ch].id;
     const d = FX_SETS[id]?.[name];
     if (!d) return false;
-    this.fx.push({ key: `${id}-${name}`, n: d[0], x, y, t: 0, dur, flip: face < 0, k: d[1], glow: d[2], ground });
+    this.fx.push({ key: `${id}-${name}`, n: d[0], x, y, t: 0, dur, flip: face < 0, k: d[1], glow: d[2], ground, ...opt });
     return true;
   }
 
   private drawFx() {
     const g = this.g;
     for (const e of this.fx) {
-      const k = Math.min(e.n - 1, Math.floor((e.t / e.dur) * e.n));
+      const f0 = e.from ?? 0;
+      const k = Math.min(e.n - 1, f0 + Math.floor((e.t / e.dur) * (e.n - f0)));
       const im = fxImg(`${e.key}-${k}`);
       if (!im) continue;
-      const w = (im.width / 1.72) * e.k,
-        h = (im.height / 1.72) * e.k;
+      const w = e.size ? e.size[0] : (im.width / 1.72) * e.k,
+        h = e.size ? e.size[1] : (im.height / 1.72) * e.k;
       g.save();
       if (e.glow) g.globalCompositeOperation = "lighter";
-      g.globalAlpha = Math.min(1, 1.6 * (1 - e.t / e.dur) + 0.2);
+      g.globalAlpha = Math.min(1, 1.6 * (1 - e.t / e.dur) + 0.2) * (e.alpha ?? 1);
       g.translate(e.x, e.y);
       if (e.flip) g.scale(-1, 1);
       g.drawImage(im, -w / 2, e.ground ? -h : -h / 2, w, h);
@@ -276,6 +292,33 @@ export class FightRenderer {
       } else if (e.k === "dash") {
         const a = s.p[e.p];
         if (e.v === 0) this.spawnFx(a.ch, "dust", a.x / SUB - a.face * 22, screenY(a.h), a.face, 18, true);
+      } else if (e.k === "swap") {
+        // 건모 Alt+Tab: 맞히는 순간 공격 동작이 끝나 붙어 있던 창이 사라지므로 따로 띄움
+        //  - 지금 두 사람을 감싸는 창 하나 (히트스톱 동안 꽉 참 → 깜빡 → 사라짐) = "창이 바뀜"
+        //  - 건모가 떠난 자리(e.x·e.h)에 흐린 창 하나 + 거기서 지금 자리로 날아가는 파란 조각
+        const a = s.p[e.p],
+          d = s.p[1 - e.p];
+        const ax = a.x / SUB,
+          dx = d.x / SUB;
+        const cy = screenY(Math.max(a.h, d.h) + 32 * SUB);
+        this.spawnFx(a.ch, "win", (ax + dx) / 2, cy, a.face, 34, false, {
+          size: [Math.abs(ax - dx) + 84, 96],
+          from: 1,
+          alpha: 0.85,
+        });
+        const ox = e.x / SUB,
+          oy = screenY(e.h + 32 * SUB);
+        if (Math.abs(ox - ax) > 24 || Math.abs(oy - cy) > 24) {
+          this.spawnFx(a.ch, "win", ox, oy, a.face, 20, false, { size: [62, 76], from: 2, alpha: 0.5 });
+          for (let i = 0; i < 12; i++) {
+            const u = i / 11;
+            this.parts.push({
+              x: ox + (ax - ox) * u, y: oy + (cy - oy) * u + (Math.random() - 0.5) * 24,
+              vx: Math.sign(ax - ox) * (0.6 + Math.random()), vy: -0.2 - Math.random() * 0.3,
+              life: 16, max: 16, color: i % 2 ? "#9BD0FF" : "#3B9CFF", size: 1.5, kind: "shard",
+            });
+          }
+        }
       }
       if (e.k === "hit") {
         const power = e.m === "X" ? 2 : e.m === "H" || e.m === "S" ? 1 : 0;
