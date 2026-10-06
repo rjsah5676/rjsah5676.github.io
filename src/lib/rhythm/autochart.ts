@@ -15,7 +15,7 @@
  *  - 타격이 고르게 이어지는 구간(스트림)은 계단·연타·트릴 같은 익숙한 패턴으로 깔아 줌 (patterns.ts)
  */
 import type { Analysis, Onset } from "./analyze";
-import { FPS, displayBpm, gridPos } from "./analyze";
+import { DIV_TRIPLET, FPS, displayBpm, gridPos } from "./analyze";
 import { finishChart, type Chart, type Difficulty, type Note } from "./chart";
 import { assignPatterns, chordPartners, type PatternCtx } from "./patterns";
 import { starRating } from "./stars";
@@ -27,6 +27,8 @@ interface AutoRule {
   jackGap: number;
   /** 격자 위치별 가중치 [정박, 8분, 16분, 32분, 격자 밖] */
   pos: [number, number, number, number, number];
+  /** 16분 자리 타격은 이 세기 이상일 때만 (어려움은 8분 위주 — osu 어려움은 16분이 3%) */
+  fineNeed?: number;
   /** 이 세기 미만 타격은 버림 */
   floor: number;
   /** 동시치기: 어느 위치에서, 얼마나 세야 */
@@ -48,16 +50,17 @@ interface AutoRule {
   ln: { ratio: number; lens: number[]; maxSec: number; onBeat: number };
 }
 
-// 목표값은 osu!mania 4키 랭크 채보 (1차 103개 → 2차 182개, 44곡)를 같은 별점 구간에서 잰 중앙값.
+// 목표값은 osu!mania 4키 랭크 채보(150곡 722채보)를 같은 별점 구간에서 잰 중앙값.
 // 난이도별 별점: 쉬움 ≈0.75★ · 보통 1.5 · 어려움 2.25 · 매우 어려움 3.25 · 나이트메어 4★ (레벨 = 별점 × 4)
-//   (쉬움 0.75★는 osu에 거의 없어서 가장 쉬운 채보(0.9★) 쪽으로)
-//   정박 / 반박 / 그 밖 자리 비율   90/10/0 · 83/15/2 · 61/32/7 · 46/36/19 · 38/33/29
-//   동시치기 줄 비율               6 · 14 · 26 · 37 · 46%  (3개짜리 0 · 0 · 1 · 4 · 8%)
+//   (osu 곡의 가장 쉬운 채보가 Lv6 안팎이라 쉬움(Lv3)은 osu에 거의 없는 영역 — 가장 쉬운 채보 쪽으로)
+//   정박 / 반박 / 16분 자리 비율       99/1/0 · 82/15/0 · 58/35/2 · 43/36/18 · 38/33/24
+//   동시치기 줄 비율 (3개짜리)         3 · 9 · 24 · 32 (1) · 39 (5)%
 //   (보통은 5% 안팎으로 — 동시치기가 별점을 크게 올려서, 같은 레벨이면 동시치기 대신 노트를 고르게 더 깖)
-//   잭(앞 줄과 같은 레인)          3 · 4 · 8 · 12 · 18%
-//   롱노트 비율·길이               12%·2박 · 11%·0.47초(2박) · 8%·0.33초(1박) · 9%·0.27초 · 7%·0.17초(반박)
-//   (롱노트는 osu 중앙값의 절반쯤으로 — 실제로 쳐보니 중앙값 그대로는 많게 느껴짐. osu도 하위 25%는 3% 안팎.
-//    길이는 반 박짜리 짧은 롱노트는 빼고 최소 0.33초·거의 한 박부터)
+//   잭(앞 줄과 같은 레인)              1 · 5 · 8 · 9 · 14%
+//   롱노트 비율·길이                   21%·0.7초 · 12%·0.37초 · 10%·0.27초 · 9%·0.17초 · 6%·0.16초
+//   (롱노트는 어려움부터 osu의 절반쯤으로 — 실제로 쳐보니 그대로는 많게 느껴짐. 짧은 롱노트는 빼고 최소 0.33초·거의 한 박부터)
+//   같은 별점이면 osu가 우리보다 노트가 많음 — 동시치기·잭·연타처럼 별점을 튀게 하는 자리가 적어서.
+//   그래서 레벨이 맞은 뒤에도 밀도를 올려 보며 같은 레벨에서 가장 빽빽한 채보를 고름(makeAutoCharts)
 const AUTO_RULES: Record<Difficulty, AutoRule> = {
   easy: {
     nps: 3,
@@ -65,39 +68,40 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     jackGap: 0.5,
     pos: [1, 0.25, 0.02, 0, 0],
     floor: 0.15,
-    chord: { every: 8, need: 0.55 },
+    chord: { every: 16, need: 0.6 },
     holdBeats: 2,
-    thick: [1.04, 1, 1],
+    thick: [1.02, 1, 1],
     tri: 0,
-    jackAllow: 0.12,
+    jackAllow: 0.04,
     jackRun: 2,
-    ln: { ratio: 0.05, lens: [1, 1, 2, 2, 3], maxSec: 1, onBeat: 0.95 },
+    ln: { ratio: 0.12, lens: [1, 1, 2, 2, 3], maxSec: 1, onBeat: 0.95 },
   },
   normal: {
     nps: 5,
     minGap: 0.15,
     jackGap: 0.3,
-    pos: [1, 0.45, 0.08, 0, 0],
+    pos: [1, 0.35, 0.02, 0, 0],
     floor: 0.1,
     chord: { every: 4, need: 0.45 },
     holdBeats: 1.5,
     thick: [1.05, 1.02, 1],
     tri: 0,
-    jackAllow: 0.2,
+    jackAllow: 0.08,
     jackRun: 2,
-    ln: { ratio: 0.05, lens: [1, 1, 1, 2, 2], maxSec: 0.8, onBeat: 0.94 },
+    ln: { ratio: 0.09, lens: [1, 1, 1, 2, 2], maxSec: 0.8, onBeat: 0.94 },
   },
   hard: {
     nps: 8.5,
     minGap: 0.08,
     jackGap: 0.17,
-    pos: [1, 0.85, 0.35, 0.1, 0],
+    pos: [1, 0.85, 0.12, 0.03, 0],
+    fineNeed: 0.6,
     floor: 0.07,
     chord: { every: 2, need: 0.45 },
     holdBeats: 1.5,
     thick: [1.37, 1.1, 1.05],
     tri: 0.04,
-    jackAllow: 0.4,
+    jackAllow: 0.2,
     jackRun: 3,
     ln: { ratio: 0.04, lens: [1, 1, 1.5, 2], maxSec: 0.9, onBeat: 0.81 },
   },
@@ -110,8 +114,8 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     chord: { every: 2, need: 0.4 },
     holdBeats: 1.25,
     thick: [1.69, 1.2, 1.06],
-    tri: 0.2,
-    jackAllow: 0.6,
+    tri: 0.12,
+    jackAllow: 0.35,
     jackRun: 3,
     ln: { ratio: 0.04, lens: [1, 1, 1, 1.5, 2], maxSec: 0.8, onBeat: 0.69 },
   },
@@ -124,9 +128,9 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     floor: 0.04,
     chord: { every: 2, need: 0.35 },
     holdBeats: 1.25,
-    thick: [1.85, 1.34, 1.12],
-    tri: 0.35,
-    jackAllow: 0.85,
+    thick: [1.5, 1.15, 1.05],
+    tri: 0.25,
+    jackAllow: 0.5,
     jackRun: 4,
     ln: { ratio: 0.03, lens: [1, 1, 1, 1.5], maxSec: 0.7, onBeat: 0.63 },
   },
@@ -157,7 +161,7 @@ const NIGHTMARE_DEFAULT: Required<NightmareTweak> = {
   fullSub: 4,
   chordLoud: 1,
   chordFull: 2,
-  burstEvery: 4,
+  burstEvery: 8,
   burstSub: 6,
 };
 
@@ -174,7 +178,17 @@ function nearestCen(an: Analysis, t: number) {
   return best;
 }
 
-const posKind = (o: Onset, div: number) => (o.grid < 0 ? 4 : gridPos(o.grid, div));
+/**
+ * 타격의 박 위치: 0 정박 · 1 8분 · 2 16분 · 3 그 사이 · 4 격자 밖.
+ * 셋잇단 격자(12/8·셔플, div 12)는 점4분 한 박을 셋으로 나눈 자리(4·8칸)가 그 곡의 '8분',
+ * 여섯으로 나눈 자리(2·6·10칸)가 '16분' — 4/4 곡의 8분·16분과 같은 무게로 고름
+ */
+const posKind = (o: Onset, div: number) => {
+  if (o.grid < 0) return 4;
+  if (div !== DIV_TRIPLET) return gridPos(o.grid, div);
+  const g = ((o.grid % div) + div) % div;
+  return g === 0 ? 0 : g % 4 === 0 ? 1 : g % 2 === 0 ? 2 : 3;
+};
 
 /** 정렬된 시각 배열에서 t 근처(±gap)에 이미 있는지 */
 function tooClose(sorted: number[], t: number, gap: number) {
@@ -261,6 +275,8 @@ export function makeAutoChart(
       (o) =>
         o.s >= R.floor &&
         R.pos[posKind(o, an.div)] > 0 &&
+        // 격자 채우기(fill)로도 레벨이 모자란 곡은 16분 타격도 차츰 허용
+        (posKind(o, an.div) < 2 || o.s >= (R.fineNeed ?? 0) - 0.6 * (tweak.fill ?? 0)) &&
         (o.grid >= 0 || o.s >= 0.5) &&
         !(tightGrid && o.grid % 2 !== 0)
     )
@@ -337,7 +353,8 @@ export function makeAutoChart(
   const dense = diff === "hard" || diff === "expert";
   const factorOf = (b: number) => {
     const I = intensity[Math.max(0, Math.min(nBars - 1, b))];
-    let f = dense ? 0.45 + 0.8 * I : 0.65 + 0.5 * I;
+    // osu 랭크 채보는 가장 빽빽한 구간이 보통 구간의 1.2배 정도 — 세기 차이를 밀도에 너무 크게 옮기지 않음
+    let f = dense ? 0.6 + 0.6 * I : 0.65 + 0.5 * I;
     if (I < 0.15) f *= 0.75; // 브레이크
     if (buildBar(b)) f *= 1.25; // 빌드업
     return f;
@@ -398,12 +415,17 @@ export function makeAutoChart(
   }
 
   // 1.5) 격자 채우기 — 어려움은 센 마디를 8분으로, 매우 어려움은 아주 센 마디를 16분으로 (fill이 클수록 더 넓게)
-  if ((diff === "normal" || diff === "hard" || diff === "expert") && (tweak.fill ?? 0) > 0) {
+  if (diff !== "nightmare" && (tweak.fill ?? 0) > 0) {
     // fill 1을 넘으면(1~1.6) 어지간한 마디까지 다 채움
     const fill = Math.min(1.6, tweak.fill ?? 0);
     const loudT = Math.max(0.05, 0.8 - 0.5 * fill);
-    // 보통은 8분까지만, 어려움은 8분, 매우 어려움은 아주 센 마디만 16분
-    const fullT = diff === "expert" ? Math.max(0.2, 0.95 - 0.45 * fill) : 2;
+    // 보통은 8분까지만, 어려움은 8분(채우기가 1을 넘으면 아주 센 마디만 16분), 매우 어려움은 아주 센 마디만 16분
+    const fullT =
+      diff === "expert"
+        ? Math.max(0.2, 0.95 - 0.45 * fill)
+        : diff === "hard"
+          ? Math.max(0.6, 1.9 - fill)
+          : 2;
     const have = picked.map((o) => o.t);
     const beatT = (k: number) =>
       k < an.beats.length
@@ -419,7 +441,8 @@ export function makeAutoChart(
       // 12/8(셋잇단 격자)은 점4분을 3·6으로 나눠야 곡 박자에 맞음
       // 잘게 나눈 칸이 너무 촘촘하면(90ms 미만) 한 단계 덜 나눔
       const fine = an.div === 12 ? 6 : 4;
-      const sub = I >= fullT && beatSec / fine >= 0.08 ? fine : fine / 2;
+      // 쉬움은 정박만
+      const sub = diff === "easy" ? 1 : I >= fullT && beatSec / fine >= 0.08 ? fine : fine / 2;
       const t1 = beatT(k + 1);
       for (let i = 0; i < sub; i++) {
         const t = t0 + (i * (t1 - t0)) / sub;
@@ -945,14 +968,18 @@ function nightmareNotes(
     if (t0 > lastPick) break;
     const b = barOf(t0);
     const I = intensity(b);
-    if (I < P.loud) continue;
+    if (I < P.loud) {
+      // 조용한 마디도 정박은 비우지 않음 (osu 나이트메어급은 조용한 구간도 평균의 2/3은 됨)
+      if (I >= P.loud * 0.5) put(t0, 1);
+      continue;
+    }
     const full = I >= P.full;
     const t1 = beatT(k + 1);
+    const beatInBar = Math.round((t0 - (beats[0] ?? 0)) / beatSec) % 4;
     const sub = full ? P.fullSub : P.loudSub;
     const chords = full ? P.chordFull : P.chordLoud;
     for (let c = 0; c < chords; c++) put(t0 + (c * (t1 - t0)) / chords, 2);
     for (let i = 0; i < sub; i++) put(t0 + (i * (t1 - t0)) / sub, 1);
-    const beatInBar = Math.round((t0 - (beats[0] ?? 0)) / beatSec) % 4;
     if (full && beatInBar === 3 && b % P.burstEvery === P.burstEvery - 1)
       for (let i = 0; i < P.burstSub; i++) put(t0 + (i * (t1 - t0)) / P.burstSub, 1, true);
   }
@@ -1073,21 +1100,29 @@ export function makeAutoCharts(
     const goal = d === "nightmare" ? nightmareGoal(an) : TARGET_LEVEL[d];
     const target = base.level ?? Math.max(goal, prevLevel + 1);
     const tol = base.level !== undefined ? 0 : LEVEL_TOL;
-    const canFill = d !== "easy";
+    const canFill = true;
     let density = base.density ?? 1;
     let fill = base.fill ?? 0;
     // 나이트메어는 밀도보다 16분 채우는 마디(full)·8분 마디(loud)·연타 간격으로 난이도가 정해짐
     let nm: Required<NightmareTweak> = { ...NIGHTMARE_DEFAULT, ...(base.nightmare ?? {}) };
     let best: Chart | null = null;
     let bestRaw = 0;
-    for (let attempt = 0; attempt < 10; attempt++) {
+    // 레벨이 맞은 뒤에도 밀도를 조금씩 올려 보며 같은 레벨에서 가장 빽빽한 채보를 고름
+    // (osu 랭크 채보는 같은 별점에서 우리보다 노트가 많음 — 동시치기·잭 같은 '튀는 자리'가 적어서)
+    let hit = 0;
+    for (let attempt = 0; attempt < 13; attempt++) {
       const chart = makeAutoChart(an, d, shiftMs, { ...base, density, fill, nightmare: nm });
       // 레벨은 난이도별 최저값으로 올려 놓은 값이라, 맞춰 갈 때는 별점 그대로 잼
       const raw = Math.round(starRating(chart.notes) * 4);
-      // 같은 거리면 쉬운 쪽
       const dNew = Math.abs(raw - target);
       const dBest = Math.abs(bestRaw - target);
-      if (!best || dNew < dBest || (dNew === dBest && raw < bestRaw)) {
+      // 같은 거리면 쉬운 쪽, 같은 레벨이면 노트 많은 쪽
+      if (
+        !best ||
+        dNew < dBest ||
+        (dNew === dBest &&
+          (raw < bestRaw || (raw === bestRaw && chart.notes.length > best.notes.length)))
+      ) {
         best = chart;
         bestRaw = raw;
       }
@@ -1097,12 +1132,20 @@ export function makeAutoCharts(
           `  ${d} 시도${attempt} 밀도x${density.toFixed(2)} 채우기${fill.toFixed(1)} → Lv${raw} 노트${chart.notes.length}`
         );
       // 나이트메어(자동 목표)는 목표보다 높게는 안 받음 — 이미 구간 가운데라 +1이면 체감이 확 어려워짐
-      if (
+      const ok =
         d === "nightmare" && base.level === undefined
           ? miss <= 0 && miss >= -tol
-          : Math.abs(miss) <= tol
-      )
-        break;
+          : Math.abs(miss) <= tol;
+      if (ok || hit > 0) {
+        if (hit >= 3 || (hit > 0 && !ok)) break;
+        hit++;
+        if (d === "nightmare") nm = { ...nm, loud: nm.loud - 0.03, full: nm.full - 0.03 };
+        else {
+          density *= 1.1;
+          fill = Math.min(1.6, fill + 0.05);
+        }
+        continue;
+      }
       // 레벨은 밀도에 거의 비례 → 비율로 맞춰 감 (한 번에 너무 크게는 안 움직임)
       const ratio = Math.min(1.6, Math.max(0.6, target / Math.max(1, raw)));
       density *= ratio;
