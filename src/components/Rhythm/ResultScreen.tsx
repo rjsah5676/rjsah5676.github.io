@@ -18,18 +18,12 @@ const T = { banner: 0.15, count: 0.5, countLen: 1.1, rank: 1.75, record: 2.3 };
 export default function ResultScreen({
   result,
   song,
-  autoSync,
-  offset,
-  judge,
   onRetry,
   onSelect,
   starting,
 }: {
   result: Result & { newBest: boolean };
   song: Song;
-  autoSync: boolean;
-  offset: number;
-  judge: number;
   onRetry: () => void;
   onSelect: () => void;
   starting: boolean;
@@ -215,14 +209,6 @@ export default function ResultScreen({
             </span>
           )}
         </div>
-        {autoSync && result.autoJudge !== 0 && (
-          <p
-            className={`${KR} rounded-[0.6cqw] border border-[#A78BFA]/30 bg-[#A78BFA]/10 px-[1cqw] py-[0.5cqw] text-[1cqw] leading-relaxed text-white/75`}
-          >
-            치는 동안 싱크를 자동으로 <b className="text-white">{signed(result.autoJudge)}ms</b>{" "}
-            맞췄어요 · 지금 음악 {signed(offset)} / 타격 {signed(judge)}ms
-          </p>
-        )}
       </div>
 
       {/* 오른쪽: 랭킹 등록 */}

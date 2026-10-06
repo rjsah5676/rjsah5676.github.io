@@ -44,27 +44,27 @@ function Poster({ emoji, chips }: { emoji: string; chips?: string[] }) {
   );
 }
 
-/** 싱크 두 가지 개념 */
+/** 싱크 두 가지: 자동(시스템이 치는 동안) · 수동(설정에서 직접) */
 function SyncConcept() {
   const card = "flex-1 rounded-xl border border-white/10 bg-white/[0.04] p-3 text-center";
   return (
     <div className="flex w-full max-w-md gap-2.5">
       <div className={card}>
-        <div className="text-4xl">🎧</div>
-        <div className="mt-1.5 text-sm font-bold text-white">음악 싱크</div>
+        <div className="text-4xl">🤖</div>
+        <div className="mt-1.5 text-sm font-bold text-white">자동 싱크</div>
         <div className="mt-1 text-[11px] leading-snug text-white/55">
-          소리가 귀에
+          치는 동안 시스템이
           <br />
-          늦게 도착하는 만큼
+          알아서 · 화면엔 안 보임
         </div>
       </div>
       <div className={card}>
-        <div className="text-4xl">✋</div>
-        <div className="mt-1.5 text-sm font-bold text-white">타격 싱크</div>
+        <div className="text-4xl">🎚️</div>
+        <div className="mt-1.5 text-sm font-bold text-white">수동 싱크</div>
         <div className="mt-1 text-[11px] leading-snug text-white/55">
-          내 손이 늘
+          설정에서 내가 직접
           <br />
-          늦게·빠르게 누르는 만큼
+          자동 싱크 위에 더해짐
         </div>
       </div>
     </div>
@@ -257,23 +257,18 @@ export const RHYTHM_GUIDE: GuideDoc = {
       body: (
         <>
           <B>자동 싱크</B>가 치는 동안 내 타이밍이 어느 쪽으로 쏠리는지 재서 알아서 맞춰요 — 이
-          사이트만의 핵심 기술 중 하나예요. 블루투스처럼 소리가 많이 늦는 것도 몇 마디면 따라잡으니
-          그냥 플레이하시면 돼요.
+          사이트만의 핵심 기술 중 하나예요. 블루투스처럼 소리가 많이 늦는 것도 두세 마디면 따라잡고,
+          기기·이어폰별로 따로 기억하니 그냥 플레이하시면 돼요. 화면에 따로 뜨진 않아요.
         </>
       ),
     },
     {
       title: "직접 맞추고 싶다면",
-      visual: (
-        <Poster
-          emoji="🎚️"
-          chips={["자동 싱크 끄기", "음악 싱크: 소리가 늦게 들리면 +", "타격 싱크: 늘 늦게 치면 +"]}
-        />
-      ),
+      visual: <Poster emoji="🎚️" chips={["설정 → 싱크", "노트가 먼저 오면 +", "늦게 오면 −"]} />,
       body: (
         <>
-          설정에서 <B>자동 싱크</B>를 끄면 음악 싱크·타격 싱크 슬라이더가 열려요. 일시정지 화면에서
-          지금까지 평균이 몇 ms 늦었는지 보고 맞추면 돼요.
+          그래도 노트와 소리가 어긋나 보이면 설정의 <B>싱크</B> 하나만 움직이면 돼요. 노트 화면과
+          판정이 같이 옮겨지고, 자동 싱크 위에 더해져요.
         </>
       ),
     },
@@ -339,19 +334,17 @@ export const RHYTHM_GUIDE: GuideDoc = {
       title: "싱크 맞추기",
       items: [
         <>
-          <B>자동 싱크</B>(기본 켜짐): 치는 동안 타이밍이 계속 한쪽으로 쏠리면 타격 싱크를 조금씩
-          옮겨요. 실수 몇 번엔 안 움직이고, 화면에 따로 알림은 안 떠요(일시정지·결과 화면에서 확인).
+          <B>자동 싱크</B>(항상 켜짐): 치는 동안 타이밍이 계속 한쪽으로 쏠리면 판정 기준을 알아서
+          옮겨요. 처음엔 빠르게 따라붙고(두세 마디), 맞은 뒤엔 조금씩만. 실수 몇 번엔 안 움직이고
+          화면엔 안 떠요. 싱크가 잡히기 전 처음 몇 탭은 HP가 바닥나도 안 끝나요.
         </>,
         <>
-          <B>음악 싱크</B>: 소리가 귀에 늦게 도착하는 만큼(블루투스 이어폰 등). 타격 싱크가 손 지연
-          범위(±60ms)를 넘으면 넘는 몫을 판 끝에 여기로 옮겨 노트 위치도 소리에 맞춰요.
+          소리 지연(블루투스 이어폰 등)으로 보이는 몫은 판이 끝날 때 노트 위치까지 소리에 맞춰요.
+          키보드·터치, 스피커·이어폰별로 따로 기억해요.
         </>,
         <>
-          <B>타격 싱크</B>: 내 손이 늘 늦거나 빠르게 누르는 버릇. 늘 늦게 친다 싶으면 +.
-        </>,
-        <>
-          직접 맞추려면 자동 싱크를 끄고 두 슬라이더를 움직여요. 일시정지 화면에 지금까지 평균이
-          보여요.
+          <B>수동 싱크</B>(설정): 그래도 어긋나 보이면 직접. 노트가 소리보다 먼저 오면 +, 늦게 오면
+          −. 자동 싱크와는 별개로 그 위에 더해져요.
         </>,
       ],
     },

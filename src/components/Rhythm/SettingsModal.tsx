@@ -33,12 +33,11 @@ export const LANE_MODS: { key: LaneMod; label: string; desc: string }[] = [
 
 export interface Settings {
   speed: number;
-  /** 음악 싱크(ms): 노트 화면+판정을 같이 옮김 — 소리가 화면보다 늦게 나오는 만큼 (블루투스 등) */
-  offset: number;
-  /** 타격 싱크(ms): 판정만 옮김 — 노트를 보고 누르는 손·입력 지연. 자동 싱크가 치는 동안 다듬음 */
-  judge: number;
-  /** 자동 싱크: 치는 동안 타격 싱크를 알아서 맞추고, 손 지연으로 보기 큰 몫은 판 끝에 음악 싱크로 옮김 */
-  autoSync: boolean;
+  /**
+   * 수동 싱크(ms): 노트 화면+판정을 같이 옮김 — 소리가 화면보다 늦게 들리면 +.
+   * 자동 싱크(치는 동안 시스템이 알아서 맞추는 값, 화면엔 안 보임)와는 별개로 그 위에 더해짐
+   */
+  sync: number;
   /** 타격음 볼륨 0~1 */
   hit: number;
   /** 음악 볼륨 0~1 */
@@ -326,56 +325,23 @@ export default function SettingsModal({
 
           {tab === "sync" && (
             <>
-              <Row
-                label="자동 싱크"
-                hint={
-                  settings.autoSync
-                    ? "치는 동안 타이밍을 보고 알아서 맞춰요"
-                    : "꺼짐 · 아래 두 값을 직접 맞춰요"
-                }
-              >
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={settings.autoSync}
-                  aria-label="자동 싱크"
-                  onClick={() => set({ autoSync: !settings.autoSync })}
-                  className={`relative h-[2.4cqw] w-[4.6cqw] cursor-pointer rounded-full transition-colors ${
-                    settings.autoSync ? "bg-[#A78BFA]" : "bg-white/15"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-[0.25cqw] h-[1.9cqw] w-[1.9cqw] rounded-full bg-white transition-[left] ${
-                      settings.autoSync ? "left-[2.45cqw]" : "left-[0.25cqw]"
-                    }`}
-                  />
-                </button>
-              </Row>
               <SyncRow
-                label="음악 싱크"
-                hint="소리가 화면보다 늦게 들리면 +"
-                value={settings.offset}
-                disabled={settings.autoSync}
-                onChange={(v) => set({ offset: v })}
-              />
-              <SyncRow
-                label="타격 싱크"
-                hint="늘 늦게 친다 싶으면 +"
-                value={settings.judge}
-                disabled={settings.autoSync}
-                onChange={(v) => set({ judge: v })}
+                label="싱크"
+                hint="노트가 소리보다 먼저 오면 +, 늦게 오면 −"
+                value={settings.sync}
+                disabled={false}
+                onChange={(v) => set({ sync: v })}
               />
               <div className="flex items-center justify-between gap-[1cqw] py-[1cqw]">
                 <p className="font-['Nanum_Gothic',sans-serif] text-[1cqw] leading-relaxed text-white/40">
-                  {settings.autoSync
-                    ? "블루투스처럼 소리가 많이 늦는 것도 몇 마디 안에 따라잡아요. 직접 만지려면 자동 싱크를 끄세요."
-                    : "일시정지 화면에서 지금까지 평균 타이밍을 보고 바로 적용할 수 있어요."}
+                  치는 타이밍은 플레이 중에 시스템이 알아서 맞춰요(자동 싱크). 그래도 노트와 소리가
+                  어긋나 보이면 여기서 직접 맞추세요 — 자동 싱크 위에 더해져요.
                 </p>
                 <button
                   type="button"
                   className={chip(false)}
-                  disabled={settings.autoSync || (settings.offset === 0 && settings.judge === 0)}
-                  onClick={() => set({ offset: 0, judge: 0 })}
+                  disabled={settings.sync === 0}
+                  onClick={() => set({ sync: 0 })}
                 >
                   초기화
                 </button>

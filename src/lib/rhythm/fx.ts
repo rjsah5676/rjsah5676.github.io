@@ -197,7 +197,43 @@ export function setNoteSize(k: NoteSize) {
   noteH = NOTE_SIZES.find((n) => n.key === k)?.h ?? 16;
 }
 
+/** 노트 머리 그림 캐시: 같은 스킨·색·폭·배율이면 한 번 그려 둔 그림을 찍음 (매 프레임 그라데이션·그림자 계산 없이) */
+const headCache = new Map<string, HTMLCanvasElement>();
+/** 네온 그림자(shadowBlur 14)가 잘리지 않게 여유 */
+const HEAD_PAD = 18;
+
 export function drawHead(
+  g: CanvasRenderingContext2D,
+  skin: Skin,
+  x: number,
+  y: number,
+  laneW: number,
+  color: string
+) {
+  // 화면 배율(캔버스 픽셀 / 논리 좌표)에 맞춰 그려 두면 확대 없이 또렷
+  const scale = g.getTransform().a || 1;
+  const key = `${skin}|${color}|${laneW}|${noteH}|${scale.toFixed(2)}`;
+  let c = headCache.get(key);
+  if (!c) {
+    if (headCache.size > 64) headCache.clear();
+    c = document.createElement("canvas");
+    c.width = Math.ceil((laneW + HEAD_PAD * 2) * scale);
+    c.height = Math.ceil((noteH + HEAD_PAD * 2) * scale);
+    const b = c.getContext("2d")!;
+    b.scale(scale, scale);
+    paintHead(b, skin, HEAD_PAD, HEAD_PAD + noteH / 2, laneW, color);
+    headCache.set(key, c);
+  }
+  g.drawImage(
+    c,
+    x - HEAD_PAD,
+    y - noteH / 2 - HEAD_PAD,
+    laneW + HEAD_PAD * 2,
+    noteH + HEAD_PAD * 2
+  );
+}
+
+function paintHead(
   g: CanvasRenderingContext2D,
   skin: Skin,
   x: number,
@@ -270,6 +306,25 @@ export function drawHead(
   }
 }
 
+/** 롱노트 몸통 그라데이션 캐시 (가로 방향이라 레인 x·폭·색이 같으면 재사용) */
+const bodyGrad = new Map<string, CanvasGradient>();
+const holdGrad = (
+  g: CanvasRenderingContext2D,
+  key: string,
+  bx: number,
+  bw: number,
+  stops: [number, string][]
+) => {
+  let gr = bodyGrad.get(key);
+  if (!gr) {
+    if (bodyGrad.size > 64) bodyGrad.clear();
+    gr = g.createLinearGradient(bx, 0, bx + bw, 0);
+    for (const [p, c] of stops) gr.addColorStop(p, c);
+    bodyGrad.set(key, gr);
+  }
+  return gr;
+};
+
 /** 롱노트 몸통 (yTail 위쪽 ~ yHead 아래쪽) */
 export function drawHoldBody(
   g: CanvasRenderingContext2D,
@@ -289,11 +344,11 @@ export function drawHoldBody(
   g.fillStyle = color;
   switch (skin) {
     case "neon": {
-      const grad = g.createLinearGradient(bx, 0, bx + bw, 0);
-      grad.addColorStop(0, `${color}22`);
-      grad.addColorStop(0.5, `${color}aa`);
-      grad.addColorStop(1, `${color}22`);
-      g.fillStyle = grad;
+      g.fillStyle = holdGrad(g, `n|${color}|${bx}|${bw}`, bx, bw, [
+        [0, `${color}22`],
+        [0.5, `${color}aa`],
+        [1, `${color}22`],
+      ]);
       g.fillRect(bx, yTail, bw, h);
       g.shadowColor = color;
       g.shadowBlur = 8;
@@ -302,12 +357,12 @@ export function drawHoldBody(
       break;
     }
     case "metal": {
-      const grad = g.createLinearGradient(bx, 0, bx + bw, 0);
-      grad.addColorStop(0, shade(color, -0.3));
-      grad.addColorStop(0.4, "#FFFFFF");
-      grad.addColorStop(0.6, color);
-      grad.addColorStop(1, shade(color, -0.3));
-      g.fillStyle = grad;
+      g.fillStyle = holdGrad(g, `m|${color}|${bx}|${bw}`, bx, bw, [
+        [0, shade(color, -0.3)],
+        [0.4, "#FFFFFF"],
+        [0.6, color],
+        [1, shade(color, -0.3)],
+      ]);
       g.fillRect(bx, yTail, bw, h);
       break;
     }

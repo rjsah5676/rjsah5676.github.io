@@ -9,7 +9,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SONGS, type Song } from "@/lib/rhythm/music";
 import { DIFFICULTIES, makeChart, type Chart, type Difficulty } from "@/lib/rhythm/chart";
 import { renderSong } from "@/lib/rhythm/synth";
-import { splitSync } from "@/lib/rhythm/autosync";
+import {
+  autoSyncProfile,
+  loadAutoSync,
+  saveAutoSync,
+  type AutoSyncState,
+} from "@/lib/rhythm/autosync";
 import { HIT_SOUNDS, NOTE_SIZES, setNoteSize, SKINS } from "@/lib/rhythm/fx";
 import { audio, loadSfx, playBgm, setSfxVolume, sfx, stopBgm } from "@/lib/rhythm/sfx";
 import Stage, {
@@ -32,7 +37,7 @@ import ResultScreen from "./ResultScreen";
 
 const SETTINGS_KEY = "rhythm_settings";
 /** 저장 설정 버전 — 2: 노트 모양 기본값을 메탈로 바꾼 뒤 (그 전에 저장된 설정은 한 번 메탈로) */
-const SETTINGS_VER = 2;
+const SETTINGS_VER = 3;
 const BEST_KEY = "rhythm_best";
 
 /** 레인 옵션 적용: 미러는 3-lane, 랜덤은 판마다 다른 순열 (동시치기는 그대로 동시치기) */
@@ -104,9 +109,7 @@ export default function RhythmGame() {
   const [diffSel, setDiff] = useState<Difficulty>("normal");
   const [settings, setSettings] = useState<Settings>({
     speed: 3,
-    offset: 0,
-    judge: 0,
-    autoSync: true,
+    sync: 0,
     hit: 0.3,
     music: 1,
     sfx: 0.7,
@@ -118,6 +121,14 @@ export default function RhythmGame() {
     field: "left",
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  /** 자동 싱크(사용자에겐 안 보임): 기기·입력 방식별 프로필로 저장. 플레이 시작 때 불러오고 판이 끝나면 저장 */
+  const autoKey = useRef("");
+  const [auto, setAuto] = useState<AutoSyncState>({ judge: 0, offset: 0 });
+  const migratedAuto = useRef<AutoSyncState | null>(null);
+  const onAutoSync = useCallback((next: AutoSyncState) => {
+    if (autoKey.current) saveAutoSync(autoKey.current, next);
+    setAuto(next);
+  }, []);
   // 노트 두께는 그리기 모듈에 바로 반영 (플레이 화면·미리보기 공용)
   useEffect(() => setNoteSize(settings.noteSize), [settings.noteSize]);
   useEffect(() => setSfxVolume(settings.sfx), [settings.sfx]);
@@ -361,9 +372,7 @@ export default function RhythmGame() {
       if (s) {
         setSettings({
           speed: clamp(Number(s.speed) || 3, 1, 8),
-          offset: clamp(Number(s.offset) || 0, -400, 400),
-          judge: clamp(Number(s.judge) || 0, -400, 400),
-          autoSync: s.autoSync !== false,
+          sync: clamp(Number(s.sync) || 0, -400, 400),
           hit: typeof s.hit === "number" ? clamp(s.hit, 0, 1) : 0.3,
           music: typeof s.music === "number" ? clamp(s.music, 0, 1) : 1,
           sfx: typeof s.sfx === "number" ? clamp(s.sfx, 0, 1) : 0.7,
@@ -377,6 +386,15 @@ export default function RhythmGame() {
           cover: COVERS_OPT.some((k) => k.key === s.cover) ? s.cover : "none",
           field: FIELD_POS.some((k) => k.key === s.field) ? s.field : "left",
         });
+        // 예전 설정(v2 이하)의 음악·타격 싱크는 자동 싱크가 들고 있던 값 → 자동 싱크 저장소로 옮김 (수동 싱크는 0부터)
+        if ((Number(s.v) || 1) < 3 && (Number(s.offset) || Number(s.judge))) {
+          const old = {
+            judge: clamp(Number(s.judge) || 0, -400, 400),
+            offset: clamp(Number(s.offset) || 0, -400, 400),
+          };
+          for (const touch of [false, true]) saveAutoSync(autoSyncProfile(touch, undefined), old);
+          migratedAuto.current = old;
+        }
         // 곡은 id로 기억 (새 곡이 맨 앞에 끼어들어도 고르던 곡 그대로)
         const si = SONGS.findIndex((x) => x.id === s.songId);
         if (si >= 0) setSel(si);
@@ -446,6 +464,17 @@ export default function RhythmGame() {
         isCustom ? Promise.resolve(track!.buffer) : loadSong(song),
         wait(fromResult ? 0 : 1500),
       ]);
+      // 자동 싱크 프로필: 키보드/터치 × 출력 지연(스피커↔블루투스가 바뀌면 다른 프로필)
+      const key = autoSyncProfile(
+        coarse,
+        (ctx as AudioContext & { outputLatency?: number }).outputLatency
+      );
+      let state = loadAutoSync(key);
+      // 예전 설정에서 옮겨 온 값이 있고 이 프로필이 비어 있으면 그 값부터 시작
+      if (migratedAuto.current && state.judge === 0 && state.offset === 0)
+        state = migratedAuto.current;
+      autoKey.current = key;
+      setAuto(state);
       setPlay((p) => ({ ctx, buffer, round: (p?.round ?? 0) + 1, seed: Math.random() * 1e9 }));
       setScreen("play");
     } catch (e) {
@@ -479,12 +508,6 @@ export default function RhythmGame() {
           localStorage.setItem(BEST_KEY, JSON.stringify(next));
         } catch {}
       }
-      // 자동 싱크: 타격 싱크가 손 지연으로 보기 큰 범위를 넘었으면 넘는 몫을 음악 싱크로 (합은 그대로라 판정은 안 바뀜)
-      setSettings((s) => {
-        if (!s.autoSync) return s;
-        const sp = splitSync(s.judge, s.offset);
-        return sp.judge === s.judge ? s : { ...s, ...sp };
-      });
       setResult({ ...r, newBest });
       setScreen("result");
     },
@@ -600,9 +623,9 @@ export default function RhythmGame() {
               buffer={play.buffer}
               ctx={play.ctx}
               speed={settings.speed}
-              offset={settings.offset}
-              judgeOffset={settings.judge}
-              autoSync={settings.autoSync}
+              sync={settings.sync}
+              auto={auto}
+              onAutoSync={onAutoSync}
               hitVolume={settings.hit}
               musicVolume={settings.music}
               onSettings={onLiveSettings}
@@ -623,9 +646,6 @@ export default function RhythmGame() {
             <ResultScreen
               result={result}
               song={song}
-              autoSync={settings.autoSync}
-              offset={settings.offset}
-              judge={settings.judge}
               onRetry={start}
               onSelect={toSelect}
               starting={loading}

@@ -166,7 +166,9 @@ export class Engine {
       const list = this.lanes[lane];
       while (this.ptr[lane] < list.length) {
         const n = this.notes[list[this.ptr[lane]]];
-        if (t - n.t <= WINDOW.good) break;
+        // 창이 닫히고도 40ms는 기다림: 긴 프레임·GC 뒤에 늦게 처리된 입력(시각은 창 안)이
+        // 이미 MISS 난 노트 대신 다음 노트에 붙는 일이 없게. 판정 자체는 입력 시각으로 하니 창은 그대로
+        if (t - n.t <= WINDOW.good + 0.04) break;
         n.head = "miss";
         this.record("miss", lane, n.t + WINDOW.good);
         if (n.end) {
