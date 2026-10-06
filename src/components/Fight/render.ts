@@ -729,6 +729,55 @@ export class FightRenderer {
   }
 
   /** 필살기 불기둥: 솟기 전엔 바닥에 경고 불씨, 솟으면 시트의 불기둥 그림을 크게 */
+  /** 이그나 업화주가 남긴 불 장판: 바닥에 깔린 잔불 + 일렁이는 불꽃 혀 (그림 없이 그림) */
+  private drawFloorFire(p: Proj, s: State) {
+    const g = this.g;
+    const fl = CHARS[s.p[p.o].ch].moves.X.summon!.floor!;
+    const x = p.x / SUB;
+    const y = screenY(p.h);
+    const w = fl.w;
+    // 나타날 때·꺼질 때 서서히
+    const a = Math.min(1, p.t / 6, p.life / 20);
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    // 바닥 잔불 띠
+    const gr = g.createRadialGradient(x, y, 2, x, y, w / 2);
+    gr.addColorStop(0, `rgba(255,170,60,${0.55 * a})`);
+    gr.addColorStop(0.6, `rgba(255,80,20,${0.35 * a})`);
+    gr.addColorStop(1, "rgba(255,40,0,0)");
+    g.fillStyle = gr;
+    g.beginPath();
+    g.ellipse(x, y, w / 2, 7, 0, 0, Math.PI * 2);
+    g.fill();
+    // 불꽃 혀: 자리마다 다른 위상으로 일렁임 (결정적인 값만 써서 다시 그려도 같음)
+    const n = 9;
+    for (let k = 0; k < n; k++) {
+      const fx = x - w / 2 + (w * (k + 0.5)) / n;
+      const ph = s.f * 0.35 + k * 1.7;
+      const h = (10 + 9 * Math.abs(Math.sin(ph)) + 5 * Math.sin(ph * 2.3 + k)) * a;
+      const fw = 5 + 2 * Math.sin(ph * 1.3);
+      const lg = g.createLinearGradient(fx, y, fx, y - h);
+      lg.addColorStop(0, `rgba(255,120,30,${0.85 * a})`);
+      lg.addColorStop(0.5, `rgba(255,190,70,${0.6 * a})`);
+      lg.addColorStop(1, "rgba(255,240,180,0)");
+      g.fillStyle = lg;
+      g.beginPath();
+      g.moveTo(fx - fw, y);
+      g.quadraticCurveTo(fx - fw * 0.6, y - h * 0.55, fx + Math.sin(ph) * 2, y - h);
+      g.quadraticCurveTo(fx + fw * 0.6, y - h * 0.55, fx + fw, y);
+      g.closePath();
+      g.fill();
+    }
+    // 튀는 불티
+    for (let k = 0; k < 4; k++) {
+      const life = (s.f + k * 11) % 26;
+      const sx = x + (((k * 37 + Math.floor((s.f + k * 11) / 26) * 53) % w) - w / 2);
+      g.fillStyle = `rgba(255,210,120,${(1 - life / 26) * a})`;
+      g.fillRect(sx, y - 4 - life * 1.3, 2, 2);
+    }
+    g.restore();
+  }
+
   private drawPillar(p: Proj, s: State) {
     const g = this.g;
     const sm = CHARS[s.p[p.o].ch].moves.X.summon!;
@@ -809,6 +858,10 @@ export class FightRenderer {
   private drawProj(s: State) {
     const g = this.g;
     for (const p of s.proj) {
+      if (p.k === 2) {
+        this.drawFloorFire(p, s);
+        continue;
+      }
       if (p.k === 1) {
         this.drawPillar(p, s);
         continue;

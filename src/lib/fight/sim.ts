@@ -249,7 +249,7 @@ export interface Fighter {
 }
 
 export interface Proj {
-  /** 0 = 날아가는 탄, 1 = 불기둥 (소환) */
+  /** 0 = 날아가는 탄, 1 = 불기둥 (소환), 2 = 불 장판 (불기둥이 꺼진 자리) */
   k: number;
   /** 날아가는 탄을 만든 기술: 0 = 아이덴티티(S), 1 = 필살기(X) */
   mv: number;
@@ -615,6 +615,11 @@ export function projDef(p: Proj, s: State) {
 }
 
 export function projRect(p: Proj, s: State): Rect {
+  if (p.k === 2) {
+    // 불 장판: 발판 위 얇은 띠
+    const fl = CHARS[s.p[p.o].ch].moves.X.summon!.floor!;
+    return { l: p.x - (fl.w * SUB) / 2, r: p.x + (fl.w * SUB) / 2, lo: p.h - 4 * SUB, hi: p.h + 14 * SUB };
+  }
   if (p.k === 1) {
     // 불기둥: 발판에서 위로
     const d = CHARS[s.p[p.o].ch].moves.X.summon!;
@@ -1666,8 +1671,11 @@ function projectiles(s: State) {
   const map = mapOf(s);
   for (const p of s.proj) {
     p.t++;
-    if (p.k === 1) {
+    if (p.k === 1 || p.k === 2) {
       p.life--;
+      // 불기둥이 꺼지면 그 자리에 불 장판 (이그나 업화주)
+      const fl = p.k === 1 && p.life === 0 ? CHARS[s.p[p.o].ch].moves.X.summon?.floor : undefined;
+      if (fl) s.proj.push({ k: 2, mv: 1, n: 0, t: 0, o: p.o, x: p.x, h: p.h, vx: 0, vh: 0, life: fl.life });
       continue;
     }
     const prev = p.h;
@@ -1701,6 +1709,18 @@ function projectiles(s: State) {
     if (p.life <= 0) continue;
     const d = s.p[1 - p.o];
     const h = hurtRect(d);
+    if (p.k === 2) {
+      // 불 장판: 밟고 서 있으면(발이 장판 높이) every 프레임마다 피해 + 화상. 경직은 없음, 화상처럼 쓰러지진 않음
+      const fl = CHARS[s.p[p.o].ch].moves.X.summon!.floor!;
+      const r = projRect(p, s);
+      const on = d.x >= r.l && d.x <= r.r && d.h >= r.lo && d.h <= r.hi && d.st !== "ko";
+      if (on && p.t % fl.every === 0) {
+        if (d.burn === 0) s.ev.push({ k: "burn", p: p.o, x: d.x, h: d.h + 60 * SUB, v: 0 });
+        d.burn = Math.max(d.burn, fl.burn);
+        if (d.hp > 1) d.hp = Math.max(1, d.hp - fl.dmg);
+      }
+      continue;
+    }
     if (p.k === 1) {
       // 불기둥: 솟은 뒤 every 프레임마다 타격, 마지막 타에 날림
       const X = CHARS[s.p[p.o].ch].moves.X;

@@ -96,6 +96,8 @@ export interface MoveDef {
     track?: boolean;
     /** 상대 발밑 대신 내 앞 이 거리(px)에 세움 (넓은 범위기) */
     front?: number;
+    /** 기둥이 사그라진 자리에 불 장판 (life 프레임) — 밟고 있으면 every 프레임마다 dmg + 화상 */
+    floor?: { life: number; w: number; every: number; dmg: number; burn: number };
   };
   /** 맞히면 상대를 감전시키는 프레임 수 (느려지고, 같은 캐릭터의 공격에 더 아픔) */
   shock?: number;
@@ -319,7 +321,7 @@ const RAW: CharSrc[] = [
     idName: "화염구",
     idDesc: "빠르게 날아가는 불꽃 탄. 맞으면 화상 — 한동안 체력이 조금씩 닳고, 그동안 이그나의 공격이 15% 더 아픔",
     ultName: "업화주",
-    ultDesc: "상대 발밑에서 큰 불기둥이 솟아 4연타 — 어디에 있든 따라가고 오래 화상",
+    ultDesc: "상대 발밑에서 큰 불기둥이 솟아 4연타 — 오래 화상, 꺼진 자리엔 2초 동안 불 장판",
     airDesc: "화염구를 앞쪽 아래로 비스듬히 쏨 — 아래 발판의 상대를 노림",
     moves: {
       L: {
@@ -409,7 +411,15 @@ const RAW: CharSrc[] = [
         meter: 0,
         box: { x: 0, y: 0, w: 0, h: 0 },
         kd: true,
-        summon: { w: 66, h: 165, delay: 20, life: 40, every: 10 },
+        summon: {
+          w: 66,
+          h: 165,
+          delay: 20,
+          life: 40,
+          every: 10,
+          // 불기둥이 꺼진 자리에 2초 동안 불 장판: 밟고 있으면 0.25초마다 8 피해 + 화상
+          floor: { life: 120, w: 110, every: 15, dmg: 8, burn: 90 },
+        },
         burn: 220, // 화상 180→220
       },
     },
