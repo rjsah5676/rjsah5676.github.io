@@ -195,7 +195,7 @@ const RAW: CharSrc[] = [
     difficulty: 2,
     stats: { atk: 3, reach: 2, move: 5, control: 2, combo: 5, hp: 4 },
     idName: "질풍권",
-    idDesc: "바람을 두르고 돌진하며 2연타 — 돌진하는 동안 경직 면역, 맞으면 1초 기절",
+    idDesc: "바람을 두르고 돌진하며 2연타 — 돌진하는 동안 경직 면역, 맞으면 기절",
     ultName: "천풍난무",
     ultDesc: "회오리를 두르고 돌진하며 6연타, 마지막 타에 날려 버림",
     airDesc: "아래로 급강하해 바닥을 쾅 — 양옆 넓게 충격파로 띄움",
@@ -266,8 +266,8 @@ const RAW: CharSrc[] = [
         recovery: 22,
         dmg: 44, // 경직 면역·기절이 붙어서 56→44
         chip: 6,
-        // 맞으면 기절 1초 (제나 뇌창 감전 기절 48프레임보다 0.2초 길게)
-        hitstun: 60,
+        // 맞으면 기절 0.85초 (60→51, 카이가 너무 셈)
+        hitstun: 51,
         blockstun: 10,
         push: 700,
         hitstop: 7,
@@ -319,7 +319,7 @@ const RAW: CharSrc[] = [
     difficulty: 1,
     stats: { atk: 4, reach: 4, move: 3, control: 3, combo: 3, hp: 3 },
     idName: "화염구",
-    idDesc: "빠르게 날아가는 불꽃 탄. 맞으면 화상 — 한동안 체력이 조금씩 닳고, 그동안 이그나의 공격이 15% 더 아픔",
+    idDesc: "빠르게 날아가는 불꽃 탄. 맞으면 화상 — 한동안 체력이 조금씩 닳고, 그동안 이그나의 공격이 10% 더 아픔",
     ultName: "업화주",
     ultDesc: "상대 발밑에서 큰 불기둥이 솟아 4연타 — 오래 화상, 꺼진 자리엔 2초 동안 불 장판",
     airDesc: "화염구를 앞쪽 아래로 비스듬히 쏨 — 아래 발판의 상대를 노림",
@@ -468,7 +468,7 @@ const RAW: CharSrc[] = [
         startup: 12,
         active: 4,
         recovery: 20,
-        dmg: 80,
+        dmg: 90, // 80→90
         chip: 0,
         hitstun: 19,
         blockstun: 13,
@@ -510,7 +510,7 @@ const RAW: CharSrc[] = [
         startup: 12,
         active: 4,
         recovery: 24,
-        dmg: 45,
+        dmg: 55, // 45→55
         chip: 6,
         hitstun: 34,
         blockstun: 12,

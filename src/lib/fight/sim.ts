@@ -136,7 +136,7 @@ const BURN_DMG = 2;
 /** 감전 처음 걸릴 때 짧게 기절 (경직 +) */
 const SHOCK_STUN = 10;
 /** 화상 중인 상대: 태울 수 있는 캐릭터(이그나)의 공격이 이만큼(%) 더 아픔 */
-const BURN_BONUS = 15;
+const BURN_BONUS = 10;
 /** 건모 Alt+Tab 뒤 공중에서 안 떨어지는 시간 (0.3초) */
 const SWAP_HOLD = 18;
 /** 대시가 끝난 뒤에도 이 프레임 안에 잡기를 누르면 돌진 잡기 */
