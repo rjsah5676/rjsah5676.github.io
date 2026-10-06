@@ -6,6 +6,7 @@
  */
 
 import type { Chart, Difficulty } from "./chart";
+import { PRACTICE_SECTIONS, practiceCharts } from "./practice";
 import jiljuData from "@/data/rhythm/jilju.json";
 import natsuData from "@/data/rhythm/natsukasumi.json";
 import rinkakuData from "@/data/rhythm/rinkaku.json";
@@ -81,6 +82,8 @@ export interface Song {
   bpmLabel?: number;
   /** 사용자가 넣은 음악 (랭킹 없음) */
   custom?: boolean;
+  /** 연습곡 (패턴 연습, 랭킹 없음) */
+  practice?: boolean;
   /** 재킷 그림 주소 (내 음악: 파일에 든 앨범 사진, 없으면 기본 그림) */
   cover?: string;
   /** 음원 파일로 재생하는 곡 (신스 렌더 대신 이 파일을 불러옴) */
@@ -377,8 +380,62 @@ const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3",
  *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}' --levels 3,6,11,13,16
  *   velocity    --bpm-label 180 --boss '{"loud":0.3,"full":0.5,"loudSub":2,"fullSub":4,"chordFull":2,"burstSub":8,"burstEvery":1}' --levels 3,6,11,14,17
  */
-/** 새 곡은 항상 맨 앞에 */
-export const SONGS: Song[] = [FULLCOMBO, JILJU, NATSU, RINKAKU, NEWDIM, MONARCH, VELOCITY];
+// ───────────────────────── 연습곡 ─────────────────────────
+// 박자만 또렷한 신스 반주(킥·스네어·하이햇·베이스·패드) 위에 패턴 구간(practice.ts)을 차례로
+const PRACTICE_BPM = 150;
+const PRACTICE: Song = {
+  ...build({
+    id: "practice",
+    title: "패턴 연습",
+    bpm: PRACTICE_BPM,
+    chords: [
+      ["a2", "a3", "c4", "e4"],
+      ["f2", "f3", "a3", "c4"],
+      ["c3", "c4", "e4", "g4"],
+      ["g2", "g3", "b3", "d4"],
+    ],
+    sections: PRACTICE_SECTIONS.map((sec) =>
+      sec.key === "intro"
+        ? { name: sec.name, bars: sec.bars, kick: "x...x...x...x...", hat: "x.x.x.x.x.x.x.x." }
+        : sec.key === "outro"
+          ? {
+              name: sec.name,
+              bars: sec.bars,
+              crash: "x...............",
+              bass: "root" as const,
+              pad: true,
+            }
+          : {
+              name: sec.name,
+              bars: sec.bars,
+              kick: "x...x...x...x...",
+              snare: "....x.......x...",
+              hat: "x.x.x.x.x.x.x.x.",
+              crash: ["x...............", "", "", "", "", "", "", ""],
+              bass: "pulse" as const,
+              pad: true,
+            }
+    ),
+    sound: { lead: "square", arp: "triangle", delaySteps: 3, drums: 1.1 },
+    color: "#34D399",
+    desc: "150 BPM · 계단 · 트릴 · 잭 · 동시치기 · 롱노트 · 섞어서 (랭킹 없음)",
+  }),
+  practice: true,
+  custom: true,
+  charts: practiceCharts(PRACTICE_BPM),
+};
+
+/** 새 곡은 항상 맨 앞에 (연습곡은 맨 끝) */
+export const SONGS: Song[] = [
+  FULLCOMBO,
+  JILJU,
+  NATSU,
+  RINKAKU,
+  NEWDIM,
+  MONARCH,
+  VELOCITY,
+  PRACTICE,
+];
 
 // 작곡 엔진 외부 노출 (지금은 안 쓰지만 신스 곡을 다시 넣을 때 사용)
 export { build, type SongSpec };

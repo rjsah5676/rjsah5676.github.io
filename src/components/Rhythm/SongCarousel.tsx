@@ -94,7 +94,7 @@ export default function SongCarousel({
                     className="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left hover:bg-white/5"
                   >
                     <img
-                      src={COVERS[s.id]?.src}
+                      src={coverOf(s)}
                       alt=""
                       className="h-8 w-8 shrink-0 rounded-md object-cover"
                     />
@@ -155,7 +155,7 @@ export default function SongCarousel({
                 }}
               >
                 <img
-                  src={COVERS[s.id]?.src}
+                  src={coverOf(s)}
                   alt=""
                   draggable={false}
                   className="h-full w-full object-cover"

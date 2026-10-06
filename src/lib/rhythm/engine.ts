@@ -51,6 +51,8 @@ export interface JudgeEvent {
 }
 
 export class Engine {
+  /** 연습곡: HP가 바닥나도 안 끝남 */
+  noFail = false;
   notes: LiveNote[];
   units: number;
   counts: Record<Judge, number> = { perfect: 0, great: 0, good: 0, miss: 0 };
@@ -93,7 +95,7 @@ export class Engine {
     this.sum += WEIGHT[j];
     this.judged++;
     this.hp = Math.max(0, Math.min(HP_MAX, this.hp + HP_DELTA[j]));
-    if (this.hp <= 0) this.dead = true;
+    if (this.hp <= 0 && !this.noFail) this.dead = true;
     if (j === "miss") this.combo = 0;
     else this.maxCombo = Math.max(this.maxCombo, ++this.combo);
     this.events.push({ judge: j, lane, at, diff });

@@ -273,6 +273,8 @@ export default function Stage({
     const beatSec = 60 / song.bpm;
     // 롱노트 누르는 동안 8분음표마다 콤보가 오름
     const engine = new Engine(chart, beatSec / 2);
+    // 연습곡은 HP가 바닥나도 끝까지
+    engine.noFail = !!song.practice;
     // 플레이 중에 바뀔 수 있는 값들 (일시정지 화면·속도 단축키)
     const live: LiveSettings = {
       speed,

@@ -67,6 +67,7 @@ export default function SongSelect({
   // 내 음악: 재킷을 눌러도 파일 고르기
   const pickRef = useRef<(() => void) | null>(null);
   const custom = sel === songs.length;
+  const practice = !custom && !!songs[sel]?.practice;
   const color = custom ? CUSTOM_COLOR : (song?.color ?? CUSTOM_COLOR);
   const chartOf = (d: Difficulty): Chart | null =>
     custom ? (customCharts?.[d] ?? null) : (charts[songs[sel].id][d] ?? null);
@@ -347,21 +348,30 @@ export default function SongSelect({
         <div className="flex min-h-0 flex-1 flex-col rounded-[0.9cqw] border border-white/10 bg-black/45 px-[1.4cqw] py-[0.8cqw]">
           <div className="flex items-baseline justify-between gap-[1cqw]">
             <span className={`${DISP} text-[1.3cqw] tracking-[0.12em] text-white`}>
-              {custom ? "HOW IT WORKS" : "RANKING"}
+              {custom ? "HOW IT WORKS" : practice ? "PRACTICE" : "RANKING"}
             </span>
             <span className={`${KR} text-[0.95cqw] text-white/45`}>
-              {custom ? "랭킹 없음 · 기록은 이 브라우저에만" : `${diffInfo.label} TOP 10`}
+              {custom || practice
+                ? "랭킹 없음 · 기록은 이 브라우저에만"
+                : `${diffInfo.label} TOP 10`}
             </span>
           </div>
-          {custom && (
+          {(custom || practice) && (
             <ul
               className={`${KR} mt-[0.8cqw] flex flex-col gap-[0.5cqw] text-[1.15cqw] leading-snug text-white/75`}
             >
-              {[
-                "드럼·박자를 분석해서 쉬움~나이트메어 5단계 채보를 바로 만들어요",
-                "파일은 서버로 올라가지 않고 이 브라우저 안에서만 쓰여요",
-                "파일에 앨범 사진이 있으면 재킷으로 보여 줘요",
-              ].map((t, i) => (
+              {(practice
+                ? [
+                    "계단 → 트릴 → 잭 → 동시치기 → 롱노트 → 섞어서, 구간마다 8마디씩 반복해요",
+                    "난이도가 오를수록 2분 → 4분 → 8분 → 16분으로 잘게, 잭은 길게, 동시치기는 자주",
+                    "지금 구간 이름은 플레이 화면 진행 바에 나와요",
+                  ]
+                : [
+                    "드럼·박자를 분석해서 쉬움~나이트메어 5단계 채보를 바로 만들어요",
+                    "파일은 서버로 올라가지 않고 이 브라우저 안에서만 쓰여요",
+                    "파일에 앨범 사진이 있으면 재킷으로 보여 줘요",
+                  ]
+              ).map((t, i) => (
                 <li
                   key={t}
                   className="flex items-center gap-[0.8cqw] rounded-[0.5cqw] border border-white/[0.07] bg-white/[0.04] py-[0.4cqw] pr-[0.9cqw] pl-[0.4cqw]"
@@ -377,7 +387,7 @@ export default function SongSelect({
               ))}
             </ul>
           )}
-          {!custom && song && (
+          {!custom && !practice && song && (
             <div className="bd-scroll mt-[0.4cqw] min-h-0 flex-1 overflow-y-auto">
               <RankingBoard songId={song.id} diff={diff} label="" game />
             </div>

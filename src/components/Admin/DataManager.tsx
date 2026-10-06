@@ -33,7 +33,7 @@ interface Source {
 }
 
 const DIFFS = ["easy", "normal", "hard", "expert", "nightmare"];
-const RHYTHM_CHARTS = SONGS.flatMap((s) =>
+const RHYTHM_CHARTS = SONGS.filter((s) => !s.practice).flatMap((s) =>
   DIFFS.map((d) => ({ value: `${s.id}_${d}`, label: `${s.title} · ${d}` }))
 );
 
