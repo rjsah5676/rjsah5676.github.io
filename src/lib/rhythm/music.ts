@@ -378,6 +378,7 @@ const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3",
  *   rinkaku     --tweak '{"expert":{"fill":0.4}}' --levels 2,4,8,12
  *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8,"burstSub":8}' --tweak '{"expert":{"fill":0.4}}' --levels 3,6,10,13,15
  *   monarch     --bpm-label 150 --boss '{"burstEvery":2,"burstSub":8}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}' --levels 3,6,11,13,16
+ *               (저장된 채보는 예전 셋잇단 판정으로 뽑은 것 — 4/4 판정 고친 뒤로 다시 뽑으면 달라짐)
  *   velocity    --bpm-label 180 --boss '{"loud":0.45,"full":0.72,"burstEvery":4,"burstSub":6}' --levels 3,6,11,14,17
  */
 // ───────────────────────── 연습곡 ─────────────────────────

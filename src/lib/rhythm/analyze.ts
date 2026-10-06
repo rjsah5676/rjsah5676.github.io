@@ -464,6 +464,23 @@ export function alignToGrid(beats: number[], raw: Onset[], straight = false) {
   const h8 = fineHits(DIV) / (DIV / 2);
   const h12 = fineHits(DIV_TRIPLET) / ((DIV_TRIPLET * 2) / 3);
   let div = h12 > h8 * 1.3 ? DIV_TRIPLET : DIV;
+  // 세분 칸 비교만으론 박 추적이 조금 흔들린 4/4 곡도 셋잇단으로 넘어옴 (예: 147 BPM 록 → 221 셋잇단).
+  // 16분 자리(박의 1/4·3/4)에 맞는 타격이 셋잇단 8분 자리(1/3·2/3)보다 많으면 4/4
+  if (div === DIV_TRIPLET) {
+    const hitsAt = (fr: number[]) => {
+      let n = 0;
+      for (let i = 0, k = 0; i < strong.length; i++) {
+        const t = strong[i].t;
+        while (k < beats.length - 2 && beats[k + 1] <= t) k++;
+        const len = beats[k + 1] - beats[k];
+        if (t < beats[k] || t >= beats[k + 1]) continue;
+        const p = (t - beats[k]) / len;
+        if (fr.some((f) => Math.abs(p - f) * len < 0.015)) n++;
+      }
+      return n;
+    };
+    if (hitsAt([0.25, 0.75]) > hitsAt([1 / 3, 2 / 3])) div = DIV;
+  }
 
   // 셋잇단처럼 보이는 곡은 사실 1.5배 템포의 3-3-2 싱커페이션(킥이 8분음표 3개 간격)인 경우가 많다.
   // 예: 170 BPM 곡을 킥 간격(3×8분 = 1.06s)에 맞춰 113 BPM 셋잇단으로 잡음.

@@ -1057,7 +1057,13 @@ export function makeAutoCharts(
         console.log(
           `  ${d} 시도${attempt} 밀도x${density.toFixed(2)} 채우기${fill.toFixed(1)} → Lv${raw} 노트${chart.notes.length}`
         );
-      if (Math.abs(miss) <= tol) break;
+      // 나이트메어(자동 목표)는 목표보다 높게는 안 받음 — 이미 구간 가운데라 +1이면 체감이 확 어려워짐
+      if (
+        d === "nightmare" && base.level === undefined
+          ? miss <= 0 && miss >= -tol
+          : Math.abs(miss) <= tol
+      )
+        break;
       // 레벨은 밀도에 거의 비례 → 비율로 맞춰 감 (한 번에 너무 크게는 안 움직임)
       const ratio = Math.min(1.6, Math.max(0.6, target / Math.max(1, raw)));
       density *= ratio;
