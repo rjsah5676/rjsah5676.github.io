@@ -92,7 +92,6 @@ export default function Online({
         onNick={() => setNick("")}
         onBack={onExit}
         onEnter={(id) => setSession(new RoomSession(id, uid, nick))}
-        onWatch={(id) => setWatch(new WatchSession(id, uid, nick))}
       />
     );
   })();
@@ -154,15 +153,12 @@ function Lobby({
   onNick,
   onBack,
   onEnter,
-  onWatch,
 }: {
   uid: string;
   nick: string;
   onNick: () => void;
   onBack: () => void;
   onEnter: (id: string) => void;
-  /** 꽉 찼거나 대전 중인 방 → 관전 */
-  onWatch: (id: string) => void;
 }) {
   const [rooms, setRooms] = useState<LobbyRoom[] | null>(null);
   const [name, setName] = useState("");
@@ -228,7 +224,7 @@ function Lobby({
         <div className="flex min-h-0 flex-1 flex-col rounded-[1cqw] bg-black/50 p-[1cqw] backdrop-blur-[2px]">
           <div className={`${KR} mb-[0.6cqw] flex items-center justify-between text-[1.2cqw] text-white/50`}>
             <span>열린 방 {rooms ? rooms.length : ""}</span>
-            <span className="text-white/35">한 방에 2명 · 꽉 찬 방·대전 중인 방은 관전</span>
+            <span className="text-white/35">한 방에 2명</span>
           </div>
           <div className="thin-scroll flex min-h-0 flex-1 flex-col gap-[0.6cqw] overflow-y-auto pr-[0.4cqw]">
             {rooms === null ? (
@@ -241,12 +237,14 @@ function Lobby({
             ) : (
               rooms.map((r) => {
                 const full = r.count >= 2;
-                const watchable = full || (r.playing && r.count > 0);
+                // 관전은 뺌 (따라잡기가 무겁고 끊김이 심해서) — 꽉 찬 방·대전 중인 방은 못 들어감
+                const closed = full || r.playing;
                 return (
                   <button
                     key={r.id}
                     type="button"
-                    onClick={() => (watchable ? onWatch(r.id) : onEnter(r.id))}
+                    disabled={closed}
+                    onClick={() => onEnter(r.id)}
                     className="flex w-full cursor-pointer items-center justify-between gap-[1cqw] rounded-[0.6cqw] border border-white/10 bg-white/[0.04] px-[1.2cqw] py-[0.8cqw] text-left transition-colors hover:border-[#FDE047]/60 disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     <span className="min-w-0">
@@ -256,11 +254,6 @@ function Lobby({
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-[0.8cqw]">
-                      {watchable && (
-                        <span className={`${KR} rounded-full bg-[#22D3EE]/20 px-[0.9cqw] py-[0.2cqw] text-[1.1cqw] font-bold text-[#67E8F9]`}>
-                          👁 관전
-                        </span>
-                      )}
                       <span className={`font-mono text-[1.5cqw] font-black ${full ? "text-[#F87171]" : "text-[#FDE047]"}`}>
                         {r.count}/2
                       </span>

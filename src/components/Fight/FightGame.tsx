@@ -49,7 +49,7 @@ import TouchControls, { loadMoveMode, saveMoveMode, type MoveMode } from "./Touc
 import { fightScore } from "@/lib/aiScore";
 import Online, { type MatchCfg } from "./Online";
 import { OnlineMatch } from "./onlineMatch";
-import { InputLog, WatchFeed, type RoomSession, type WatchSession } from "@/realtime/fight";
+import { WatchFeed, type RoomSession, type WatchSession } from "@/realtime/fight";
 
 
 const SAVE_KEY = "fight:setup";
@@ -332,7 +332,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           setup.map < 0 && setup.rolled !== undefined && MAPS[setup.rolled] ? setup.rolled : pickMap()
         );
     const net = ol && !watching ? sessRef.current?.net : null;
-    const log = ol && net && sessRef.current ? new InputLog(sessRef.current.id, ol.match, ol.seat, ol.delay) : null;
+    // 관전용 입력 기록 올리기는 관전을 빼면서 안 함
+    const log = null;
     let om = ol && net ? new OnlineMatch(s, ol.seat, net, ol.match, ol.delay, ol.maxRb, log) : null;
     if (om) s = om.state;
     // 관전: 두 선수 입력 기록을 받아 그대로 다시 돌림 (wf = 다음에 돌릴 프레임)

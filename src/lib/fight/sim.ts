@@ -934,7 +934,7 @@ function control(s: State, i: number) {
       if (
         f.hit &&
         !air &&
-        (f.mv === "T" || f.mv === "G" || (f.mv === "L" && isFinisher(f) && m.launcher)) &&
+        (f.mv === "T" || f.mv === "G" || (f.mv === "L" && isFinisher(f) && m.launcher) || (f.mv === "S" && m.launch)) &&
         f.t >= m.startup + 2 &&
         pressed(f, JUMP_BITS, 10)
       ) {
@@ -1241,7 +1241,8 @@ function physics(s: State, i: number) {
   if ((f.float === 1 || f.float === 2) && f.st === "hit") f.floatT = Math.min(f.floatT + 1, 1000);
   else if (!f.float) f.floatT = 0;
   if (f.juggle > 0) f.juggle--;
-  const hang = f.juggle > 0 && (f.st === "jump" || f.st === "atk") && o.st === "hit" && o.float === 1;
+  // (💫 혼란으로 떠 있는 상대(float 3)도 — 건모 공중 Alt+Tab 뒤 이어 치기)
+  const hang = f.juggle > 0 && (f.st === "jump" || f.st === "atk") && o.st === "hit" && (o.float === 1 || o.float === 3);
   if (!hang) f.juggle = 0;
   if (f.float === 3 && f.st === "hit" && f.stun > 0) f.vh = 0; // 💫 혼란: 그 자리에 둥실 멈춤
   else if ((f.float === 1 && f.st === "hit") || hang) {
@@ -1250,7 +1251,13 @@ function physics(s: State, i: number) {
     f.vh = Math.max(-floatCap(ft, FLOAT_FALL), f.vh - floatG(ft, FLOAT_G));
   }
   else if (f.float === 2 && f.st === "hit") f.vh = Math.max(-floatCap(f.floatT, 1400), f.vh - floatG(f.floatT, GRAVITY));
-  else f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
+  else {
+    f.vh = Math.max(-MAX_FALL, f.vh - GRAVITY);
+    // 공중 돌진 필살기(카이 천풍난무): 판정 동안 천천히 떨어짐
+    const am = f.st === "atk" && f.aerial ? moveOf(f) : null;
+    const af = am?.rush?.airFall;
+    if (af !== undefined && am && f.t >= am.startup && f.t < am.startup + am.active) f.vh = Math.max(f.vh, -af);
+  }
   // 우산 활강: 점프를 누르고 있으면 천천히 떨어짐
   const gl = charOf(f).glide;
   if (gl && f.vh < -gl && (f.st === "jump" || f.st === "atk") && holding(f, JUMP_BITS)) f.vh = -gl;
@@ -1534,8 +1541,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       // 때린 쪽은 바뀐 상대 높이(조금 아래)까지 같이 솟아올라 바로 공중 공격 (점프 하나 남김)
       const rise = Math.max(0, d.h - a.h - 18 * SUB);
       a.vh = rise > 0 ? isqrt(2 * GRAVITY * rise) : 0;
-      if (a.vh > 0) {
-        a.h += SUB; // 바닥에서 떼어야 솟아오름
+      // 공중에서 바꿨으면(같은 높이·아래) 그 자리에서 바로 공중 공격 (기술 후딜 없이)
+      if (a.vh > 0 || airborneS(s, a)) {
+        if (a.vh > 0) a.h += SUB; // 바닥에서 떼어야 솟아오름
         a.st = "jump";
         a.mv = "";
         a.t = 0;
@@ -1552,6 +1560,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.kd = platBelow(mapOf(s), d.x, d.h) ? 1 : 0;
       d.mark = 2;
       d.pulled = 0;
+      // 때린 쪽도 상대가 혼란에 떠 있는 동안 천천히 떨어짐 (공중 콤보 넣을 시간)
+      a.juggle = d.stun;
       s.ev.push({ k: "swap", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
     }
     if (m.trap && !kd) {
@@ -1576,12 +1586,13 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.burn = Math.max(d.burn, m.burn);
     }
     if (m.launch && !kd && !wasAir) {
-      // 띄우는 후속타 (카이 공중 질풍권 착지 충격파)
-      d.vh = LAUNCH_VH;
+      // 띄우는 후속타 (카이 질풍권 · 공중 질풍권 착지 충격파)
+      // 낮게 띄우는 기술(launchVh)은 경직도 짧게 — 공중 콤보 한두 대 정도
+      d.vh = m.launchVh ?? LAUNCH_VH;
       d.kd = 0;
       d.float = 1;
       d.vx = dir * 250;
-      d.stun = Math.max(d.stun, LAUNCH_STUN - 10);
+      d.stun = Math.max(d.stun, m.launchVh ? 36 : LAUNCH_STUN - 10);
       s.ev.push({ k: "launch", p: ai, x: d.x, h: d.h, v: 4 });
     }
     a.meter = Math.min(METER_MAX, a.meter + m.meter);

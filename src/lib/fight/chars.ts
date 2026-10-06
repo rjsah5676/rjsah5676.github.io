@@ -71,6 +71,8 @@ export interface MoveDef {
     landBurst?: number;
     /** 착지 충격파 피해 (없으면 기술 피해 그대로) */
     landDmg?: number;
+    /** 공중에서 쓰면 판정 동안 이 속도보다 빨리 안 떨어짐 (공중에서 버티며 때림) */
+    airFall?: number;
   };
   /** 여러 번 맞는 기술: 판정 동안 이 프레임마다 다시 맞음 (마지막 타만 다운) */
   multi?: number;
@@ -99,6 +101,8 @@ export interface MoveDef {
   burn?: number;
   /** 맞으면 위로 띄움 (후속타) */
   launch?: boolean;
+  /** launch로 띄우는 속도 (없으면 기본 — 낮을수록 짧은 공중 콤보) */
+  launchVh?: number;
   /** 약 4단 마무리로 쓰일 때 상대를 위로 띄움 (어퍼컷) → 점프 캔슬해 공중 콤보 */
   launcher?: boolean;
   /** 공중에서 쓰면 이 값들로 바뀜 (같은 키, 다른 기술 — 예: 소영 공중 지도편달 = 아래로 내려치기) */
@@ -173,11 +177,11 @@ const RAW: CharSrc[] = [
     name: "카이",
     title: "맨손 격투 · 바람",
     desc: "빠른 주먹·발차기로 붙어서 몰아치는 맨손 격투가",
-    hp: 1350,
+    hp: 1250, // 질풍권 띄우기 추가로 1350→1250
     walk: 1240,
     jumpVx: 1050,
     dash: 2700,
-    cd: 140,
+    cd: 190, // 질풍권이 띄우게 되면서 140→190
     hurt: { x: -9, y: 58, w: 18, h: 58 },
     width: 18,
     color: "#E6ECF5",
@@ -185,9 +189,9 @@ const RAW: CharSrc[] = [
     winQuote: "그게 다야? 다음엔 좀 더 버텨 봐.",
     tagline: "RELENTLESS FIGHTER",
     difficulty: 2,
-    stats: { atk: 3, reach: 2, move: 5, control: 2, combo: 5, hp: 5 },
+    stats: { atk: 3, reach: 2, move: 5, control: 2, combo: 5, hp: 4 },
     idName: "질풍권",
-    idDesc: "바람을 두르고 돌진하며 2연타",
+    idDesc: "바람을 두르고 돌진하며 2연타, 맞으면 띄움 — 바로 점프해 공중 콤보",
     ultName: "천풍난무",
     ultDesc: "회오리를 두르고 돌진하며 6연타, 마지막 타에 날려 버림",
     airDesc: "가는 방향 아래로 급강하해 차고, 착지 충격파로 2타째 — 맞으면 띄워져서 바로 점프해 공중 콤보",
@@ -256,7 +260,7 @@ const RAW: CharSrc[] = [
         startup: 9,
         active: 11,
         recovery: 22,
-        dmg: 78,
+        dmg: 56, // 띄우기가 붙어서 78→56
         chip: 6,
         hitstun: 18,
         blockstun: 10,
@@ -266,8 +270,10 @@ const RAW: CharSrc[] = [
         box: { x: 0, y: 48, w: 46, h: 32 },
         // 공중: 거의 수직으로 급강하 → 착지 충격파 (공중 K는 앞으로 길게 차는 기술)
         rush: { vx: 2500, airVh: -3400, airVx: 900, landBurst: 46, landDmg: 50 },
-        // 돌진 중 2번 때림
+        // 돌진 중 2번 때림 — 맞으면 띄움 → 바로 점프해 공중 콤보
         multi: 6,
+        launch: true,
+        launchVh: 1250,
       },
       X: {
         // 필살기 「천풍난무」: 회오리를 두르고 돌진하며 6연타, 마지막에 날려 버림
@@ -284,7 +290,8 @@ const RAW: CharSrc[] = [
         box: { x: -30, y: 86, w: 92, h: 86 },
         kd: true,
         multi: 6,
-        rush: { vx: 1500, airVh: -600 },
+        // 공중에서 쓰면 그 높이에서 천천히 떨어지며 6연타 (전엔 금방 땅으로 내려옴)
+        rush: { vx: 1500, airVh: 0, airFall: 700 },
       },
     },
   },
@@ -790,7 +797,7 @@ const RAW: CharSrc[] = [
     ultName: "금요일 배포",
     ultDesc: "앞쪽 넓게 에러 블록이 빗발쳐 5연타, 마지막 타에 넘어뜨림",
     airLabel: "공중 L Alt+Tab",
-    airDesc: "앞에 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란",
+    airDesc: "앞에 큰 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란 — 둘 다 잠깐 떠 있어서 바로 공중 콤보",
     moves: {
       L: {
         // 약 (J): 허공 타자 연타, 4단째 엔터키 올려치기 (띄우기)
@@ -857,7 +864,7 @@ const RAW: CharSrc[] = [
         // 아이덴티티 「Ctrl+A」: 넓은 선택 박스 — 피해는 작고, 맞으면 ⏸ 일시정지(긴 경직) → 약·잡기·필살기로 확정 콤보
         startup: 9,
         active: 4,
-        recovery: 26,
+        recovery: 22,
         dmg: 22,
         chip: 0,
         hitstun: 50, // ⏸ 일시정지 약 0.8초
@@ -865,22 +872,24 @@ const RAW: CharSrc[] = [
         push: 200,
         hitstop: 8,
         meter: 6,
-        box: { x: 6, y: 70, w: 96, h: 74 },
+        // 넓게: 앞 120px · 키 큰 상대·낮게 뜬 상대까지
+        box: { x: 0, y: 92, w: 120, h: 100 },
         onBlock: -12,
         pause: true,
         // 맞으면 바로 눈앞(약이 닿는 거리)까지 끌어옴
         pull: true,
         cancel: ["L", "T", "X"],
         // 공중 「Alt+Tab」: 앞에 창 — 맞으면 자리 바꾸고 💫 혼란(둥실 멈춤) → 넘어뜨림
+        // 맞히면 둘 다 공중에 잠깐 떠 있어서(혼란 동안 때린 쪽도 천천히 떨어짐) 공중 약·발차기로 이어 침
         air: {
-          startup: 7,
-          active: 5,
-          recovery: 18,
+          startup: 6,
+          active: 6,
+          recovery: 12,
           dmg: 10,
-          hitstun: 24,
+          hitstun: 46,
           push: 0,
           hitstop: 10,
-          box: { x: 2, y: 40, w: 54, h: 70 },
+          box: { x: -4, y: 64, w: 90, h: 160 },
           pause: false,
           pull: false,
           swap: true,
