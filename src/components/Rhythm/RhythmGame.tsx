@@ -175,20 +175,6 @@ export default function RhythmGame() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     else enterFs("landscape");
   }, [pseudoFs, enterFs]);
-  // 내 음악 파일 고르기: 고르기 창이 뜨면서 전체화면이 풀리는 브라우저(모바일 등)가 있어서,
-  // 창이 닫혔을 때 전체화면이었는데 풀려 있으면 다시 들어감 (막히면 화면 꽉 채우기로)
-  const fsBeforePick = useRef(false);
-  const onPick = useCallback(
-    (phase: "start" | "end") => {
-      if (phase === "start") {
-        fsBeforePick.current = !!document.fullscreenElement;
-        return;
-      }
-      if (fsBeforePick.current && !document.fullscreenElement) enterFs("landscape");
-      fsBeforePick.current = false;
-    },
-    [enterFs]
-  );
   /** 휴대폰 세로로 플레이: 레인만 세로 화면 가득 */
   const [portrait, setPortrait] = useState(false);
   // 플레이가 끝나면 세로 고정을 풂 (메뉴는 원래대로)
@@ -602,7 +588,6 @@ export default function RhythmGame() {
               blocked={settingsOpen}
               fs={fs}
               onToggleFs={toggleFs}
-              onPick={onPick}
             />
           )}
           {screen === "play" && play && chart && (

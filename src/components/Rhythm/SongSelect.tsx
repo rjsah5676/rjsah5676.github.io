@@ -39,7 +39,6 @@ export default function SongSelect({
   blocked,
   fs,
   onToggleFs,
-  onPick,
 }: {
   songs: Song[];
   sel: number;
@@ -64,8 +63,6 @@ export default function SongSelect({
   blocked: boolean;
   fs: boolean;
   onToggleFs: () => void;
-  /** 내 음악 파일 고르기 창 열림·닫힘 */
-  onPick?: (phase: "start" | "end") => void;
 }) {
   // 내 음악: 재킷을 눌러도 파일 고르기
   const pickRef = useRef<(() => void) | null>(null);
@@ -227,13 +224,7 @@ export default function SongSelect({
                   MY MUSIC
                 </div>
                 <div className="min-h-0 flex-1">
-                  <CustomMusic
-                    track={track}
-                    onTrack={onTrack}
-                    getCtx={audio}
-                    pickRef={pickRef}
-                    onPick={onPick}
-                  />
+                  <CustomMusic track={track} onTrack={onTrack} getCtx={audio} pickRef={pickRef} />
                 </div>
               </div>
             ) : (

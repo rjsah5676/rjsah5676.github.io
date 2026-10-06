@@ -84,45 +84,22 @@ export default function CustomMusic({
   onTrack,
   getCtx,
   pickRef,
-  onPick,
 }: {
   track: CustomTrack | null;
   onTrack: (t: CustomTrack | null) => void;
   getCtx: () => Promise<AudioContext>;
   /** 밖(재킷 누르기)에서 파일 고르기 창을 열 수 있게 */
   pickRef?: React.MutableRefObject<(() => void) | null>;
-  /** 파일 고르기 창이 열림·닫힘 (전체화면이 풀렸으면 다시 들어가려고) */
-  onPick?: (phase: "start" | "end") => void;
 }) {
   const [busy, setBusy] = useState<{ ratio: number; label: string } | null>(null);
   const [err, setErr] = useState("");
   const [drag, setDrag] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const picking = useRef(false);
   const pick = () => {
-    if (busy || !inputRef.current) return;
-    picking.current = true;
-    onPick?.("start");
-    inputRef.current.click();
-  };
-  const pickEnd = () => {
-    if (!picking.current) return;
-    picking.current = false;
-    onPick?.("end");
+    if (!busy) inputRef.current?.click();
   };
   useEffect(() => {
     if (pickRef) pickRef.current = pick;
-  });
-  // 고르기 창을 취소하고 닫아도 끝난 걸로 (cancel 이벤트가 없는 브라우저는 창으로 돌아온 focus로)
-  useEffect(() => {
-    const el = inputRef.current;
-    const onFocus = () => setTimeout(pickEnd, 300);
-    el?.addEventListener("cancel", pickEnd);
-    window.addEventListener("focus", onFocus);
-    return () => {
-      el?.removeEventListener("cancel", pickEnd);
-      window.removeEventListener("focus", onFocus);
-    };
   });
 
   const load = async (file: File) => {
@@ -168,7 +145,6 @@ export default function CustomMusic({
       onChange={(e) => {
         const f = e.target.files?.[0];
         e.target.value = "";
-        pickEnd();
         if (f) load(f);
       }}
     />
