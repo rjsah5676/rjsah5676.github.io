@@ -205,7 +205,7 @@ const RAW: CharSrc[] = [
         startup: 3,
         active: 3,
         recovery: 5,
-        dmg: 44,
+        dmg: 40, // 44→40 (카이가 기본기로 너무 셈)
         chip: 0,
         hitstun: 14,
         blockstun: 9,
@@ -221,7 +221,7 @@ const RAW: CharSrc[] = [
         startup: 11,
         active: 4,
         recovery: 19,
-        dmg: 102,
+        dmg: 92, // 102→92
         chip: 0,
         hitstun: 20,
         blockstun: 14,
