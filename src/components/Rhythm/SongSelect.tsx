@@ -39,6 +39,7 @@ export default function SongSelect({
   blocked,
   fs,
   onToggleFs,
+  onPick,
 }: {
   songs: Song[];
   sel: number;
@@ -63,7 +64,11 @@ export default function SongSelect({
   blocked: boolean;
   fs: boolean;
   onToggleFs: () => void;
+  /** 내 음악 파일 고르기 창 열림·닫힘 */
+  onPick?: (phase: "start" | "end") => void;
 }) {
+  // 내 음악: 재킷을 눌러도 파일 고르기
+  const pickRef = useRef<(() => void) | null>(null);
   const custom = sel === songs.length;
   const color = custom ? CUSTOM_COLOR : (song?.color ?? CUSTOM_COLOR);
   const chartOf = (d: Difficulty): Chart | null =>
@@ -197,8 +202,10 @@ export default function SongSelect({
         <div className="flex gap-[1.8cqw]">
           <div
             key={sel}
-            className="relative h-[15cqw] w-[15cqw] shrink-0 overflow-hidden rounded-[1cqw] border-[0.2cqw] [animation:bd-slam_380ms_cubic-bezier(.2,.9,.3,1.1)]"
+            className={`relative h-[15cqw] w-[15cqw] shrink-0 overflow-hidden rounded-[1cqw] border-[0.2cqw] [animation:bd-slam_380ms_cubic-bezier(.2,.9,.3,1.1)] ${custom ? "cursor-pointer" : ""}`}
             style={{ borderColor: color, boxShadow: `0 0 2.4cqw ${color}88` }}
+            onClick={custom ? () => pickRef.current?.() : undefined}
+            title={custom ? "눌러서 음악 파일 고르기" : undefined}
           >
             {cover ? (
               <img src={cover} alt="" className="h-full w-full object-cover" />
@@ -220,7 +227,13 @@ export default function SongSelect({
                   MY MUSIC
                 </div>
                 <div className="min-h-0 flex-1">
-                  <CustomMusic track={track} onTrack={onTrack} getCtx={audio} />
+                  <CustomMusic
+                    track={track}
+                    onTrack={onTrack}
+                    getCtx={audio}
+                    pickRef={pickRef}
+                    onPick={onPick}
+                  />
                 </div>
               </div>
             ) : (
