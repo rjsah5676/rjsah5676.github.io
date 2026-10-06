@@ -468,7 +468,7 @@ export default function Stage({
       b.fillRect(0, 0, CW, CH);
       beatGlow = c;
     };
-    // 캔버스 크기: 프레임 폭 × 화면 배율 (너무 크면 무거워서 2560px까지)
+    // 캔버스 크기: 프레임 폭 × 화면 배율 (너무 크면 무거워서 1920px까지 — 고해상도 전체화면에서 프레임 떨어짐)
     let pxW = 0;
     const resize = () => {
       // 세로 화면은 비율을 지키며 화면 안에 꽉 (남는 곳은 검은 띠)
@@ -480,7 +480,7 @@ export default function Stage({
         canvas.style.width = `${cssW}px`;
         canvas.style.height = `${(cssW * CH) / CW}px`;
       }
-      const dpr = Math.min(window.devicePixelRatio || 1, 2, 2560 / cssW);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2, 1920 / cssW);
       const nW = Math.round(cssW * dpr);
       if (nW === pxW) return;
       pxW = nW;

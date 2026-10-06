@@ -130,6 +130,9 @@ function glowAt(g: CanvasRenderingContext2D, x: number, y: number, r: number, co
   g.restore();
 }
 
+/** 캔버스 최대 폭(px) — 이보다 크게 그리면 고해상도 전체화면에서 프레임이 떨어짐 */
+const MAX_CANVAS_W = 1600;
+
 export class FightRenderer {
   private g: CanvasRenderingContext2D;
   private bg: HTMLCanvasElement | null = null;
@@ -179,7 +182,8 @@ export class FightRenderer {
   resize() {
     const r = this.canvas.getBoundingClientRect();
     const dpr = Math.min(2.5, window.devicePixelRatio || 1);
-    const w = Math.max(VIEW_W, Math.round(r.width * dpr));
+    // 고해상도 화면 전체화면이면 3800px 넘게 커져서 프레임이 무너짐 → 1600px까지만 (도트 그림이라 더 키워도 차이 없음)
+    const w = Math.max(VIEW_W, Math.min(MAX_CANVAS_W, Math.round(r.width * dpr)));
     const h = Math.round((w * VIEW_H) / VIEW_W);
     if (this.canvas.width !== w) {
       this.canvas.width = w;

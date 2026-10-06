@@ -358,13 +358,13 @@ export default function SongSelect({
           </div>
           {(custom || practice) && (
             <ul
-              className={`${KR} mt-[0.8cqw] flex flex-col gap-[0.5cqw] text-[1.15cqw] leading-snug text-white/75`}
+              className={`${KR} bd-scroll mt-[0.6cqw] flex min-h-0 flex-col gap-[0.4cqw] overflow-y-auto text-[1.15cqw] leading-snug break-keep text-white/75`}
             >
               {(practice
                 ? [
-                    "계단 → 트릴 → 잭 → 동시치기 → 롱노트 → 섞어서, 구간마다 8마디씩 반복해요",
-                    "난이도가 오를수록 2분 → 4분 → 8분 → 16분으로 잘게, 잭은 길게, 동시치기는 자주",
-                    "지금 구간 이름은 플레이 화면 진행 바에 나와요",
+                    "계단 → 트릴 → 잭 → 동시치기 → 롱노트 → 섞어서, 구간마다 8마디",
+                    "어려울수록 잘게 쪼개고 잭은 길게, 동시치기는 자주",
+                    "지금 구간 이름은 진행 바 아래에",
                   ]
                 : [
                     "드럼·박자를 분석해서 쉬움~나이트메어 5단계 채보를 바로 만들어요",
@@ -374,7 +374,7 @@ export default function SongSelect({
               ).map((t, i) => (
                 <li
                   key={t}
-                  className="flex items-center gap-[0.8cqw] rounded-[0.5cqw] border border-white/[0.07] bg-white/[0.04] py-[0.4cqw] pr-[0.9cqw] pl-[0.4cqw]"
+                  className="flex shrink-0 items-center gap-[0.8cqw] rounded-[0.5cqw] border border-white/[0.07] bg-white/[0.04] py-[0.25cqw] pr-[0.9cqw] pl-[0.4cqw]"
                 >
                   <span
                     className={`${DISP} flex h-[2cqw] w-[2.6cqw] shrink-0 -skew-x-12 items-center justify-center rounded-[0.35cqw] text-[1.05cqw] text-[#0b1020]`}
