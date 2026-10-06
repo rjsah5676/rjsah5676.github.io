@@ -15,7 +15,7 @@ import { KeyCap, keyText } from "./KeyCap";
 import PatchNotes, { LATEST } from "./PatchNotes";
 import { SettingsModal } from "./Settings";
 
-export type Mode = "ai" | "2p" | "online";
+export type Mode = "ai" | "2p" | "online" | "practice";
 export interface Setup {
   mode: Mode;
   c1: number;
@@ -251,7 +251,10 @@ export default function Select({
     return () => clearTimeout(t);
   }, [stage, onStart]);
 
-  const ai = setup.mode === "ai";
+  // 연습 모드도 AI 대전처럼 1P가 고른 뒤 상대(허수아비) 캐릭터를 고름
+  const prac = setup.mode === "practice";
+  const ai = setup.mode === "ai" || prac;
+  const foe = prac ? "허수아비" : "CPU";
   const n = CHARS.length;
   /** 지금 커서를 움직이는 쪽 (AI 대전: 1P가 끝나면 CPU 쪽) */
   const pickSide = (l: [boolean, boolean]) => (ai ? (l[0] ? 1 : 0) : -1);
@@ -490,6 +493,7 @@ export default function Select({
                   ["ai", "AI 대전", "CPU와 1:1"],
                   ["2p", "2인 대전", "한 키보드로 둘이서"],
                   ["online", "온라인 대전", "방 만들고 1:1"],
+                  ["practice", "연습 모드", "허수아비로 콤보 연습"],
                 ] as const
               ).map(([m, label, sub]) => {
                 const on = setup.mode === m;
@@ -518,7 +522,7 @@ export default function Select({
                 );
               })}
             </div>
-            <div className={`flex min-h-[3cqw] items-center gap-[0.5cqw] ${ai ? "" : "invisible"}`}>
+            <div className={`flex min-h-[3cqw] items-center gap-[0.5cqw] ${ai && !prac ? "" : "invisible"}`}>
               <span className={`${KR} mr-[0.4cqw] text-[1.2cqw] text-[#FFE3B0]/70`}>난이도</span>
               {AI_LEVELS.map((l, i) => (
                 <button
@@ -556,7 +560,7 @@ export default function Select({
               CHARACTER SELECT
             </div>
             <div className={`${KR} text-[1.2cqw] text-white/55`}>
-              {ai ? `AI 대전 · CPU ${AI_LEVELS[setup.level].name}` : "2인 대전"}
+              {prac ? "연습 모드 · 허수아비 캐릭터도 골라요" : ai ? `AI 대전 · CPU ${AI_LEVELS[setup.level].name}` : "2인 대전"}
             </div>
           </div>
           <button
@@ -608,7 +612,7 @@ export default function Select({
                       className="rounded-[0.3cqw] px-[0.7cqw] font-mono text-[1.3cqw] font-black text-white"
                       style={{ background: col }}
                     >
-                      {sd === 0 ? "1P" : ai ? "CPU" : "2P"}
+                      {sd === 0 ? "1P" : ai ? foe : "2P"}
                     </span>
                     {lock[sd] ? (
                       <span className="font-mono text-[1.4cqw] font-black text-[#FDE047] italic">READY!</span>
@@ -698,7 +702,7 @@ export default function Select({
                     <span className="absolute -top-[1.6cqw] left-0 flex gap-[0.3cqw] font-mono text-[1.1cqw] font-black">
                       {on1 && <span className="rounded-[0.2cqw] bg-[#3B82F6] px-[0.4cqw] text-white">1P</span>}
                       {on2 && (
-                        <span className="rounded-[0.2cqw] bg-[#F43F5E] px-[0.4cqw] text-white">{ai ? "CPU" : "2P"}</span>
+                        <span className="rounded-[0.2cqw] bg-[#F43F5E] px-[0.4cqw] text-white">{ai ? foe : "2P"}</span>
                       )}
                     </span>
                     <span className={`${KR} block pt-[0.3cqw] text-center text-[1.2cqw] text-white/80`}>{c.name}</span>
@@ -710,7 +714,7 @@ export default function Select({
               {ai
                 ? side === 0
                   ? keyText("내 캐릭터 고르기 — A·D(←→) 이동, J(Enter)·한 번 더 클릭 결정, Esc 뒤로")
-                  : "상대(CPU) 캐릭터 고르기 — Esc(.) 내 캐릭터 다시"
+                  : `상대(${foe}) 캐릭터 고르기 — Esc(.) 내 캐릭터 다시`
                 : keyText("1P A·D + J 결정 · 2P ←→ + Enter 결정 (Esc / . 취소)")}
             </div>
           </div>

@@ -6,6 +6,7 @@ import { MAPS } from "@/lib/fight/maps";
 import { AI_LEVELS, FightAI } from "@/lib/fight/ai";
 import {
   METER_MAX,
+  ROUND_SEC,
   hpRatio,
   newMatch,
   step,
@@ -122,6 +123,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
   const [coarse, setCoarse] = useState(false);
   /** 휴대폰 이동 방식: 스틱 / 키 */
   const [moveMode, setMoveMode] = useState<MoveMode>("stick");
+  /** 연습 모드: 마지막 콤보 (히트 수·피해)와 최고 피해 */
+  const [prac, setPrac] = useState<{ hits: number; dmg: number; best: number }>({ hits: 0, dmg: 0, best: 0 });
   const [result, setResult] = useState<{
     win: boolean;
     seconds: number;
@@ -321,7 +324,13 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     const r = new FightRenderer(canvas);
     const ol = cfgRef.current;
     const watching = !!ol?.spectate;
-    r.tags = watching ? ["1P", "2P"] : ol ? (ol.seat === 0 ? ["YOU", "2P"] : ["1P", "YOU"]) : ["1P", setup.mode === "ai" ? "CPU" : "2P"];
+    r.tags = watching
+      ? ["1P", "2P"]
+      : ol
+        ? ol.seat === 0
+          ? ["YOU", "2P"]
+          : ["1P", "YOU"]
+        : ["1P", setup.mode === "ai" ? "CPU" : setup.mode === "practice" ? "허수아비" : "2P"];
     rendererRef.current = r;
     input.configure(setup.mode === "2p");
     const pickMap = () =>
@@ -356,6 +365,12 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     };
     playBgm(MAPS[s.map].bgm ?? MENU_BGM, true);
     let ai = new FightAI(AI_LEVELS[setup.level], (Date.now() & 0xffff) + 1);
+    // 연습 모드: 허수아비는 가만히, 둘 다 체력 무한·시간 멈춤·내 게이지 가득. 콤보 피해를 잼
+    const practice = setup.mode === "practice" && !ol;
+    let pracDmg = 0,
+      pracHits = 0,
+      pracBest = 0;
+    setPrac({ hits: 0, dmg: 0, best: 0 });
     let hits = 0;
     const prevMeter = [0, 0];
     let lastHud = "";
@@ -462,8 +477,25 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           s = om.state;
         } else {
           const p1 = input.read(0);
-          const p2 = setup.mode === "2p" ? input.read(1) : ai.next(s, 1);
+          const p2 = setup.mode === "2p" ? input.read(1) : practice ? 0 : ai.next(s, 1);
+          const hp0 = s.p[1].hp;
           step(s, [p1, p2]);
+          if (practice) {
+            const d = s.p[1];
+            if (d.combo > 0) {
+              pracDmg += Math.max(0, hp0 - d.hp);
+              pracHits = Math.max(pracHits, d.combo);
+            } else if (pracHits > 0) {
+              // 콤보가 끝남 → 결과 표시
+              pracBest = Math.max(pracBest, pracDmg);
+              setPrac({ hits: pracHits, dmg: pracDmg, best: pracBest });
+              pracDmg = 0;
+              pracHits = 0;
+            }
+            for (let k = 0; k < 2; k++) s.p[k].hp = CHARS[s.p[k].ch].hp;
+            s.p[0].meter = METER_MAX;
+            s.timer = ROUND_SEC * 60;
+          }
         }
         // 소리
         const elOf = (p: number) => SFX_EL[CHARS[s.p[p].ch].id] ?? "wind";
@@ -701,7 +733,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
     ? [ol!.names[0], ol!.names[1]]
     : ol
     ? [ol.names[0] + (ol.seat === 0 ? " (나)" : ""), ol.names[1] + (ol.seat === 1 ? " (나)" : "")]
-    : ["1P", setup.mode === "ai" ? `CPU ${level.name}` : "2P"];
+    : ["1P", setup.mode === "ai" ? `CPU ${level.name}` : setup.mode === "practice" ? "허수아비" : "2P"];
   const meSeat = ol?.seat ?? 0;
 
   let banner: { kind: BannerKind; text: string; name?: string; nameColor?: string } | null = null;
@@ -750,6 +782,15 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
             </div>
             {hud.combo.map((c, i) => c >= 2 && <Combo key={i} n={c} right={i === 1} />)}
             {banner && <Banner {...banner} top={result ? "15%" : undefined} />}
+          </div>
+        )}
+        {setup.mode === "practice" && !ol && hud && (
+          <div className="pointer-events-none absolute top-[10.6cqw] left-1/2 z-10 flex -translate-x-1/2 items-center gap-[1cqw] rounded-full bg-black/60 px-[1.4cqw] py-[0.35cqw] font-['Nanum_Gothic',sans-serif] text-[1.15cqw] text-white/80">
+            <span className="font-bold text-[#FFC86B]">연습 모드</span>
+            <span>
+              마지막 콤보 <b className="text-white">{prac.hits}</b>히트 · <b className="text-white">{prac.dmg}</b> 피해
+            </span>
+            <span className="text-white/50">최고 {prac.best}</span>
           </div>
         )}
         {watching && hud && (

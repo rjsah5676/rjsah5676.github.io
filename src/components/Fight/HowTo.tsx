@@ -74,7 +74,7 @@ const STATUS: [string, string, string, string][] = [
   ["혼란", "건모", "#A5B4FC", "공중 Alt+Tab에 맞으면 자리가 바뀌고 💫 둥실 멈췄다가 바닥에 넘어져요 (아래가 낭떠러지면 안 넘어짐)"],
 ];
 
-export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online"; chars?: [number, number] }) {
+export default function HowTo({ mode, chars }: { mode: "ai" | "2p" | "online" | "practice"; chars?: [number, number] }) {
   const two = mode === "2p";
   const rows: Row[] = two
     ? [
