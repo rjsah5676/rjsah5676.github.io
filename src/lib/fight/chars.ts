@@ -59,6 +59,8 @@ export interface MoveDef {
   kd?: boolean;
   /** 시작 동안 앞으로 나가는 속도 */
   step?: number;
+  /** 판정 동안 경직 면역 (맞아도 피해만 받고 하던 동작을 계속 — 카이 질풍권 돌진) */
+  armor?: boolean;
   /** 공중 기술: 시작할 때 앞으로 치고 나가는 속도 (SUB/프레임) */
   lunge?: number;
   /** 돌진기: 판정이 나오는 순간 앞으로 튀어 나감 (공중이면 airVh로 아래로 내리꽂음) */
@@ -181,7 +183,7 @@ const RAW: CharSrc[] = [
     walk: 1240,
     jumpVx: 1050,
     dash: 2700,
-    cd: 190, // 질풍권이 띄우게 되면서 140→190
+    cd: 240, // 질풍권 경직 면역·기절로 140→240
     hurt: { x: -9, y: 58, w: 18, h: 58 },
     width: 18,
     color: "#E6ECF5",
@@ -191,10 +193,10 @@ const RAW: CharSrc[] = [
     difficulty: 2,
     stats: { atk: 3, reach: 2, move: 5, control: 2, combo: 5, hp: 4 },
     idName: "질풍권",
-    idDesc: "바람을 두르고 돌진하며 2연타, 맞으면 띄움 — 바로 점프해 공중 콤보",
+    idDesc: "바람을 두르고 돌진하며 2연타 — 돌진하는 동안 경직 면역, 맞으면 1초 기절",
     ultName: "천풍난무",
     ultDesc: "회오리를 두르고 돌진하며 6연타, 마지막 타에 날려 버림",
-    airDesc: "가는 방향 아래로 급강하해 차고, 착지 충격파로 2타째 — 맞으면 띄워져서 바로 점프해 공중 콤보",
+    airDesc: "아래로 급강하해 바닥을 쾅 — 양옆 넓게 충격파로 띄움",
     moves: {
       L: {
         // 약 (J): 제일 빠르고 짧은 경직 — J·J로 이어 치고 발차기·아이덴티티·필살기로 캔슬
@@ -260,19 +262,21 @@ const RAW: CharSrc[] = [
         startup: 9,
         active: 11,
         recovery: 22,
-        dmg: 56, // 띄우기가 붙어서 78→56
+        dmg: 44, // 경직 면역·기절이 붙어서 56→44
         chip: 6,
-        hitstun: 18,
+        // 맞으면 기절 1초 (제나 뇌창 감전 기절 48프레임보다 0.2초 길게)
+        hitstun: 60,
         blockstun: 10,
-        push: 1100,
+        push: 700,
         hitstop: 7,
         meter: 7,
         box: { x: 0, y: 48, w: 46, h: 32 },
-        // 공중: 거의 수직으로 급강하 → 착지 충격파 (공중 K는 앞으로 길게 차는 기술)
-        rush: { vx: 2500, airVh: -3400, airVx: 900, landBurst: 46, landDmg: 50 },
-        // 돌진 중 2번 때림 — 맞으면 띄움 → 바로 점프해 공중 콤보
+        // 공중: 거의 수직으로 급강하 → 바닥을 쾅 찍어 양옆 넓게 충격파로 띄움 (공중 K는 앞으로 길게 차는 기술)
+        rush: { vx: 2500, airVh: -3400, airVx: 900, landBurst: 76, landDmg: 50 },
+        // 돌진 중 2번 때림, 돌진하는 동안 경직 면역
         multi: 6,
-        launch: true,
+        armor: true,
+        air: { armor: false },
       },
       X: {
         // 필살기 「천풍난무」: 회오리를 두르고 돌진하며 6연타, 마지막에 날려 버림
@@ -313,7 +317,7 @@ const RAW: CharSrc[] = [
     difficulty: 1,
     stats: { atk: 4, reach: 4, move: 3, control: 3, combo: 3, hp: 3 },
     idName: "화염구",
-    idDesc: "빠르게 날아가는 불꽃 탄. 맞으면 화상 — 한동안 체력이 조금씩 닳음",
+    idDesc: "빠르게 날아가는 불꽃 탄. 맞으면 화상 — 한동안 체력이 조금씩 닳고, 그동안 이그나의 공격이 15% 더 아픔",
     ultName: "업화주",
     ultDesc: "상대 발밑에서 큰 불기둥이 솟아 4연타 — 어디에 있든 따라가고 오래 화상",
     airDesc: "화염구를 앞쪽 아래로 비스듬히 쏨 — 아래 발판의 상대를 노림",
@@ -389,7 +393,7 @@ const RAW: CharSrc[] = [
         meter: 7,
         box: { x: 0, y: 0, w: 0, h: 0 },
         proj: { speed: 1750, y: 36, w: 30, h: 24, life: 95 },
-        burn: 120,
+        burn: 150, // 화상 120→150
       },
       X: {
         // 필살기 「업화주」: 상대 발밑에서 불기둥이 솟아 4연타 — 어디 있든 쫓아감
@@ -406,7 +410,7 @@ const RAW: CharSrc[] = [
         box: { x: 0, y: 0, w: 0, h: 0 },
         kd: true,
         summon: { w: 66, h: 165, delay: 20, life: 40, every: 10 },
-        burn: 180,
+        burn: 220, // 화상 180→220
       },
     },
   },
@@ -563,7 +567,7 @@ const RAW: CharSrc[] = [
     difficulty: 2,
     stats: { atk: 2, reach: 3, move: 3, control: 5, combo: 3, hp: 2 },
     idName: "비눗방울",
-    idDesc: "느리고 오래 가는 큰 비눗방울로 길목을 막음 — 맞으면 갇혀서 둥실 떠오름 (때리면 터짐, 연타로 탈출)",
+    idDesc: "느리고 오래 가는 큰 비눗방울로 길목을 막음 — 맞으면 갇혀서 둥실 떠오름 (때리면 터짐, 연타로 탈출, 갇힌 상대는 방울로 다시 못 가둠)",
     ultName: "장마 파도",
     ultDesc: "바닥을 휩쓰는 큰 파도가 지나가며 5번 때림",
     airDesc: "점프를 누르고 있으면 우산으로 천천히 활강",
@@ -638,6 +642,7 @@ const RAW: CharSrc[] = [
         meter: 7,
         box: { x: 0, y: 0, w: 0, h: 0 },
         proj: { speed: 520, y: 40, w: 34, h: 34, life: 230, flat: true },
+        // 갇힌 상대를 다른 방울이 맞히면 터지기만 하고 다시 가두지 않음 (방울로 계속 가두기 막음)
         trap: 55,
       },
       X: {
@@ -796,7 +801,7 @@ const RAW: CharSrc[] = [
     ultName: "금요일 배포",
     ultDesc: "앞쪽 넓게 에러 블록이 빗발쳐 5연타, 마지막 타에 넘어뜨림",
     airLabel: "공중 L Alt+Tab",
-    airDesc: "앞에 큰 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란 — 둘 다 잠깐 떠 있어서 바로 공중 콤보",
+    airDesc: "앞에 큰 창을 띄워 맞히면 상대와 자리를 바꾸고 💫 혼란 — 건모는 잠깐 공중에 멈춰 바로 이어 침",
     moves: {
       L: {
         // 약 (J): 허공 타자 연타, 4단째 엔터키 올려치기 (띄우기)

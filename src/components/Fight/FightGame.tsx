@@ -859,10 +859,13 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
                     { label: "로비로", onClick: () => (toMenu(), setWsess(null)) },
                   ]
                 : ol
-                ? [
-                    { label: "↻ 한 판 더", onClick: () => toRoom(true), primary: true },
-                    { label: "대기실로", onClick: () => toRoom(false) },
-                  ]
+                ? // 둘 다 같은 방 대기실로 감 — 한 판 더는 들어가면서 '준비'까지 눌러 줌. 방장은 상대가 준비하면 시작하는 쪽이라 하나만
+                  sess?.isHost
+                  ? [{ label: "대기실로 (상대가 준비하면 시작)", onClick: () => toRoom(false), primary: true }]
+                  : [
+                      { label: "↻ 한 판 더 (바로 준비)", onClick: () => toRoom(true), primary: true },
+                      { label: "대기실로 (준비는 나중에)", onClick: () => toRoom(false) },
+                    ]
                 : [
                     { label: "↻ 다시하기", onClick: () => restartRef.current(), primary: true },
                     { label: "캐릭터 선택", onClick: toChars },

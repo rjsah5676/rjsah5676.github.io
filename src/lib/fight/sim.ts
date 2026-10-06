@@ -104,8 +104,9 @@ const FINISH_REC: Partial<Record<MoveId, number>> = { L: 14, H: 16 };
 /** 대시 길이 (프레임) */
 const DASH_T = 13;
 /** 돌진 잡기: 대시 중 J + K — 대시 속도로 파고들며 잡음 (막고 있는 상대를 멀리서 잡는 수단, 헛치면 빈틈이 큼) */
-const DASH_GRAB: Partial<MoveDef> = { startup: 6, active: 4, recovery: 24, box: { x: 0, y: 56, w: 46, h: 44 } };
-const DASH_GRAB_V = 1100;
+// 미끄러지듯 길게 파고듦: 시작 4 + 판정 10프레임 동안 DASH_GRAB_V로 (약 105px)
+const DASH_GRAB: Partial<MoveDef> = { startup: 4, active: 10, recovery: 24, box: { x: 0, y: 56, w: 50, h: 44 } };
+const DASH_GRAB_V = 1900;
 /** 돌진 잡기에 드는 게이지 (가드 반격과 같음) */
 const DASH_GRAB_COST = 25;
 /** 점프마다 쓸 수 있는 공중 공격 수: 약 4번, 발차기 2번 (2단 점프하면 다시 채워짐, 내려찍기는 따로 1번) */
@@ -134,6 +135,12 @@ const BURN_EVERY = 15;
 const BURN_DMG = 2;
 /** 감전 처음 걸릴 때 짧게 기절 (경직 +) */
 const SHOCK_STUN = 10;
+/** 화상 중인 상대: 태울 수 있는 캐릭터(이그나)의 공격이 이만큼(%) 더 아픔 */
+const BURN_BONUS = 15;
+/** 건모 Alt+Tab 뒤 공중에서 안 떨어지는 시간 (0.3초) */
+const SWAP_HOLD = 18;
+/** 대시가 끝난 뒤에도 이 프레임 안에 잡기를 누르면 돌진 잡기 */
+const DASH_GRAB_GRACE = 10;
 /** 약 4단 마무리로 띄우는 세기 */
 const CHAIN_LAUNCH_VH = 1425;
 /** 띄워진 상대를 공중에서 다시 때리면: 다시 떠오르는 세기, 밀림 비율(%), 최소 경직 */
@@ -233,6 +240,8 @@ export interface Fighter {
   pulled: number;
   /** 비눗방울에 갇힌 남은 프레임 (둥실 떠 있고 못 움직임) */
   trapT: number;
+  /** 공중에서 안 떨어지고 버티는 남은 프레임 (건모 Alt+Tab 뒤) */
+  hold: number;
   /** 남은 무적 프레임 (다시 내려온 뒤) */
   inv: number;
   /** 최근 입력 (마지막이 이번 프레임) */
@@ -409,6 +418,7 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     pullX: 0,
     pulled: 0,
     trapT: 0,
+    hold: 0,
     inv: 0,
     hist: new Array(HIST).fill(0),
   };
@@ -517,6 +527,7 @@ export function hash(s: State): number {
     mix(f.pullX);
     mix(f.pulled);
     mix(f.trapT);
+    mix(f.hold);
     mix(f.inv);
     mix(f.st.length * 31 + f.st.charCodeAt(0));
     mix(f.mv ? f.mv.charCodeAt(0) : 0);
@@ -627,7 +638,7 @@ function startMove(s: State, i: number, id: MoveId) {
   // 같은 기술을 이어 누르면 다음 동작 (약 4단 · 발차기 2단)
   f.chain = f.st === "atk" && f.mv === id && CHAIN_MAX[id] ? f.chain + 1 : 1;
   // 대시 중에 낸 잡기 = 돌진 잡기 (게이지가 있을 때만, 없으면 그 자리 보통 잡기)
-  f.lg = id === "T" && f.st === "dash" && f.meter >= DASH_GRAB_COST ? 1 : 0;
+  f.lg = id === "T" && (f.st === "dash" || f.dashT < 0) && f.meter >= DASH_GRAB_COST ? 1 : 0;
   if (f.lg) f.meter -= DASH_GRAB_COST;
   f.st = "atk";
   f.mv = id;
@@ -674,22 +685,29 @@ function tryAttack(s: State, i: number, allow: MoveId[]): boolean {
   }
   // 잡기: 약+발차기 동시 (땅에서만)
   // (캔슬로 이을 땐 히트스톱 중에 눌렀다 뗀 것도 인정: 최근 12프레임 안에 약·발차기를 둘 다 눌렀으면)
+  // 대시 중·대시 직후(게이지 있을 때)엔 약·발차기를 3프레임 안에만 누르면 돌진 잡기 — 동시에 안 눌러도 됨
+  const dashing = (f.st === "dash" || f.dashT < 0) && f.meter >= DASH_GRAB_COST && !f.hit;
   const throwIn = f.hit
     ? pressed(f, IN.A, 12) && pressed(f, IN.B, 12)
-    : (cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, IN.A | IN.B, 2);
+    : dashing
+      ? pressed(f, IN.A, 6) && pressed(f, IN.B, 6)
+      : (cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, IN.A | IN.B, 2);
   if (allow.includes("T") && throwIn) {
     startMove(s, i, "T");
     return true;
   }
+  // 돌진 잡기를 기다림: 대시 중 약(또는 발차기)만 막 눌렀으면 4프레임 동안 나머지 하나를 기다렸다가 약·발차기로
+  if (dashing && ((pressed(f, IN.A, 4) && !pressed(f, IN.B, 6)) || (pressed(f, IN.B, 4) && !pressed(f, IN.A, 6)))) return false;
+  const late = dashing ? 6 : 3;
   if (allow.includes("S") && f.cd === 0 && pressed(f, IN.C, 3)) {
     startMove(s, i, "S");
     return true;
   }
-  if (allow.includes("H") && pressed(f, IN.B, 3)) {
+  if (allow.includes("H") && pressed(f, IN.B, late)) {
     startMove(s, i, "H");
     return true;
   }
-  if (allow.includes("L") && pressed(f, IN.A, 3)) {
+  if (allow.includes("L") && pressed(f, IN.A, late)) {
     startMove(s, i, "L");
     return true;
   }
@@ -779,6 +797,8 @@ function control(s: State, i: number) {
   switch (f.st) {
     case "idle":
     case "walk": {
+      // 대시 끝난 직후 (음수 = 지난 프레임 수)
+      if (f.dashT < 0) f.dashT = f.dashT <= -DASH_GRAB_GRACE ? 0 : f.dashT - 1;
       if (guardCounter(s, i)) return;
       if (tryAttack(s, i, ["X", "T", "S", "H", "L"])) return;
       if (doubleTap(f, IN.R) || doubleTap(f, IN.L)) {
@@ -835,6 +855,7 @@ function control(s: State, i: number) {
       if (f.dashT <= 0) {
         f.st = "idle";
         f.t = 0;
+        f.dashT = -1;
       }
       return;
     case "jump":
@@ -1108,6 +1129,7 @@ function landed(s: State, i: number, f: Fighter) {
     return;
   }
   f.spiked = 0;
+  f.hold = 0;
   f.airUsed = 0;
   f.airK = 0;
   f.airS = 0;
@@ -1120,7 +1142,8 @@ function landed(s: State, i: number, f: Fighter) {
     const hr = hurtRect(o);
     const r = lm.rush.landBurst * SUB;
     s.ev.push({ k: "clash", p: i, x: f.x, h: f.h, v: 1 });
-    if (hr && Math.abs(o.x - f.x) < r && Math.abs(o.h - f.h) < 24 * SUB) {
+    // 양옆 r px, 위로도 낮게 뛴 상대까지 (56px)
+    if (hr && Math.abs(o.x - f.x) < r && o.h - f.h < 56 * SUB && f.h - o.h < 24 * SUB) {
       f.hit = 0;
       applyHit(s, i, { ...lm, kd: false, multi: undefined, push: 0, dmg: lm.rush.landDmg ?? lm.dmg, launch: true }, f.x, "S");
     }
@@ -1251,7 +1274,11 @@ function physics(s: State, i: number) {
     o.st === "hit" &&
     (o.float === 1 || (o.float === 3 && f.vh <= 0));
   if (!hang) f.juggle = 0;
-  if (f.float === 3 && f.st === "hit" && f.stun > 0) f.vh = 0; // 💫 혼란: 그 자리에 둥실 멈춤
+  if (f.hold > 0 && f.vh <= 0 && (f.st === "jump" || f.st === "atk")) {
+    // 건모 Alt+Tab 뒤: 잠깐 안 떨어짐 (점프하면 끝)
+    f.hold--;
+    f.vh = 0;
+  } else if (f.float === 3 && f.st === "hit" && f.stun > 0) f.vh = 0; // 💫 혼란: 그 자리에 둥실 멈춤
   else if ((f.float === 1 && f.st === "hit") || hang) {
     // 공중에서 6대 넘게 맞으면 한 대마다 중력·낙하 속도가 커져 4대 뒤엔 보통 낙하 (너무 오래 안 떠 있게)
     const ft = f.st === "hit" ? f.floatT : o.floatT;
@@ -1353,6 +1380,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
   if (!m.proj && !m.summon) a.hit = 1;
   const eh = d.h + 28 * SUB;
   d.juggle = 0;
+  d.hold = 0;
   if (d.st === "down" && mid !== "T") {
     // 누워 있는 상대: 못 막음, 피해 절반, 계속 누워 있음 (일어나는 시간은 그대로 → 무한 콤보 없음)
     // (잡기는 아래 보통 처리 → 붙잡아서 다시 띄움)
@@ -1362,6 +1390,18 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     a.meter = Math.min(METER_MAX, a.meter + (m.meter >> 1));
     s.stop = Math.max(s.stop, m.hitstop - 2);
     s.ev.push({ k: "hit", p: ai, x: d.x - dir * 8 * SUB, h: d.h + 14 * SUB, v: dmg, m: mid });
+    if (d.hp <= 0) d.hp = 0;
+    return;
+  }
+  // 경직 면역 (카이 질풍권 돌진 중): 피해만 받고 하던 동작 계속 (잡기는 못 버팀)
+  const am = d.st === "atk" ? moveOf(d) : null;
+  if (mid !== "T" && am?.armor && d.t >= am.startup - 2 && d.t < am.startup + am.active) {
+    const dmg = Math.max(1, scaleDmg(m.dmg, d.combo));
+    d.hp -= dmg;
+    a.meter = Math.min(METER_MAX, a.meter + (m.meter >> 1));
+    s.stop = Math.max(s.stop, m.hitstop - 3);
+    s.ev.push({ k: "hit", p: ai, x: d.x - dir * 8 * SUB, h: eh, v: dmg, m: mid });
+    s.ev.push({ k: "clash", p: 1 - ai, x: d.x, h: d.h + 30 * SUB, v: 0 });
     if (d.hp <= 0) d.hp = 0;
     return;
   }
@@ -1397,6 +1437,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     // 감전된 상대: 감전시킬 수 있는 캐릭터(제나)의 모든 공격이 15% 더 아픔
     const shocker = CHARS[a.ch].moves.S.shock !== undefined;
     if (d.shock > 0 && shocker) base = Math.trunc((base * 110) / 100);
+    // 화상 중인 상대: 태울 수 있는 캐릭터(이그나)의 모든 공격이 더 아픔
+    const burner = CHARS[a.ch].moves.S.burn !== undefined || CHARS[a.ch].moves.X.burn !== undefined;
+    if (d.burn > 0 && burner) base = Math.trunc((base * (100 + BURN_BONUS)) / 100);
     const wasAir = airborneS(s, d);
     const slam = mid === "K" && a.dk === 1 && wasAir;
     if (slam) base = Math.trunc((base * SLAM_DMG) / 100);
@@ -1555,17 +1598,11 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       // 멀리서 맞혀도 바꾼 뒤 상대를 바로 앞(약이 닿는 거리)까지 끌어옴 → 바로 이어 침
       if (Math.abs(d.x - a.x) > SWAP_NEAR * SUB)
         d.x = Math.max(WALL_L, Math.min(WALL_R, a.x + a.face * SWAP_NEAR * SUB));
-      // 때린 쪽은 바뀐 상대 높이(조금 아래)까지 같이 솟아올라 바로 공중 공격 (점프 하나 남김)
-      const rise = Math.max(0, d.h - a.h - 18 * SUB);
-      a.vh = rise > 0 ? isqrt(2 * GRAVITY * rise) : 0;
-      // 아래에서 위의 상대를 맞혀 바꾸면 건모가 상대보다 한참 위에 남아 (천천히 떨어지며) 공격이 안 닿음 → 상대 높이로 내려옴
-      if (a.h > d.h + 10 * SUB) {
-        a.h = d.h + 10 * SUB;
-        a.vh = 0;
-      }
-      // 공중에서 바꿨으면(같은 높이·아래) 그 자리에서 바로 공중 공격 (기술 후딜 없이)
-      if (a.vh > 0 || airborneS(s, a)) {
-        if (a.vh > 0) a.h += SUB; // 바닥에서 떼어야 솟아오름
+      // 때린 쪽은 바뀐 상대와 같은 높이로 와서 0.3초 동안 안 떨어짐 → 바로 공중 J · K (점프 하나 남김)
+      a.h = d.h;
+      a.vh = 0;
+      if (airborneS(s, a)) {
+        a.hold = SWAP_HOLD;
         a.st = "jump";
         a.mv = "";
         a.t = 0;
@@ -1586,7 +1623,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       a.juggle = d.stun;
       s.ev.push({ k: "swap", p: ai, x: d.x, h: d.h + 70 * SUB, v: 0 });
     }
-    if (m.trap && !kd) {
+    if (m.trap && !kd && !popBonus) {
       // 비눗방울에 갇힘: 그 자리에서 둥실 떠오름
       d.trapT = m.trap;
       d.stun = m.trap + 4;
