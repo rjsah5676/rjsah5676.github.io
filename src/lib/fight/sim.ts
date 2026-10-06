@@ -1244,7 +1244,12 @@ function physics(s: State, i: number) {
   else if (!f.float) f.floatT = 0;
   if (f.juggle > 0) f.juggle--;
   // (💫 혼란으로 떠 있는 상대(float 3)도 — 건모 공중 Alt+Tab 뒤 이어 치기)
-  const hang = f.juggle > 0 && (f.st === "jump" || f.st === "atk") && o.st === "hit" && (o.float === 1 || o.float === 3);
+  // 💫 혼란 상대(건모 Alt+Tab) 쪽으로 솟는 중엔 보통 중력 — 느린 중력이면 계산한 높이보다 3배 솟아 지나침. 꼭대기부터 천천히
+  const hang =
+    f.juggle > 0 &&
+    (f.st === "jump" || f.st === "atk") &&
+    o.st === "hit" &&
+    (o.float === 1 || (o.float === 3 && f.vh <= 0));
   if (!hang) f.juggle = 0;
   if (f.float === 3 && f.st === "hit" && f.stun > 0) f.vh = 0; // 💫 혼란: 그 자리에 둥실 멈춤
   else if ((f.float === 1 && f.st === "hit") || hang) {
@@ -1439,6 +1444,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     const a0 = s.p[ai];
     // 공중에서 맞는 횟수엔 한도 없음 (때리는 쪽 공중 공격 수만 제한)
     const kd = (m.kd && !(m.multi && mid !== "S" && a0.st === "atk" && a0.t < m.startup + m.active - m.multi));
+    // 띄우는 연타기(카이 질풍권)의 다음 타: 이미 띄워 놓은 상대를 다시 낮게 끌어내리지 않게
+    const prevVh = d.vh,
+      prevFloat = d.float;
     if (wasAir || kd) {
       d.vh = kd ? 1500 : 700;
       d.kd = kd ? 1 : 0;
@@ -1462,6 +1470,10 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
         d.vx = Math.trunc((dir * m.push * JUGGLE_PUSH) / 100);
         d.stun = Math.max(d.stun, JUGGLE_STUN);
       }
+    }
+    if (m.launch && wasAir && !kd && prevFloat === 1) {
+      d.vh = Math.max(d.vh, prevVh);
+      d.float = 1;
     }
     if (m.pullUp && !kd) {
       // 끌어올리기 = 띄우기: 때린 쪽 높이까지 솟구치게 띄우고(천천히 떨어지는 상태), 가로로는 때린 쪽 앞으로 끌려옴

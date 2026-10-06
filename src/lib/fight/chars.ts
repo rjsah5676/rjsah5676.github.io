@@ -871,8 +871,8 @@ const RAW: CharSrc[] = [
         push: 200,
         hitstop: 8,
         meter: 6,
-        // 넓게: 앞 120px · 키 큰 상대·낮게 뜬 상대까지
-        box: { x: 0, y: 92, w: 120, h: 100 },
+        // 넓게: 앞 120px · 위로는 점프한 상대까지 (예전엔 92px까지라 뛰는 상대를 못 잡음)
+        box: { x: 0, y: 160, w: 120, h: 168 },
         onBlock: -12,
         pause: true,
         cancel: ["L", "T", "X"],
