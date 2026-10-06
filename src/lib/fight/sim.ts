@@ -54,6 +54,9 @@ const FALL_H = -90 * SUB;
 const RESPAWN_H = (VIEW_H + 40) * SUB;
 /** 다시 내려온 뒤 무적 프레임 */
 const RESPAWN_INV = 100;
+/** 떨어진 뒤 땅에서 이만큼(프레임) 버티기 전에 또 떨어지면: 무적 없음 + 체력이 이만큼(%) 깎임 (낭떠러지에서 계속 떨어지며 버티기 방지) */
+const FALL_GRACE = 240;
+const FALL_DMG = 6;
 
 /** 입력 비트 */
 export const IN = {
@@ -61,7 +64,7 @@ export const IN = {
   R: 2,
   /** 위 (점프와 같음) */
   U: 4,
-  /** 아래 — 누르고 있으면 가드, +점프면 발판 아래로 */
+  /** 아래 — 누르고 있으면 가드 */
   D: 8,
   /** 약 (J) */
   A: 16,
@@ -94,8 +97,10 @@ const MAX_FALL = 2600;
 const AIR_ACC = 70;
 /** 저스트 가드 판정 프레임 (가드 올린 뒤 이 안에 막으면) */
 const JUST_T = 5;
-/** 잡힌 뒤 풀 수 있는 프레임 */
+/** 잡힌 뒤 던져질 때까지 붙잡혀 있는 프레임 */
 const THROW_TECH_T = 8;
+/** 그중 풀 수 있는 앞쪽 프레임 (잡히는 순간의 히트스톱 10프레임 동안 누른 것도 인정 → 약 0.23초). 풀면 피해 없음 */
+const THROW_TECH_WIN = 4;
 /** 연속 동작 수: 약(L) 4단, 발차기(H) 2단 */
 const CHAIN_MAX: Partial<Record<MoveId, number>> = { L: 4, H: 2 };
 const CHAIN_STEP = 520;
@@ -117,7 +122,7 @@ const AIR_K_FOLLOW = 75;
 /** 마무리 내려찍기(공중 ↓ + K): 피해(%), 타격 정지, 내리꽂는 속도, 땅에서 튀는 세기 */
 const SLAM_DMG = 140;
 const SLAM_STOP = 16;
-const SLAM_VH = 2800;
+const SLAM_VH = 2600; // 최고 낙하 속도(MAX_FALL)에 잘리므로 그 값으로
 const SLAM_BOUNCE = 1100;
 /** 섞기 보상(공중 콤보): 다른 기술로 바꿔 맞히면 피해 %, 같은 기술을 연달아 맞히면 한 번마다 -%, 최저 % */
 const MIX_BONUS = 110;
@@ -192,7 +197,7 @@ export interface Fighter {
   airK: number;
   /** 이번 공중에서 내려찍기(↓ + K) 썼나 */
   airS: number;
-  /** 대시 중에 낸 잡기 = 돌진 잡기 (빠르게 파고들고 닿는 거리 김, 헛치면 빈틈 큼) */
+  /** 1 = 대시 중에 낸 잡기 = 돌진 잡기 (빠르게 파고들고 닿는 거리 김, 헛치면 빈틈 큼), 2 = 대시에서 낸 약·발차기 (곧바로 나머지 버튼을 누르면 돌진 잡기로 바뀜) */
   lg: number;
   /** 남은 대시 프레임 (땅·공중) */
   dashT: number;
@@ -206,8 +211,14 @@ export interface Fighter {
   chain: number;
   /** 가드를 시작한 지 몇 프레임 (저스트 가드 판정, 255 = 오래됨) */
   guardT: number;
-  /** 잡힌 상태: 남은 프레임 (0 = 아님). 이 동안 약+발차기 누르면 풀림 */
+  /** 잡힌 상태: 남은 프레임 (0 = 아님). 앞쪽 THROW_TECH_WIN 프레임 안에 약+발차기 누르면 풀림 */
   grabbed: number;
+  /** 잡기 피해 — 던져지는 순간에 들어감 (풀면 안 들어감) */
+  grabDmg: number;
+  /** 이번 콤보에서 누운 채로 잡혔나 (누운 상대 다시 잡기는 콤보마다 한 번) */
+  otg: number;
+  /** 떨어진 뒤 땅에서 더 버텨야 하는 프레임 (0이 되기 전에 또 떨어지면 무적 없이 체력이 깎임) */
+  fell: number;
   /** 쓴 점프 수 (땅에 닿으면 0) */
   jumps: number;
   /** 가드 반격을 쓸 수 있는 남은 프레임 (공격을 막으면 채워짐) */
@@ -401,6 +412,9 @@ function newFighter(ch: number, side: 0 | 1, map: MapDef): Fighter {
     chain: 0,
     guardT: 255,
     grabbed: 0,
+    grabDmg: 0,
+    otg: 0,
+    fell: 0,
     jumps: 0,
     gcT: 0,
     float: 0,
@@ -473,6 +487,18 @@ export function clone(s: State): State {
 }
 const cloneF = (f: Fighter): Fighter => ({ ...f, hist: f.hist.slice() });
 
+/**
+ * 이 빌드의 게임 데이터 지문 (캐릭터 성능·맵) — 온라인에서 서로 다른 빌드끼리 붙었는지 확인.
+ * 계산 방식(sim.ts)만 바꿨을 땐 SIM_REV를 올릴 것.
+ */
+const SIM_REV = 2;
+export const BUILD_ID = (() => {
+  const str = SIM_REV + JSON.stringify(CHARS.map((c) => [c.hp, c.walk, c.jumpVx, c.dash, c.cd, c.glide, c.hurt, c.width, c.moves])) + JSON.stringify(MAPS.map((m) => [m.plats, m.spawn]));
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+  return h >>> 0;
+})();
+
 /** 동기화 확인용 해시 (온라인에서 양쪽 상태가 같은지 비교) */
 export function hash(s: State): number {
   let h = 2166136261;
@@ -506,6 +532,11 @@ export function hash(s: State): number {
     mix(f.chain);
     mix(f.guardT);
     mix(f.grabbed);
+    mix(f.grabDmg);
+    mix(f.otg);
+    mix(f.fell);
+    mix(f.hit);
+    mix(f.kd);
     mix(f.airDash);
     mix(f.airUsed);
     mix(f.airK);
@@ -643,8 +674,13 @@ function startMove(s: State, i: number, id: MoveId) {
   // 같은 기술을 이어 누르면 다음 동작 (약 4단 · 발차기 2단)
   f.chain = f.st === "atk" && f.mv === id && CHAIN_MAX[id] ? f.chain + 1 : 1;
   // 대시 중에 낸 잡기 = 돌진 잡기 (게이지가 있을 때만, 없으면 그 자리 보통 잡기)
-  f.lg = id === "T" && (f.st === "dash" || f.dashT < 0) && f.meter >= DASH_GRAB_COST ? 1 : 0;
-  if (f.lg) f.meter -= DASH_GRAB_COST;
+  // 대시에서 약·발차기를 먼저 냈으면 lg = 2로 표시해 두고, 곧바로 나머지 버튼이 오면 돌진 잡기로 바꿈 (control의 atk)
+  const fromDash = f.st === "dash" || f.dashT < 0;
+  const canGrab = (fromDash || (f.st === "atk" && f.lg === 2)) && f.meter >= DASH_GRAB_COST;
+  f.lg = id === "T" && canGrab ? 1 : (id === "L" || id === "H") && fromDash && f.meter >= DASH_GRAB_COST ? 2 : 0;
+  if (f.lg === 1) f.meter -= DASH_GRAB_COST;
+  // 무적(다시 내려온 뒤)은 공격하면 끝
+  f.inv = 0;
   f.st = "atk";
   f.mv = id;
   f.t = 0;
@@ -667,7 +703,11 @@ function startMove(s: State, i: number, id: MoveId) {
       f.vx = f.face * m.lunge;
       f.vh = Math.max(f.vh, 300);
     }
-  } else if (id === "S" || id === "X") f.vx = 0;
+  } else {
+    // 대시 남은 프레임은 여기서 끝 (안 지우면 나중에 점프했을 때 공중 조작이 잠깐 안 먹음)
+    f.dashT = 0;
+    if (id === "S" || id === "X") f.vx = 0;
+  }
   // 땅에서 약·강은 걷거나 대시하던 속도를 이어 감
   if (id === "X") {
     f.meter = 0;
@@ -689,11 +729,13 @@ function tryAttack(s: State, i: number, allow: MoveId[]): boolean {
     return true;
   }
   // 잡기: 약+발차기 동시 (땅에서만)
-  // (캔슬로 이을 땐 히트스톱 중에 눌렀다 뗀 것도 인정: 최근 12프레임 안에 약·발차기를 둘 다 눌렀으면)
+  // (캔슬로 이을 땐 조금 어긋나게 눌러도 인정: 최근 4프레임 안에 약·발차기를 둘 다 눌렀으면 —
+  //  히트스톱 동안은 입력 기록이 안 밀리니 그때 누른 것도 여기 들어옴)
   // 대시 중·대시 직후(게이지 있을 때)엔 약·발차기를 3프레임 안에만 누르면 돌진 잡기 — 동시에 안 눌러도 됨
-  const dashing = (f.st === "dash" || f.dashT < 0) && f.meter >= DASH_GRAB_COST && !f.hit;
-  const throwIn = f.hit
-    ? pressed(f, IN.A, 12) && pressed(f, IN.B, 12)
+  const canceling = f.st === "atk" && !!f.hit;
+  const dashing = (f.st === "dash" || f.dashT < 0) && f.meter >= DASH_GRAB_COST && !canceling;
+  const throwIn = canceling
+    ? pressed(f, IN.A, 4) && pressed(f, IN.B, 4)
     : dashing
       ? pressed(f, IN.A, 6) && pressed(f, IN.B, 6)
       : (cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, IN.A | IN.B, 2);
@@ -701,9 +743,8 @@ function tryAttack(s: State, i: number, allow: MoveId[]): boolean {
     startMove(s, i, "T");
     return true;
   }
-  // 돌진 잡기를 기다림: 대시 중 약(또는 발차기)만 막 눌렀으면 4프레임 동안 나머지 하나를 기다렸다가 약·발차기로
-  if (dashing && ((pressed(f, IN.A, 4) && !pressed(f, IN.B, 6)) || (pressed(f, IN.B, 4) && !pressed(f, IN.A, 6)))) return false;
-  const late = dashing ? 6 : 3;
+  // (대시 중 약·발차기 하나만 누르면 기다리지 않고 바로 나감 — 곧바로 나머지를 누르면 control의 atk에서 돌진 잡기로 바뀜)
+  const late = 3;
   if (allow.includes("S") && f.cd === 0 && pressed(f, IN.C, 3)) {
     startMove(s, i, "S");
     return true;
@@ -728,6 +769,8 @@ function jump(s: State, i: number, v: number) {
   f.airK = 0;
   f.airS = 0;
   f.juggle = 0;
+  // 공중에서 버티기(건모 Alt+Tab 뒤)는 점프하면 끝
+  f.hold = 0;
   f.jumps++;
   f.vh = v;
   f.vx = holding(f, IN.R) ? spd(f, c.jumpVx) : holding(f, IN.L) ? -spd(f, c.jumpVx) : Math.trunc(f.vx / 2);
@@ -865,7 +908,8 @@ function control(s: State, i: number) {
       return;
     case "jump":
       if (f.dashT > 0) f.dashT--;
-      if (f.jumps < 2 && pressed(f, JUMP_BITS, 2) && f.t > 4) {
+      // 뜬 직후 5프레임은 2단 점프가 안 나가지만, 그 사이에 누른 건 기억해 뒀다가 바로 (뜨게 만든 그 입력은 빼고)
+      if (f.jumps < 2 && f.t > 4 && pressed(f, JUMP_BITS, Math.min(f.t, 6))) {
         jump(s, i, JUMP2_V);
         return;
       }
@@ -890,6 +934,12 @@ function control(s: State, i: number) {
       // 잡기 입력 너그럽게: 약(또는 발차기)을 먼저 눌러 시작 중이어도 몇 프레임 안에 나머지를 누르면 잡기
       if (!air && (f.mv === "L" || f.mv === "H") && f.chain === 1 && f.t <= 3 &&
           (cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, f.mv === "L" ? IN.B : IN.A, 2)) {
+        startMove(s, i, "T");
+        return;
+      }
+      // 대시에서 낸 약·발차기: 4프레임 안에 나머지 버튼이 오면 돌진 잡기 (동시에 안 눌러도 됨)
+      if (!air && f.lg === 2 && f.chain === 1 && f.t <= 4 && !f.hit && f.meter >= DASH_GRAB_COST &&
+          pressed(f, f.mv === "L" ? IN.B : IN.A, 2)) {
         startMove(s, i, "T");
         return;
       }
@@ -1015,7 +1065,7 @@ function control(s: State, i: number) {
       if (f.trapT > 0) {
         // 갇힘: 버튼(공격·점프)을 새로 누를 때마다 더 빨리 빠져나옴
         f.trapT--;
-        if (pressed(f, IN.A | IN.B | IN.C | IN.J, 1)) f.trapT = Math.max(0, f.trapT - 4);
+        if (pressed(f, IN.A | IN.B | IN.C | JUMP_BITS, 1)) f.trapT = Math.max(0, f.trapT - 4);
         if (f.trapT === 0) {
           f.stun = 6;
           s.ev.push({ k: "pop", p: 1 - i, x: f.x, h: f.h + 30 * SUB, v: 0 });
@@ -1024,26 +1074,33 @@ function control(s: State, i: number) {
       }
       if (f.grabbed > 0) {
         f.grabbed--;
+        // 잡기 풀기: 잡힌 직후 약+발차기 (히트스톱 동안 누른 것, 눌렀다 뗀 것도 인정) — 풀면 피해 없음
+        const AB = IN.A | IN.B;
+        const techIn = ((cur(f) & AB) === AB && pressed(f, AB, 4)) || (pressed(f, IN.A, 4) && pressed(f, IN.B, 4));
         if (f.grabbed === 0) {
-          // 못 풀었으면 위로 띄워짐 (다운 아님 → 뛰어올라 공중 콤보)
+          // 못 풀었으면 피해가 들어가고 위로 띄워짐 (다운 아님 → 뛰어올라 공중 콤보)
           const o = s.p[1 - i];
+          f.hp = Math.max(0, f.hp - f.grabDmg);
+          f.grabDmg = 0;
+          o.meter = Math.min(METER_MAX, o.meter + charOf(o).moves.T.meter);
           f.vh = LAUNCH_VH;
           f.kd = 0;
           f.float = 1;
           f.vx = o.face * 220;
           f.stun = LAUNCH_STUN;
           s.ev.push({ k: "launch", p: 1 - i, x: f.x, h: f.h, v: 0 });
-        }
-        // 잡기 풀기: 잡힌 직후 약+발차기 (히트스톱 동안 누른 것도 인정)
-        if ((cur(f) & (IN.A | IN.B)) === (IN.A | IN.B) && pressed(f, IN.A | IN.B, THROW_TECH_T + 12)) {
+        } else if (f.grabbed >= THROW_TECH_T - THROW_TECH_WIN && techIn) {
           const o = s.p[1 - i];
           f.grabbed = 0;
+          f.grabDmg = 0;
           f.st = "idle";
           f.t = 0;
           f.stun = 0;
           f.combo = 0;
           f.kd = 0;
           f.vx = -f.face * 900;
+          // 푸는 데 쓴 약·발차기 입력은 여기서 소진 (안 그러면 풀자마자 그 입력으로 발차기가 나감)
+          for (let k = HIST - 4; k < HIST; k++) f.hist[k] |= AB;
           if (o.st === "atk" && o.mv === "T") {
             o.st = "idle";
             o.mv = "";
@@ -1192,6 +1249,11 @@ function hitWall(map: MapDef, f: Fighter, px: number) {
   }
 }
 
+/** 벽 발판(건물) 속에 들어가 있으면 지붕 위로 올림 */
+function unstick(map: MapDef, f: Fighter) {
+  for (const p of map.plats) if (p.wall && inX(p, f.x) && f.h < p.y * SUB) f.h = p.y * SUB;
+}
+
 function respawn(s: State, i: number) {
   const f = s.p[i];
   // 떨어진 그 자리(지금 x) 바로 위 화면 꼭대기에서 다시 내려옴 — 아래가 낭떠러지면 공중 조작·2단 점프·대시로 건너감
@@ -1201,6 +1263,14 @@ function respawn(s: State, i: number) {
   f.h = RESPAWN_H;
   f.vx = 0;
   f.vh = 0;
+  // 땅에서 FALL_GRACE만큼 버티기 전에 또 떨어졌으면: 무적 없음 + 체력 깎임 (이걸로 쓰러지진 않음)
+  const again = f.fell > 0;
+  if (again && f.st !== "ko" && s.phase === "fight" && f.hp > 1)
+    f.hp = Math.max(1, f.hp - Math.trunc((charOf(f).hp * FALL_DMG) / 100));
+  f.fell = FALL_GRACE;
+  f.grabbed = 0;
+  f.grabDmg = 0;
+  f.hold = 0;
   f.st = f.st === "ko" ? "ko" : "jump";
   f.mv = "";
   f.t = 0;
@@ -1217,7 +1287,7 @@ function respawn(s: State, i: number) {
   f.float = 0;
   f.mark = 0;
   f.trapT = 0;
-  f.inv = RESPAWN_INV;
+  f.inv = again ? 0 : RESPAWN_INV;
 }
 
 function physics(s: State, i: number) {
@@ -1233,12 +1303,16 @@ function physics(s: State, i: number) {
     return;
   }
   if (f.pullT > 0) {
+    const px0 = f.x;
     moveX(f, Math.trunc((f.pullX - f.x) / f.pullT));
+    // 끌려오다 건물 벽에 걸리면 거기서 멈춤 (건물 속으로 안 끌려 들어가게)
+    hitWall(map, f, px0);
     f.pullT--;
     f.vx = 0;
   }
   const on = standingOn(map, f);
   if (on) {
+    if (f.fell > 0) f.fell--;
     if (f.st === "atk" && m?.step && f.t < m.startup) moveX(f, m.step * f.face);
     // 연속 동작 2단째부터는 앞으로 조금씩 따라 들어감 (밀려난 상대를 계속 맞힘)
     if (f.st === "atk" && m && f.chain > 1 && CHAIN_MAX[f.mv as MoveId] && f.t < m.startup) moveX(f, CHAIN_STEP * f.face);
@@ -1247,14 +1321,6 @@ function physics(s: State, i: number) {
       // 다른 같은 높이 발판으로 이어지지 않으면 떨어짐
       if (!standingOn(map, f)) {
         f.vh = 0;
-        if (f.st === "idle" || f.st === "walk" || f.st === "dash") {
-          f.st = "jump";
-          f.t = 0;
-          f.jumps = 1;
-          f.airUsed = 0;
-          f.airK = 0;
-          f.airS = 0;
-        }
       }
     }
     if (f.st !== "walk" && f.st !== "dash") {
@@ -1263,6 +1329,17 @@ function physics(s: State, i: number) {
       else if (f.vx < 0) f.vx = Math.min(0, f.vx + fr);
     }
     if (standingOn(map, f)) return;
+  }
+  // 땅 상태인데 발밑이 없음 (발판 끝을 넘었거나, 가드·대기 중에 밀려났거나, 공중에서 잡기를 풀었거나): 공중 상태로
+  // — 안 그러면 공중에서 대기·가드 자세로 떨어지며 땅 기술이 나감
+  if (f.st === "idle" || f.st === "walk" || f.st === "dash" || f.st === "block") {
+    f.st = "jump";
+    f.t = 0;
+    f.stun = 0;
+    f.jumps = 1;
+    f.airUsed = 0;
+    f.airK = 0;
+    f.airS = 0;
   }
   // 공중 (띄워진 상대는 천천히 떨어짐)
   // (띄워진 상대: 중력 45%, 떨어지는 최고 속도도 낮게 → 공중 콤보 넣을 시간)
@@ -1377,12 +1454,23 @@ function scaleDmg(dmg: number, combo: number) {
   return Math.max(1, Math.trunc((dmg * Math.max(floor, 100 - 12 * combo)) / 100));
 }
 
-/** a가 d를 m으로 때림 (src = 판정 위치 x, 탄이면 탄 위치) */
-function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
+/** 동시에 맞을 때: 때린 쪽이 (먼저 맞아서 상태가 바뀌기 전) 원래 어떤 상태였나 */
+interface PreHit {
+  fin: boolean;
+  st: FState;
+  t: number;
+}
+
+/** a가 d를 m으로 때림 (src = 판정 위치 x, 탄이면 탄 위치). pre = 서로 동시에 맞을 때 때린 쪽의 원래 상태 */
+function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId, pre?: PreHit) {
   const a = s.p[ai];
   const d = s.p[1 - ai];
-  const dir = d.x >= srcX ? 1 : -1; // d가 밀려날 방향
+  // d가 밀려날 방향: 판정 반대쪽 — 판정이 바로 발밑(소환 기둥)이면 때린 쪽 반대로
+  const dir = d.x > srcX ? 1 : d.x < srcX ? -1 : d.x >= a.x ? 1 : -1;
   if (!m.proj && !m.summon) a.hit = 1;
+  // 새 콤보의 첫 타: 누운 상대 잡기 횟수 초기화
+  if (d.combo === 0) d.otg = 0;
+  const wasDown = d.st === "down";
   const eh = d.h + 28 * SUB;
   d.juggle = 0;
   d.hold = 0;
@@ -1413,7 +1501,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
   if (mid !== "T" && canBlock(s, d, srcX)) {
     // 저스트 가드: 가드를 올린 지 JUST_T 프레임 안에 막으면 경직 반, 깎임 없음, 게이지 보너스
     const wasBlocking = d.st === "block";
-    const just = (wasBlocking ? d.guardT : 0) <= JUST_T;
+    // (↓를 새로 눌러야 함 — 다운·경직 중부터 누르고만 있던 가드는 보통 가드)
+    const just = pressed(d, IN.D, JUST_T + 1) && (!wasBlocking || d.guardT <= JUST_T);
     d.hp -= just ? 0 : m.chip;
     d.st = "block";
     d.t = 0;
@@ -1432,14 +1521,14 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
     s.ev.push({ k: just ? "just" : "block", p: ai, x: d.x - dir * 10 * SUB, h: eh, v: m.chip, m: mid });
   } else {
     // 연타·소환 필살기는 콤보 보정 없이 매 타 같은 피해
-    const fin = (mid === "L" || mid === "H") && isFinisher(a);
+    const fin = pre ? pre.fin : (mid === "L" || mid === "H") && isFinisher(a);
     // 카운터 히트: 상대가 기술 발동 중(판정 나오기 전)에 맞음 → 1.25배, 경직 +6
     const dm = moveOf(d);
     // (대시로 들어오다 맞아도 카운터 — 거리 두는 캐릭터의 보상)
     const counter = ((d.st === "atk" && !!dm && d.t < dm.startup) || d.st === "dash") && d.combo === 0;
     let base = fin ? Math.trunc((m.dmg * 13) / 10) : m.dmg;
     if (counter) base = Math.trunc((base * 5) / 4);
-    // 감전된 상대: 감전시킬 수 있는 캐릭터(제나)의 모든 공격이 15% 더 아픔
+    // 감전된 상대: 감전시킬 수 있는 캐릭터(제나)의 모든 공격이 10% 더 아픔
     const shocker = CHARS[a.ch].moves.S.shock !== undefined;
     if (d.shock > 0 && shocker) base = Math.trunc((base * 110) / 100);
     // 화상 중인 상대: 태울 수 있는 캐릭터(이그나)의 모든 공격이 더 아픔
@@ -1471,7 +1560,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       popBonus = BUBBLE_POP_DMG;
       s.ev.push({ k: "pop", p: ai, x: d.x, h: d.h + 30 * SUB, v: 0 });
     }
-    d.hp -= dmg + popBonus;
+    // 잡기 피해는 던져지는 순간에 (그 전에 풀면 안 들어감)
+    if (mid === "T") d.grabDmg = dmg + popBonus;
+    else d.hp -= dmg + popBonus;
     d.combo++;
     d.st = "hit";
     d.t = 0;
@@ -1489,9 +1580,11 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.pullT = 8;
       d.pulled = 1;
     }
-    const a0 = s.p[ai];
+    const aSt = pre ? pre.st : a.st,
+      aT = pre ? pre.t : a.t;
     // 공중에서 맞는 횟수엔 한도 없음 (때리는 쪽 공중 공격 수만 제한)
-    const kd = (m.kd && !(m.multi && mid !== "S" && a0.st === "atk" && a0.t < m.startup + m.active - m.multi));
+    // (연타기는 마지막 타만 다운 — 탄은 쏜 사람 동작과 상관없이 탄 쪽에서 정해 줌)
+    const kd = (m.kd && !(m.multi && !m.proj && mid !== "S" && aSt === "atk" && aT < m.startup + m.active - m.multi));
     // 띄우는 연타기(카이 질풍권)의 다음 타: 이미 띄워 놓은 상대를 다시 낮게 끌어내리지 않게
     const prevVh = d.vh,
       prevFloat = d.float;
@@ -1503,7 +1596,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
         // 띄워진 상대 공중 콤보(저글): 멀리 안 날아가고 다시 살짝 떠올라 다음 타를 넣을 수 있음
         // 때린 쪽이 아직 떠오르는 중이면 그 속도에 맞춰 같이 떠오름 (위로 지나쳐 버리지 않게)
         // 이후엔 때린 쪽과 같은 중력(float=2)으로 같이 움직여서 다음 타가 닿음
-        if (airborneS(s, a)) {
+        if (airborneS(s, a) && !m.proj && !m.summon) {
           // 공중에서 맞힘: 둘 다 살짝 떠올랐다가 같은 느린 중력으로 같이 내려옴 → 다음 타가 계속 닿음
           d.vh = JUGGLE_POP;
           d.float = 1;
@@ -1577,6 +1670,7 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.pulled = 0;
       // 잡기: 잠깐 붙잡혀 있다가(그 사이 약+발차기로 풀 수 있음) 던져짐 — 던지는 건 hit 상태에서 처리
       d.grabbed = THROW_TECH_T;
+      if (wasDown) d.otg = 1;
       d.stun = m.hitstun;
       d.vx = 0;
       d.vh = 0;
@@ -1606,6 +1700,10 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       // 때린 쪽은 바뀐 상대와 같은 높이로 와서 0.3초 동안 안 떨어짐 → 바로 공중 J · K (점프 하나 남김)
       a.h = d.h;
       a.vh = 0;
+      // 바꾼 자리가 건물 속이면 지붕 위로 (달밤 마천루: 지붕 끝 상대를 낮은 데서 맞히면 건물 안에 들어가 밑으로 빠졌음)
+      unstick(mapOf(s), a);
+      unstick(mapOf(s), d);
+      if (!airborneS(s, a)) landed(s, ai, a);
       if (airborneS(s, a)) {
         a.hold = SWAP_HOLD;
         a.st = "jump";
@@ -1622,6 +1720,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.float = 3;
       d.stun = m.hitstun;
       d.kd = platBelow(mapOf(s), d.x, d.h) ? 1 : 0;
+      // (지붕 위로 올려져 땅에 선 채면 떠 있는 상태가 아님 — 그 자리에서 혼란 경직만)
+      if (!airborneS(s, d)) ((d.float = 0), (d.kd = 0));
       d.mark = 2;
       d.pulled = 0;
       // 때린 쪽도 상대가 혼란에 떠 있는 동안 천천히 떨어짐 (공중 콤보 넣을 시간)
@@ -1659,7 +1759,8 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       d.stun = Math.max(d.stun, m.launchVh ? 36 : LAUNCH_STUN - 10);
       s.ev.push({ k: "launch", p: ai, x: d.x, h: d.h, v: 4 });
     }
-    a.meter = Math.min(METER_MAX, a.meter + m.meter);
+    // (잡기 게이지는 던질 때 — 풀리면 없음)
+    if (mid !== "T") a.meter = Math.min(METER_MAX, a.meter + m.meter);
     d.meter = Math.min(METER_MAX, d.meter + (dmg >> 4));
     s.stop = Math.max(s.stop, m.hitstop);
     s.ev.push({ k: mid === "T" ? "throw" : "hit", p: ai, x: d.x - dir * 8 * SUB, h: eh, v: dmg + popBonus, m: mid });
@@ -1713,7 +1814,7 @@ function projectiles(s: State) {
       // 불 장판: 밟고 서 있으면(발이 장판 높이) every 프레임마다 피해 + 화상. 경직은 없음, 화상처럼 쓰러지진 않음
       const fl = CHARS[s.p[p.o].ch].moves.X.summon!.floor!;
       const r = projRect(p, s);
-      const on = d.x >= r.l && d.x <= r.r && d.h >= r.lo && d.h <= r.hi && d.st !== "ko";
+      const on = d.x >= r.l && d.x <= r.r && d.h >= r.lo && d.h <= r.hi && d.st !== "ko" && d.inv === 0;
       if (on && p.t % fl.every === 0) {
         if (d.burn === 0) s.ev.push({ k: "burn", p: p.o, x: d.x, h: d.h + 60 * SUB, v: 0 });
         d.burn = Math.max(d.burn, fl.burn);
@@ -1765,7 +1866,12 @@ function attacks(s: State) {
     // 잡기는 땅에 서 있는(경직 아닌) 상대만 — 단, 끌어당겨 온 상대·감전된 상대(땅)·방울에 갇힌 상대는 잡을 수 있음
     if (s.p[i].mv === "T") {
       const o = s.p[1 - i];
-      if (o.trapT === 0 && (airborneS(s, o) || (o.st === "hit" && !o.pulled && o.shock === 0))) continue;
+      // (건모 ⏸ 일시정지 중인 상대도 잡힘)
+      if (o.trapT === 0 && (airborneS(s, o) || (o.st === "hit" && !o.pulled && o.shock === 0 && o.mark !== 1))) continue;
+      // 누운 상대 다시 잡기는 콤보마다 한 번 (잡기 → 내려찍기 → 다시 잡기 무한 반복 방지)
+      if (o.st === "down" && o.otg) continue;
+      // 막는 경직 중엔 안 잡힘
+      if (o.st === "block" && o.stun > 0) continue;
     }
     hits.push(i);
   }
@@ -1782,8 +1888,13 @@ function attacks(s: State) {
     return;
   }
   // 동시에 맞으면 서로 맞음 (상쇄)
-  const ms = hits.map((i) => [moveOf(s.p[i])!, s.p[i].mv as MoveId, s.p[i].x] as const);
-  hits.forEach((i, k) => applyHit(s, i, ms[k][0], ms[k][2], ms[k][1]));
+  // (먼저 계산해 둠: 1P 타격을 적용하면 2P 상태가 바뀌어, 2P의 마무리 보너스·띄우기가 빠졌었음)
+  const ms = hits.map((i) => {
+    const f = s.p[i];
+    const pre: PreHit = { fin: (f.mv === "L" || f.mv === "H") && isFinisher(f), st: f.st, t: f.t };
+    return [moveOf(f)!, f.mv as MoveId, f.x, pre] as const;
+  });
+  hits.forEach((i, k) => applyHit(s, i, ms[k][0], ms[k][2], ms[k][1], ms[k][3]));
 }
 
 function endRound(s: State, winner: number) {
@@ -1815,17 +1926,22 @@ function checkKO(s: State) {
   endRound(s, ka && kb ? 2 : ka ? 1 : 0);
 }
 
-const NO_INPUT: [number, number] = [0, 0];
-
 /** 한 프레임 진행 (s를 직접 바꿈 — 보관이 필요하면 clone 먼저) */
 export function step(s: State, input: [number, number]): State {
   s.ev = [];
   s.f++;
-  const inp = s.phase === "fight" ? input : NO_INPUT;
+  // 멈춘 프레임(히트스톱·필살 연출)엔 입력 기록을 밀지 않고 마지막 칸에 겹쳐 둠
+  // → 멈춘 동안 누른 버튼이 풀리는 순간 "방금 누름"으로 남아 캔슬·연타가 씹히지 않음
+  // (인트로·라운드 끝에도 그대로 기록 — 0으로 채우면 누르고 있던 버튼이 시작하자마자 "새로 누름"이 됨)
+  const frozen = s.phase !== "over" && (s.freeze > 0 || s.stop > 0);
   for (let i = 0; i < 2; i++) {
     const h = s.p[i].hist;
-    h.shift();
-    h.push(inp[i] & IN_MASK);
+    const v = input[i] & IN_MASK;
+    if (frozen) h[HIST - 1] |= v;
+    else {
+      h.shift();
+      h.push(v);
+    }
   }
   if (s.phase === "over") {
     // 경기 끝: 하던 동작은 마저 끝내고, 이긴 쪽은 계속 승리 포즈

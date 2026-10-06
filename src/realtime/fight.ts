@@ -380,6 +380,11 @@ export interface Packet {
   a?: number;
   /** 지금 보낸 쪽 진행 프레임 (속도 맞추기) */
   fr?: number;
+  /** 보낸 쪽 빌드 지문 (sim.ts BUILD_ID) — 다르면 같은 입력이어도 결과가 달라짐 */
+  v?: number;
+  /** 확정된 프레임 hf의 상태 해시 hh (서로 같아야 함) */
+  hf?: number;
+  hh?: number;
 }
 
 export class FightNet {

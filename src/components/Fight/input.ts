@@ -1,5 +1,5 @@
 /**
- * 키보드·게임패드·터치 입력 → 프레임당 9비트 (sim.ts IN). 위·점프키 = 점프(공중에서 한 번 더), 아래 = 가드, 아래+점프 = 발판 아래로.
+ * 키보드·게임패드·터치 입력 → 프레임당 9비트 (sim.ts IN). 위·점프키 = 점프(공중에서 한 번 더), 아래 = 가드.
  */
 import { IN } from "@/lib/fight/sim";
 
@@ -93,6 +93,8 @@ export class FightInput {
   private taps = new Set<string>();
   /** 화면 버튼 (1P) */
   touch = 0;
+  /** 한 프레임보다 짧게 톡 친 화면 버튼도 놓치지 않게, 다음 read까지 눌린 걸로 침 (프레임이 떨어지는 폰) */
+  private touchTap = 0;
   /** true면 2인 대전(키보드 나눠 쓰기) */
   twoPlayer = false;
   /** 대전 중일 때만 키를 가로챔 (메뉴에선 사이트 단축키 등이 그대로 동작) */
@@ -154,7 +156,8 @@ export class FightInput {
       typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : [];
     const list = Array.from(pads ?? []).filter((p): p is Gamepad => !!p);
     if (player === 0) {
-      let v = this.fromKeys(P1) | this.touch | padBits(list[0] ?? null);
+      let v = this.fromKeys(P1) | this.touch | this.touchTap | padBits(list[0] ?? null);
+      this.touchTap = 0;
       if (!this.twoPlayer) v |= this.fromKeys(P1_ALT);
       this.consume(this.twoPlayer ? [P1] : [P1, P1_ALT]);
       return clean(v);
@@ -171,6 +174,7 @@ export class FightInput {
 
   setTouch(v: number) {
     this.touch = v;
+    this.touchTap |= v;
   }
   configure(twoPlayer: boolean) {
     this.twoPlayer = twoPlayer;
@@ -181,6 +185,7 @@ export class FightInput {
     this.keys.clear();
     this.taps.clear();
     this.touch = 0;
+    this.touchTap = 0;
   }
 
   /** 아무 공격 버튼이나 눌렀나 (결과 화면 넘기기 등) */

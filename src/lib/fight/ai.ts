@@ -430,9 +430,23 @@ export class FightAI {
           return finish();
         }
       }
-      // 잡기: 상대가 가드로 버티면 (가까이)
-      if (o.st === "block" && dist < tReach && faceOk && this.r() < L.aggro * 0.15) {
+      // 잡기: 상대가 가드로 버티면 (가까이) — 막는 경직 중엔 안 잡히니 경직이 풀린 뒤에
+      if (o.st === "block" && o.stun === 0 && dist < tReach && faceOk && this.r() < L.aggro * 0.15) {
         press(IN.A | IN.B);
+        return finish();
+      }
+      // 돌진 잡기: 조금 떨어져서 가드로 버티는 상대 (게이지 25) — 톡·떼고·톡으로 대시한 뒤 약+발차기
+      if (
+        o.st === "block" &&
+        f.meter >= 25 &&
+        free &&
+        aligned &&
+        dist > tReach + 10 &&
+        dist < 150 &&
+        this.r() < L.aggro * L.combo * 0.06 &&
+        platBelow(map, o.x, f.h)?.y === platBelow(map, f.x, f.h)?.y
+      ) {
+        this.dashSeq = [toward, 0, 0, 0, toward, toward, toward | IN.A | IN.B, toward];
         return finish();
       }
       // 필살기: 상대가 빈틈이 크거나 가까우면

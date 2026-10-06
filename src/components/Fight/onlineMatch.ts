@@ -7,7 +7,7 @@
  * - 한쪽이 계속 앞서 가면 앞선 쪽이 가끔 한 프레임 쉬어서 속도를 맞춤 (안 그러면 앞선 쪽만 계속 멈칫거림)
  */
 import { RollbackSession } from "@/lib/fight/rollback";
-import type { State } from "@/lib/fight/sim";
+import { BUILD_ID, type State } from "@/lib/fight/sim";
 import type { FightNet, InputLog, Packet } from "@/realtime/fight";
 
 /** 한 꾸러미에 담는 최대 입력 수 */
@@ -50,6 +50,17 @@ export class OnlineMatch {
 
   /** 상대가 경기에서 나감 (기권) */
   peerLeft = false;
+  /** 상대와 빌드가 다름 (한쪽이 새로고침을 안 해 예전 버전) */
+  versionMismatch = false;
+
+  /** 같은 프레임의 상태가 상대와 다름 → 더 진행해도 서로 다른 경기를 보게 됨 */
+  get desync() {
+    return this.session.desync;
+  }
+  /** 이번 프레임에 화면·소리로 내보낼 이벤트 (되감기로 새로 생긴 것 포함) */
+  get events() {
+    return this.session.events;
+  }
   private lastIn = 0;
 
   private onPacket(p: Packet) {
@@ -59,6 +70,9 @@ export class OnlineMatch {
     }
     if (p.k !== "in" || p.m !== this.match || p.f === undefined || !p.i) return;
     this.lastIn = performance.now();
+    // (v가 없으면 지문을 안 보내는 예전 빌드)
+    if (p.v !== BUILD_ID) this.versionMismatch = true;
+    if (p.hf !== undefined && p.hh !== undefined) this.session.addRemoteHash(p.hf, p.hh);
     for (let k = 0; k < p.i.length; k++) {
       const f = p.f + k;
       if (f <= this.remoteAck || this.remoteGot.has(f)) continue;
@@ -114,7 +128,8 @@ export class OnlineMatch {
     const to = Math.min(this.lastQueued, from + MAX_BATCH - 1);
     const i: number[] = [];
     for (let f = from; f <= to; f++) i.push(this.mine.get(f) ?? 0);
-    this.net.send({ k: "in", m: this.match, f: from, i, a: this.remoteAck, fr: this.session.frame });
+    const lh = this.session.lastHash;
+    this.net.send({ k: "in", m: this.match, f: from, i, a: this.remoteAck, fr: this.session.frame, v: BUILD_ID, hf: lh?.f, hh: lh?.h });
   }
 
   /** 상대 경기 입력이 끊긴 지 오래됨 (탭을 닫았거나 연결이 끊김) */

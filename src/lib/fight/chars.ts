@@ -274,7 +274,8 @@ const RAW: CharSrc[] = [
         meter: 7,
         box: { x: 0, y: 48, w: 46, h: 32 },
         // 공중: 거의 수직으로 급강하 → 바닥을 쾅 찍어 양옆 넓게 충격파로 띄움 (공중 K는 앞으로 길게 차는 기술)
-        rush: { vx: 2500, airVh: -3400, airVx: 900, landBurst: 76, landDmg: 50 },
+        // (airVh: 최고 낙하 속도 2600에 잘리므로 그 값으로 — 전엔 -3400이라 적혀 있었지만 실제론 2600)
+        rush: { vx: 2500, airVh: -2600, airVx: 900, landBurst: 76, landDmg: 50 },
         // 돌진 중 2번 때림, 돌진하는 동안 경직 면역
         multi: 6,
         armor: true,
@@ -964,9 +965,18 @@ const GUARD_COUNTER: MoveDef = {
   box: { x: -6, y: 64, w: 62, h: 64 },
 };
 export const GUARD_COUNTER_COST = 25;
+/**
+ * 기본기(약·발차기·공중 약·공중 발차기)도 막으면 피해의 이만큼(%)은 깎임 — 가드에 비용을 둠.
+ * (잡기를 풀면 피해가 안 들어가게 되면서, 깎임이 없으면 ↓만 누르고 잡기만 푸는 쪽이 거의 안 죽음. 저스트 가드면 안 깎임)
+ */
+const NORMAL_CHIP = 15;
 
 function normalize(c: CharSrc): CharDef {
   const moves = { ...c.moves, T: { ...THROW }, G: { ...GUARD_COUNTER } } as Record<MoveId, MoveDef>;
+  for (const id of ["L", "H", "J", "K"] as const) {
+    const m = (moves[id] = { ...moves[id] });
+    m.chip = Math.max(m.chip, Math.round((m.dmg * NORMAL_CHIP) / 100));
+  }
   for (const id of Object.keys(moves) as MoveId[]) {
     const m = moves[id];
     if (m.proj || m.summon || id === "T") continue;

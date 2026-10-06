@@ -464,6 +464,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         const prevSt = [s.p[0].st, s.p[1].st];
         const prevT = [s.p[0].t, s.p[1].t];
         const prevMv = [s.p[0].mv, s.p[1].mv];
+        // 이번 프레임에 소리·이펙트로 낼 이벤트 (온라인은 되감기로 새로 생긴 것까지)
+        let evs: State["ev"] | null = null;
         if (feed) {
           if (wf > feed.ready) break;
           step(s, feed.input(wf));
@@ -475,6 +477,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           // 일시정지 메뉴가 열려 있어도 경기는 계속 (입력만 안 보냄)
           if (!om.tick(pausedRef.current ? 0 : input.read(0))) continue;
           s = om.state;
+          evs = om.events;
         } else {
           const p1 = input.read(0);
           const p2 = setup.mode === "2p" ? input.read(1) : practice ? 0 : ai.next(s, 1);
@@ -504,7 +507,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           const f = s.p[p];
           return (f.mv === "S" || f.mv === "X") && hasSkillSfx(CHARS[f.ch].id, f.mv === "S" ? "l" : "i", !!f.aerial);
         };
-        for (const e of s.ev) {
+        evs ??= s.ev;
+        for (const e of evs) {
           if (e.k === "hit") {
             sfxHit(e.m === "X" ? 2 : e.m === "H" || e.m === "S" || e.m === "K" ? 1 : 0, elOf(e.p));
             if (e.p === (ol?.seat ?? 0)) hits++;
@@ -550,7 +554,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         }
         if (process.env.NODE_ENV !== "production")
           (window as unknown as { __fight: State }).__fight = s;
-        r.events(s.ev, s);
+        r.events(evs, s);
         r.tick(s);
         if (s.phase === "over" && !doneReported) {
           doneReported = true;
@@ -571,6 +575,11 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         if (om.peerLeft || foeGone || om.lostPeer) {
           netDead = true;
           setNetEnd(om.peerLeft || foeGone ? "상대가 나갔어요 — 기권승!" : "상대와 연결이 끊겼어요");
+          if (ol) sessRef.current?.endMatch(ol.match);
+        } else if (om.versionMismatch || om.desync) {
+          // 빌드가 다르면(한쪽만 예전 버전) 같은 입력이어도 결과가 달라 서로 다른 경기를 보게 됨 → 판을 멈춤
+          netDead = true;
+          setNetEnd(om.versionMismatch ? "상대와 게임 버전이 달라요 — 둘 다 새로고침해 주세요" : "경기가 서로 어긋났어요 — 새로고침하고 다시 해 주세요");
           if (ol) sessRef.current?.endMatch(ol.match);
         }
       }
