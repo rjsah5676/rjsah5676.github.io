@@ -342,8 +342,10 @@ export function makeAutoChart(
   const ng = norm(highBar);
   const intensity = new Float32Array(nBars);
   for (let b = 0; b < nBars; b++) {
-    const v = (i: number) => 0.4 * nr(i) + 0.3 * nh(i) + 0.3 * ng(i);
-    const mixed = 0.25 * v(b - 1) + 0.5 * v(b) + 0.25 * v(b + 1);
+    // 음량 비중을 높게: 타격 세기·고역만 보면 조용하지만 드럼이 또렷한 구간이 꽉 찬 구간만큼 세게 잡힘
+    const v = (i: number) => 0.5 * nr(i) + 0.25 * nh(i) + 0.25 * ng(i);
+    // 앞 마디보다 뒤 마디를 더 보고 섞음: 구간이 터지는 첫 마디가 직전 조용한 마디에 눌리지 않게
+    const mixed = 0.15 * v(b - 1) + 0.55 * v(b) + 0.3 * v(b + 1);
     // 대비를 키움: 0.35 이하는 0, 0.95 이상은 1 (벌스 ≈ 0.3, 코러스 ≈ 1)
     intensity[b] = Math.max(0, Math.min(1, (mixed - 0.35) / 0.6));
   }
@@ -418,8 +420,9 @@ export function makeAutoChart(
   if (diff !== "nightmare" && (tweak.fill ?? 0) > 0) {
     // fill 1을 넘으면(1~1.6) 어지간한 마디까지 다 채움
     const fill = Math.min(1.6, tweak.fill ?? 0);
-    // 센 마디만 채우면 코러스만 빽빽해져 들쭉날쭉(osu는 가장 빽빽한 구간이 보통의 1.3배) → 브레이크(0.15 미만)만 빼고 고르게
-    const loudT = Math.max(0.15, 0.55 - 0.45 * fill);
+    // 채우기 양이 fill에 따라 이어지게(0에서 살짝만 올려도 센 마디가 한꺼번에 채워지며 노트가 50% 뛰던 것):
+    // fill이 커질수록 가장 센 마디부터 차츰 더 조용한 마디까지, 브레이크(0.15 미만)만 빼고
+    const loudT = Math.max(0.15, 0.95 - fill);
     // 보통은 8분까지만, 어려움은 8분(채우기가 1을 넘으면 아주 센 마디만 16분), 매우 어려움은 아주 센 마디만 16분
     const fullT =
       diff === "expert"
@@ -1153,13 +1156,12 @@ export function makeAutoCharts(
     // 레벨이 맞은 뒤에도 밀도를 조금씩 올려 보며 같은 레벨에서 가장 빽빽한 채보를 고름
     // (osu 랭크 채보는 같은 별점에서 우리보다 노트가 많음 — 동시치기·잭 같은 '튀는 자리'가 적어서)
     let hit = 0;
-    for (let attempt = 0; attempt < 13; attempt++) {
-      const chart = makeAutoChart(an, d, shiftMs, { ...base, density, fill, nightmare: nm });
-      // 레벨은 난이도별 최저값으로 올려 놓은 값이라, 맞춰 갈 때는 별점 그대로 잼
-      const raw = Math.round(starRating(chart.notes) * 4);
+    // 시도 기록: 목표를 못 맞추면 아래·위로 가장 가까운 두 시도 사이를 더 잘게 나눠 봄
+    const tried: { density: number; fill: number; raw: number; n: number }[] = [];
+    const consider = (chart: Chart, raw: number) => {
       const dNew = Math.abs(raw - target);
       const dBest = Math.abs(bestRaw - target);
-      // 같은 거리면 쉬운 쪽, 같은 레벨이면 노트 많은 쪽
+      // 같은 거리면 쉬운 쪽(직접 정한 레벨을 넘기지 않게), 같은 레벨이면 노트 많은 쪽
       if (
         !best ||
         dNew < dBest ||
@@ -1169,6 +1171,13 @@ export function makeAutoCharts(
         best = chart;
         bestRaw = raw;
       }
+    };
+    for (let attempt = 0; attempt < 13; attempt++) {
+      const chart = makeAutoChart(an, d, shiftMs, { ...base, density, fill, nightmare: nm });
+      // 레벨은 난이도별 최저값으로 올려 놓은 값이라, 맞춰 갈 때는 별점 그대로 잼
+      const raw = Math.round(starRating(chart.notes) * 4);
+      tried.push({ density, fill, raw, n: chart.notes.length });
+      consider(chart, raw);
       const miss = raw - target;
       if ((globalThis as { DEBUG_LV?: boolean }).DEBUG_LV)
         console.log(
@@ -1205,6 +1214,25 @@ export function makeAutoCharts(
           loud: Math.max(0.2, Math.min(1, nm.loud + 0.05 * k)),
           burstEvery: miss > 0 ? Math.min(16, nm.burstEvery * 2) : nm.burstEvery,
         };
+      }
+    }
+    // 목표를 못 맞춘 채 아래(Lv-1)·위(Lv+1) 시도만 있으면 그 사이를 이등분해 가며 찾음 (밀도·채우기를 같이 보간)
+    if (d !== "nightmare" && bestRaw !== target) {
+      let lo = tried.filter((t) => t.raw < target).sort((a, b) => b.raw - a.raw || b.n - a.n)[0];
+      let hi = tried.filter((t) => t.raw > target).sort((a, b) => a.raw - b.raw || a.n - b.n)[0];
+      for (let k = 0; lo && hi && k < 4; k++) {
+        const mid = { density: (lo.density + hi.density) / 2, fill: (lo.fill + hi.fill) / 2 };
+        const chart = makeAutoChart(an, d, shiftMs, { ...base, ...mid, nightmare: nm });
+        const raw = Math.round(starRating(chart.notes) * 4);
+        if ((globalThis as { DEBUG_LV?: boolean }).DEBUG_LV)
+          console.log(
+            `  ${d} 보간${k} 밀도x${mid.density.toFixed(2)} 채우기${mid.fill.toFixed(2)} → Lv${raw} 노트${chart.notes.length}`
+          );
+        consider(chart, raw);
+        if (raw === target) break;
+        const t = { ...mid, raw, n: chart.notes.length };
+        if (raw < target) lo = t;
+        else hi = t;
       }
     }
     out[d] = best!;

@@ -409,7 +409,7 @@ const FREEDOMDIVE = audioSong(
  *   velocity    --bpm-label 180 --boss '{"loud":0.45,"full":0.72,"burstEvery":4,"burstSub":6}' --levels 3,6,11,14,17
  *   anima       --boss '{}' --levels 3,6,9,13,17
  *   aragami     --boss '{}' --levels 3,6,9,13,17   (어려움은 9까지 못 올라가 8)
- *   freedomdive --boss '{}' --levels 3,5,9,13,16   (222 BPM 16분이 꽉 차도 별점 16 — 그 위는 24분·잭이 필요)
+ *   freedomdive --boss '{}' --levels 3,5,9,12,15   (222 BPM 8분·16분이 꽉 차도 별점 12·15 — 그 위는 24분·잭이 필요)
  */
 // ───────────────────────── 연습곡 ─────────────────────────
 // 박자만 또렷한 신스 반주(킥·스네어·하이햇·베이스·패드) 위에 패턴 구간(practice.ts)을 차례로

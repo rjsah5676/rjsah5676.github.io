@@ -263,7 +263,9 @@ export async function analyzeAudio(
   }
   const score = new Float32Array(frames);
   const back = new Int32Array(frames).fill(-1);
-  const TIGHT = 300;
+  // 템포 이탈 벌점. 300이면 센 엇박에 끌려 반 박씩 미끄러졌다 돌아오곤 했음(곡 내내 ±150ms) —
+  // 시퀀서로 만든 곡은 템포가 일정하니 세게 묶음(1% 이탈에 0.3). 실제 템포가 서서히 변하는 곡도 한 박씩은 따라감
+  const TIGHT = 3000;
   const lo = Math.round(period / 2);
   const hi = Math.round(period * 2);
   for (let i = 0; i < frames; i++) {
@@ -355,7 +357,15 @@ export async function analyzeAudio(
     raw.map((o) => o.s),
     0.95
   );
-  for (const o of raw) o.s = Math.min(1, o.s / (sMax || 1));
+  // 세기 = 대비(플럭스 − 문턱) 70% + 그 순간의 음량 30%.
+  // 대비만 쓰면 소리가 꽉 찬 구간(벽처럼 밀려오는 신스)의 타격은 작게, 조용한 구간의 또렷한 드럼은 크게 잡혀
+  // 채보가 거꾸로(시끄러운 데는 비고 잠잠해진 뒤 빽빽) 나옴 — Aragami 15~24초
+  const rmsRef = percentile(rms, 0.95) || 1;
+  for (const o of raw) {
+    const f = Math.min(frames - 1, Math.round(o.t * FPS));
+    const loud = Math.min(1, Math.max(rms[f - 1] ?? 0, rms[f], rms[f + 1] ?? 0) / rmsRef);
+    o.s = Math.min(1, 0.7 * Math.min(1, o.s / (sMax || 1)) + 0.3 * Math.sqrt(loud));
+  }
   // 가짜 피크 제거: 센 타격들의 상승폭 중앙값의 35%도 안 올라간 건 울림 꼬리로 봄
   const riseRef = Math.min(0.8, median(rises.filter((_, i) => raw[i].s > 0.3)) * 0.35);
   const kept = raw.filter((_, i) => rises[i] >= riseRef);
