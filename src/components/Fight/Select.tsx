@@ -5,7 +5,7 @@
  * 키보드: 1P A·D 고르기 · J/Space 결정 · Esc 취소, 2P ←→ · Enter 결정 · . 취소 (마우스·터치도 됨)
  * AI 대전이면 1P가 자기 캐릭터를 고른 뒤 상대(CPU) 캐릭터도 고름. 지금 고르는 쪽은 빛나는 테두리로 표시.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CHARS, type CharDef } from "@/lib/fight/chars";
 import { MAPS } from "@/lib/fight/maps";
 import { AI_LEVELS } from "@/lib/fight/ai";
@@ -13,6 +13,7 @@ import { loadSheet } from "@/lib/fight/sprites";
 import { sfxUi } from "@/lib/fight/sfx";
 import { KeyCap, keyText } from "./KeyCap";
 import PatchNotes, { LATEST } from "./PatchNotes";
+import { SettingsModal } from "./Settings";
 
 export type Mode = "ai" | "2p" | "online";
 export interface Setup {
@@ -181,6 +182,7 @@ export default function Select({
   onPreview,
   entry = "mode",
   onBack,
+  settings,
 }: {
   setup: Setup;
   setSetup: (f: (s: Setup) => Setup) => void;
@@ -193,7 +195,10 @@ export default function Select({
   entry?: "mode" | "char";
   /** 맨 처음 화면에서 뒤로(Esc) — 더 갈 곳이 없으니 전체화면 끄기 등 */
   onBack?: () => void;
+  /** 메인 화면 ⚙ 설정 창 내용 */
+  settings?: ReactNode;
 }) {
+  const [opts, setOpts] = useState(false);
   const [stage, setStage] = useState<"mode" | "char" | "map" | "vs">(entry);
   const [notes, setNotes] = useState(false);
   const [lock, setLock] = useState<[boolean, boolean]>([false, false]);
@@ -461,6 +466,21 @@ export default function Select({
             </span>
           </button>
           {notes && <PatchNotes onClose={() => setNotes(false)} />}
+
+          {/* 왼쪽 위: 설정 */}
+          {settings && (
+            <button
+              type="button"
+              onClick={() => {
+                sfxUi("ok");
+                setOpts(true);
+              }}
+              className={`${KR} absolute top-[2.2cqw] left-[2cqw] flex cursor-pointer items-center gap-[0.6cqw] rounded-full border-[0.15cqw] border-[#F2C35B]/70 bg-[#140A24]/75 px-[1.3cqw] py-[0.45cqw] text-[1.2cqw] font-bold text-[#FFE9A8] backdrop-blur-[3px] transition-colors hover:bg-[#2B1840]/90`}
+            >
+              ⚙ 설정
+            </button>
+          )}
+          {opts && settings && <SettingsModal onClose={() => setOpts(false)}>{settings}</SettingsModal>}
 
           {/* 아래 돌바닥 위: 모드 · 난이도 · 시작 */}
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-[1.5cqw] pb-[3.6cqw]">

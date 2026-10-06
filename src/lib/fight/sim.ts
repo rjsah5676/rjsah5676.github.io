@@ -146,6 +146,8 @@ const BUBBLE_POP_DMG = 20;
 const JUGGLE_POP = 520;
 /** 그때 때린 쪽이 느리게 떨어지는 프레임 (맞힐 때마다 다시) */
 const JUGGLE_HANG = 45;
+/** 건모 Alt+Tab: 자리를 바꾼 뒤 상대를 이 거리(px)까지 끌어옴 */
+const SWAP_NEAR = 30;
 /** 띄워진 지 이 프레임(2초)이 지나면 점점 빨리 떨어짐: RAMP 동안 보통 중력까지, 그 뒤 RAMP2 동안 중력 2배까지 */
 const FLOAT_SOFT_T = 120;
 const FLOAT_RAMP = 60;
@@ -1538,6 +1540,9 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       a.face = d.x >= a.x ? 1 : -1;
       d.face = -a.face as 1 | -1;
       a.vx = 0;
+      // 멀리서 맞혀도 바꾼 뒤 상대를 바로 앞(약이 닿는 거리)까지 끌어옴 → 바로 이어 침
+      if (Math.abs(d.x - a.x) > SWAP_NEAR * SUB)
+        d.x = Math.max(WALL_L, Math.min(WALL_R, a.x + a.face * SWAP_NEAR * SUB));
       // 때린 쪽은 바뀐 상대 높이(조금 아래)까지 같이 솟아올라 바로 공중 공격 (점프 하나 남김)
       const rise = Math.max(0, d.h - a.h - 18 * SUB);
       a.vh = rise > 0 ? isqrt(2 * GRAVITY * rise) : 0;

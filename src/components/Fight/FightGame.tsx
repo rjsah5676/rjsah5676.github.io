@@ -46,6 +46,7 @@ import Select, { type Setup } from "./Select";
 import { scrollToGameTop } from "@/components/GameHeader";
 import ResultPanel from "./Result";
 import TouchControls, { loadMoveMode, saveMoveMode, type MoveMode } from "./Touch";
+import { PauseMenu, SettingsBody } from "./Settings";
 import { fightScore } from "@/lib/aiScore";
 import Online, { type MatchCfg } from "./Online";
 import { OnlineMatch } from "./onlineMatch";
@@ -250,7 +251,8 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
 
   useEffect(() => {
     pausedRef.current = paused;
-  }, [paused]);
+    input.setMenu(paused);
+  }, [paused, input]);
 
   // ── 배경음악: 맵마다 (대전 중, 맵 선택에서 그 맵에 커서가 있을 때만) ──
   const bgmRef = useRef<HTMLAudioElement | null>(null);
@@ -650,6 +652,23 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       return !m;
     });
 
+  // 설정 (메인 ⚙ 설정 · 일시정지 화면 같은 내용)
+  const settingsBody = (
+    <SettingsBody
+      vol={vol}
+      onVol={setVol}
+      muted={muted}
+      onMute={toggleMute}
+      fs={fs}
+      onFs={toggleFs}
+      moveMode={coarse ? moveMode : undefined}
+      onMoveMode={(m) => {
+        setMoveMode(m);
+        saveMoveMode(m);
+      }}
+    />
+  );
+
   const level = AI_LEVELS[setup.level];
 
   if (!playing) {
@@ -680,6 +699,7 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
               onOnline={() => setOnlineOn(true)}
               onPreview={previewMap}
               entry={entry}
+              settings={settingsBody}
               onBack={() => {
                 if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
               }}
@@ -791,33 +811,27 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           />
         )}
         {paused && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/65">
-            <div className="font-mono text-lg text-white">{ol && !watching ? "메뉴" : "일시정지"}</div>
-            {ol && !watching && <div className={`${KR} text-xs text-white/55`}>온라인 대전은 멈추지 않아요 — 메뉴가 열린 동안 내 캐릭터는 가만히 있어요</div>}
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setPaused(false)} className={primaryBtn}>
-                ▶ 계속
-              </button>
-              {!ol && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    restartRef.current();
-                    setPaused(false);
-                  }}
-                  className={btn}
-                >
-                  ↻ 다시하기
-                </button>
-              )}
-              <button type="button" onClick={toggleFs} className={btn}>
-                {fs ? "전체화면 해제" : "⛶ 전체화면"}
-              </button>
-              <button type="button" onClick={toMenu} className={btn}>
-                {watching ? "관전 대기실로" : ol ? "기권하고 대기실로" : "메뉴로"}
-              </button>
-            </div>
-          </div>
+          <PauseMenu
+            title={ol && !watching ? "MENU" : "PAUSED"}
+            note={ol && !watching ? "온라인 대전은 멈추지 않아요 — 메뉴가 열린 동안 내 캐릭터는 가만히 있어요" : undefined}
+            actions={[
+              { label: "계속하기", onClick: () => setPaused(false) },
+              ...(!ol
+                ? [
+                    {
+                      label: "다시하기",
+                      onClick: () => {
+                        restartRef.current();
+                        setPaused(false);
+                      },
+                    },
+                    { label: "캐릭터 선택", onClick: toChars },
+                  ]
+                : []),
+              { label: watching ? "관전 대기실로" : ol ? "기권하고 대기실로" : "메뉴로", onClick: toMenu, danger: !!ol && !watching },
+            ]}
+            settings={settingsBody}
+          />
         )}
         {netEnd && !result && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-[1.6cqw] bg-black/60">

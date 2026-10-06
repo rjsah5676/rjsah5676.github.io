@@ -98,8 +98,11 @@ export class FightInput {
   /** 대전 중일 때만 키를 가로챔 (메뉴에선 사이트 단축키 등이 그대로 동작) */
   active = false;
 
+  /** 일시정지 메뉴가 열린 동안엔 키를 안 가로챔 (메뉴를 키보드로 고르게) */
+  menu = false;
+
   private down = (e: KeyboardEvent) => {
-    if (!this.active) return;
+    if (!this.active || this.menu) return;
     if (SWALLOW.has(e.code)) {
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -122,6 +125,11 @@ export class FightInput {
     this.keys.clear();
     this.taps.clear();
   };
+  /** 일시정지 메뉴 열림·닫힘 — 열 때는 누르고 있던 키를 다 뗀 걸로 */
+  setMenu(on: boolean) {
+    this.menu = on;
+    if (on) this.blur();
+  }
 
   attach() {
     window.addEventListener("keydown", this.down, true);
