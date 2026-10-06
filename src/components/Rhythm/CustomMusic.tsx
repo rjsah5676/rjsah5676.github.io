@@ -204,6 +204,21 @@ export default function CustomMusic({
       </div>
     );
 
+  // 곡이 이미 있는 상태에서 다른 파일을 넣어도 분석하는 동안은 진행 상황을 보여 줌
+  if (busy)
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-[1cqw] rounded-[1cqw] border-[0.2cqw] border-dashed border-[#22D3EE]/60 bg-black/35 px-[2cqw] text-center">
+        <span className="text-[2.4cqw]">🎵</span>
+        <p className={`${KR} text-[1.4cqw] text-white/85`}>{busy.label}…</p>
+        <div className="h-[0.5cqw] w-[80%] overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full bg-gradient-to-r from-[#22D3EE] to-[#A78BFA] transition-[width]"
+            style={{ width: `${Math.round(busy.ratio * 100)}%` }}
+          />
+        </div>
+        {input}
+      </div>
+    );
   const a = track.analysis;
   return (
     <div className="flex flex-col gap-[0.6cqw]">
@@ -240,6 +255,7 @@ export default function CustomMusic({
         </button>
         {input}
       </p>
+      {err && <p className="font-mono text-[1.1cqw] text-red-300">{err}</p>}
     </div>
   );
 }
