@@ -14,6 +14,8 @@ import newdimData from "@/data/rhythm/newdim.json";
 import monarchData from "@/data/rhythm/monarch.json";
 import velocityData from "@/data/rhythm/velocity.json";
 import fullcomboData from "@/data/rhythm/fullcombo.json";
+import animaData from "@/data/rhythm/anima.json";
+import freedomdiveData from "@/data/rhythm/freedomdive.json";
 
 export type Kind =
   | "kick"
@@ -76,6 +78,8 @@ export interface Song {
   sound: SoundSet;
   color: string;
   desc: string;
+  /** 제작자(아티스트) — 외부 곡은 반드시 표기 (곡 선택·플레이 화면·결과·랭킹 이름에 같이 나옴) */
+  artist?: string;
   /** 첫 박 시각(초). 직접 넣은 음악처럼 0초에 박이 시작하지 않을 때 */
   beatOffset?: number;
   /** 화면에 보여줄 BPM (12/8·셔플 곡은 분석 비트가 점4분음표라 1.5배로 환산). 없으면 bpm */
@@ -306,7 +310,7 @@ function audioSong(
   title: string,
   audio: string,
   data: AudioSongData,
-  extra: { color: string; desc: string }
+  extra: { color: string; desc: string; artist?: string }
 ): Song {
   const charts = Object.fromEntries(
     Object.entries(data.charts).map(([d, c]) => [
@@ -370,6 +374,24 @@ const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3",
   desc: "180 BPM · K-POP 걸밴드 록 · AI 자작곡 (tunee.ai)",
 });
 
+// xi의 곡 — 제작자 표기 필수 (artist는 곡 선택·플레이·결과·랭킹에 함께 나옴)
+const ANIMA = audioSong("anima", "ANiMA", "/audio/anima.mp3", animaData, {
+  color: "#D9A066",
+  desc: "184 BPM · ARTCORE · xi",
+  artist: "xi",
+});
+const FREEDOMDIVE = audioSong(
+  "freedomdive",
+  "FREEDOM DiVE",
+  "/audio/freedomdive.mp3",
+  freedomdiveData,
+  {
+    color: "#60A5FA",
+    desc: "222 BPM · SPEEDCORE / ARTCORE · xi",
+    artist: "xi",
+  }
+);
+
 /*
  * 채보 다시 뽑기 (npm run rhythm-chart -- <id> ...) — --levels는 직접 쳐 보고 정한 레벨 (쉬움부터)
  *   fullcombo   --bpm-label 180 --boss '{"loud":0.5,"full":0.8,"burstEvery":8}' --levels 3,6,9,13,16
@@ -379,6 +401,8 @@ const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3",
  *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8}' --tweak '{"expert":{"fill":0.4}}' --levels 3,6,10,13,15
  *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}' --levels 3,6,11,13,16
  *   velocity    --bpm-label 180 --boss '{"loud":0.45,"full":0.72,"burstEvery":4,"burstSub":6}' --levels 3,6,11,14,17
+ *   anima       --boss '{}' --levels 3,6,9,13,17
+ *   freedomdive --boss '{}' --levels 3,5,9,13,16   (222 BPM 16분이 꽉 차도 별점 16 — 그 위는 24분·잭이 필요)
  */
 // ───────────────────────── 연습곡 ─────────────────────────
 // 박자만 또렷한 신스 반주(킥·스네어·하이햇·베이스·패드) 위에 패턴 구간(practice.ts)을 차례로
@@ -434,6 +458,8 @@ export const SONGS: Song[] = [
   NEWDIM,
   MONARCH,
   VELOCITY,
+  ANIMA,
+  FREEDOMDIVE,
   PRACTICE,
 ];
 

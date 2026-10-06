@@ -10,6 +10,8 @@ import newdimCover from "@/img/rhythm/newdim.jpg";
 import monarchCover from "@/img/rhythm/monarch.jpg";
 import velocityCover from "@/img/rhythm/velocity.jpg";
 import fullcomboCover from "@/img/rhythm/fullcombo.jpg";
+import animaCover from "@/img/rhythm/anima.jpg";
+import freedomdiveCover from "@/img/rhythm/freedomdive.jpg";
 
 export const COVERS: Record<string, StaticImageData> = {
   jilju: jiljuCover,
@@ -19,6 +21,8 @@ export const COVERS: Record<string, StaticImageData> = {
   monarch: monarchCover,
   velocity: velocityCover,
   fullcombo: fullcomboCover,
+  anima: animaCover,
+  freedomdive: freedomdiveCover,
 };
 
 /** 내 음악에 앨범 사진이 없을 때 쓰는 기본 재킷 */
@@ -51,7 +55,7 @@ export default function SongCarousel({
   const matches = q.trim()
     ? songs
         .map((s, i) => ({ s, i }))
-        .filter(({ s }) => norm(`${s.title} ${s.desc}`).includes(norm(q)))
+        .filter(({ s }) => norm(`${s.title} ${s.artist ?? ""} ${s.desc}`).includes(norm(q)))
     : [];
   /** 검색 결과로 이동: 가까운 쪽으로 돌림 */
   const pick = (i: number) => {

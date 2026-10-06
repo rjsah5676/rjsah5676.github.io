@@ -88,7 +88,7 @@ export default function SongSelect({
     const norm = (x: string) => x.toLowerCase().replace(/\s+/g, "");
     const k = norm(dq);
     const all = [
-      ...songs.map((s, i) => ({ i, text: `${s.title} ${s.desc}` })),
+      ...songs.map((s, i) => ({ i, text: `${s.title} ${s.artist ?? ""} ${s.desc}` })),
       { i: songs.length, text: "내 음악 my music mp3 custom" },
     ];
     return all.filter((x) => !k || norm(x.text).includes(k)).map((x) => x.i);
@@ -239,6 +239,11 @@ export default function SongSelect({
                   >
                     {song.title}
                   </div>
+                  {song.artist && (
+                    <div className="mt-[0.3cqw] font-mono text-[1.25cqw] font-bold tracking-[0.1em] text-white/85">
+                      {song.artist}
+                    </div>
+                  )}
                   <div
                     className={`${KR} mt-[0.5cqw] line-clamp-2 text-[1.15cqw] leading-snug text-white/60`}
                   >
@@ -606,6 +611,11 @@ export default function SongSelect({
               >
                 {song.title}
               </div>
+              {song.artist && (
+                <div className="mt-[0.3cqw] font-mono text-[1.4cqw] font-bold tracking-[0.1em] text-white/80">
+                  {song.artist}
+                </div>
+              )}
               <div
                 className={`${DISP} mt-[1.6cqw] text-[3cqw] tracking-[0.3em] text-white [animation:bd-blink_0.6s_ease-in-out_infinite]`}
               >

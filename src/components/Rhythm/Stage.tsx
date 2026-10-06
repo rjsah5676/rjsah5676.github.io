@@ -712,7 +712,11 @@ export default function Stage({
       g.fillText(titleFit(g.font, right - x0 - 210), x0, 30);
       g.fillStyle = diffInfo.color;
       g.font = `800 17px ${KR_FONT}`;
-      g.fillText(`${diffInfo.label}  Lv.${chart.level}`, x0, 64);
+      g.fillText(
+        `${diffInfo.label}  Lv.${chart.level}${song.artist ? `  ·  ${song.artist}` : ""}`,
+        x0,
+        64
+      );
       // 점수 (오른쪽)
       g.textAlign = "right";
       g.fillStyle = "#fff";
@@ -786,7 +790,7 @@ export default function Stage({
       g.fillStyle = "rgba(255,255,255,0.55)";
       g.font = `700 12px ${mono}`;
       g.fillText(
-        `${Math.round(song.bpmLabel ?? song.bpm)} BPM · x${live.speed.toFixed(1)}`,
+        `${song.artist ? `${song.artist} · ` : ""}${Math.round(song.bpmLabel ?? song.bpm)} BPM · x${live.speed.toFixed(1)}`,
         tx,
         y0 + 50,
         tw

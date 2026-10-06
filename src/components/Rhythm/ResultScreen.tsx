@@ -135,7 +135,7 @@ export default function ResultScreen({
           </div>
           <div className="min-w-0">
             <div className={`${KR} truncate text-[1.6cqw] font-extrabold text-white`}>
-              {song.title}
+              {song.artist ? `${song.artist} - ${song.title}` : song.title}
             </div>
             <div className={`${KR} text-[1.15cqw] font-bold`} style={{ color: d.color }}>
               {d.label}
@@ -222,7 +222,11 @@ export default function ResultScreen({
         ) : result.failed ? (
           <Note>끝까지 살아남아야 랭킹에 올릴 수 있어요.</Note>
         ) : (
-          <SubmitRanking result={result} label={`${song.title} ${d.label}`} game />
+          <SubmitRanking
+            result={result}
+            label={`${song.artist ? `${song.artist} - ` : ""}${song.title} ${d.label}`}
+            game
+          />
         )}
       </div>
 
