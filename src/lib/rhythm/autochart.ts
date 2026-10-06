@@ -114,8 +114,8 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     chord: { every: 2, need: 0.4 },
     holdBeats: 1.25,
     thick: [1.69, 1.2, 1.06],
-    tri: 0.12,
-    jackAllow: 0.35,
+    tri: 0.06,
+    jackAllow: 0.25,
     jackRun: 3,
     ln: { ratio: 0.04, lens: [1, 1, 1, 1.5, 2], maxSec: 0.8, onBeat: 0.69 },
   },
@@ -354,8 +354,8 @@ export function makeAutoChart(
   const factorOf = (b: number) => {
     const I = intensity[Math.max(0, Math.min(nBars - 1, b))];
     // osu 랭크 채보는 가장 빽빽한 구간이 보통 구간의 1.2배 정도 — 세기 차이를 밀도에 너무 크게 옮기지 않음
-    let f = dense ? 0.6 + 0.6 * I : 0.65 + 0.5 * I;
-    if (I < 0.15) f *= 0.75; // 브레이크
+    let f = dense ? 0.85 + 0.3 * I : 0.75 + 0.4 * I;
+    if (I < 0.15) f *= 0.85; // 브레이크
     if (buildBar(b)) f *= 1.25; // 빌드업
     return f;
   };
@@ -418,7 +418,8 @@ export function makeAutoChart(
   if (diff !== "nightmare" && (tweak.fill ?? 0) > 0) {
     // fill 1을 넘으면(1~1.6) 어지간한 마디까지 다 채움
     const fill = Math.min(1.6, tweak.fill ?? 0);
-    const loudT = Math.max(0.05, 0.8 - 0.5 * fill);
+    // 센 마디만 채우면 코러스만 빽빽해져 들쭉날쭉(osu는 가장 빽빽한 구간이 보통의 1.3배) → 브레이크(0.15 미만)만 빼고 고르게
+    const loudT = Math.max(0.15, 0.55 - 0.45 * fill);
     // 보통은 8분까지만, 어려움은 8분(채우기가 1을 넘으면 아주 센 마디만 16분), 매우 어려움은 아주 센 마디만 16분
     const fullT =
       diff === "expert"
@@ -557,17 +558,35 @@ export function makeAutoChart(
       if (near(0.5) || (an.div === 12 && (near(1 / 3) || near(2 / 3)))) return 1;
       return 2;
     };
+    // 동시치기는 곡 전체에 고르게: 마디마다 몫을 정하고(그 마디 줄 수 × 비율) 그 안에서 센 타격부터.
+    // 전엔 센 마디부터 채워서 코러스·드럼 인트로에 동시치기가 몰리고 그 구간만 별점이 튀어 — 같은 레벨에서 노트가 줄었음
     const groups: number[][] = [[], [], []];
     picked.forEach((o, i) => groups[kindAt(o.t)].push(i));
-    const score = (i: number) =>
-      picked[i].s * (0.5 + intensity[Math.max(0, Math.min(nBars - 1, barOf(picked[i].t)))]);
     groups.forEach((g, k) => {
       const m = R.thick[k];
-      const two = Math.round(g.length * Math.min(1, m - 1));
-      const three = Math.round(g.length * (k === 0 ? R.tri : Math.max(0, m - 2)));
-      g.sort((x, y) => score(y) - score(x)).forEach((i, r) => {
-        if (r < two) extra.set(i, r < three ? 2 : 1);
-      });
+      const twoRate = Math.min(1, m - 1);
+      const threeRate = k === 0 ? R.tri : Math.max(0, m - 2);
+      const byBar = new Map<number, number[]>();
+      for (const i of g) {
+        const b = barOf(picked[i].t);
+        if (!byBar.has(b)) byBar.set(b, []);
+        byBar.get(b)!.push(i);
+      }
+      // 반올림 찌꺼기는 마디를 넘기며 이월 (비율이 전체로는 맞게)
+      let carry2 = 0;
+      let carry3 = 0;
+      for (const b of [...byBar.keys()].sort((x, y) => x - y)) {
+        const list = byBar.get(b)!.sort((x, y) => picked[y].s - picked[x].s);
+        const want2 = list.length * twoRate + carry2;
+        const want3 = list.length * threeRate + carry3;
+        const two = Math.min(list.length, Math.round(want2));
+        const three = Math.min(two, Math.round(want3));
+        carry2 = want2 - two;
+        carry3 = want3 - three;
+        list.forEach((i, r) => {
+          if (r < two) extra.set(i, r < three ? 2 : 1);
+        });
+      }
     });
     // 3개 동시치기 옆(연타 간격 1.5배 안)에 동시치기가 붙으면 레인이 모자람 → 2개로
     picked.forEach((o, i) => {
@@ -996,19 +1015,43 @@ function nightmareNotes(
     const groups: number[][] = [[], [], []];
     const ks = [...slots.keys()];
     ks.forEach((t) => groups[kindAt(t)].push(t));
+    // 동시치기는 곡 전체에 고르게(마디마다 몫) — 센 마디에 몰면 그 구간만 별점이 튀어 같은 레벨에서 노트가 줄어듦.
+    // 마디 안에선 센 타격(가까운 타격 세기)부터
+    const strengthAt = (t: number) => {
+      let v = 0;
+      for (const o of an.onsets) if (Math.abs(o.t - t) < 0.03) v = Math.max(v, o.s);
+      return v;
+    };
     groups.forEach((g, k) => {
-      let need = Math.round(g.length * ctx.thick[k] - g.reduce((a, t) => a + slots.get(t)!, 0));
-      const order = [...g].sort((x, y) => intensity(barOf(y)) - intensity(barOf(x)) || x - y);
-      for (let round = 0; round < 2 && need > 0; round++)
+      const twoRate = Math.min(1, ctx.thick[k] - 1);
+      const threeRate = k === 0 ? ctx.tri : 0;
+      const byBar = new Map<number, number[]>();
+      for (const t of g) {
+        const b = barOf(t);
+        if (!byBar.has(b)) byBar.set(b, []);
+        byBar.get(b)!.push(t);
+      }
+      let carry2 = 0;
+      let carry3 = 0;
+      for (const b of [...byBar.keys()].sort((x, y) => x - y)) {
+        const list = byBar.get(b)!;
+        const have = list.filter((t) => slots.get(t)! >= 2).length;
+        const want2 = list.length * twoRate + carry2;
+        const want3 = list.length * threeRate + carry3;
+        const two = Math.min(list.length, Math.round(want2));
+        const three = Math.min(two, Math.round(want3));
+        carry2 = want2 - two;
+        carry3 = want3 - three;
+        const order = [...list].sort((x, y) => strengthAt(y) - strengthAt(x) || x - y);
+        let need = two - have;
         for (const t of order) {
           if (need <= 0) break;
-          const c = slots.get(t)!;
-          if (c >= 2 + round) continue;
-          slots.set(t, c + 1);
+          if (slots.get(t)! >= 2) continue;
+          slots.set(t, 2);
           need--;
         }
-      // 정박 센 자리 일부는 3개 동시치기 (osu 나이트메어급: 줄의 8% 안팎)
-      if (k === 0) order.slice(0, Math.round(g.length * ctx.tri)).forEach((t) => slots.set(t, 3));
+        order.slice(0, three).forEach((t) => slots.set(t, 3));
+      }
     });
     // 3개 동시치기 바로 옆(연타 간격 1.5배 안)에 동시치기가 붙으면 남는 레인이 없어 줄이 통째로 빠짐 → 2개로
     const win = ctx.patCtx.jackGap * 1.5;

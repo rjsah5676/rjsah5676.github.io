@@ -290,6 +290,9 @@ export async function analyzeAudio(
 
   // 템포가 일정한 곡이면 직선 회귀로 흔들림 제거 (대부분의 녹음곡은 클릭 트랙 기반)
   beats = straighten(beats);
+  // 빠른 곡(170~280 BPM)은 절반 템포로 잡히기 쉬움 — 박 사이 자리가 박만큼 세면 2배 템포 후보를 만들어 둠
+  // (osu 랭크 106곡 중 56곡이 절반으로 잡혔음. 어느 쪽을 쓸지는 격자 맞출 때 셋잇단 판정과 같이 정함)
+  const doubled = octaveDoubled(beats, hp, fl, FPS);
 
   // ── 어택 지점 재보정용 고해상도 에너지 (1.45ms 간격) ──
   progress(0.8, "타격 시점 정밀 보정 중");
@@ -359,7 +362,86 @@ export async function analyzeAudio(
 
   progress(0.9, "박자 격자에 맞추는 중");
   await tick();
-  return { duration: buffer.duration, ...alignToGrid(beats, kept, opt.straight), rms };
+  let aligned = alignToGrid(beats, kept, opt.straight);
+  if (doubled) {
+    // 2배 템포가 셋잇단(12/8)으로 읽히면 원래 템포가 맞는 것 — 아니면 2배 쪽을 씀
+    const fast = alignToGrid(doubled, kept, opt.straight);
+    if (fast.div !== DIV_TRIPLET) aligned = fast;
+  }
+  return { duration: buffer.duration, ...aligned, rms };
+}
+
+/**
+ * 절반 템포로 잡힌 곡 찾기 → 2배 템포(박 사이에 박을 끼운) 비트열, 아니면 null.
+ * 판단 재료(세기 = 타격 세기 hp, 킥 = 저역 플럭스 fl):
+ *  - 박 사이(1/2) 자리 세기가 박만큼(rmid ≥ 0.9)이거나, 박의 1/4·3/4 자리(16분)가 박의 45% 넘게 세거나,
+ *    킥 자기상관이 박의 절반 간격에서 박 간격만큼(≥ 0.85) 나오면 → 그 곡의 진짜 박은 두 배 빠름
+ *  - 단, 2배로 봤을 때 박들이 고르게 세고(alt ≥ 0.6) 그 박의 16분 자리는 약해야(rq2 < 0.6) 함
+ *  (osu 랭크 곡 96곡으로 맞춤: 정답률 91%, 셋잇단 곡은 격자 단계에서 되돌림)
+ */
+function octaveDoubled(
+  beats: number[],
+  hp: Float32Array,
+  fl: Float32Array,
+  fps: number
+): number[] | null {
+  const n = beats.length;
+  if (n < 16) return null;
+  const P = (beats[n - 1] - beats[0]) / (n - 1);
+  const bpm = 60 / P;
+  if (bpm * 2 > 280 || bpm < 50) return null;
+  const at = (t: number) => {
+    const f = Math.round(t * fps);
+    let v = 0;
+    for (let d = -1; d <= 1; d++) v = Math.max(v, hp[f + d] ?? 0);
+    return v;
+  };
+  const meanAt = (offsets: number[]) => {
+    let s = 0;
+    let k = 0;
+    for (let i = 0; i < n - 1; i++) {
+      const b = beats[i];
+      const len = beats[i + 1] - b;
+      for (const o of offsets) {
+        s += at(b + len * o);
+        k++;
+      }
+    }
+    return s / Math.max(1, k);
+  };
+  const eb = meanAt([0]);
+  const em = meanAt([0.5]);
+  const eq = meanAt([0.25, 0.75]);
+  const e8 = meanAt([0.125, 0.375, 0.625, 0.875]);
+  if (eb <= 0) return null;
+  const rmid = em / eb;
+  const rq = eq / eb;
+  const alt2 = Math.min(eb, em) / Math.max(eb, em);
+  const rq2 = e8 / ((eb + em) / 2);
+  // 킥(저역 플럭스) 자기상관: 박 절반 간격 vs 박 간격
+  const acf = (lagSec: number) => {
+    const L = Math.round(lagSec * fps);
+    let mean = 0;
+    for (let i = 0; i < fl.length; i++) mean += fl[i];
+    mean /= fl.length;
+    let s = 0;
+    let s0 = 0;
+    for (let i = 0; i + L < fl.length; i++) {
+      s += (fl[i] - mean) * (fl[i + L] - mean);
+      s0 += (fl[i] - mean) * (fl[i] - mean);
+    }
+    return s0 > 0 ? s / s0 : 0;
+  };
+  const aP = acf(P);
+  const lowr = aP > 0.05 ? acf(P / 2) / aP : 0;
+  if (alt2 < 0.6 || rq2 >= 0.6) return null;
+  if (!(lowr >= 0.85 || rq >= 0.45 || rmid >= 0.9)) return null;
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    out.push(beats[i]);
+    if (i < n - 1) out.push((beats[i] + beats[i + 1]) / 2);
+  }
+  return out;
 }
 
 /** 비트 간격이 거의 일정하면 직선으로 맞춤 (아니면 4비트 이동평균으로만 다듬음) */
