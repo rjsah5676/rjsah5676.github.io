@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { timeLabel, useActiveRoomPrompt } from "@/components/Chess/ChessLobby";
-import { RULES, RULE_LABEL, type Rule } from "@/lib/omok/engine";
+import { BOARD_NS, RULES, RULE_LABEL, type BoardN, type Rule } from "@/lib/omok/engine";
 import {
   ActiveRoomError,
   createRoom,
@@ -11,6 +11,8 @@ import {
   subscribeRooms,
   colorOf,
   serverNow,
+  makeVariant,
+  parseBoardN,
   parseRule,
   MAX_SPECTATORS,
   WAITING_STALE_MS,
@@ -90,6 +92,7 @@ export default function OmokLobby({ uid, nick, onChangeNick, onEnter }: Props) {
   const [incSec, setIncSec] = useState(0);
   const [password, setPassword] = useState("");
   const [rule, setRule] = useState<Rule>("renju");
+  const [boardN, setBoardN] = useState<BoardN>(15);
   const [creating, setCreating] = useState(false);
   const promptActive = useActiveRoomPrompt((id) => onEnter(id));
 
@@ -144,7 +147,7 @@ export default function OmokLobby({ uid, nick, onChangeNick, onEnter }: Props) {
         timeMin,
         incSec: timeMin ? incSec : 0,
         password,
-        variant: rule,
+        variant: makeVariant(rule, boardN),
       });
       onEnter(id);
     } catch (e) {
@@ -234,13 +237,14 @@ export default function OmokLobby({ uid, nick, onChangeNick, onEnter }: Props) {
                   {"  vs  "}
                   <span className="text-white/55">○ {r.blackName || "—"}</span>
                   <span className="ml-2 sm:hidden">
-                    · {timeLabel(r)} · {RULE_LABEL[parseRule(r.variant)]}
+                    · {timeLabel(r)} · {RULE_LABEL[parseRule(r.variant)]} · {parseBoardN(r.variant)}
+                    줄
                   </span>
                 </span>
                 <span className="hidden font-mono text-xs text-white/40 sm:block">
                   {timeLabel(r)}
                   <span className="block text-[10px] text-white/30">
-                    {RULE_LABEL[parseRule(r.variant)]}
+                    {RULE_LABEL[parseRule(r.variant)]} · {parseBoardN(r.variant)}줄
                   </span>
                 </span>
                 <span className="flex justify-end gap-1.5">
@@ -299,6 +303,12 @@ export default function OmokLobby({ uid, nick, onChangeNick, onEnter }: Props) {
               {RULES.find((o) => o.v === rule)?.desc}
             </p>
           </div>
+          <Segmented
+            label="판"
+            value={boardN}
+            onChange={setBoardN}
+            options={BOARD_NS.map((o) => ({ v: o.v, label: o.label }))}
+          />
           <Segmented
             label="제한 시간 (1인당)"
             value={timeMin}

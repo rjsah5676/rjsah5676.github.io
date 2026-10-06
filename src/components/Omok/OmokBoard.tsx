@@ -1,15 +1,19 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { BLACK, CENTER, FILES, N, Omok, WHITE, parseSq, sqName } from "@/lib/omok/engine";
+import { BLACK, CENTER, FILES, Omok, WHITE, parseSq, sqName } from "@/lib/omok/engine";
 
 const CELL = 40;
 const M = 34;
-const BW = CELL * (N - 1) + M * 2;
 const R = 17.5;
-const STARS = ["d4", "l4", "h8", "d12", "l12"].map(parseSq);
-
-const pos = (i: number) => ({ x: M + (i % N) * CELL, y: M + Math.floor(i / N) * CELL });
+/** 화점: 15줄은 귀 4곳 + 천원, 19줄은 바둑판처럼 9곳 */
+const starsOf = (n: number) => {
+  const at = n === 19 ? [3, 9, 15] : [3, 11];
+  const out: number[] = [];
+  for (const y of at) for (const x of at) out.push(y * n + x);
+  if (n !== 19) out.push(CENTER);
+  return out;
+};
 
 /** 작은 돌 아이콘 (이름표·기보용) */
 export function StoneDot({ white, size = 16 }: { white: boolean; size?: number }) {
@@ -46,6 +50,11 @@ export default function OmokBoard({
   numbers?: string[] | null;
 }) {
   const game = useMemo(() => Omok.fromFen(fen), [fen]);
+  // 판 줄 수 (15·19) — fen 칸 수로 앎
+  const n = game.n;
+  const BW = CELL * (n - 1) + M * 2;
+  const pos = (i: number) => ({ x: M + (i % n) * CELL, y: M + Math.floor(i / n) * CELL });
+  const STARS = starsOf(n);
   const forbid = useMemo(() => new Set(game.forbiddenPoints()), [game]);
   const firstCenter = game.rule === "renju" && game.ply === 0;
   const [hover, setHover] = useState<number | null>(null);
@@ -77,8 +86,8 @@ export default function OmokBoard({
     const sy = ((e.clientY - r.top) / r.height) * BW;
     const x = Math.round((sx - M) / CELL);
     const y = Math.round((sy - M) / CELL);
-    if (x < 0 || y < 0 || x >= N || y >= N) return -1;
-    return y * N + x;
+    if (x < 0 || y < 0 || x >= n || y >= n) return -1;
+    return y * n + x;
   };
 
   const onDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -135,14 +144,14 @@ export default function OmokBoard({
       </defs>
       <rect width={BW} height={BW} fill="url(#om-wood)" />
       {/* 줄 */}
-      {Array.from({ length: N }, (_, k) => (
-        <g key={k} stroke="#5C3F1E" strokeWidth={k === 0 || k === N - 1 ? 2 : 1.1}>
-          <line x1={M} y1={M + k * CELL} x2={M + (N - 1) * CELL} y2={M + k * CELL} />
-          <line x1={M + k * CELL} y1={M} x2={M + k * CELL} y2={M + (N - 1) * CELL} />
+      {Array.from({ length: n }, (_, k) => (
+        <g key={k} stroke="#5C3F1E" strokeWidth={k === 0 || k === n - 1 ? 2 : 1.1}>
+          <line x1={M} y1={M + k * CELL} x2={M + (n - 1) * CELL} y2={M + k * CELL} />
+          <line x1={M + k * CELL} y1={M} x2={M + k * CELL} y2={M + (n - 1) * CELL} />
         </g>
       ))}
       {/* 좌표 */}
-      {Array.from({ length: N }, (_, k) => (
+      {Array.from({ length: n }, (_, k) => (
         <g
           key={`c${k}`}
           fill="#5C3F1E"
@@ -154,7 +163,7 @@ export default function OmokBoard({
             {FILES[k].toUpperCase()}
           </text>
           <text x={12} y={M + k * CELL} dominantBaseline="central" textAnchor="middle">
-            {N - k}
+            {n - k}
           </text>
         </g>
       ))}

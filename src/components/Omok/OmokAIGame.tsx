@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { omokSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
 import OmokBoard from "./OmokBoard";
-import { BoardSizePicker, boardMaxWidth, useBoardSize } from "./boardSize";
+import { boardMaxWidth } from "./boardSize";
 import { END_REASON, SIDE_KO, SideBar } from "./OmokParts";
 import { useOmokAI } from "./useOmokAI";
 import {
+  BOARD_NS,
   Omok,
   RULES,
   RULE_LABEL,
@@ -14,6 +15,8 @@ import {
   parseSq,
   stoneOf,
   threatAt,
+  isBoardN,
+  type BoardN,
   type Color,
   type Rule,
 } from "@/lib/omok/engine";
@@ -37,6 +40,8 @@ interface Settings {
   me: Color;
   bot: string;
   rule: Rule;
+  /** 판 줄 수 (15·19) */
+  n?: BoardN;
 }
 interface Saved {
   s: Settings;
@@ -112,7 +117,6 @@ export function OmokNotation({ moves }: { moves: string[] }) {
 }
 
 export default function OmokAIGame({ numbers }: { numbers: boolean }) {
-  const [boardSize, setBoardSize] = useBoardSize();
   const [settings, setSettings] = useState<Settings>({
     me: "w",
     bot: DEFAULT_OMOK_BOT,
@@ -132,7 +136,9 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
 
   // 랭킹전은 렌주룰로만
   const rule: Rule = ranked ? "renju" : settings.rule;
-  const game = useMemo(() => Omok.replay(moves ?? [], rule), [moves, rule]);
+  // 랭킹전은 15줄로만
+  const n: BoardN = ranked ? 15 : (settings.n ?? 15);
+  const game = useMemo(() => Omok.replay(moves ?? [], rule, n), [moves, rule, n]);
   const fen = game.fen();
   useMoveSound(
     moves ? moves.length : -1,
@@ -153,6 +159,7 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
       const v = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null") as Saved | null;
       if (v?.s && Array.isArray(v.moves)) {
         if (!OMOK_BOTS.some((b) => b.id === v.s.bot)) v.s.bot = DEFAULT_OMOK_BOT;
+        if (!isBoardN(Number(v.s.n))) v.s.n = 15;
         // eslint-disable-next-line react-hooks/set-state-in-effect -- 저장된 대국 복원 (마운트 1회)
         setSettings(v.s);
         setMoves(v.moves);
@@ -310,6 +317,19 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
               {RULES.find((r) => r.v === rule)?.desc}
             </p>
           </div>
+          <div>
+            <Seg
+              label="판"
+              value={String(n) as "15" | "19"}
+              disabled={ranked}
+              onChange={(v) => setSettings((s) => ({ ...s, n: Number(v) as BoardN }))}
+              options={BOARD_NS.map((b) => ({ v: String(b.v) as "15" | "19", label: b.label }))}
+            />
+            <p className="mt-1.5 font-['Nanum_Gothic',sans-serif] text-[11px] text-white/40">
+              {ranked ? "랭킹전은 15줄로만 둬요 · " : ""}
+              {n === 19 ? "19×19 — 둘 자리가 넓어서 길게 둬요" : "15×15 — 오목 기본 판"}
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -319,7 +339,7 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
               setHint(null);
               setHints(0);
               setWarn("");
-              if (ranked) setSettings((s) => ({ ...s, rule: "renju" }));
+              if (ranked) setSettings((s) => ({ ...s, rule: "renju", n: 15 }));
               setTimeout(scrollToGameTop, 50);
               setMoves([]);
               say("greet");
@@ -386,7 +406,7 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
 
   return (
     <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
-      <div className="w-full" style={{ maxWidth: boardMaxWidth(boardSize, 300) }}>
+      <div className="w-full" style={{ maxWidth: boardMaxWidth(n, 300) }}>
         <div className="relative">
           <SideBar
             color={top}
@@ -413,10 +433,11 @@ export default function OmokAIGame({ numbers }: { numbers: boolean }) {
       </div>
 
       <div className="flex w-full max-w-[560px] flex-col gap-3 lg:w-72">
-        <BoardSizePicker size={boardSize} onChange={setBoardSize} />
         <div className="rounded-xl border border-white/10 bg-[#1C1E24] px-4 py-3 font-['Nanum_Gothic',sans-serif] text-sm text-white/80">
           {status}
-          <div className="mt-1 font-mono text-[11px] text-white/35">{RULE_LABEL[rule]}</div>
+          <div className="mt-1 font-mono text-[11px] text-white/35">
+            {RULE_LABEL[rule]} · {n}줄
+          </div>
           {ranked && (
             <div className="mt-1 font-mono text-[11px] text-[#FDE047]/80">
               🏆 랭킹전 · ⏱ {clockLabel(seconds)} · {myMoves}수

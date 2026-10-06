@@ -1,9 +1,11 @@
 /*
- * 오목 규칙 엔진 (15×15, 순수 함수 + 작은 게임 클래스)
+ * 오목 규칙 엔진 (15×15 또는 19×19, 순수 함수 + 작은 게임 클래스)
  *
  * 좌석 이름은 방 시스템(boardRooms) 기준: w = 흑(선수), b = 백.
- * 판은 Int8Array(225), 0 = 빈칸, 1 = 흑, 2 = 백. 인덱스 = y * 15 + x (y=0이 맨 위).
- * 수 표기는 "h8" (열 a~o, 줄 1~15, 1이 맨 아래).
+ * 판은 Int8Array(N*N), 0 = 빈칸, 1 = 흑, 2 = 백. 인덱스 = y * N + x (y=0이 맨 위).
+ * 수 표기는 "h8" (열 a~o(19줄은 a~s), 줄 1~N, 1이 맨 아래).
+ * 판 크기(N)는 모듈 전체가 같이 씀 — 판을 만들 때(Omok 생성·AI 계산) setBoardN으로 맞춤.
+ * 한 화면엔 판이 하나라 괜찮음.
  *
  * 규칙
  *  - renju(렌주·국제룰): 첫 수는 천원(가운데). 흑만 금수 — 3-3, 4-4, 장목(6목 이상).
@@ -15,10 +17,26 @@
  *  → 거짓 삼(열린 4를 만들 자리가 금수뿐)은 삼이 아니라서 재귀로 판정.
  */
 
-export const N = 15;
-export const SIZE = N * N;
-export const FILES = "abcdefghijklmno";
-export const CENTER = 7 * N + 7;
+export type BoardN = 15 | 19;
+export const BOARD_NS: { v: BoardN; label: string }[] = [
+  { v: 15, label: "15줄" },
+  { v: 19, label: "19줄" },
+];
+export const MAX_N = 19;
+export const MAX_SIZE = MAX_N * MAX_N;
+export let N: BoardN = 15;
+export let SIZE = N * N;
+export const FILES = "abcdefghijklmnopqrs";
+export let CENTER = 7 * N + 7;
+export const isBoardN = (n: number): n is BoardN => n === 15 || n === 19;
+/** 판 크기 바꾸기 (규칙 판정·AI가 모두 이 값을 씀) */
+export function setBoardN(n: number) {
+  const v: BoardN = isBoardN(n) ? n : 15;
+  if (v === N) return;
+  N = v;
+  SIZE = v * v;
+  CENTER = ((v - 1) / 2) * v + (v - 1) / 2;
+}
 
 export type Color = "w" | "b";
 export type Rule = "renju" | "normal" | "free";
@@ -285,24 +303,33 @@ export function illegalReason(bd: Int8Array, ply: number, i: number, rule: Rule)
 }
 
 export class Omok {
-  bd = new Int8Array(SIZE);
+  bd: Int8Array;
+  /** 판 줄 수 */
+  readonly n: BoardN;
   /** 둔 자리 인덱스 */
   hist: number[] = [];
   winLine: number[] = [];
   private ended: GameEnd | null = null;
 
-  constructor(public rule: Rule = "renju") {}
+  constructor(
+    public rule: Rule = "renju",
+    n: number = 15
+  ) {
+    setBoardN(n);
+    this.n = N;
+    this.bd = new Int8Array(SIZE);
+  }
 
-  static replay(moves: string[], rule: Rule): Omok {
-    const g = new Omok(rule);
+  static replay(moves: string[], rule: Rule, n: number = 15): Omok {
+    const g = new Omok(rule, n);
     for (const m of moves) g.move(m);
     return g;
   }
 
-  /** fen = "규칙 225칸(.xo) 수" — 낙관적 표시·관전용 */
+  /** fen = "규칙 N*N칸(.xo) 수" — 낙관적 표시·관전용 (칸 수로 판 크기를 앎) */
   static fromFen(fen: string): Omok {
     const [r, cells = ""] = fen.split(" ");
-    const g = new Omok(isRule(r) ? r : "renju");
+    const g = new Omok(isRule(r) ? r : "renju", cells.length === 361 ? 19 : 15);
     let n = 0;
     for (let i = 0; i < SIZE; i++) {
       const ch = cells[i];
@@ -314,6 +341,7 @@ export class Omok {
   }
 
   fen(): string {
+    setBoardN(this.n);
     let cells = "";
     for (let i = 0; i < SIZE; i++)
       cells += this.bd[i] === BLACK ? "x" : this.bd[i] === WHITE ? "o" : ".";
@@ -331,12 +359,15 @@ export class Omok {
   }
 
   illegal(i: number): string | null {
+    // 판 크기는 모듈이 같이 쓰는 값이라, 다른 판을 만든 뒤에도 이 판 기준으로 다시 맞춤
+    setBoardN(this.n);
     if (this.ended) return "대국이 끝났습니다.";
     return illegalReason(this.bd, this.hist.length, i, this.rule);
   }
 
   /** 수 두기, 불법수면 throw */
   move(mv: string) {
+    setBoardN(this.n);
     const i = parseSq(mv);
     const why = this.illegal(i);
     if (why) throw new Error(why);
@@ -359,6 +390,7 @@ export class Omok {
   /** 지금 차례인 쪽의 금수 자리들 (판에 ✕로 표시) */
   forbiddenPoints(): number[] {
     if (this.ended) return [];
+    setBoardN(this.n);
     const s: Stone = this.hist.length % 2 === 0 ? BLACK : WHITE;
     if (!hasForbidden(this.rule, s)) return [];
     const out: number[] = [];
@@ -368,6 +400,7 @@ export class Omok {
   }
 
   stones(): number {
+    setBoardN(this.n);
     let n = 0;
     for (let i = 0; i < SIZE; i++) if (this.bd[i]) n++;
     return n;

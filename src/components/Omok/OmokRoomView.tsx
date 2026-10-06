@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { omokSoundInfo, useMoveSound } from "@/hooks/useMoveSound";
 import OmokBoard, { StoneDot } from "./OmokBoard";
-import { BoardSizePicker, boardMaxWidth, useBoardSize } from "./boardSize";
+import { boardMaxWidth } from "./boardSize";
 import { END_REASON, SIDE_KO } from "./OmokParts";
 import { OmokNotation } from "./OmokAIGame";
 import ChessChat from "@/components/Chess/ChessChat";
@@ -37,6 +37,7 @@ import {
   liveClock,
   makeMove,
   offerDraw,
+  parseBoardN,
   parseRule,
   replay,
   requestUndo,
@@ -155,7 +156,6 @@ export default function OmokRoomView({
   onGoRoom,
   numbers,
 }: Props & { numbers: boolean }) {
-  const [boardSize, setBoardSize] = useBoardSize();
   const [room, setRoom] = useState<OmokRoom | null | undefined>(undefined);
   const [presence, setPresence] = useState<Record<string, Presence>>({});
   const [now, setNow] = useState(() => serverNow());
@@ -467,7 +467,7 @@ export default function OmokRoomView({
             {room.name}
           </span>
           <span className="shrink-0 font-mono text-xs text-white/40">
-            {timeLabel(room)} · {RULE_LABEL[parseRule(room.variant)]}
+            {timeLabel(room)} · {RULE_LABEL[parseRule(room.variant)]} · {parseBoardN(room.variant)}줄
           </span>
         </div>
         <div className="flex gap-1.5">
@@ -479,7 +479,7 @@ export default function OmokRoomView({
 
       <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-start lg:justify-center">
         {/* 보드 */}
-        <div className="w-full" style={{ maxWidth: boardMaxWidth(boardSize, 280) }}>
+        <div className="w-full" style={{ maxWidth: boardMaxWidth(parseBoardN(variant), 280) }}>
           <PlayerBar
             {...seat(opp)}
             color={opp}
@@ -588,7 +588,6 @@ export default function OmokRoomView({
 
         {/* 사이드 패널 */}
         <div className="flex w-full max-w-[560px] flex-col gap-3 lg:w-72 lg:max-w-none">
-          <BoardSizePicker size={boardSize} onChange={setBoardSize} />
           <div className="rounded-xl border border-white/10 bg-[#1C1E24] px-4 py-3 font-['Nanum_Gothic',sans-serif] text-sm text-white/80">
             {status}
           </div>

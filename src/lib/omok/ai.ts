@@ -14,6 +14,7 @@ import {
   CENTER,
   DX,
   DY,
+  MAX_SIZE,
   N,
   SIZE,
   WHITE,
@@ -22,6 +23,7 @@ import {
   hasForbidden,
   makesFive,
   otherStone,
+  setBoardN,
   sqName,
   stoneOf,
   type Color,
@@ -220,7 +222,7 @@ interface Gen {
   sumO: number;
 }
 
-const mark = new Int32Array(SIZE);
+const mark = new Int32Array(MAX_SIZE);
 let markGen = 0;
 const nS = new Int8Array(8),
   nO = new Int8Array(8);
@@ -404,6 +406,8 @@ export function chooseMove(
   rule: Rule,
   cfg: AIConfig
 ): string | null {
+  // 판 크기는 넘겨받은 판 칸 수로 (워커는 따로 도는 모듈이라 여기서 맞춤)
+  setBoardN(Math.round(Math.sqrt(board.length)));
   const bd = Int8Array.from(board);
   const s = stoneOf(color);
   const o = otherStone(s);
@@ -511,7 +515,8 @@ export function chooseMove(
 }
 
 function dist2(i: number) {
-  const x = (i % N) - 7,
-    y = ((i / N) | 0) - 7;
+  const c = (N - 1) / 2;
+  const x = (i % N) - c,
+    y = ((i / N) | 0) - c;
   return x * x + y * y;
 }
