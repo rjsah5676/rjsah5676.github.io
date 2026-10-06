@@ -1,1 +1,0 @@
-self.__SSG_MANIFEST=new Set(["\u002FinfoPage\u002F[idx]","\u002Fretro\u002F[id]","\u002Fstudy\u002F[id]","\u002Ftools\u002Fcalorie\u002F[id]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()

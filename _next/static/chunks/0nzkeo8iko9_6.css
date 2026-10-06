@@ -1,2 +1,0 @@
-@import "https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap";
-@keyframes note-drop{0%{opacity:0;transform:translateY(-18px) rotate(calc(var(--r) - 6deg)) scale(1.06)}70%{opacity:1;transform:translateY(2px) rotate(var(--r)) scale(.99)}to{transform:rotate(var(--r))}}.note-drop{animation:.5s cubic-bezier(.2,.9,.3,1.2) backwards note-drop}
