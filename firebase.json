@@ -4,25 +4,25 @@
     "redirects": [
       {
         "source": "/melongame{,/**}",
-        "destination": "https://rjsah5676.github.io/games/melongame/",
+        "destination": "https://gunmo.my/games/melongame/",
         "type": 301
       },
       {
         "source": "/rspeed{,/**}",
-        "destination": "https://rjsah5676.github.io/games/rspeed/",
+        "destination": "https://gunmo.my/games/rspeed/",
         "type": 301
       },
       {
         "source": "/mine{,/**}",
-        "destination": "https://rjsah5676.github.io/games/mine/",
+        "destination": "https://gunmo.my/games/mine/",
         "type": 301
       },
       {
         "source": "/sketch{,/**}",
-        "destination": "https://rjsah5676.github.io/games/sketch/",
+        "destination": "https://gunmo.my/games/sketch/",
         "type": 301
       },
-      { "source": "/:path*", "destination": "https://rjsah5676.github.io/:path*", "type": 301 }
+      { "source": "/:path*", "destination": "https://gunmo.my/:path*", "type": 301 }
     ],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
