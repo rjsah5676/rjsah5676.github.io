@@ -802,7 +802,7 @@ const RAW: CharSrc[] = [
     width: 17,
     color: "#3B9CFF",
     quote: "집가고싶다..",
-    winQuote: "빌드 성공. 버그는 너였네.",
+    winQuote: "ㅇㅋ 끝. 이제 집간다",
     tagline: "FULLSTACK DEBUGGER",
     difficulty: 3,
     stats: { atk: 2, reach: 3, move: 2, control: 5, combo: 5, hp: 4 },
