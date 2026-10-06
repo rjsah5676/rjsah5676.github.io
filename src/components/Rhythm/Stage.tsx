@@ -651,6 +651,19 @@ export default function Stage({
     const songEnd = song.duration - 2.5;
 
     const barSec = beatSec * 4;
+    // 마디 첫 박: 첫 비트(beatOffset)부터 4박 중 노트가 가장 많이 떨어지는 자리 (곡 첫 비트가 늘 마디 첫 박은 아님)
+    const barStart = (() => {
+      const off = song.beatOffset ?? 0;
+      const score = [0, 0, 0, 0];
+      for (const n of chart.notes) {
+        const b = (n.t - off) / beatSec;
+        const k = Math.round(b);
+        if (Math.abs(b - k) < 0.08) score[((k % 4) + 4) % 4]++;
+      }
+      let best = 0;
+      for (let p = 1; p < 4; p++) if (score[p] > score[best] * 1.1) best = p;
+      return off + best * beatSec;
+    })();
     const diffInfo = DIFFICULTIES.find((d) => d.key === diff)!;
     const secName = (t: number) => {
       const bar = Math.floor((t - (song.beatOffset ?? 0)) / barSec);
@@ -885,11 +898,13 @@ export default function Stage({
       g.rect(-4, laneTop, W + 8, judgeY + 6 - laneTop);
       g.clip();
       const yOf = (time: number) => judgeY - ((time - t) / vis) * (judgeY - laneTop);
-      // 마디선: 마디마다 가로줄이 같이 내려와서 박자 읽기 쉽게
-      g.fillStyle = "rgba(255,255,255,0.13)";
-      for (let kk = Math.max(0, Math.ceil(t / barSec)); kk * barSec < t + vis; kk++) {
-        const y = yOf(kk * barSec);
-        if (y < judgeY) g.fillRect(0, y - 0.5, W, 1);
+      // 마디선(osu처럼): 마디 첫 박마다 가로줄이 노트와 같이 내려와서 박자 읽기 쉽게
+      g.fillStyle = "rgba(255,255,255,0.38)";
+      for (let kk = Math.ceil((t - barStart) / barSec); barStart + kk * barSec < t + vis; kk++) {
+        const bt0 = barStart + kk * barSec;
+        if (bt0 < 0) continue;
+        const y = yOf(bt0);
+        if (y < judgeY) g.fillRect(0, y - 1, W, 2);
       }
       // 가림 옵션: y(0=위, judgeY=판정선) 위치에 따른 투명도
       const coverAlpha = (y: number) => {

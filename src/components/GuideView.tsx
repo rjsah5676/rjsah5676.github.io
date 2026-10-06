@@ -143,10 +143,20 @@ function Slides({
   }, [last]);
   // 좌우로 밀어서 넘기기
   const startX = useRef<number | null>(null);
+  // 장을 넘기면 가이드 창 스크롤을 맨 위로 (긴 장 아래쪽에서 '다음'을 눌러도 새 장 처음부터 보이게)
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    for (let el = root.current?.parentElement; el; el = el.parentElement) {
+      if (el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY !== "visible") {
+        el.scrollTop = 0;
+        break;
+      }
+    }
+  }, [i]);
 
   const s = slides[i];
   return (
-    <div className="flex flex-col gap-3">
+    <div ref={root} className="flex flex-col gap-3">
       <div
         className="relative flex aspect-[16/10] touch-pan-y items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-[#121317] select-none"
         onPointerDown={(e) => (startX.current = e.clientX)}
