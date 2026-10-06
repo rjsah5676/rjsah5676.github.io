@@ -617,31 +617,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
       localStorage.setItem(VOL_KEY, JSON.stringify(vol));
     } catch {}
   }, [vol, muted]);
-  const volSliders = (
-    <span className={`flex items-center gap-2 ${muted ? "opacity-40" : ""}`}>
-      {(
-        [
-          ["sfx", "효과음"],
-          ["bgm", "배경음"],
-        ] as const
-      ).map(([k, label]) => (
-        <label key={k} className="flex items-center gap-1 font-['Nanum_Gothic',sans-serif] text-[11px] text-white/55">
-          {label}
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={Math.round(vol[k] * 100)}
-            disabled={muted}
-            onChange={(e) => setVol((v) => ({ ...v, [k]: Number(e.target.value) / 100 }))}
-            className="h-1 w-16 cursor-pointer accent-[#6C63FF]"
-            aria-label={`${label} 음량`}
-          />
-        </label>
-      ))}
-    </span>
-  );
   const toggleMute = () =>
     setMuted((m) => {
       setFightVolume(m ? volRef.current.sfx : 0);
@@ -711,10 +686,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
           <button type="button" onClick={toggleFs} className={primaryBtn}>
             ⛶ 전체화면
           </button>
-          <button type="button" onClick={toggleMute} className={btn}>
-            {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
-          </button>
-          {volSliders}
           <span className="font-['Nanum_Gothic',sans-serif] text-[11px] text-white/35">
             전체화면에선 Esc = 일시정지, 나올 땐 일시정지 메뉴나 ✕
           </span>
@@ -912,10 +883,6 @@ export default function FightGame({ onRanked }: { onRanked?: () => void }) {
         <button type="button" onClick={toggleFs} className={btn}>
           ⛶ 전체화면
         </button>
-        <button type="button" onClick={toggleMute} className={btn}>
-          {muted ? "🔇 소리 켜기" : "🔊 소리 끄기"}
-        </button>
-        {volSliders}
       </div>
 
       {!coarse && hud && <HowTo mode={ol ? "online" : setup.mode} chars={hud.ch} />}

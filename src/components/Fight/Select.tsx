@@ -59,11 +59,11 @@ function SkillRow({ c, k }: { c: CharDef; k: "S" | "X" }) {
         >
           {isId ? "아이덴티티" : "필살기"} <KeyCap k={isId ? "L" : "I"} /> {isId ? c.idName : c.ultName}
         </span>
-        <span className="text-[1.05cqw] leading-snug break-keep text-white/80">{keyText(isId ? c.idDesc : c.ultDesc)}</span>
+        <span className="text-[1cqw] leading-snug break-keep text-white/80">{keyText(isId ? c.idDesc : c.ultDesc)}</span>
         {isId && (
           <span className={`flex items-start gap-[0.4cqw]`}>
             {c.airLabel && <SkillIcon key={`${c.id}-A`} c={c} k="A" small />}
-            <span className="text-[0.95cqw] leading-snug break-keep text-white/55">
+            <span className="text-[0.9cqw] leading-snug break-keep text-white/55">
               <b className="text-[#FDE047]/80">{keyText(c.airLabel ?? "점프 중 L")}</b> {keyText(c.airDesc)}
             </span>
           </span>
@@ -91,7 +91,7 @@ function StatRadar({ c }: { c: CharDef }) {
   };
   const poly = (f: (i: number) => number) => STAT_AXES.map((_, i) => pt(i, f(i)).join(",")).join(" ");
   return (
-    <svg viewBox="-14 4 128 92" className="h-[8.6cqw] w-[12cqw] shrink-0" aria-label="능력치">
+    <svg viewBox="-14 4 128 92" className="h-[7.4cqw] w-[10.3cqw] shrink-0" aria-label="능력치">
       {[1, 0.8, 0.6, 0.4, 0.2].map((k) => (
         <polygon
           key={k}
@@ -145,7 +145,7 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
       <div className={`flex w-full items-center justify-between gap-[0.6cqw] ${right ? "flex-row-reverse" : ""}`}>
         <div className={`flex min-w-0 flex-col gap-[0.5cqw] ${right ? "items-end" : ""}`}>
       <div className="font-mono text-[1.1cqw] tracking-[0.25em] text-white/45">{c.tagline}</div>
-      <div className={`${KR} flex items-center gap-[0.6cqw] text-[1.3cqw] text-white/60 ${right ? "flex-row-reverse" : ""}`}>
+      <div className={`${KR} flex items-center gap-[0.6cqw] text-[1.15cqw] whitespace-nowrap text-white/60 ${right ? "flex-row-reverse" : ""}`}>
         <span>{c.title}</span>
         <span className="text-[#FDE047]" title="조작 난이도">
           {"★".repeat(c.difficulty)}
@@ -153,7 +153,7 @@ function CharInfo({ c, right }: { c: CharDef; right?: boolean }) {
         </span>
       </div>
       <div
-        className={`${KR} text-[3.2cqw] leading-none font-extrabold drop-shadow-[0_0.3cqw_0_#000]`}
+        className={`${KR} text-[2.8cqw] leading-none font-extrabold drop-shadow-[0_0.3cqw_0_#000]`}
         style={{ color: c.color }}
       >
         {c.name}
@@ -601,7 +601,7 @@ export default function Select({
                 />
                 )}
                 <div
-                  className={`absolute top-[8.8cqw] z-10 ${sd === 0 ? "left-[27cqw]" : "right-[27cqw] flex flex-col items-end text-right"} w-[22cqw] rounded-[1cqw] bg-black/45 px-[1cqw] py-[0.8cqw] backdrop-blur-[2px]`}
+                  className={`gold-scroll absolute top-[8.8cqw] z-10 max-h-[34.4cqw] overflow-y-auto ${sd === 0 ? "left-[26cqw]" : "right-[26cqw] flex flex-col items-end text-right"} w-[23.4cqw] rounded-[1cqw] bg-black/45 px-[1cqw] py-[0.8cqw] backdrop-blur-[2px]`}
                 >
                   <div className={`mb-[0.6cqw] flex items-center gap-[0.6cqw] ${sd === 1 ? "flex-row-reverse" : ""}`}>
                     <span
@@ -652,7 +652,7 @@ export default function Select({
                     className="relative cursor-pointer"
                   >
                     <span
-                      className={`flex h-[6.4cqw] w-[6.4cqw] items-center justify-center rounded-[0.5cqw] border-[0.3cqw] bg-black/60 font-mono text-[4cqw] font-black text-white/80 ${
+                      className={`flex h-[5.4cqw] w-[5.4cqw] items-center justify-center rounded-[0.5cqw] border-[0.3cqw] bg-black/60 font-mono text-[3.4cqw] font-black text-white/80 ${
                         r1 && r2 ? "border-[#A78BFA]" : r1 ? "border-[#3B82F6]" : r2 ? "border-[#F43F5E]" : "border-white/20"
                       } ${r1 || r2 ? "animate-pulse" : ""}`}
                     >
@@ -685,7 +685,7 @@ export default function Select({
                                         <img
                       src={face(c)}
                       alt={c.name}
-                      className={`h-[6.4cqw] w-[8cqw] rounded-[0.5cqw] border-[0.3cqw] object-cover ${PX} ${glow ? "animate-pulse" : ""} ${
+                      className={`h-[5.4cqw] w-[6.8cqw] rounded-[0.5cqw] border-[0.3cqw] object-cover ${PX} ${glow ? "animate-pulse" : ""} ${
                         on1 && on2
                           ? "border-[#A78BFA]"
                           : on1
