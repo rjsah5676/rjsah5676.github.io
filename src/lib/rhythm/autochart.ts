@@ -15,7 +15,7 @@
  *  - 타격이 고르게 이어지는 구간(스트림)은 계단·연타·트릴 같은 익숙한 패턴으로 깔아 줌 (patterns.ts)
  */
 import type { Analysis, Onset } from "./analyze";
-import { FPS, gridPos } from "./analyze";
+import { FPS, displayBpm, gridPos } from "./analyze";
 import { finishChart, type Chart, type Difficulty, type Note } from "./chart";
 import { assignPatterns, chordPartners, type PatternCtx } from "./patterns";
 import { starRating } from "./stars";
@@ -1015,6 +1015,12 @@ export const TARGET_LEVEL: Record<Difficulty, number> = {
 /** 목표에서 이만큼 벗어나도 됨 */
 const LEVEL_TOL = 1;
 
+/** 나이트메어 목표 레벨 — 빠른 곡은 더 높게 (체감 템포 170↑ 17, 200↑ 18) */
+const nightmareGoal = (an: Analysis) => {
+  const bpm = displayBpm(an);
+  return bpm >= 200 ? 18 : bpm >= 170 ? 17 : TARGET_LEVEL.nightmare;
+};
+
 /**
  * 난이도별 채보를 한 번에 — 각 난이도가 목표 레벨(TARGET_LEVEL)에 들어올 때까지
  * 밀도(·어려움 이상은 격자 채우기)를 조절해 다시 뽑는다. 가장 가까운 결과를 씀.
@@ -1032,7 +1038,8 @@ export function makeAutoCharts(
   for (const d of diffs) {
     const base = tweaks[d] ?? {};
     // 직접 정한 레벨은 그대로, 아니면 구간 가운데 (아래 난이도보다는 최소 1 높게)
-    const target = base.level ?? Math.max(TARGET_LEVEL[d], prevLevel + 1);
+    const goal = d === "nightmare" ? nightmareGoal(an) : TARGET_LEVEL[d];
+    const target = base.level ?? Math.max(goal, prevLevel + 1);
     const tol = base.level !== undefined ? 0 : LEVEL_TOL;
     const canFill = d !== "easy";
     let density = base.density ?? 1;
