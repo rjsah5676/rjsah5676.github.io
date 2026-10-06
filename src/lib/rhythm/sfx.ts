@@ -99,11 +99,14 @@ const LOOP = [20.782, 50.7815] as const;
 let bgmBuf: Promise<AudioBuffer> | null = null;
 let bgm: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
 let bgmVol = 0.5;
+/** 틀어야 하는지 — 파일을 받거나 풀어서(모바일은 몇 초 걸림) 기다리는 사이 stopBgm이 불렸으면 틀지 않음 */
+let bgmWant = false;
 
 export async function playBgm(volume: number) {
   bgmVol = volume;
+  bgmWant = true;
   const ctx = await audio();
-  if (ctx.state !== "running") return;
+  if (!bgmWant || ctx.state !== "running") return;
   if (bgm) {
     const t = ctx.currentTime;
     bgm.gain.gain.cancelScheduledValues(t);
@@ -122,7 +125,8 @@ export async function playBgm(volume: number) {
     bgmBuf = null;
     return;
   }
-  if (bgm) return; // 기다리는 사이 다른 호출이 이미 틀었음
+  // 기다리는 사이 다른 호출이 이미 틀었거나, 화면이 바뀌어 꺼야 하면 그냥 끝
+  if (bgm || !bgmWant) return;
   const src = ctx.createBufferSource();
   src.buffer = buf;
   src.loop = true;
@@ -138,6 +142,7 @@ export async function playBgm(volume: number) {
 }
 
 export function stopBgm(fade = 0.5) {
+  bgmWant = false;
   const b = bgm;
   const ctx = sharedCtx;
   bgm = null;
