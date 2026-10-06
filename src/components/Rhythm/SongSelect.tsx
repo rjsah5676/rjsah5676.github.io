@@ -87,22 +87,32 @@ export default function SongSelect({
   const visible = useMemo(() => {
     const norm = (x: string) => x.toLowerCase().replace(/\s+/g, "");
     const k = norm(dq);
-    const all = [
-      ...songs.map((s, i) => ({ i, text: `${s.title} ${s.artist ?? ""} ${s.desc}` })),
-      { i: songs.length, text: "내 음악 my music mp3 custom" },
-    ];
+    // 내 음악은 목록 밖(오른쪽 맨 위 카드)이라 검색 대상은 곡만
+    const all = songs.map((s, i) => ({ i, text: `${s.title} ${s.artist ?? ""} ${s.desc}` }));
     return all.filter((x) => !k || norm(x.text).includes(k)).map((x) => x.i);
   }, [dq, songs]);
-  // 걸러진 목록에 지금 곡이 없으면 첫 곡으로
+  // 걸러진 목록에 지금 곡이 없으면 첫 곡으로 (내 음악을 고른 중이면 그대로)
   useEffect(() => {
-    if (visible.length && !visible.includes(sel)) onSel(visible[0]);
-  }, [visible, sel, onSel]);
+    if (!custom && visible.length && !visible.includes(sel)) onSel(visible[0]);
+  }, [visible, sel, onSel, custom]);
 
   const move = (dir: number) => {
     if (!visible.length) return;
     const k = visible.indexOf(sel);
-    const j = k < 0 ? 0 : (k + dir + visible.length) % visible.length;
+    // 내 음악에서 ↓면 목록 맨 위 곡, ↑면 맨 아래 곡으로
+    const j =
+      k < 0 ? (dir > 0 ? 0 : visible.length - 1) : (k + dir + visible.length) % visible.length;
     onSel(visible[j]);
+    sfx("ui-move", 0.6);
+  };
+  const pickCustom = () => {
+    if (custom) {
+      // 이미 내 음악: 파일이 있으면 시작, 없으면 파일 고르기
+      if (track && canStart && !starting) onStart();
+      else pickRef.current?.();
+      return;
+    }
+    onSel(songs.length);
     sfx("ui-move", 0.6);
   };
   const moveDiff = (dir: number) => {
@@ -137,6 +147,9 @@ export default function SongSelect({
       } else if (e.code === "Slash" || e.code === "KeyF") {
         e.preventDefault();
         searchRef.current?.focus();
+      } else if (e.code === "KeyM") {
+        e.preventDefault();
+        if (!custom) pickCustom();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -400,8 +413,48 @@ export default function SongSelect({
         </div>
       </div>
 
+      {/* 오른쪽 맨 위: 내 음악 — 곡 목록과 따로, 눈에 띄게 */}
+      <button
+        type="button"
+        onClick={pickCustom}
+        title={custom ? (track ? "시작" : "눌러서 음악 파일 고르기") : "내 음악으로 플레이 (M)"}
+        className={`group absolute top-[6.3cqw] right-[2.4cqw] z-10 flex h-[5.4cqw] w-[42.6cqw] cursor-pointer items-center gap-[1.1cqw] overflow-hidden rounded-[0.8cqw] border pr-[1.2cqw] pl-[0.7cqw] text-left transition-all duration-200 hover:scale-[1.015] ${
+          custom ? "border-white/70" : ""
+        }`}
+        style={{
+          background: custom
+            ? `linear-gradient(90deg, ${CUSTOM_COLOR}e6, #6366F1d0 70%, #8B5CF6c0)`
+            : `linear-gradient(90deg, ${CUSTOM_COLOR}45, #6366F135 60%, #0b0820d0)`,
+          borderColor: custom ? undefined : `${CUSTOM_COLOR}99`,
+          boxShadow: `0 0 ${custom ? 2.4 : 1.3}cqw ${CUSTOM_COLOR}${custom ? "aa" : "55"}`,
+        }}
+      >
+        <span className="pointer-events-none absolute inset-y-0 left-0 w-[5cqw] bg-white/20 [animation:bd-sweep_2.6s_ease-in-out_infinite]" />
+        <span className="relative h-[4cqw] w-[4cqw] shrink-0 overflow-hidden rounded-[0.5cqw] border border-white/30 bg-[#0e3a4a]">
+          <img src={track?.cover ?? CUSTOM_COVER} alt="" className="h-full w-full object-cover" />
+        </span>
+        <span className="relative flex min-w-0 flex-1 flex-col">
+          <span className="flex items-baseline gap-[0.8cqw]">
+            <span className={`${DISP} text-[1.6cqw] leading-tight tracking-[0.06em] text-white`}>
+              MY MUSIC
+            </span>
+            <span className={`${KR} text-[1.25cqw] font-extrabold text-white`}>
+              내 음악으로 플레이
+            </span>
+          </span>
+          <span className={`${KR} truncate text-[1cqw] text-white/80`}>
+            {track
+              ? `${track.name} · ${custom ? "Enter로 시작" : "다시 고르면 이어서"}`
+              : "mp3를 넣으면 쉬움~나이트메어 채보를 바로 만들어 줘요"}
+          </span>
+        </span>
+        <span className="relative shrink-0">
+          <K>M</K>
+        </span>
+      </button>
+
       {/* 오른쪽: 곡 검색 + 곡 목록 */}
-      <label className="absolute top-[6.5cqw] right-[2.4cqw] z-10 flex w-[42.6cqw] cursor-text items-center gap-[0.9cqw] rounded-[0.7cqw] border border-white/10 bg-black/55 py-[0.45cqw] pr-[1cqw] pl-[0.6cqw] transition-colors focus-within:border-[#A78BFA]/70 focus-within:bg-black/70">
+      <label className="absolute top-[12.3cqw] right-[2.4cqw] z-10 flex w-[42.6cqw] cursor-text items-center gap-[0.9cqw] rounded-[0.7cqw] border border-white/10 bg-black/55 py-[0.45cqw] pr-[1cqw] pl-[0.6cqw] transition-colors focus-within:border-[#A78BFA]/70 focus-within:bg-black/70">
         <span className="flex h-[2.6cqw] w-[2.6cqw] shrink-0 items-center justify-center rounded-[0.45cqw] bg-white/10">
           <svg
             viewBox="0 0 24 24"
@@ -456,32 +509,26 @@ export default function SongSelect({
         ) : (
           <K>F</K>
         )}
-        <span className="shrink-0 font-mono text-[0.95cqw] text-white/40">
-          {visible.filter((i) => i < songs.length).length}곡
-        </span>
+        <span className="shrink-0 font-mono text-[0.95cqw] text-white/40">{visible.length}곡</span>
       </label>
       <div
         ref={listRef}
-        className="absolute top-[10.4cqw] right-0 bottom-[5cqw] w-[48cqw] overflow-y-auto py-[9cqw] pr-[2.4cqw] pl-[3cqw] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="absolute top-[16.2cqw] right-0 bottom-[5cqw] w-[48cqw] overflow-y-auto py-[7cqw] pr-[2.4cqw] pl-[3cqw] [mask-image:linear-gradient(to_bottom,transparent,#000_2.4cqw,#000_calc(100%-2.4cqw),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {visible.length === 0 && (
           <p className={`${KR} pt-[2cqw] text-center text-[1.3cqw] text-white/45`}>
             검색 결과가 없어요
           </p>
         )}
-        {[...songs, null].map((s, i) => {
+        {songs.map((s, i) => {
           if (!visible.includes(i)) return null;
           const on = i === sel;
-          const c = s ? s.color : CUSTOM_COLOR;
-          const lv = s ? charts[s.id][diff]?.level : customCharts?.[diff]?.level;
-          const bb = s
-            ? best[`${s.id}:${diff}`]
-            : track
-              ? best[`custom:${track.key}:${diff}`]
-              : undefined;
+          const c = s.color;
+          const lv = charts[s.id][diff]?.level;
+          const bb = best[`${s.id}:${diff}`];
           return (
             <button
-              key={s?.id ?? "custom"}
+              key={s.id}
               data-i={i}
               type="button"
               onClick={() => {
@@ -511,11 +558,7 @@ export default function SongSelect({
                 <div
                   className={`overflow-hidden rounded-[0.5cqw] border border-white/20 bg-[#0e3a4a] ${on ? "h-[5cqw] w-[5cqw]" : "h-[3.6cqw] w-[3.6cqw]"}`}
                 >
-                  <img
-                    src={s ? COVERS[s.id]?.src : (track?.cover ?? CUSTOM_COVER)}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={COVERS[s.id]?.src} alt="" className="h-full w-full object-cover" />
                 </div>
                 {bb && (
                   <RankEmblem
@@ -528,12 +571,12 @@ export default function SongSelect({
                 <div
                   className={`${KR} truncate font-extrabold text-white ${on ? "text-[1.7cqw] drop-shadow-[0_0.15cqw_0_rgba(0,0,0,0.6)]" : "text-[1.35cqw]"}`}
                 >
-                  {s ? s.title : track ? track.name : "내 음악으로 플레이"}
+                  {s.title}
                 </div>
                 <div
                   className={`truncate font-mono text-[0.95cqw] ${on ? "text-white/85" : "text-white/40"}`}
                 >
-                  {s ? s.desc : "MY MUSIC · mp3 자동 채보"}
+                  {s.desc}
                 </div>
               </div>
               <div className="flex w-[4.2cqw] shrink-0 flex-col items-center">
@@ -561,6 +604,9 @@ export default function SongSelect({
           </span>
           <span>
             <K>F</K> 검색
+          </span>
+          <span>
+            <K>M</K> 내 음악
           </span>
           <span>
             <K>Esc</K> 타이틀

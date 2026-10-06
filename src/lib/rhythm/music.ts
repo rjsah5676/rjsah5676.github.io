@@ -16,6 +16,7 @@ import velocityData from "@/data/rhythm/velocity.json";
 import fullcomboData from "@/data/rhythm/fullcombo.json";
 import animaData from "@/data/rhythm/anima.json";
 import freedomdiveData from "@/data/rhythm/freedomdive.json";
+import aragamiData from "@/data/rhythm/aragami.json";
 
 export type Kind =
   | "kick"
@@ -380,6 +381,11 @@ const ANIMA = audioSong("anima", "ANiMA", "/audio/anima.mp3", animaData, {
   desc: "184 BPM · ARTCORE · xi",
   artist: "xi",
 });
+const ARAGAMI = audioSong("aragami", "Aragami", "/audio/aragami.mp3", aragamiData, {
+  color: "#DC2626",
+  desc: "196 BPM · ARTCORE · xi",
+  artist: "xi",
+});
 const FREEDOMDIVE = audioSong(
   "freedomdive",
   "FREEDOM DiVE",
@@ -402,6 +408,7 @@ const FREEDOMDIVE = audioSong(
  *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}' --levels 3,6,11,13,16
  *   velocity    --bpm-label 180 --boss '{"loud":0.45,"full":0.72,"burstEvery":4,"burstSub":6}' --levels 3,6,11,14,17
  *   anima       --boss '{}' --levels 3,6,9,13,17
+ *   aragami     --boss '{}' --levels 3,6,9,13,17   (어려움은 9까지 못 올라가 8)
  *   freedomdive --boss '{}' --levels 3,5,9,13,16   (222 BPM 16분이 꽉 차도 별점 16 — 그 위는 24분·잭이 필요)
  */
 // ───────────────────────── 연습곡 ─────────────────────────
@@ -459,6 +466,7 @@ export const SONGS: Song[] = [
   MONARCH,
   VELOCITY,
   ANIMA,
+  ARAGAMI,
   FREEDOMDIVE,
   PRACTICE,
 ];
