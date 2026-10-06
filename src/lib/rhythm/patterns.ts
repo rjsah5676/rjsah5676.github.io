@@ -480,20 +480,20 @@ function layStream(
       lanesOf(pat.steps[((ph % pat.steps.length) + pat.steps.length) % pat.steps.length]);
     for (let k = a; k <= b; k++, phase++) {
       const lanes = stepAt(phase);
-      if (slots[k].count < 2 || lanes.length === 2) {
+      if (lanes.length >= slots[k].count) {
         out.set(k, lanes.slice(0, Math.max(1, slots[k].count)));
         continue;
       }
-      // 이 칸은 원래 동시치기인데 패턴은 단노트: 짝은 앞뒤 칸과 겹치지 않게, 최근 모양과 다르게
+      // 이 칸은 패턴보다 두꺼운 동시치기(2개·3개): 모자란 짝은 앞뒤 칸과 겹치지 않게, 최근 모양과 다르게
       const main = lanes[0];
       const near = new Set([...stepAt(phase + 1), ...(k > a ? stepAt(phase - 1) : prevOf(out, k))]);
-      const [partner] = chordPartners(main, 1, {
+      const partners = chordPartners(main, slots[k].count - lanes.length, {
         avoid: near,
-        ok: () => true,
+        ok: (l) => !lanes.includes(l),
         recent: hist.chords,
         rnd: ctx.rnd,
       });
-      out.set(k, partner === undefined ? [main] : [main, partner]);
+      out.set(k, [...lanes, ...partners]);
     }
   }
 }

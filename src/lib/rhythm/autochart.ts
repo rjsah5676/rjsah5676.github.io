@@ -38,6 +38,8 @@ interface AutoRule {
    * 위치마다 센 타격부터 이 평균이 될 때까지 동시치기(2개, 넘치면 3개)로 만듦
    */
   thick: [number, number, number];
+  /** 정박 줄 중 3개 동시치기로 만들 비율 (센 타격부터) — osu: 3개짜리가 줄의 1 · 4 · 8% (어려움·매우 어려움·나이트메어), 거의 정박 */
+  tri: number;
   /** 바로 앞 줄과 같은 레인(잭)을 그대로 둘 확률 — 낮을수록 옆 레인으로 피함 */
   jackAllow: number;
   /** 같은 레인 최대 연속 */
@@ -66,6 +68,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     chord: { every: 8, need: 0.55 },
     holdBeats: 2,
     thick: [1.04, 1, 1],
+    tri: 0,
     jackAllow: 0.12,
     jackRun: 2,
     ln: { ratio: 0.05, lens: [1, 1, 2, 2, 3], maxSec: 1, onBeat: 0.95 },
@@ -79,6 +82,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     chord: { every: 4, need: 0.45 },
     holdBeats: 1.5,
     thick: [1.05, 1.02, 1],
+    tri: 0,
     jackAllow: 0.2,
     jackRun: 2,
     ln: { ratio: 0.05, lens: [1, 1, 1, 2, 2], maxSec: 0.8, onBeat: 0.94 },
@@ -92,6 +96,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     chord: { every: 2, need: 0.45 },
     holdBeats: 1.5,
     thick: [1.37, 1.1, 1.05],
+    tri: 0.04,
     jackAllow: 0.4,
     jackRun: 3,
     ln: { ratio: 0.04, lens: [1, 1, 1.5, 2], maxSec: 0.9, onBeat: 0.81 },
@@ -105,6 +110,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     chord: { every: 2, need: 0.4 },
     holdBeats: 1.25,
     thick: [1.69, 1.2, 1.06],
+    tri: 0.2,
     jackAllow: 0.6,
     jackRun: 3,
     ln: { ratio: 0.04, lens: [1, 1, 1, 1.5, 2], maxSec: 0.8, onBeat: 0.69 },
@@ -119,6 +125,7 @@ const AUTO_RULES: Record<Difficulty, AutoRule> = {
     chord: { every: 2, need: 0.35 },
     holdBeats: 1.25,
     thick: [1.85, 1.34, 1.12],
+    tri: 0.35,
     jackAllow: 0.85,
     jackRun: 4,
     ln: { ratio: 0.03, lens: [1, 1, 1, 1.5], maxSec: 0.7, onBeat: 0.63 },
@@ -487,6 +494,7 @@ export function makeAutoChart(
         intensity: (b) => intensity[Math.max(0, Math.min(nBars - 1, b))],
         patCtx,
         thick: R.thick,
+        tri: R.tri,
       }
     );
     const nmHeld = addLongNotes(regularizeRows(nm), {
@@ -533,10 +541,18 @@ export function makeAutoChart(
     groups.forEach((g, k) => {
       const m = R.thick[k];
       const two = Math.round(g.length * Math.min(1, m - 1));
-      const three = Math.round(g.length * Math.max(0, m - 2));
+      const three = Math.round(g.length * (k === 0 ? R.tri : Math.max(0, m - 2)));
       g.sort((x, y) => score(y) - score(x)).forEach((i, r) => {
         if (r < two) extra.set(i, r < three ? 2 : 1);
       });
+    });
+    // 3개 동시치기 옆(연타 간격 1.5배 안)에 동시치기가 붙으면 레인이 모자람 → 2개로
+    picked.forEach((o, i) => {
+      if (extra.get(i) !== 2) return;
+      const crowded = [i - 1, i + 1].some(
+        (j) => picked[j] && Math.abs(picked[j].t - o.t) < R.jackGap * 1.5 && extra.has(j)
+      );
+      if (crowded) extra.set(i, 1);
     });
   }
 
@@ -612,12 +628,15 @@ export function makeAutoChart(
     notes.push({ t: o.t, lane: want });
 
     // 패턴이 준 동시치기 짝
+    let paired = 0;
     if (patLanes && patLanes.length === 2) {
       const l2 = patLanes[1] === want ? patLanes[0] : patLanes[1];
       if (l2 !== want && o.t - laneLast[l2] >= R.jackGap) {
         notes.push({ t: o.t, lane: l2 });
         laneLast[l2] = o.t;
-        continue;
+        // 3개 동시치기 자리가 아니면 패턴 짝으로 끝
+        if ((extra.get(i) ?? 0) < 2) continue;
+        paired = 1;
       }
     }
 
@@ -626,7 +645,7 @@ export function makeAutoChart(
       R.chord !== null &&
       sectionStart(barOf(o.t)) &&
       (i === 0 || barOf(picked[i - 1].t) !== barOf(o.t));
-    const more = Math.max(extra.get(i) ?? 0, entry ? 1 : 0);
+    const more = Math.max(extra.get(i) ?? 0, entry ? 1 : 0) - paired;
     if (more > 0) {
       // 짝 레인: 거울(D+K·F+J)만 반복되지 않게 — 바로 앞 줄 레인·최근 동시치기 모양은 피함
       const prevRow = new Set<number>();
@@ -884,6 +903,7 @@ function nightmareNotes(
     intensity: (bar: number) => number;
     patCtx: PatternCtx;
     thick: [number, number, number];
+    tri: number;
   }
 ): Note[] {
   const { beatSec, barOf, intensity } = ctx;
@@ -960,6 +980,18 @@ function nightmareNotes(
           slots.set(t, c + 1);
           need--;
         }
+      // 정박 센 자리 일부는 3개 동시치기 (osu 나이트메어급: 줄의 8% 안팎)
+      if (k === 0) order.slice(0, Math.round(g.length * ctx.tri)).forEach((t) => slots.set(t, 3));
+    });
+    // 3개 동시치기 바로 옆(연타 간격 1.5배 안)에 동시치기가 붙으면 남는 레인이 없어 줄이 통째로 빠짐 → 2개로
+    const win = ctx.patCtx.jackGap * 1.5;
+    const sorted = [...slots.keys()].sort((x, y) => x - y);
+    sorted.forEach((t, i) => {
+      if (slots.get(t)! < 3) return;
+      const crowded = [sorted[i - 1], sorted[i + 1]].some(
+        (u) => u !== undefined && Math.abs(u - t) < win && slots.get(u)! >= 2
+      );
+      if (crowded) slots.set(t, 2);
     });
   }
   const times = [...slots.keys()].sort((a, b) => a - b);
