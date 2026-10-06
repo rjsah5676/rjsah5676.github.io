@@ -378,7 +378,7 @@ const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3",
  *   rinkaku     --tweak '{"expert":{"fill":0.4}}' --levels 2,4,8,12
  *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8}' --tweak '{"expert":{"fill":0.4}}' --levels 3,6,10,13,15
  *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}' --levels 3,6,11,13,16
- *   velocity    --bpm-label 180 --boss '{"loud":0.3,"full":0.5,"loudSub":2,"fullSub":4,"chordFull":2,"burstSub":8,"burstEvery":1}' --levels 3,6,11,14,17
+ *   velocity    --bpm-label 180 --boss '{"loud":0.45,"full":0.72,"burstEvery":4,"burstSub":6}' --levels 3,6,11,14,17
  */
 // ───────────────────────── 연습곡 ─────────────────────────
 // 박자만 또렷한 신스 반주(킥·스네어·하이햇·베이스·패드) 위에 패턴 구간(practice.ts)을 차례로
