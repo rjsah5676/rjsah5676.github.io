@@ -140,7 +140,7 @@ export interface NightmareTweak {
   chordFull?: number;
   /** 몇 마디마다 마지막 박을 연타로 (아주 센 마디) */
   burstEvery?: number;
-  /** 연타 등분 (8 = 32분) */
+  /** 연타 등분 (8 = 32분, 6 = 16분 셋잇단 — 기본은 6: 32분은 빠른 곡에서 못 칠 만큼 촘촘) */
   burstSub?: number;
 }
 const NIGHTMARE_DEFAULT: Required<NightmareTweak> = {
@@ -151,7 +151,7 @@ const NIGHTMARE_DEFAULT: Required<NightmareTweak> = {
   chordLoud: 1,
   chordFull: 2,
   burstEvery: 4,
-  burstSub: 8,
+  burstSub: 6,
 };
 
 function nearestCen(an: Analysis, t: number) {

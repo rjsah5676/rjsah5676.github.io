@@ -372,12 +372,12 @@ const FULLCOMBO = audioSong("fullcombo", "Full Combo!!", "/audio/fullcombo.mp3",
 
 /*
  * 채보 다시 뽑기 (npm run rhythm-chart -- <id> ...) — --levels는 직접 쳐 보고 정한 레벨 (쉬움부터)
- *   fullcombo   --bpm-label 180 --boss '{"loud":0.5,"full":0.8,"burstEvery":8}' --levels 3,6,9,13,16
+ *   fullcombo   --bpm-label 180 --boss '{"loud":0.5,"full":0.8,"burstEvery":8,"burstSub":8}' --levels 3,6,9,13,16
  *   jilju       --tweak '{"hard":{"fill":0.3},"expert":{"fill":0.15}}' --levels 3,5,8,12
  *   natsukasumi --tweak '{"hard":{"fill":0.9},"expert":{"fill":1.3}}' --levels 2,4,7,12
  *   rinkaku     --tweak '{"expert":{"fill":0.4}}' --levels 2,4,8,12
- *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8}' --tweak '{"expert":{"fill":0.4}}' --levels 3,6,10,13,15
- *   monarch     --bpm-label 150 --boss '{"burstEvery":2}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}' --levels 3,6,11,13,16
+ *   newdim      --boss '{"loud":0.55,"full":0.85,"burstEvery":8,"burstSub":8}' --tweak '{"expert":{"fill":0.4}}' --levels 3,6,10,13,15
+ *   monarch     --bpm-label 150 --boss '{"burstEvery":2,"burstSub":8}' --tweak '{"hard":{"fill":0.35},"expert":{"fill":0.3},"nightmare":{"fill":0.4}}' --levels 3,6,11,13,16
  *   velocity    --bpm-label 180 --boss '{"loud":0.45,"full":0.72,"burstEvery":4,"burstSub":6}' --levels 3,6,11,14,17
  */
 // ───────────────────────── 연습곡 ─────────────────────────
