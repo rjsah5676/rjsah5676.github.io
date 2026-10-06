@@ -792,7 +792,7 @@ const RAW: CharSrc[] = [
     difficulty: 3,
     stats: { atk: 2, reach: 3, move: 2, control: 5, combo: 5, hp: 4 },
     idName: "Ctrl+A",
-    idDesc: "넓은 파란 선택 박스를 펼쳐, 맞은 상대를 눈앞까지 끌어와 ⏸ 일시정지",
+    idDesc: "넓은 파란 선택 박스를 펼쳐, 맞은 상대를 ⏸ 일시정지 (1초 동안 꼼짝 못 함)",
     ultName: "금요일 배포",
     ultDesc: "앞쪽 넓게 에러 블록이 빗발쳐 5연타, 마지막 타에 넘어뜨림",
     airLabel: "공중 L Alt+Tab",
@@ -866,7 +866,7 @@ const RAW: CharSrc[] = [
         recovery: 22,
         dmg: 22,
         chip: 0,
-        hitstun: 50, // ⏸ 일시정지 약 0.8초
+        hitstun: 60, // ⏸ 일시정지 1초 (끌어오기는 소영과 겹쳐서 빼고 50→60)
         blockstun: 10,
         push: 200,
         hitstop: 8,
@@ -875,8 +875,6 @@ const RAW: CharSrc[] = [
         box: { x: 0, y: 92, w: 120, h: 100 },
         onBlock: -12,
         pause: true,
-        // 맞으면 바로 눈앞(약이 닿는 거리)까지 끌어옴
-        pull: true,
         cancel: ["L", "T", "X"],
         // 공중 「Alt+Tab」: 앞에 창 — 맞으면 자리 바꾸고 💫 혼란(둥실 멈춤) → 넘어뜨림
         // 맞히면 둘 다 공중에 잠깐 떠 있어서(혼란 동안 때린 쪽도 천천히 떨어짐) 공중 약·발차기로 이어 침
@@ -890,7 +888,6 @@ const RAW: CharSrc[] = [
           hitstop: 10,
           box: { x: -4, y: 64, w: 90, h: 160 },
           pause: false,
-          pull: false,
           swap: true,
           cancel: undefined,
           hover: 300,

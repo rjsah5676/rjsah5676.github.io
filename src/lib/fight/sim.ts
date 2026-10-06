@@ -1546,6 +1546,11 @@ function applyHit(s: State, ai: number, m: MoveDef, srcX: number, mid: MoveId) {
       // 때린 쪽은 바뀐 상대 높이(조금 아래)까지 같이 솟아올라 바로 공중 공격 (점프 하나 남김)
       const rise = Math.max(0, d.h - a.h - 18 * SUB);
       a.vh = rise > 0 ? isqrt(2 * GRAVITY * rise) : 0;
+      // 아래에서 위의 상대를 맞혀 바꾸면 건모가 상대보다 한참 위에 남아 (천천히 떨어지며) 공격이 안 닿음 → 상대 높이로 내려옴
+      if (a.h > d.h + 10 * SUB) {
+        a.h = d.h + 10 * SUB;
+        a.vh = 0;
+      }
       // 공중에서 바꿨으면(같은 높이·아래) 그 자리에서 바로 공중 공격 (기술 후딜 없이)
       if (a.vh > 0 || airborneS(s, a)) {
         if (a.vh > 0) a.h += SUB; // 바닥에서 떼어야 솟아오름
